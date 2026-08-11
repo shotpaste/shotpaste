@@ -1,0 +1,121 @@
+{
+  "sourceDirectory": "resources/localization",
+  "sourceLanguage": "en",
+  "version": "1.0",
+  "fragments": [
+    {
+      "file": "Features/Annotate.xcstrings",
+      "prefixes": [
+        "annotate.",
+        "annotate-context."
+      ]
+    },
+    {
+      "file": "Features/Capture.xcstrings",
+      "prefixes": [
+        "after-capture.",
+        "capture-kind.",
+        "capture-storage.",
+        "foreground-cutout.",
+        "ocr.",
+        "one-shot.",
+        "preferences-capture.",
+        "screen-capture.",
+        "scrolling-capture.",
+        "scrolling-capture-status."
+      ]
+    },
+    {
+      "file": "Features/Menubar.xcstrings",
+      "prefixes": [
+        "menu."
+      ]
+    },
+    {
+      "file": "Features/ShortcutGuidance.xcstrings",
+      "prefixes": [
+        "shortcut-guidance."
+      ]
+    },
+    {
+      "file": "Features/QuickAccess.xcstrings",
+      "prefixes": [
+        "preferences-quick-access.",
+        "quick-access."
+      ]
+    },
+    {
+      "file": "Features/Recording.xcstrings",
+      "prefixes": [
+        "gif.",
+        "keystroke-position.",
+        "microphone.",
+        "recording.",
+        "recording-annotation.",
+        "recording-toolbar."
+      ]
+    },
+    {
+      "file": "Features/Settings.xcstrings",
+      "prefixes": [
+        "history-background-style.",
+        "history-panel-position.",
+        "preferences-advanced.",
+        "preferences-general.",
+        "preferences-history.",
+        "preferences.tab."
+      ]
+    },
+    {
+      "file": "Features/Shortcuts.xcstrings",
+      "prefixes": [
+        "preferences-shortcuts.",
+        "shortcut-overlay.",
+        "shortcut-recorder.",
+        "shortcut-validation.",
+        "system-shortcuts."
+      ]
+    },
+    {
+      "file": "Features/WhatsNew.xcstrings",
+      "prefixes": [
+        "whats-new."
+      ]
+    },
+    {
+      "file": "Shared/Common.xcstrings",
+      "prefixes": [
+        "action.",
+        "app-identity.",
+        "appearance.",
+        "common."
+      ]
+    },
+    {
+      "file": "Shared/Errors.xcstrings",
+      "prefixes": [
+        "crash-report."
+      ]
+    },
+    {
+      "file": "Shared/Permissions.xcstrings",
+      "prefixes": [
+        "file-access.",
+        "permission-row.",
+        "preferences-permissions."
+      ]
+    },
+    {
+      "file": "Shared/PermissionLabels.xcstrings",
+      "prefixes": [
+        "permission."
+      ]
+    },
+    {
+      "file": "Features/Combine.xcstrings",
+      "prefixes": [
+        "combine."
+      ]
+    }
+  ]
+}

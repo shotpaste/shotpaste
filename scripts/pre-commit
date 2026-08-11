@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+staged_swift_files=()
+while IFS= read -r -d '' file; do
+  staged_swift_files+=("$file")
+done < <(git diff --cached --name-only --diff-filter=ACM -z -- '*.swift')
+
+[[ ${#staged_swift_files[@]} -gt 0 ]] || exit 0
+
+if ! command -v swiftformat >/dev/null 2>&1; then
+  echo "warning: SwiftFormat is not installed; CI will enforce formatting." >&2
+  exit 0
+fi
+
+swiftformat --lint "${staged_swift_files[@]}"

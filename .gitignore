@@ -1,0 +1,50 @@
+.claude
+.agent1
+/.agent/
+
+# macOS and Xcode per-user state
+.DS_Store
+**/xcuserdata/
+
+sparkle_private_key.pem
+
+# Canonical macOS products and intermediate data. Keep these paths specific so
+# accidental one-off DerivedData roots show up in git status instead of growing
+# silently beside the supported build locations.
+/.build/macos/Debug/
+/.build/macos/Release/
+/.build/macos/DerivedData/
+/.build/macos/signing/
+/.build/.DS_Store
+/.build/macos/.DS_Store
+
+# Known local test, release, CI, and evidence artifacts.
+# The entire root build directory is disposable local output.
+/build/
+
+/tmp/
+
+# Secrets - never commit
+platforms/mac/LiteScreen/Config/Secrets.xcconfig
+*.xcuserstate
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.mobileprovision
+
+/plans
+
+.codex
+
+# Windows/.NET build outputs
+**/bin/
+**/obj/
+.vs/
+*.user
+
+# Generated Windows publish artifacts
+/artifacts/
+/platforms/windows/artifacts/

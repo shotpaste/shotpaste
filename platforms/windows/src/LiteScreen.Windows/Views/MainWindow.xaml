@@ -1,0 +1,163 @@
+<Window x:Class="LiteScreen.Windows.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:LiteScreen.Windows.Controls"
+        AutomationProperties.AutomationId="HistoryWindow" Title="Lite Screen · 剪贴板历史" Width="980" Height="680" MinWidth="760" MinHeight="520"
+        WindowStartupLocation="CenterScreen" Closing="OnClosing" KeyDown="OnKeyDown">
+  <Window.Resources>
+    <Style x:Key="HistoryPill" TargetType="Button">
+      <Setter Property="Padding" Value="13,7"/><Setter Property="Margin" Value="0,0,7,0"/>
+      <Setter Property="MinHeight" Value="30"/><Setter Property="Background" Value="{DynamicResource SurfaceSecondaryBrush}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/><Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="FontSize" Value="11"/><Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style x:Key="HistoryIcon" TargetType="Button" BasedOn="{StaticResource HudIconButton}">
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/><Setter Property="Background" Value="{DynamicResource SurfaceSecondaryBrush}"/>
+    </Style>
+    <Style x:Key="HistoryCardAction" TargetType="Button" BasedOn="{StaticResource HudTextButton}">
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+      <Setter Property="Background" Value="{DynamicResource SurfaceSecondaryBrush}"/>
+      <Setter Property="FontSize" Value="10"/>
+    </Style>
+    <Style TargetType="ListBoxItem">
+      <Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0,0,12,12"/>
+      <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="AutomationProperties.Name" Value="{Binding PreviewText}"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="VerticalContentAlignment" Value="Stretch"/>
+      <Setter Property="Template">
+        <Setter.Value><ControlTemplate TargetType="ListBoxItem">
+          <Border x:Name="SelectionChrome" CornerRadius="17" BorderBrush="Transparent" BorderThickness="2" Padding="2">
+            <ContentPresenter/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsSelected" Value="True"><Setter TargetName="SelectionChrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value>
+      </Setter>
+    </Style>
+    <DataTemplate x:Key="ExpandedHistoryCardTemplate">
+      <Border x:Name="Card" Width="270" Height="210" CornerRadius="14" Background="{DynamicResource SurfaceBrush}"
+              BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" ClipToBounds="True" Margin="0,0,8,8">
+        <Grid>
+          <Grid.RowDefinitions><RowDefinition Height="122"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <Grid Background="{DynamicResource SurfaceSecondaryBrush}">
+            <Image Source="{Binding PreviewSource}" Stretch="UniformToFill"/>
+            <TextBlock x:Name="FallbackPreview" Text="{Binding PreviewText}" TextWrapping="Wrap"
+                       TextTrimming="CharacterEllipsis" Margin="16" Foreground="{DynamicResource SecondaryTextBrush}"
+                       MaxHeight="82" VerticalAlignment="Center" Visibility="Collapsed"/>
+          </Grid>
+          <Grid Grid.Row="1" Margin="13,9,13,7">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel>
+              <TextBlock Text="{Binding Title}" Foreground="{DynamicResource TextBrush}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+              <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+          </Grid>
+          <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="9,0,9,9" HorizontalAlignment="Center">
+            <Button Content="恢复" Style="{StaticResource HistoryCardAction}" Height="27" Padding="7,3" Margin="0,0,4,0" Tag="{Binding}" Click="OnRestoreItem"/>
+            <Button Content="复制" Style="{StaticResource HistoryCardAction}" Height="27" Padding="7,3" Margin="0,0,4,0" Tag="{Binding}" Click="OnCopyItem"/>
+            <Button Content="打开" AutomationProperties.AutomationId="HistoryOpenItem"
+                    Style="{StaticResource HistoryCardAction}" Height="27" Padding="7,3" Margin="0,0,4,0" Tag="{Binding}" Click="OnOpenItem"/>
+            <Button Content="删除" Style="{StaticResource HistoryCardAction}" Height="27" Padding="7,3" Foreground="#FFFF6B68" Tag="{Binding}" Click="OnDeleteItem"/>
+          </StackPanel>
+        </Grid>
+      </Border>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding PreviewSource}" Value="{x:Null}"><Setter TargetName="FallbackPreview" Property="Visibility" Value="Visible"/></DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+    <DataTemplate x:Key="CompactHistoryCardTemplate">
+      <Border Width="212" Height="138" CornerRadius="14" Background="{DynamicResource SurfaceBrush}"
+              BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" ClipToBounds="True" Margin="0,0,8,8">
+        <Grid>
+          <Grid.RowDefinitions><RowDefinition Height="92"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+          <Grid Background="{DynamicResource SurfaceSecondaryBrush}">
+            <Image Source="{Binding PreviewSource}" Stretch="UniformToFill"/>
+            <TextBlock x:Name="CompactFallbackPreview" Text="{Binding PreviewText}" TextWrapping="Wrap"
+                       TextTrimming="CharacterEllipsis" Margin="12" Foreground="{DynamicResource SecondaryTextBrush}"
+                       MaxHeight="62" VerticalAlignment="Center" Visibility="Collapsed"/>
+          </Grid>
+          <Grid Grid.Row="1" Margin="11,6,11,7">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel>
+              <TextBlock Text="{Binding Title}" Foreground="{DynamicResource TextBrush}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+              <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="9" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+          </Grid>
+        </Grid>
+      </Border>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding PreviewSource}" Value="{x:Null}"><Setter TargetName="CompactFallbackPreview" Property="Visibility" Value="Visible"/></DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+  </Window.Resources>
+  <Grid x:Name="RootBackground" Background="{DynamicResource WindowBrush}">
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+    <Button x:Name="HistoryModeToggle" AutomationProperties.AutomationId="HistoryModeToggle" Grid.RowSpan="3"
+            Panel.ZIndex="20" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,10,0"
+            Style="{StaticResource HistoryIcon}" Width="34" Height="34" Click="OnToggleHistoryMode"/>
+    <Grid x:Name="TopBar" Margin="20,18,20,12">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <Border Width="270" CornerRadius="18" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="13,8">
+        <Border.Effect><DropShadowEffect Color="Black" BlurRadius="10" ShadowDepth="3" Opacity="0.10"/></Border.Effect>
+        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <TextBlock Text="⌕" FontSize="19" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+          <TextBox x:Name="SearchBox" AutomationProperties.AutomationId="HistorySearch" Grid.Column="1" ToolTip="按文件名或文本搜索" BorderThickness="0" Background="Transparent" Padding="0" TextChanged="OnSearchTextChanged" VerticalContentAlignment="Center"/>
+          <Button x:Name="ClearSearchButton" Grid.Column="2" Content="×" Style="{StaticResource HistoryIcon}" Width="24" Height="24" Visibility="Collapsed" Click="OnClearSearch"/>
+        </Grid>
+      </Border>
+      <Border x:Name="SelectionActions" Grid.Column="1" HorizontalAlignment="Right" Visibility="Collapsed" CornerRadius="18"
+              Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="10,5" Margin="12,0">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <TextBlock x:Name="SelectionSummary" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="4,0,10,0"/>
+          <Button Content="复制" Style="{StaticResource HistoryPill}" Click="OnCopySelection"/><Button Content="清除选择" Style="{StaticResource HistoryPill}" Click="OnClearSelection"/>
+          <Button Content="删除" Style="{StaticResource HistoryPill}" Foreground="{DynamicResource DangerBrush}" Click="OnDeleteSelection"/>
+        </StackPanel>
+      </Border>
+      <StackPanel x:Name="HeaderUtilities" Grid.Column="2" Orientation="Horizontal" Margin="0,0,48,0">
+        <Button Content="清空" Style="{StaticResource HistoryPill}" ToolTip="清空剪贴板历史（文件保留）" Click="OnClearHistory"/>
+        <Button Content="⚙" Style="{StaticResource HistoryIcon}" ToolTip="设置" Click="OnSettings"
+                AutomationProperties.AutomationId="HistorySettings"/>
+      </StackPanel>
+    </Grid>
+
+    <Grid x:Name="FilterBar" Grid.Row="1" Margin="20,0,20,12">
+      <StackPanel Orientation="Horizontal">
+        <Button x:Name="ScreenshotFilter" Content="截图" Tag="Screenshot" Style="{StaticResource HistoryPill}" Click="OnKindPill"/>
+        <Button Content="滚动截屏" Tag="ScrollingScreenshot" Style="{StaticResource HistoryPill}" Click="OnKindPill"/>
+        <Button Content="录屏" Tag="Recording" Style="{StaticResource HistoryPill}" Click="OnKindPill"/>
+        <Button Content="剪贴板" Tag="Clipboard" Style="{StaticResource HistoryPill}" Click="OnKindPill"/>
+      </StackPanel>
+      <ComboBox x:Name="TimeFilter" HorizontalAlignment="Right" Width="116" SelectedIndex="0" SelectionChanged="OnFilterChanged" Padding="9,6">
+        <ComboBoxItem Content="全部时间" Tag="All"/><ComboBoxItem Content="24 小时" Tag="1"/><ComboBoxItem Content="7 天" Tag="7"/><ComboBoxItem Content="30 天" Tag="30"/>
+      </ComboBox>
+    </Grid>
+
+    <Grid x:Name="HistoryContent" Grid.Row="2" Margin="20,0,8,14">
+      <ListBox x:Name="HistoryItems" AutomationProperties.AutomationId="ExpandedHistoryGrid" SelectionMode="Extended"
+               Background="Transparent" BorderThickness="0" ItemTemplate="{StaticResource ExpandedHistoryCardTemplate}"
+               ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+               ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True"
+               VirtualizingPanel.VirtualizationMode="Recycling" SelectionChanged="OnSelectionChanged" MouseDoubleClick="OnItemDoubleClick">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate><controls:VirtualizingWrapPanel ItemWidth="286" ItemHeight="226"/></ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+      </ListBox>
+      <ListBox x:Name="CompactHistoryItems" AutomationProperties.AutomationId="CompactHistoryCarousel" Visibility="Collapsed"
+               SelectionMode="Single" Background="Transparent" BorderThickness="0" ItemTemplate="{StaticResource CompactHistoryCardTemplate}"
+               ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+               ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True"
+               VirtualizingPanel.VirtualizationMode="Recycling" SelectionChanged="OnSelectionChanged"
+               MouseDoubleClick="OnItemDoubleClick" PreviewMouseWheel="OnCompactMouseWheel">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate><VirtualizingStackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+      </ListBox>
+      <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+        <Border Width="64" Height="64" CornerRadius="32" Background="{DynamicResource SurfaceSecondaryBrush}"><TextBlock Text="⌛" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/></Border>
+        <TextBlock Text="还没有符合条件的记录" Foreground="{DynamicResource TextBrush}" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+        <TextBlock Text="完成截图、录屏或复制内容后会显示在这里" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" Margin="0,5,0,0"/>
+      </StackPanel>
+    </Grid>
+  </Grid>
+</Window>

@@ -1,0 +1,19 @@
+# Format Options
+--indent 2
+--maxwidth 120
+--linebreaks lf
+--swiftversion 5.9
+--semicolons never
+
+# Rules to Disable
+--disable wrapMultilineStatementBraces
+--disable numberFormatting
+--disable hoistPatternLet
+--disable hoistTry
+
+# File exclusions
+--exclude **/Pods
+--exclude **/.build
+--exclude **/build
+--exclude **/DerivedData
+--exclude **/Generated

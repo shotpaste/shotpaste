@@ -1,0 +1,266 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "shortcut-guidance.guide-step-1": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffnen Sie Systemeinstellungen → Tastatur → Tastaturkürzel"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open System Settings → Keyboard → Keyboard Shortcuts"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abra Configuración del sistema → Teclado → Atajos de teclado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrez Paramètres système → Clavier → Raccourcis clavier"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システム設定 → キーボード → キーボード ショートカットを開きます"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시스템 설정 열기 → 키보드 → 키보드 단축키"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Откройте «Настройки системы» → «Клавиатура» → «Сочетания клавиш»"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mở Cài đặt hệ thống → Bàn phím → Phím tắt bàn phím"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开系统设置→键盘→键盘快捷键"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打開系統設置→鍵盤→鍵盤快捷鍵"
+          }
+        }
+      }
+    },
+    "shortcut-guidance.guide-step-2": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wählen Sie Screenshots aus der Seitenleiste"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select Screenshots from the sidebar"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seleccione Capturas de pantalla en la barra lateral"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sélectionnez Captures d'écran dans la barre latérale"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サイドバーから [スクリーンショット] を選択します"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사이드바에서 스크린샷을 선택하세요"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите «Снимки экрана» на боковой панели"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chọn Ảnh chụp màn hình ở thanh bên"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从侧边栏选择屏幕截图"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "從側邊欄選擇螢幕截圖"
+          }
+        }
+      }
+    },
+    "shortcut-guidance.guide-step-3": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deaktivieren Sie die macOS-Screenshot-Verknüpfungen, die sich mit den Lite Screen-Verknüpfungen überschneiden, die Sie behalten möchten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uncheck the macOS screenshot shortcuts that overlap with the Lite Screen shortcuts you want to keep on"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desmarque los atajos de captura de pantalla de macOS que se superponen con los atajos de Lite Screen que desea conservar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Décochez les raccourcis de capture d'écran macOS qui chevauchent les raccourcis Lite Screen que vous souhaitez conserver"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "残しておきたい Lite Screen ショートカットと重複する macOS スクリーンショット ショートカットのチェックを外します"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "유지하려는 Lite Screen 단축키와 겹치는 macOS 스크린샷 단축키를 선택 취소하세요"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Снимите флажки с ярлыков снимков экрана macOS, которые перекрываются с ярлыками Lite Screen, которые вы хотите сохранить"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bỏ chọn các phím tắt chụp màn hình của macOS đang trùng với phím tắt Lite Screen mà bạn muốn giữ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消选中与您要保留的 Lite Screen 快捷方式重叠的 macOS 屏幕截图快捷方式"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消選中與您要保留的 Lite Screen 快捷方式重疊的 macOS 螢幕截圖快捷方式"
+          }
+        }
+      }
+    },
+    "shortcut-guidance.section-recording": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrement"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запись"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi màn hình"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录屏"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "錄屏"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

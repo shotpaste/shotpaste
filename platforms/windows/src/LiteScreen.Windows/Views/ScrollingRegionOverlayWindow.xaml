@@ -1,0 +1,20 @@
+<Window x:Class="LiteScreen.Windows.Views.ScrollingRegionOverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Lite Screen · 滚动截屏选区" WindowStyle="None" ResizeMode="NoResize"
+        AllowsTransparency="True" Background="Transparent" ShowInTaskbar="False"
+        ShowActivated="False" Focusable="False" IsHitTestVisible="False" Topmost="True">
+  <Canvas x:Name="OverlayCanvas">
+    <Rectangle x:Name="TopLine" Fill="#FFA78BFA" SnapsToDevicePixels="True"/>
+    <Rectangle x:Name="RightLine" Fill="#FFA78BFA" SnapsToDevicePixels="True"/>
+    <Rectangle x:Name="BottomLine" Fill="#FFA78BFA" SnapsToDevicePixels="True"/>
+    <Rectangle x:Name="LeftLine" Fill="#FFA78BFA" SnapsToDevicePixels="True"/>
+    <Border x:Name="StatusBadge" CornerRadius="10" Background="#F21C1C22" BorderBrush="#4DFFFFFF"
+            BorderThickness="1" Padding="10,6">
+      <StackPanel Orientation="Horizontal">
+        <Ellipse Width="7" Height="7" Fill="#FFA78BFA" Margin="0,0,7,0" VerticalAlignment="Center"/>
+        <TextBlock Text="滚动捕获区域" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+      </StackPanel>
+    </Border>
+  </Canvas>
+</Window>

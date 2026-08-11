@@ -1,0 +1,26 @@
+Lite Screen @VERSION@ - Windows x64 portable
+================================================
+
+This package is self-contained and is not currently Authenticode-signed.
+
+1. Download the ZIP and SHA256SUMS.txt from the same GitHub Release.
+2. Run in PowerShell:
+
+     Get-FileHash .\LiteScreen-v@VERSION@-Windows-x64-portable.zip -Algorithm SHA256
+
+   Compare the result with the matching ZIP line in SHA256SUMS.txt.
+3. Extract the complete ZIP to a writable folder.
+4. Run LiteScreen.exe. Keep the executable and accompanying files together.
+5. SmartScreen may show an unknown-publisher warning. Continue only when the
+   checksum matches the official Release.
+
+中文
+----
+
+这是包含运行时的 Windows x64 便携版，当前未进行 Authenticode 签名。
+
+1. 从同一个 GitHub Release 下载 ZIP 与 SHA256SUMS.txt。
+2. 运行上面的 Get-FileHash 命令，并与 SHA256SUMS.txt 中对应的 ZIP 行核对。
+3. 将完整 ZIP 解压到可写文件夹，不要直接在压缩包内运行。
+4. 运行 LiteScreen.exe，并保持程序及其附带文件位于同一目录。
+5. SmartScreen 可能提示未知发布者；仅在校验和匹配官方 Release 时继续。

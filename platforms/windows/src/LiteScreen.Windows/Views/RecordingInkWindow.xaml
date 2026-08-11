@@ -1,0 +1,10 @@
+<Window x:Class="LiteScreen.Windows.Views.RecordingInkWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True" Background="Transparent"
+        ShowInTaskbar="False" Topmost="True" KeyDown="OnKeyDown">
+  <Grid Background="#01000000">
+    <Canvas x:Name="DrawingCanvas" Background="Transparent"
+            MouseLeftButtonDown="OnCanvasMouseDown" MouseMove="OnCanvasMouseMove" MouseLeftButtonUp="OnCanvasMouseUp"/>
+  </Grid>
+</Window>

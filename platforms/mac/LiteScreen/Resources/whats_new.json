@@ -1,0 +1,23 @@
+{
+  "campaigns": [
+    {
+      "id": "apple_notarization_v18",
+      "isEnabled": true,
+      "menuTitle": "What's New: Apple Notarization",
+      "screens": [
+        {
+          "id": "welcome_intro",
+          "title": "whats-new.title",
+          "description": "whats-new.desc",
+          "customImageName": "AppIcon"
+        },
+        {
+          "id": "notarization",
+          "title": "whats-new.notarization.title",
+          "description": "whats-new.notarization.desc",
+          "systemImage": "checkmark.seal.fill"
+        }
+      ]
+    }
+  ]
+}

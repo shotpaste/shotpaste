@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LiteScreen Scrolling Capture E2E</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #eef1f7; color: #172033; font-family: "Segoe UI", sans-serif; }
+    header {
+      position: fixed; inset: 0 0 auto 0; height: 56px; z-index: 3;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; color: white; background: #5637c7;
+      border-bottom: 4px solid #b7a8ff;
+    }
+    aside {
+      position: fixed; inset: 56px auto 0 0; width: 112px; z-index: 2;
+      padding: 24px 14px; color: #dce2ff; background: #202942;
+    }
+    aside div { height: 42px; margin-bottom: 12px; border-radius: 8px; background: #33405f; }
+    main { margin-left: 112px; padding: 76px 24px 40px; }
+    .sentinel {
+      display: grid; place-items: center; height: 84px; margin-bottom: 14px;
+      border: 5px solid #172033; border-radius: 12px; background: #ffdd57;
+      font-size: 30px; font-weight: 800; letter-spacing: 2px;
+    }
+    .row {
+      position: relative; height: 132px; margin-bottom: 10px; overflow: hidden;
+      border: 3px solid #172033; border-radius: 12px; background: white;
+    }
+    .row::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 18px; background: var(--accent); }
+    .row::after {
+      content: attr(data-id); position: absolute; right: 16px; bottom: 10px;
+      color: var(--accent); font: 800 42px/1 Consolas, monospace; opacity: .78;
+    }
+    .row h2 { margin: 20px 24px 8px 42px; font-size: 24px; }
+    .row p { margin: 0 110px 0 42px; font-size: 15px; line-height: 1.5; }
+    .row:nth-of-type(6n+1) { --accent: #e5484d; }
+    .row:nth-of-type(6n+2) { --accent: #2f6feb; }
+    .row:nth-of-type(6n+3) { --accent: #2f9e44; }
+    .row:nth-of-type(6n+4) { --accent: #e67700; }
+    .row:nth-of-type(6n+5) { --accent: #9c36b5; }
+    .row:nth-of-type(6n)   { --accent: #0b7285; }
+  </style>
+</head>
+<body>
+  <header><strong>LiteScreen E2E · 固定页头</strong><span id="position">scrollY = 0</span></header>
+  <aside aria-label="固定侧栏"><strong>固定侧栏</strong><div></div><div></div><div></div><div></div></aside>
+  <main>
+    <div class="sentinel">TOP · 0000</div>
+    <section id="rows"></section>
+    <div class="sentinel">BOTTOM · 9999</div>
+  </main>
+  <script>
+    const rows = document.getElementById("rows");
+    for (let index = 1; index <= 30; index += 1) {
+      const row = document.createElement("article");
+      const id = String(index).padStart(2, "0");
+      row.className = "row";
+      row.dataset.id = id;
+      row.innerHTML = `<h2>验证行 ${id}</h2><p>唯一序列 LS-${id}-A${index * 17}-B${index * 31}，用于检查顺序、漏帧、重复拼接和接缝。</p>`;
+      rows.appendChild(row);
+    }
+    addEventListener("scroll", () => {
+      document.getElementById("position").textContent = `scrollY = ${Math.round(scrollY)}`;
+    }, { passive: true });
+  </script>
+</body>
+</html>
