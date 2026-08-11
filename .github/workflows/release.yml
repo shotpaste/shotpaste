@@ -1,0 +1,357 @@
+name: Release ShotPaste
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+      - "!v*-*"
+      - '!v*\+*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  metadata:
+    name: Validate release tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - name: Resolve stable semantic version
+        id: release
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if ! [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Official release tags must use vMAJOR.MINOR.PATCH, for example v1.2.3"
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+  macos:
+    name: Build macOS arm64 DMG
+    needs: metadata
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Select Xcode 26.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo xcode-select --switch /Applications/Xcode_26.2.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Verify runner architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(uname -m)" == "arm64" ]] || {
+            echo "::error::Expected an arm64 macOS runner; refusing to mislabel the package"
+            exit 1
+          }
+
+      - name: Import fixed release signing identity
+        shell: bash
+        env:
+          SELF_SIGNED_CERT_P12: ${{ secrets.SELF_SIGNED_CERT_P12 }}
+          SELF_SIGNED_CERT_PASSWORD: ${{ secrets.SELF_SIGNED_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          [[ -n "$SELF_SIGNED_CERT_P12" && -n "$SELF_SIGNED_CERT_PASSWORD" ]] || {
+            echo "::error::SELF_SIGNED_CERT_P12 and SELF_SIGNED_CERT_PASSWORD are required"
+            exit 1
+          }
+
+          keychain_path="$RUNNER_TEMP/shotpaste-release.keychain-db"
+          keychain_password="$(openssl rand -hex 24)"
+          p12_path="$RUNNER_TEMP/shotpaste-release.p12"
+          echo "::add-mask::$keychain_password"
+
+          printf '%s' "$SELF_SIGNED_CERT_P12" | base64 --decode > "$p12_path"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security list-keychains -d user -s "$keychain_path"
+          security import "$p12_path" \
+            -k "$keychain_path" \
+            -P "$SELF_SIGNED_CERT_PASSWORD" \
+            -T /usr/bin/codesign
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k "$keychain_password" \
+            "$keychain_path"
+          rm -f "$p12_path"
+
+          identity_hash="$(security find-identity -p basic "$keychain_path" | awk '$2 ~ /^[[:xdigit:]]{40}$/ { print toupper($2); exit }')"
+          expected_hash="35517841F1D32EC1ED7D1F411565845C4AA4B70A"
+          [[ -n "$identity_hash" ]] || {
+            echo "::error::The imported P12 does not contain a usable code-signing identity"
+            exit 1
+          }
+          [[ "$identity_hash" == "$expected_hash" ]] || {
+            echo "::error::The imported certificate does not match the fixed ShotPaste release identity"
+            exit 1
+          }
+
+          echo "SHOTPASTE_KEYCHAIN_PATH=$keychain_path" >> "$GITHUB_ENV"
+          echo "SHOTPASTE_CODESIGN_IDENTITY=$identity_hash" >> "$GITHUB_ENV"
+          echo "SHOTPASTE_CODESIGN_TIMESTAMP=none" >> "$GITHUB_ENV"
+          echo "SHOTPASTE_ALLOW_UNTRUSTED_SELF_SIGNED=1" >> "$GITHUB_ENV"
+
+      - name: Build and sign canonical Release app
+        shell: bash
+        env:
+          SHOTPASTE_MARKETING_VERSION: ${{ needs.metadata.outputs.version }}
+          SHOTPASTE_BUILD_NUMBER: ${{ github.run_number }}
+          SHOTPASTE_RELEASE_ARM64_ONLY: "1"
+        run: |
+          set -euo pipefail
+          ./scripts/build_and_run.sh build --configuration Release
+
+          app="$GITHUB_WORKSPACE/.build/macos/Release/ShotPaste.app"
+          binary="$app/Contents/MacOS/ShotPaste"
+          actual_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")
+          actual_build=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Contents/Info.plist")
+          architectures="$(lipo -archs "$binary")"
+
+          [[ "$actual_version" == "$SHOTPASTE_MARKETING_VERSION" ]] || {
+            echo "::error::App version $actual_version does not match release version $SHOTPASTE_MARKETING_VERSION"
+            exit 1
+          }
+          [[ "$actual_build" == "$SHOTPASTE_BUILD_NUMBER" ]] || {
+            echo "::error::App build $actual_build does not match Actions run number $SHOTPASTE_BUILD_NUMBER"
+            exit 1
+          }
+          [[ "$architectures" == "arm64" ]] || {
+            echo "::error::Expected an arm64-only executable, found: $architectures"
+            exit 1
+          }
+          codesign --verify --deep --strict --verbose=2 "$app"
+
+          app_count=$(find "$GITHUB_WORKSPACE" -type d -name 'ShotPaste.app' -prune | wc -l | tr -d ' ')
+          [[ "$app_count" == "1" ]] || {
+            echo "::error::Expected exactly one Release app bundle, found $app_count"
+            find "$GITHUB_WORKSPACE" -type d -name 'ShotPaste.app' -prune -print
+            exit 1
+          }
+
+      - name: Create and verify DMG
+        shell: bash
+        env:
+          VERSION: ${{ needs.metadata.outputs.version }}
+        run: |
+          set -euo pipefail
+          app="$GITHUB_WORKSPACE/.build/macos/Release/ShotPaste.app"
+          staging="$RUNNER_TEMP/shotpaste-dmg-root"
+          dmg="build/release/ShotPaste-v${VERSION}-macOS-arm64.dmg"
+
+          rm -rf "$staging"
+          mkdir -p build/release "$staging"
+          find build/release -maxdepth 1 -type f -name '*.dmg' -delete
+          ditto "$app" "$staging/ShotPaste.app"
+          ln -s /Applications "$staging/Applications"
+          sed "s/@VERSION@/$VERSION/g" docs/release/START-HERE-macOS.txt > "$staging/START-HERE-macOS.txt"
+          cp LICENSE "$staging/LICENSE.txt"
+          cp THIRD_PARTY_NOTICES.md "$staging/THIRD_PARTY_NOTICES.md"
+
+          hdiutil create \
+            -volname "ShotPaste $VERSION" \
+            -srcfolder "$staging" \
+            -format UDZO \
+            -ov \
+            "$dmg"
+          hdiutil verify "$dmg"
+          rm -rf "$staging"
+
+          dmg_count=$(find build/release -maxdepth 1 -type f -name '*.dmg' | wc -l | tr -d ' ')
+          [[ "$dmg_count" == "1" ]] || {
+            echo "::error::Expected exactly one macOS DMG, found $dmg_count"
+            exit 1
+          }
+
+      - name: Remove temporary signing material
+        if: always()
+        shell: bash
+        run: |
+          keychain_path="$RUNNER_TEMP/shotpaste-release.keychain-db"
+          p12_path="$RUNNER_TEMP/shotpaste-release.p12"
+          rm -f "$p12_path"
+          if [[ -f "$keychain_path" ]]; then
+            login_keychain="$HOME/Library/Keychains/login.keychain-db"
+            if [[ -f "$login_keychain" ]]; then
+              security list-keychains -d user -s "$login_keychain" 2>/dev/null || true
+            fi
+            security delete-keychain "$keychain_path" 2>/dev/null || true
+          fi
+
+      - name: Upload macOS release artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-macos
+          path: build/release/ShotPaste-v${{ needs.metadata.outputs.version }}-macOS-arm64.dmg
+          if-no-files-found: error
+          retention-days: 7
+
+  windows:
+    name: Build Windows x64 portable ZIP
+    needs: metadata
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore, build, and test
+        shell: pwsh
+        run: ./scripts/build-windows.ps1 -Configuration Release
+
+      - name: Publish self-contained application
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.metadata.outputs.version }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $project = "platforms/windows/src/ShotPaste.Windows/ShotPaste.Windows.csproj"
+          $publishDirectory = "build/windows/publish"
+          $releaseDirectory = "build/release"
+          $zip = "$releaseDirectory/ShotPaste-v$env:VERSION-Windows-x64-portable.zip"
+          $fourPartVersion = "$env:VERSION.0"
+
+          New-Item -ItemType Directory -Force -Path $publishDirectory, $releaseDirectory | Out-Null
+          dotnet publish $project `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:Platform=x64 `
+            -p:PublishSingleFile=true `
+            -p:Version=$env:VERSION `
+            -p:AssemblyVersion=$fourPartVersion `
+            -p:FileVersion=$fourPartVersion `
+            -o $publishDirectory
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $executable = Join-Path $publishDirectory "ShotPaste.exe"
+          if (-not (Test-Path -LiteralPath $executable -PathType Leaf)) {
+            throw "ShotPaste.exe was not produced"
+          }
+
+          $debugSymbols = @(Get-ChildItem -LiteralPath $publishDirectory -Recurse -File -Filter "*.pdb")
+          if ($debugSymbols.Count -ne 0) {
+            throw "Release publish unexpectedly contains PDB files: $($debugSymbols.FullName -join ', ')"
+          }
+
+          (Get-Content "docs/release/START-HERE-Windows.txt" -Raw).Replace("@VERSION@", $env:VERSION) |
+            Set-Content (Join-Path $publishDirectory "START-HERE-Windows.txt") -Encoding utf8
+          Copy-Item "LICENSE" (Join-Path $publishDirectory "LICENSE.txt")
+          Copy-Item "THIRD_PARTY_NOTICES.md" (Join-Path $publishDirectory "THIRD_PARTY_NOTICES.md")
+
+          Compress-Archive -Path "$publishDirectory/*" -DestinationPath $zip -CompressionLevel Optimal
+          if (-not (Test-Path -LiteralPath $zip -PathType Leaf)) {
+            throw "Portable ZIP was not produced"
+          }
+
+      - name: Upload Windows release artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-windows
+          path: build/release/ShotPaste-v${{ needs.metadata.outputs.version }}-Windows-x64-portable.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish GitHub Release
+    needs:
+      - metadata
+      - macos
+      - windows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create and verify checksums and startup guides
+        shell: bash
+        env:
+          VERSION: ${{ needs.metadata.outputs.version }}
+        run: |
+          set -euo pipefail
+          cd dist
+
+          macos_package="ShotPaste-v${VERSION}-macOS-arm64.dmg"
+          windows_package="ShotPaste-v${VERSION}-Windows-x64-portable.zip"
+          [[ -f "$macos_package" && -f "$windows_package" ]] || {
+            echo "::error::Both platform packages are required before publishing"
+            find . -maxdepth 1 -type f -print
+            exit 1
+          }
+
+          package_count=$(find . -maxdepth 1 -type f \( -name '*.dmg' -o -name '*.zip' \) | wc -l | tr -d ' ')
+          [[ "$package_count" == "2" ]] || {
+            echo "::error::Expected exactly two release packages, found $package_count"
+            exit 1
+          }
+
+          sha256sum "$macos_package" "$windows_package" > SHA256SUMS.txt
+          sed "s/@VERSION@/$VERSION/g" ../docs/release/START-HERE-macOS.txt > "ShotPaste-v${VERSION}-START-HERE-macOS.txt"
+          sed "s/@VERSION@/$VERSION/g" ../docs/release/START-HERE-Windows.txt > "ShotPaste-v${VERSION}-START-HERE-Windows.txt"
+          sha256sum --check SHA256SUMS.txt
+
+      - name: Publish non-draft release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.metadata.outputs.tag }}
+          VERSION: ${{ needs.metadata.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release $TAG already exists; refusing to overwrite it"
+            exit 1
+          fi
+
+          notes=$(sed "s/@VERSION@/$VERSION/g" docs/release/RELEASE-NOTES-INTRO.md)
+          gh release create "$TAG" \
+            dist/*.dmg \
+            dist/*.zip \
+            dist/SHA256SUMS.txt \
+            dist/*START-HERE*.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "ShotPaste $TAG" \
+            --generate-notes \
+            --notes "$notes"
+
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --json url,tagName,isDraft,isPrerelease,assets

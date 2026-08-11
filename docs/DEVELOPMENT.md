@@ -75,6 +75,20 @@ replace, recreate, rename, or rotate the release certificate, and never populate
 secrets with output from a local certificate. macOS privacy permissions are tied
 to the application signing identity.
 
+### Automated releases
+
+Pushing a stable semantic-version tag in the form `vMAJOR.MINOR.PATCH`, such as
+`v1.2.3`, triggers `.github/workflows/release.yml`. The workflow builds the
+certificate-signed Apple Silicon DMG and the self-contained Windows x64 portable
+ZIP in parallel. It publishes a non-draft GitHub Release only after both jobs
+succeed, together with `SHA256SUMS.txt` and the two platform startup guides.
+
+The macOS job requires the repository Actions secrets `SELF_SIGNED_CERT_P12` and
+`SELF_SIGNED_CERT_PASSWORD`. It verifies the imported certificate against the
+fixed release fingerprint before building. Invalid tags, missing credentials,
+failed tests, failed builds, or missing artifacts stop the workflow before a
+GitHub Release is created.
+
 ## Windows
 
 Requirements:

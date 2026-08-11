@@ -13,6 +13,9 @@ CONFIGURATION="${CONFIGURATION:-Debug}"
 LOG_LEVEL="${LOG_LEVEL:-default,error,fault}"
 CLEAN=0
 QUIET=1
+MARKETING_VERSION_OVERRIDE="${SHOTPASTE_MARKETING_VERSION:-}"
+BUILD_NUMBER_OVERRIDE="${SHOTPASTE_BUILD_NUMBER:-}"
+RELEASE_ARM64_ONLY="${SHOTPASTE_RELEASE_ARM64_ONLY:-0}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PRODUCTS_ROOT="$ROOT_DIR/.build/macos"
@@ -57,6 +60,11 @@ ${BOLD}Options:${NC}
   --clean             Clean before building
   --verbose           Show full xcodebuild output
   --help, -h          Show this help
+
+${BOLD}CI release environment:${NC}
+  SHOTPASTE_MARKETING_VERSION  Override MARKETING_VERSION with stable SemVer
+  SHOTPASTE_BUILD_NUMBER       Override CURRENT_PROJECT_VERSION with an integer
+  SHOTPASTE_RELEASE_ARM64_ONLY Build an arm64-only Release app when set to 1
 
 ${BOLD}Examples:${NC}
   $0
@@ -138,6 +146,25 @@ validate_configuration() {
   case "$CONFIGURATION" in
     Debug|Release) ;;
     *) fail "Unsupported configuration '$CONFIGURATION'; use Debug or Release." ;;
+  esac
+}
+
+validate_build_overrides() {
+  if [[ -n "$MARKETING_VERSION_OVERRIDE" && ! "$MARKETING_VERSION_OVERRIDE" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+    fail "SHOTPASTE_MARKETING_VERSION must be stable SemVer, for example 1.2.3."
+  fi
+
+  if [[ -n "$BUILD_NUMBER_OVERRIDE" && ! "$BUILD_NUMBER_OVERRIDE" =~ ^[1-9][0-9]*$ ]]; then
+    fail "SHOTPASTE_BUILD_NUMBER must be a positive integer."
+  fi
+
+  case "$RELEASE_ARM64_ONLY" in
+    0) ;;
+    1)
+      [[ "$CONFIGURATION" == "Release" ]] || fail \
+        "SHOTPASTE_RELEASE_ARM64_ONLY=1 requires the Release configuration."
+      ;;
+    *) fail "SHOTPASTE_RELEASE_ARM64_ONLY must be 0 or 1." ;;
   esac
 }
 
@@ -226,6 +253,16 @@ run_xcodebuild() {
     args+=(-quiet)
   fi
 
+  if [[ -n "$MARKETING_VERSION_OVERRIDE" ]]; then
+    args+=("MARKETING_VERSION=$MARKETING_VERSION_OVERRIDE")
+  fi
+  if [[ -n "$BUILD_NUMBER_OVERRIDE" ]]; then
+    args+=("CURRENT_PROJECT_VERSION=$BUILD_NUMBER_OVERRIDE")
+  fi
+  if [[ "$RELEASE_ARM64_ONLY" == "1" ]]; then
+    args+=(ARCHS=arm64 ONLY_ACTIVE_ARCH=YES SWIFT_COMPILATION_MODE=incremental)
+  fi
+
   # Xcode 26.6 / Swift 6.3.3 can crash in EarlyPerfInliner while compiling this
   # Swift 5 target. The local packaging dry run enables this narrow workaround;
   # the pinned GitHub release toolchain remains optimized.
@@ -310,6 +347,7 @@ launch_debugger() {
 main() {
   parse_args "$@"
   validate_configuration
+  validate_build_overrides
   require_macos
   require_command xcodebuild
   require_command codesign
