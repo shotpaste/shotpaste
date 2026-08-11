@@ -19,9 +19,9 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TMP_ROOT="${TMPDIR:-/tmp}"
-BINARY_PATH="${TMP_ROOT%/}/litescreen-qr-detection-probe"
-MODULE_CACHE_PATH="${TMP_ROOT%/}/litescreen-qr-probe-module-cache"
-STDERR_PATH="${TMP_ROOT%/}/litescreen-qr-detection-probe.stderr"
+BINARY_PATH="${TMP_ROOT%/}/shotpaste-qr-detection-probe"
+MODULE_CACHE_PATH="${TMP_ROOT%/}/shotpaste-qr-probe-module-cache"
+STDERR_PATH="${TMP_ROOT%/}/shotpaste-qr-detection-probe.stderr"
 
 cd "$REPO_ROOT"
 

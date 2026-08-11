@@ -1,6 +1,6 @@
 //
 //  scrolling-capture-accuracy-benchmark.swift
-//  LiteScreen
+//  ShotPaste
 //
 //  Run from repository root:
 //  ./scripts/run-scrolling-capture-accuracy-benchmark.sh

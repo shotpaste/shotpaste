@@ -1,4 +1,4 @@
-# Lite Screen
+# ShotPaste
 
 Нативный инструмент локального захвата и записи экрана для macOS и Windows.
 
@@ -8,7 +8,7 @@
 [한국어](README.ko.md) · **Русский** · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
-Lite Screen содержит независимые нативные клиенты для macOS и Windows. Снимки,
+ShotPaste содержит независимые нативные клиенты для macOS и Windows. Снимки,
 OCR, записи, история, буфер обмена и настройки остаются на устройстве. Проект
 не предоставляет учётные записи, телеметрию, облачную загрузку, удалённое
 хранилище или синхронизацию.
@@ -65,7 +65,7 @@ Windows PowerShell:
 ## Загрузки и лицензия
 
 Актуальные пакеты для macOS и Windows доступны в
-[GitHub Releases](https://github.com/ahtcfg24/LiteScreen/releases). Lite Screen
+[GitHub Releases](https://github.com/shotpaste/shotpaste/releases). ShotPaste
 выпускается по [лицензии BSD 3-Clause](LICENSE). Благодарности и история кода
 приведены в [NOTICE.md](NOTICE.md), а лицензии зависимостей — в
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

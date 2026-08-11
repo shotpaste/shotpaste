@@ -1,6 +1,6 @@
-# Contributing to Lite Screen
+# Contributing to ShotPaste
 
-Thank you for helping improve Lite Screen. Contributions may target either
+Thank you for helping improve ShotPaste. Contributions may target either
 native client, shared localization, documentation, scripts, or release quality.
 
 ## Before you start
@@ -58,7 +58,7 @@ and concise manual acceptance steps in the pull request.
 
 ## Pull requests
 
-1. Branch from `master` and make one coherent change.
+1. Branch from `main` and make one coherent change.
 2. Add or update tests and user-facing documentation where relevant.
 3. Validate every changed native platform on that operating system.
 4. Complete the pull request template with exact evidence and known limits.

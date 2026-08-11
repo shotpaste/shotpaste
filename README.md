@@ -1,4 +1,4 @@
-# Lite Screen
+# ShotPaste
 
 Native, local-first screen capture for macOS and Windows.
 
@@ -8,7 +8,7 @@ Native, local-first screen capture for macOS and Windows.
 [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
-Lite Screen provides independent native clients for macOS and Windows. Capture,
+ShotPaste provides independent native clients for macOS and Windows. Capture,
 OCR, recording, history, clipboard processing, and configuration stay on the
 device. The project does not provide accounts, telemetry, cloud upload, remote
 storage, or synchronization.
@@ -65,13 +65,13 @@ See [project structure and build instructions](docs/DEVELOPMENT.md).
 ## Downloads
 
 Download the latest macOS DMG or Windows portable ZIP from
-[GitHub Releases](https://github.com/ahtcfg24/LiteScreen/releases). Verify the
+[GitHub Releases](https://github.com/shotpaste/shotpaste/releases). Verify the
 included checksums and read the [release trust notes](SECURITY.md#release-trust)
 before opening a package.
 
 ## License and acknowledgements
 
-Lite Screen is released under the [BSD 3-Clause License](LICENSE). See
+ShotPaste is released under the [BSD 3-Clause License](LICENSE). See
 [NOTICE.md](NOTICE.md) for acknowledgements and source history, and
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for dependency licenses.
 

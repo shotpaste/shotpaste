@@ -5142,61 +5142,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen konnte nicht an den ausgewählten Speicherort schreiben. Bitte wählen Sie einen anderen Ordner."
+            "value": "ShotPaste konnte nicht an den ausgewählten Speicherort schreiben. Bitte wählen Sie einen anderen Ordner."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen couldn't write to the selected location. Please choose another folder."
+            "value": "ShotPaste couldn't write to the selected location. Please choose another folder."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen no pudo escribir en la ubicación seleccionada. Elija otra carpeta."
+            "value": "ShotPaste no pudo escribir en la ubicación seleccionada. Elija otra carpeta."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen n'a pas pu écrire à l'emplacement sélectionné. Veuillez choisir un autre dossier."
+            "value": "ShotPaste n'a pas pu écrire à l'emplacement sélectionné. Veuillez choisir un autre dossier."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen は選択された場所に書き込めませんでした。別のフォルダを選択してください。"
+            "value": "ShotPaste は選択された場所に書き込めませんでした。別のフォルダを選択してください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen가 선택한 위치에 쓸 수 없습니다. 다른 폴더를 선택하세요."
+            "value": "ShotPaste가 선택한 위치에 쓸 수 없습니다. 다른 폴더를 선택하세요."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen не удалось выполнить запись в выбранное место. Пожалуйста, выберите другую папку."
+            "value": "ShotPaste не удалось выполнить запись в выбранное место. Пожалуйста, выберите другую папку."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen không thể ghi vào vị trí đã chọn. Vui lòng chọn thư mục khác."
+            "value": "ShotPaste không thể ghi vào vị trí đã chọn. Vui lòng chọn thư mục khác."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 无法写入所选位置。请选择其他文件夹。"
+            "value": "ShotPaste 无法写入所选位置。请选择其他文件夹。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 無法寫入所選位置。請選擇其他檔案夾。"
+            "value": "ShotPaste 無法寫入所選位置。請選擇其他檔案夾。"
           }
         }
       }

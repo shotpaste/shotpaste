@@ -1,6 +1,6 @@
 //
 //  qr-detection-performance-probe.swift
-//  LiteScreen
+//  ShotPaste
 //
 //  Local Vision QR detector timing probe for OCR capture latency checks.
 //

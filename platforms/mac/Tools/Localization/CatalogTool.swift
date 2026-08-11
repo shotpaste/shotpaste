@@ -229,7 +229,7 @@ func mergedCatalog(from manifest: Manifest) throws -> Catalog {
 }
 
 func extractL10nKeys() throws -> Set<String> {
-  let localizationRoot = repoRoot.appendingPathComponent("platforms/mac/LiteScreen/Shared/Localization")
+  let localizationRoot = repoRoot.appendingPathComponent("platforms/mac/ShotPaste/Shared/Localization")
   let regex = try NSRegularExpression(pattern: #"(?:string|format)\(\s*"([a-z0-9][a-z0-9.-]*\.[a-z0-9][a-z0-9.-]*)""#)
   var keys = Set<String>()
 
@@ -250,7 +250,7 @@ func extractL10nKeys() throws -> Set<String> {
 }
 
 func extractL10nTableMappings() throws -> [String: String] {
-  let l10nURL = repoRoot.appendingPathComponent("platforms/mac/LiteScreen/Shared/Localization/L10n.swift")
+  let l10nURL = repoRoot.appendingPathComponent("platforms/mac/ShotPaste/Shared/Localization/L10n.swift")
   let content = try String(contentsOf: l10nURL, encoding: .utf8)
   let lines = content.split(separator: "\n", omittingEmptySubsequences: false)
   guard let startIndex = lines.firstIndex(where: { $0.contains("private nonisolated static let tableMappings") }) else {

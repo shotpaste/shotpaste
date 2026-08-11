@@ -1762,61 +1762,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "QR-Code erkannt, aber Lite Screen kann nur textbasierte QR-Inhalte kopieren."
+            "value": "QR-Code erkannt, aber ShotPaste kann nur textbasierte QR-Inhalte kopieren."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "QR code detected, but Lite Screen can only copy text-based QR content."
+            "value": "QR code detected, but ShotPaste can only copy text-based QR content."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Código QR detectado, pero Lite Screen solo puede copiar contenido QR basado en texto."
+            "value": "Código QR detectado, pero ShotPaste solo puede copiar contenido QR basado en texto."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Code QR détecté, mais Lite Screen ne peut copier que le contenu QR textuel."
+            "value": "Code QR détecté, mais ShotPaste ne peut copier que le contenu QR textuel."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "QR コードを検出しましたが、Lite Screen はテキスト形式の QR 内容のみコピーできます。"
+            "value": "QR コードを検出しましたが、ShotPaste はテキスト形式の QR 内容のみコピーできます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "QR 코드를 감지했지만 Lite Screen는 텍스트 기반 QR 내용만 복사할 수 있습니다."
+            "value": "QR 코드를 감지했지만 ShotPaste는 텍스트 기반 QR 내용만 복사할 수 있습니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "QR-код обнаружен, но Lite Screen может копировать только текстовое содержимое QR."
+            "value": "QR-код обнаружен, но ShotPaste может копировать только текстовое содержимое QR."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Đã phát hiện mã QR, nhưng Lite Screen chỉ có thể sao chép nội dung QR dạng văn bản."
+            "value": "Đã phát hiện mã QR, nhưng ShotPaste chỉ có thể sao chép nội dung QR dạng văn bản."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "检测到二维码，但 Lite Screen 只能复制基于文本的二维码内容。"
+            "value": "检测到二维码，但 ShotPaste 只能复制基于文本的二维码内容。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "偵測到 QR 碼，但 Lite Screen 只能複製文字型 QR 內容。"
+            "value": "偵測到 QR 碼，但 ShotPaste 只能複製文字型 QR 內容。"
           }
         }
       }
@@ -3726,61 +3726,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen-Fenster wie „Anmerken“ in aufgezeichneten Videos anzeigen"
+            "value": "ShotPaste-Fenster wie „Anmerken“ in aufgezeichneten Videos anzeigen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Show Lite Screen windows such as Annotate in recorded videos"
+            "value": "Show ShotPaste windows such as Annotate in recorded videos"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mostrar ventanas Lite Screen como Anotar en videos grabados"
+            "value": "Mostrar ventanas ShotPaste como Anotar en videos grabados"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Afficher les fenêtres Lite Screen telles que Annoter dans les vidéos enregistrées"
+            "value": "Afficher les fenêtres ShotPaste telles que Annoter dans les vidéos enregistrées"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "録画したビデオに注釈などの Lite Screen ウィンドウを表示する"
+            "value": "録画したビデオに注釈などの ShotPaste ウィンドウを表示する"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "녹화된 비디오에 주석과 같은 Lite Screen 창 표시"
+            "value": "녹화된 비디오에 주석과 같은 ShotPaste 창 표시"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Показывать окна Lite Screen, такие как Аннотации, в записанных видео"
+            "value": "Показывать окна ShotPaste, такие как Аннотации, в записанных видео"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hiển thị các cửa sổ Lite Screen như Chú thích trong video đã ghi"
+            "value": "Hiển thị các cửa sổ ShotPaste như Chú thích trong video đã ghi"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在屏幕录制画面中显示 Lite Screen 窗口（例如标注工具栏）"
+            "value": "在屏幕录制画面中显示 ShotPaste 窗口（例如标注工具栏）"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "在螢幕錄製畫面中顯示 Lite Screen 視窗（例如標註工具列）"
+            "value": "在螢幕錄製畫面中顯示 ShotPaste 視窗（例如標註工具列）"
           }
         }
       }
@@ -3856,61 +3856,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen-Fenster wie „Anmerkungen“ in aufgenommenen Bildern anzeigen"
+            "value": "ShotPaste-Fenster wie „Anmerkungen“ in aufgenommenen Bildern anzeigen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Show Lite Screen windows such as Annotate in captured images"
+            "value": "Show ShotPaste windows such as Annotate in captured images"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mostrar ventanas Lite Screen como Anotar en imágenes capturadas"
+            "value": "Mostrar ventanas ShotPaste como Anotar en imágenes capturadas"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Afficher les fenêtres Lite Screen telles que Annoter dans les images capturées"
+            "value": "Afficher les fenêtres ShotPaste telles que Annoter dans les images capturées"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "キャプチャした画像に注釈を付けるなどの Lite Screen ウィンドウを表示する"
+            "value": "キャプチャした画像に注釈を付けるなどの ShotPaste ウィンドウを表示する"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "캡처된 이미지에 주석과 같은 Lite Screen 창 표시"
+            "value": "캡처된 이미지에 주석과 같은 ShotPaste 창 표시"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Показывать окна Lite Screen, такие как Аннотации, на захваченных изображениях"
+            "value": "Показывать окна ShotPaste, такие как Аннотации, на захваченных изображениях"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hiển thị các cửa sổ Lite Screen như Chú thích trong ảnh đã chụp"
+            "value": "Hiển thị các cửa sổ ShotPaste như Chú thích trong ảnh đã chụp"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在截图画面中显示 Lite Screen 窗口（例如标注窗口）"
+            "value": "在截图画面中显示 ShotPaste 窗口（例如标注窗口）"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "在截圖中顯示 Lite Screen 視窗（例如標註視窗）"
+            "value": "在截圖中顯示 ShotPaste 視窗（例如標註視窗）"
           }
         }
       }
@@ -3986,61 +3986,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Für die Erfassung von Objektausschnitten ist Transparenz erforderlich. Lite Screen speichert sie als PNG, auch wenn JPEG ausgewählt ist."
+            "value": "Für die Erfassung von Objektausschnitten ist Transparenz erforderlich. ShotPaste speichert sie als PNG, auch wenn JPEG ausgewählt ist."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Object cutout captures require transparency. Lite Screen will save them as PNG even when JPEG is selected."
+            "value": "Object cutout captures require transparency. ShotPaste will save them as PNG even when JPEG is selected."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Las capturas de objetos recortados requieren transparencia. Lite Screen los guardará como PNG incluso cuando se seleccione JPEG."
+            "value": "Las capturas de objetos recortados requieren transparencia. ShotPaste los guardará como PNG incluso cuando se seleccione JPEG."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les captures de découpes d'objets nécessitent de la transparence. Lite Screen les enregistrera au format PNG même lorsque JPEG est sélectionné."
+            "value": "Les captures de découpes d'objets nécessitent de la transparence. ShotPaste les enregistrera au format PNG même lorsque JPEG est sélectionné."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "オブジェクトの切り抜きキャプチャには透明性が必要です。 Lite Screen は、JPEG が選択されている場合でも、ファイルを PNG として保存します。"
+            "value": "オブジェクトの切り抜きキャプチャには透明性が必要です。 ShotPaste は、JPEG が選択されている場合でも、ファイルを PNG として保存します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "개체 컷아웃 캡처에는 투명성이 필요합니다. Lite Screen는 JPEG를 선택한 경우에도 해당 파일을 PNG로 저장합니다."
+            "value": "개체 컷아웃 캡처에는 투명성이 필요합니다. ShotPaste는 JPEG를 선택한 경우에도 해당 파일을 PNG로 저장합니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Для захвата вырезов объектов требуется прозрачность. Lite Screen сохранит их в формате PNG, даже если выбран JPEG."
+            "value": "Для захвата вырезов объектов требуется прозрачность. ShotPaste сохранит их в формате PNG, даже если выбран JPEG."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ảnh tách chủ thể cần nền trong suốt. Lite Screen sẽ lưu chúng dưới dạng PNG ngay cả khi bạn chọn JPEG."
+            "value": "Ảnh tách chủ thể cần nền trong suốt. ShotPaste sẽ lưu chúng dưới dạng PNG ngay cả khi bạn chọn JPEG."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "主体抠图需要透明通道。若选择 JPEG，Lite Screen 仍会保存为 PNG。"
+            "value": "主体抠图需要透明通道。若选择 JPEG，ShotPaste 仍会保存为 PNG。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "主體去背需要透明資訊。即使選擇 JPEG，Lite Screen 仍會以 PNG 格式儲存。"
+            "value": "主體去背需要透明資訊。即使選擇 JPEG，ShotPaste 仍會以 PNG 格式儲存。"
           }
         }
       }
@@ -8408,61 +8408,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ausrichtung pausiert. Machen Sie langsamer und behalten Sie eine Richtung bei, damit Lite Screen sich erholen kann."
+            "value": "Ausrichtung pausiert. Machen Sie langsamer und behalten Sie eine Richtung bei, damit ShotPaste sich erholen kann."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alignment paused. Slow down and keep one direction so Lite Screen can recover."
+            "value": "Alignment paused. Slow down and keep one direction so ShotPaste can recover."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alineación pausada. Reduce la velocidad y mantén una dirección para que Lite Screen pueda recuperarse."
+            "value": "Alineación pausada. Reduce la velocidad y mantén una dirección para que ShotPaste pueda recuperarse."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "L’alignement s’est arrêté. Ralentissez et gardez une direction pour que Lite Screen puisse récupérer."
+            "value": "L’alignement s’est arrêté. Ralentissez et gardez une direction pour que ShotPaste puisse récupérer."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "アライメントは一時停止されました。 Lite Screen が回復できるように、速度を落として一方向を維持してください。"
+            "value": "アライメントは一時停止されました。 ShotPaste が回復できるように、速度を落として一方向を維持してください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "정렬이 일시중지되었습니다. Lite Screen가 회복할 수 있도록 속도를 줄이고 한 방향을 유지하세요."
+            "value": "정렬이 일시중지되었습니다. ShotPaste가 회복할 수 있도록 속도를 줄이고 한 방향을 유지하세요."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Выравнивание приостановлено. Снизьте скорость и держитесь одного направления, чтобы Lite Screen мог восстановиться."
+            "value": "Выравнивание приостановлено. Снизьте скорость и держитесь одного направления, чтобы ShotPaste мог восстановиться."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Đã tạm dừng căn chỉnh. Hãy cuộn chậm hơn và giữ một hướng để Lite Screen khôi phục."
+            "value": "Đã tạm dừng căn chỉnh. Hãy cuộn chậm hơn và giữ một hướng để ShotPaste khôi phục."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "对齐暂停。放慢速度并保持一个方向，以便 Lite Screen 能够恢复。"
+            "value": "对齐暂停。放慢速度并保持一个方向，以便 ShotPaste 能够恢复。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "對齊暫停。放慢速度並保持一個方向，以便 Lite Screen 能夠恢復。"
+            "value": "對齊暫停。放慢速度並保持一個方向，以便 ShotPaste 能夠恢復。"
           }
         }
       }
@@ -8473,61 +8473,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Automatisches Scrollen benötigt Bedienungshilfen-Zugriff. Aktiviere Lite Screen in Systemeinstellungen > Datenschutz & Sicherheit > Bedienungshilfen."
+            "value": "Automatisches Scrollen benötigt Bedienungshilfen-Zugriff. Aktiviere ShotPaste in Systemeinstellungen > Datenschutz & Sicherheit > Bedienungshilfen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Auto Scroll needs Accessibility permission. Enable Lite Screen in System Settings > Privacy & Security > Accessibility."
+            "value": "Auto Scroll needs Accessibility permission. Enable ShotPaste in System Settings > Privacy & Security > Accessibility."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "El desplazamiento automático necesita permiso de Accesibilidad. Activa Lite Screen en Ajustes del Sistema > Privacidad y seguridad > Accesibilidad."
+            "value": "El desplazamiento automático necesita permiso de Accesibilidad. Activa ShotPaste en Ajustes del Sistema > Privacidad y seguridad > Accesibilidad."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Le défilement automatique nécessite l’autorisation d’accessibilité. Activez Lite Screen dans Réglages Système > Confidentialité et sécurité > Accessibilité."
+            "value": "Le défilement automatique nécessite l’autorisation d’accessibilité. Activez ShotPaste dans Réglages Système > Confidentialité et sécurité > Accessibilité."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "自動スクロールにはアクセシビリティ権限が必要です。システム設定 > プライバシーとセキュリティ > アクセシビリティでLite Screenを有効にしてください。"
+            "value": "自動スクロールにはアクセシビリティ権限が必要です。システム設定 > プライバシーとセキュリティ > アクセシビリティでShotPasteを有効にしてください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "자동 스크롤에는 손쉬운 사용 권한이 필요합니다. 시스템 설정 > 개인정보 보호 및 보안 > 손쉬운 사용에서 Lite Screen를 활성화하세요."
+            "value": "자동 스크롤에는 손쉬운 사용 권한이 필요합니다. 시스템 설정 > 개인정보 보호 및 보안 > 손쉬운 사용에서 ShotPaste를 활성화하세요."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Для автопрокрутки нужен доступ к Универсальному доступу. Включите Lite Screen в Системных настройках > Конфиденциальность и безопасность > Универсальный доступ."
+            "value": "Для автопрокрутки нужен доступ к Универсальному доступу. Включите ShotPaste в Системных настройках > Конфиденциальность и безопасность > Универсальный доступ."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cuộn tự động cần quyền Trợ năng. Hãy bật Lite Screen trong Cài đặt hệ thống > Quyền riêng tư & Bảo mật > Trợ năng."
+            "value": "Cuộn tự động cần quyền Trợ năng. Hãy bật ShotPaste trong Cài đặt hệ thống > Quyền riêng tư & Bảo mật > Trợ năng."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "自动滚动需要辅助功能权限。请在系统设置 > 隐私与安全性 > 辅助功能中启用 Lite Screen。"
+            "value": "自动滚动需要辅助功能权限。请在系统设置 > 隐私与安全性 > 辅助功能中启用 ShotPaste。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "自動捲動需要輔助使用權限。請在「系統設定」>「隱私權與安全性」>「輔助使用」中啟用 Lite Screen。"
+            "value": "自動捲動需要輔助使用權限。請在「系統設定」>「隱私權與安全性」>「輔助使用」中啟用 ShotPaste。"
           }
         }
       }
@@ -8733,61 +8733,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Das letzte Bild konnte nicht erfasst werden. Lite Screen speichert das aktuelle Stitch-Ergebnis."
+            "value": "Das letzte Bild konnte nicht erfasst werden. ShotPaste speichert das aktuelle Stitch-Ergebnis."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn't capture the last frame. Lite Screen will save the current stitched result."
+            "value": "Couldn't capture the last frame. ShotPaste will save the current stitched result."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo capturar el último fotograma. Lite Screen guardará el resultado cosido actual."
+            "value": "No se pudo capturar el último fotograma. ShotPaste guardará el resultado cosido actual."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible de capturer la dernière image. Lite Screen enregistrera le résultat cousu actuel."
+            "value": "Impossible de capturer la dernière image. ShotPaste enregistrera le résultat cousu actuel."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "最後のフレームをキャプチャできませんでした。 Lite Screen は現在のステッチ結果を保存します。"
+            "value": "最後のフレームをキャプチャできませんでした。 ShotPaste は現在のステッチ結果を保存します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "마지막 프레임을 캡처할 수 없습니다. Lite Screen는 현재 스티치 결과를 저장합니다."
+            "value": "마지막 프레임을 캡처할 수 없습니다. ShotPaste는 현재 스티치 결과를 저장합니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Не удалось запечатлеть последний кадр. Lite Screen сохранит текущий результат сшивания."
+            "value": "Не удалось запечатлеть последний кадр. ShotPaste сохранит текущий результат сшивания."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Không thể chụp khung hình cuối. Lite Screen sẽ lưu kết quả ghép hiện tại."
+            "value": "Không thể chụp khung hình cuối. ShotPaste sẽ lưu kết quả ghép hiện tại."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法截取最后一帧。Lite Screen 将保存当前拼接结果。"
+            "value": "无法截取最后一帧。ShotPaste 将保存当前拼接结果。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "無法擷取最後一個畫面；Lite Screen 會儲存目前的拼接結果。"
+            "value": "無法擷取最後一個畫面；ShotPaste 會儲存目前的拼接結果。"
           }
         }
       }
@@ -8798,61 +8798,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Der letzte Frame konnte nicht aktualisiert werden. Lite Screen speichert das aktuelle Stitch-Ergebnis."
+            "value": "Der letzte Frame konnte nicht aktualisiert werden. ShotPaste speichert das aktuelle Stitch-Ergebnis."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn't refresh the last frame. Lite Screen will save the current stitched result."
+            "value": "Couldn't refresh the last frame. ShotPaste will save the current stitched result."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo actualizar el último fotograma. Lite Screen guardará el resultado cosido actual."
+            "value": "No se pudo actualizar el último fotograma. ShotPaste guardará el resultado cosido actual."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible d'actualiser la dernière image. Lite Screen enregistrera le résultat cousu actuel."
+            "value": "Impossible d'actualiser la dernière image. ShotPaste enregistrera le résultat cousu actuel."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "最後のフレームを更新できませんでした。 Lite Screen は現在のステッチ結果を保存します。"
+            "value": "最後のフレームを更新できませんでした。 ShotPaste は現在のステッチ結果を保存します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "마지막 프레임을 새로고침할 수 없습니다. Lite Screen는 현재 스티치 결과를 저장합니다."
+            "value": "마지막 프레임을 새로고침할 수 없습니다. ShotPaste는 현재 스티치 결과를 저장합니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Не удалось обновить последний кадр. Lite Screen сохранит текущий результат сшивания."
+            "value": "Не удалось обновить последний кадр. ShotPaste сохранит текущий результат сшивания."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Không thể làm mới khung hình cuối. Lite Screen sẽ lưu kết quả ghép hiện tại."
+            "value": "Không thể làm mới khung hình cuối. ShotPaste sẽ lưu kết quả ghép hiện tại."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法刷新最后一帧。 Lite Screen 将保存当前的拼接结果。"
+            "value": "无法刷新最后一帧。 ShotPaste 将保存当前的拼接结果。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "無法刷新最後一幀。 Lite Screen 將保存當前的拼接結果。"
+            "value": "無法刷新最後一幀。 ShotPaste 將保存當前的拼接結果。"
           }
         }
       }
@@ -8993,61 +8993,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Der letzte Frame konnte nicht sauber ausgerichtet werden. Lite Screen speichert das aktuelle Stitch-Ergebnis."
+            "value": "Der letzte Frame konnte nicht sauber ausgerichtet werden. ShotPaste speichert das aktuelle Stitch-Ergebnis."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn't align the last frame cleanly. Lite Screen will save the current stitched result."
+            "value": "Couldn't align the last frame cleanly. ShotPaste will save the current stitched result."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo alinear limpiamente el último fotograma. Lite Screen guardará el resultado cosido actual."
+            "value": "No se pudo alinear limpiamente el último fotograma. ShotPaste guardará el resultado cosido actual."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible d'aligner proprement la dernière image. Lite Screen enregistrera le résultat cousu actuel."
+            "value": "Impossible d'aligner proprement la dernière image. ShotPaste enregistrera le résultat cousu actuel."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "最後のフレームをきれいに揃えることができませんでした。 Lite Screen は現在のステッチ結果を保存します。"
+            "value": "最後のフレームをきれいに揃えることができませんでした。 ShotPaste は現在のステッチ結果を保存します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "마지막 프레임을 깔끔하게 정렬할 수 없습니다. Lite Screen는 현재 스티치 결과를 저장합니다."
+            "value": "마지막 프레임을 깔끔하게 정렬할 수 없습니다. ShotPaste는 현재 스티치 결과를 저장합니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Не удалось аккуратно выровнять последний кадр. Lite Screen сохранит текущий результат сшивания."
+            "value": "Не удалось аккуратно выровнять последний кадр. ShotPaste сохранит текущий результат сшивания."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Không thể căn chỉnh gọn khung hình cuối. Lite Screen sẽ lưu kết quả ghép hiện tại."
+            "value": "Không thể căn chỉnh gọn khung hình cuối. ShotPaste sẽ lưu kết quả ghép hiện tại."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法干净地对齐最后一帧。 Lite Screen 将保存当前的拼接结果。"
+            "value": "无法干净地对齐最后一帧。 ShotPaste 将保存当前的拼接结果。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "無法乾淨地對齊最後一幀。 Lite Screen 將保存當前的拼接結果。"
+            "value": "無法乾淨地對齊最後一幀。 ShotPaste 將保存當前的拼接結果。"
           }
         }
       }
@@ -9058,55 +9058,55 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Finalisierung der aktuellen Aufnahme. Lite Screen sperrt das neueste Stitch-Ergebnis vor dem Speichern."
+            "value": "Finalisierung der aktuellen Aufnahme. ShotPaste sperrt das neueste Stitch-Ergebnis vor dem Speichern."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Finalizing the current capture. Lite Screen is locking the latest stitched result before saving."
+            "value": "Finalizing the current capture. ShotPaste is locking the latest stitched result before saving."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Finalizando la captura actual. Lite Screen está bloqueando el último resultado cosido antes de guardarlo."
+            "value": "Finalizando la captura actual. ShotPaste está bloqueando el último resultado cosido antes de guardarlo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Finalisation de la capture en cours. Lite Screen verrouille le dernier résultat cousu avant de l'enregistrer."
+            "value": "Finalisation de la capture en cours. ShotPaste verrouille le dernier résultat cousu avant de l'enregistrer."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "現在のキャプチャを終了しています。 Lite Screen は、保存する前に最新のステッチ結果をロックします。"
+            "value": "現在のキャプチャを終了しています。 ShotPaste は、保存する前に最新のステッチ結果をロックします。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "현재 캡처를 마무리하는 중입니다. Lite Screen는 저장하기 전에 최신 스티치 결과를 잠급니다."
+            "value": "현재 캡처를 마무리하는 중입니다. ShotPaste는 저장하기 전에 최신 스티치 결과를 잠급니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Завершение текущего захвата. Lite Screen блокирует последний результат сшивания перед сохранением."
+            "value": "Завершение текущего захвата. ShotPaste блокирует последний результат сшивания перед сохранением."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Đang hoàn tất ảnh chụp hiện tại. Lite Screen đang khóa kết quả ghép mới nhất trước khi lưu."
+            "value": "Đang hoàn tất ảnh chụp hiện tại. ShotPaste đang khóa kết quả ghép mới nhất trước khi lưu."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "正在完成本次截取，保存前 Lite Screen 会锁定最新拼接结果。"
+            "value": "正在完成本次截取，保存前 ShotPaste 会锁定最新拼接结果。"
           }
         },
         "zh-Hant": {
@@ -9123,55 +9123,55 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sperren der aktuellen Aufnahme. Lite Screen versiegelt %d zusammengefügte Frames vor dem Speichern."
+            "value": "Sperren der aktuellen Aufnahme. ShotPaste versiegelt %d zusammengefügte Frames vor dem Speichern."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Locking the current capture. Lite Screen is sealing %d stitched frames before saving."
+            "value": "Locking the current capture. ShotPaste is sealing %d stitched frames before saving."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bloqueando la captura actual. Lite Screen está sellando %d cuadros cosidos antes de guardarlos."
+            "value": "Bloqueando la captura actual. ShotPaste está sellando %d cuadros cosidos antes de guardarlos."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Verrouillage de la capture en cours. Lite Screen scelle %d cadres cousus avant de les enregistrer."
+            "value": "Verrouillage de la capture en cours. ShotPaste scelle %d cadres cousus avant de les enregistrer."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "現在のキャプチャをロックしています。 Lite Screen は、保存する前に %d 個のステッチされたフレームをシールしています。"
+            "value": "現在のキャプチャをロックしています。 ShotPaste は、保存する前に %d 個のステッチされたフレームをシールしています。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "현재 캡처를 잠급니다. Lite Screen가 저장하기 전에 연결된 프레임 %d개를 봉인하고 있습니다."
+            "value": "현재 캡처를 잠급니다. ShotPaste가 저장하기 전에 연결된 프레임 %d개를 봉인하고 있습니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Блокировка текущего захвата. Lite Screen запечатывает %d сшитых кадров перед сохранением."
+            "value": "Блокировка текущего захвата. ShotPaste запечатывает %d сшитых кадров перед сохранением."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Đang khóa ảnh chụp hiện tại. Lite Screen đang chốt %d khung đã ghép trước khi lưu."
+            "value": "Đang khóa ảnh chụp hiện tại. ShotPaste đang chốt %d khung đã ghép trước khi lưu."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "正在完成本次截取，保存前 Lite Screen 正在处理 %d 帧拼接结果。"
+            "value": "正在完成本次截取，保存前 ShotPaste 正在处理 %d 帧拼接结果。"
           }
         },
         "zh-Hant": {
@@ -9188,61 +9188,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Höhenlimit erreicht. Lite Screen speichert das aktuelle Stitch-Ergebnis."
+            "value": "Höhenlimit erreicht. ShotPaste speichert das aktuelle Stitch-Ergebnis."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Height limit reached. Lite Screen is saving the current stitched result."
+            "value": "Height limit reached. ShotPaste is saving the current stitched result."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Límite de altura alcanzado. Lite Screen está guardando el resultado cosido actual."
+            "value": "Límite de altura alcanzado. ShotPaste está guardando el resultado cosido actual."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Limite de hauteur atteinte. Lite Screen enregistre le résultat cousu actuel."
+            "value": "Limite de hauteur atteinte. ShotPaste enregistre le résultat cousu actuel."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "高さ制限に達しました。 Lite Screen は現在のステッチ結果を保存しています。"
+            "value": "高さ制限に達しました。 ShotPaste は現在のステッチ結果を保存しています。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "높이 제한에 도달했습니다. Lite Screen는 현재 스티치 결과를 저장하고 있습니다."
+            "value": "높이 제한에 도달했습니다. ShotPaste는 현재 스티치 결과를 저장하고 있습니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Достигнут предел высоты. Lite Screen сохраняет текущий результат сшивания."
+            "value": "Достигнут предел высоты. ShotPaste сохраняет текущий результат сшивания."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Đã chạm giới hạn chiều cao. Lite Screen đang lưu kết quả ghép hiện tại."
+            "value": "Đã chạm giới hạn chiều cao. ShotPaste đang lưu kết quả ghép hiện tại."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "达到高度限制。 Lite Screen 正在保存当前的拼接结果。"
+            "value": "达到高度限制。 ShotPaste 正在保存当前的拼接结果。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "達到高度限制。 Lite Screen 正在保存當前的拼接結果。"
+            "value": "達到高度限制。 ShotPaste 正在保存當前的拼接結果。"
           }
         }
       }
@@ -9253,61 +9253,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Es wurden keine neuen Inhalte erkannt. Lite Screen speichert das aktuelle Stitch-Ergebnis."
+            "value": "Es wurden keine neuen Inhalte erkannt. ShotPaste speichert das aktuelle Stitch-Ergebnis."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No new content was detected. Lite Screen is saving the current stitched result."
+            "value": "No new content was detected. ShotPaste is saving the current stitched result."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se detectó ningún contenido nuevo. Lite Screen está guardando el resultado cosido actual."
+            "value": "No se detectó ningún contenido nuevo. ShotPaste está guardando el resultado cosido actual."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucun nouveau contenu n'a été détecté. Lite Screen enregistre le résultat cousu actuel."
+            "value": "Aucun nouveau contenu n'a été détecté. ShotPaste enregistre le résultat cousu actuel."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "新しいコンテンツは検出されませんでした。 Lite Screen は現在のステッチ結果を保存しています。"
+            "value": "新しいコンテンツは検出されませんでした。 ShotPaste は現在のステッチ結果を保存しています。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "새로운 콘텐츠가 감지되지 않았습니다. Lite Screen는 현재 스티치 결과를 저장하고 있습니다."
+            "value": "새로운 콘텐츠가 감지되지 않았습니다. ShotPaste는 현재 스티치 결과를 저장하고 있습니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Нового контента обнаружено не было. Lite Screen сохраняет текущий результат сшивания."
+            "value": "Нового контента обнаружено не было. ShotPaste сохраняет текущий результат сшивания."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Không phát hiện nội dung mới. Lite Screen đang lưu kết quả ghép hiện tại."
+            "value": "Không phát hiện nội dung mới. ShotPaste đang lưu kết quả ghép hiện tại."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "没有检测到新内容。 Lite Screen 正在保存当前的拼接结果。"
+            "value": "没有检测到新内容。 ShotPaste 正在保存当前的拼接结果。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "沒有檢測到新內容。 Lite Screen 正在保存當前的拼接結果。"
+            "value": "沒有檢測到新內容。 ShotPaste 正在保存當前的拼接結果。"
           }
         }
       }
@@ -9448,61 +9448,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Es wurden gemischte Scrollrichtungen erkannt. Behalten Sie eine Richtung bei, damit Lite Screen sich ausrichten kann."
+            "value": "Es wurden gemischte Scrollrichtungen erkannt. Behalten Sie eine Richtung bei, damit ShotPaste sich ausrichten kann."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mixed scroll directions detected. Keep one direction so Lite Screen can align."
+            "value": "Mixed scroll directions detected. Keep one direction so ShotPaste can align."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se detectaron direcciones de desplazamiento mixtas. Mantenga una dirección para que Lite Screen pueda alinearse."
+            "value": "Se detectaron direcciones de desplazamiento mixtas. Mantenga una dirección para que ShotPaste pueda alinearse."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sens de défilement mixtes détectés. Gardez une direction pour que Lite Screen puisse s'aligner."
+            "value": "Sens de défilement mixtes détectés. Gardez une direction pour que ShotPaste puisse s'aligner."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "混合スクロール方向が検出されました。 Lite Screen が位置を合わせられるように、一方向を維持してください。"
+            "value": "混合スクロール方向が検出されました。 ShotPaste が位置を合わせられるように、一方向を維持してください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "혼합된 스크롤 방향이 감지되었습니다. Lite Screen가 정렬할 수 있도록 한 방향을 유지하세요."
+            "value": "혼합된 스크롤 방향이 감지되었습니다. ShotPaste가 정렬할 수 있도록 한 방향을 유지하세요."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Обнаружены смешанные направления прокрутки. Сохраняйте одно направление, чтобы Lite Screen мог выровняться."
+            "value": "Обнаружены смешанные направления прокрутки. Сохраняйте одно направление, чтобы ShotPaste мог выровняться."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Phát hiện cuộn nhiều hướng. Hãy giữ một hướng để Lite Screen có thể căn chỉnh."
+            "value": "Phát hiện cuộn nhiều hướng. Hãy giữ một hướng để ShotPaste có thể căn chỉnh."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "检测到混合滚动方向。保持一个方向，以便 Lite Screen 可以对齐。"
+            "value": "检测到混合滚动方向。保持一个方向，以便 ShotPaste 可以对齐。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "檢測到混合滾動方向。保持一個方向，以便 Lite Screen 可以對齊。"
+            "value": "檢測到混合滾動方向。保持一個方向，以便 ShotPaste 可以對齊。"
           }
         }
       }
@@ -9578,49 +9578,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen konnte ein speicherbares zusammengefügtes Bild noch nicht sperren. Sie können mit der Aufnahme fortfahren, es erneut mit „Fertig“ versuchen oder abbrechen."
+            "value": "ShotPaste konnte ein speicherbares zusammengefügtes Bild noch nicht sperren. Sie können mit der Aufnahme fortfahren, es erneut mit „Fertig“ versuchen oder abbrechen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen couldn't lock a savable stitched image yet. You can keep capturing, try Done again, or Cancel."
+            "value": "ShotPaste couldn't lock a savable stitched image yet. You can keep capturing, try Done again, or Cancel."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen aún no pudo bloquear una imagen cosida que se puede guardar. Puede seguir capturando, intentar Listo nuevamente o Cancelar."
+            "value": "ShotPaste aún no pudo bloquear una imagen cosida que se puede guardar. Puede seguir capturando, intentar Listo nuevamente o Cancelar."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen n'a pas encore pu verrouiller une image assemblée pouvant être enregistrée. Vous pouvez continuer la capture, réessayer Terminé ou Annuler."
+            "value": "ShotPaste n'a pas encore pu verrouiller une image assemblée pouvant être enregistrée. Vous pouvez continuer la capture, réessayer Terminé ou Annuler."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen は、保存可能なステッチ画像をまだロックできませんでした。キャプチャを続行するか、「完了」を再試行するか、「キャンセル」することができます。"
+            "value": "ShotPaste は、保存可能なステッチ画像をまだロックできませんでした。キャプチャを続行するか、「完了」を再試行するか、「キャンセル」することができます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen는 아직 저장 가능한 스티치 이미지를 잠글 수 없습니다. 계속 캡처하거나, 다시 완료하거나, 취소할 수 있습니다."
+            "value": "ShotPaste는 아직 저장 가능한 스티치 이미지를 잠글 수 없습니다. 계속 캡처하거나, 다시 완료하거나, 취소할 수 있습니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen пока не удалось заблокировать сохраненное сшитое изображение. Вы можете продолжить съемку, попробовать «Готово» еще раз или «Отмена»."
+            "value": "ShotPaste пока не удалось заблокировать сохраненное сшитое изображение. Вы можете продолжить съемку, попробовать «Готово» еще раз или «Отмена»."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen chưa thể khóa một ảnh ghép có thể lưu. Bạn có thể tiếp tục chụp, thử Xong lại hoặc Hủy."
+            "value": "ShotPaste chưa thể khóa một ảnh ghép có thể lưu. Bạn có thể tiếp tục chụp, thử Xong lại hoặc Hủy."
           }
         },
         "zh-Hans": {
@@ -11333,61 +11333,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Live-Vorschau läuft, während Lite Screen den zusammengefügten Rahmen sperrt."
+            "value": "Live-Vorschau läuft, während ShotPaste den zusammengefügten Rahmen sperrt."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Live preview running while Lite Screen locks the stitched frame."
+            "value": "Live preview running while ShotPaste locks the stitched frame."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vista previa en vivo ejecutándose mientras Lite Screen bloquea el marco cosido."
+            "value": "Vista previa en vivo ejecutándose mientras ShotPaste bloquea el marco cosido."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aperçu en direct en cours d'exécution pendant que Lite Screen verrouille le cadre cousu."
+            "value": "Aperçu en direct en cours d'exécution pendant que ShotPaste verrouille le cadre cousu."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen がステッチされたフレームをロックしている間、ライブ プレビューが実行されます。"
+            "value": "ShotPaste がステッチされたフレームをロックしている間、ライブ プレビューが実行されます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen가 스티치된 프레임을 잠그는 동안 실시간 미리보기가 실행 중입니다."
+            "value": "ShotPaste가 스티치된 프레임을 잠그는 동안 실시간 미리보기가 실행 중입니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Предварительный просмотр в реальном времени выполняется, пока Lite Screen блокирует сшитый кадр."
+            "value": "Предварительный просмотр в реальном времени выполняется, пока ShotPaste блокирует сшитый кадр."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bản xem trước trực tiếp đang chạy trong khi Lite Screen khóa khung đã ghép."
+            "value": "Bản xem trước trực tiếp đang chạy trong khi ShotPaste khóa khung đã ghép."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 锁定缝合帧时运行实时预览。"
+            "value": "ShotPaste 锁定缝合帧时运行实时预览。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 鎖定縫合幀時運行實時預覽。"
+            "value": "ShotPaste 鎖定縫合幀時運行實時預覽。"
           }
         }
       }
@@ -12367,67 +12367,67 @@
         }
       }
     },
-    "scrolling-capture.guidance-keep-one-direction-so-lite-screen-can-realign": {
+    "scrolling-capture.guidance-keep-one-direction-so-shotpaste-can-realign": {
       "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Behalten Sie eine Richtung bei, damit Lite Screen neu ausrichten kann"
+            "value": "Behalten Sie eine Richtung bei, damit ShotPaste neu ausrichten kann"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keep one direction so Lite Screen can re-align"
+            "value": "Keep one direction so ShotPaste can re-align"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mantenga una dirección para que Lite Screen pueda realinearse"
+            "value": "Mantenga una dirección para que ShotPaste pueda realinearse"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gardez une direction pour que Lite Screen puisse se réaligner"
+            "value": "Gardez une direction pour que ShotPaste puisse se réaligner"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen が再調整できるように、一方向を維持してください"
+            "value": "ShotPaste が再調整できるように、一方向を維持してください"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen가 다시 정렬할 수 있도록 한 방향을 유지하세요"
+            "value": "ShotPaste가 다시 정렬할 수 있도록 한 방향을 유지하세요"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Сохраняйте одно направление, чтобы Lite Screen мог перестроить"
+            "value": "Сохраняйте одно направление, чтобы ShotPaste мог перестроить"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Giữ một hướng để Lite Screen căn chỉnh lại"
+            "value": "Giữ một hướng để ShotPaste căn chỉnh lại"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "保持一个方向，以便 Lite Screen 可以重新对齐"
+            "value": "保持一个方向，以便 ShotPaste 可以重新对齐"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "保持一個方向，以便 Lite Screen 可以重新對齊"
+            "value": "保持一個方向，以便 ShotPaste 可以重新對齊"
           }
         }
       }
@@ -13602,132 +13602,132 @@
         }
       }
     },
-    "scrolling-capture.guidance-lite-screen-locking-first-frame": {
+    "scrolling-capture.guidance-shotpaste-locking-first-frame": {
       "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen sperrt den ersten Frame"
+            "value": "ShotPaste sperrt den ersten Frame"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen is locking the first frame"
+            "value": "ShotPaste is locking the first frame"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen está bloqueando el primer cuadro"
+            "value": "ShotPaste está bloqueando el primer cuadro"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen verrouille la première image"
+            "value": "ShotPaste verrouille la première image"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen は最初のフレームをロックしています"
+            "value": "ShotPaste は最初のフレームをロックしています"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen가 첫 번째 프레임을 잠그고 있습니다"
+            "value": "ShotPaste가 첫 번째 프레임을 잠그고 있습니다"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen блокирует первый кадр"
+            "value": "ShotPaste блокирует первый кадр"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen đang khóa khung hình đầu tiên"
+            "value": "ShotPaste đang khóa khung hình đầu tiên"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 正在锁定第一帧"
+            "value": "ShotPaste 正在锁定第一帧"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 正在鎖定第一幀"
+            "value": "ShotPaste 正在鎖定第一幀"
           }
         }
       }
     },
-    "scrolling-capture.guidance-lite-screen-sealing-stitched-result": {
+    "scrolling-capture.guidance-shotpaste-sealing-stitched-result": {
       "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen versiegelt das genähte Ergebnis"
+            "value": "ShotPaste versiegelt das genähte Ergebnis"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen is sealing the stitched result"
+            "value": "ShotPaste is sealing the stitched result"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen está sellando el resultado cosido"
+            "value": "ShotPaste está sellando el resultado cosido"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen scelle le résultat cousu"
+            "value": "ShotPaste scelle le résultat cousu"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen はステッチ結果を封印しています"
+            "value": "ShotPaste はステッチ結果を封印しています"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen가 스티치 결과를 봉인하고 있습니다"
+            "value": "ShotPaste가 스티치 결과를 봉인하고 있습니다"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen запечатывает результат сшивания"
+            "value": "ShotPaste запечатывает результат сшивания"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen đang chốt kết quả đã ghép"
+            "value": "ShotPaste đang chốt kết quả đã ghép"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 正在密封缝合结果"
+            "value": "ShotPaste 正在密封缝合结果"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 正在密封縫合結果"
+            "value": "ShotPaste 正在密封縫合結果"
           }
         }
       }
@@ -14128,61 +14128,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vorschau angehalten – scrollen Sie langsam, damit Lite Screen sich neu ausrichten kann."
+            "value": "Vorschau angehalten – scrollen Sie langsam, damit ShotPaste sich neu ausrichten kann."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Preview paused - scroll slowly so Lite Screen can re-align."
+            "value": "Preview paused - scroll slowly so ShotPaste can re-align."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vista previa en pausa: desplácese lentamente para que Lite Screen pueda realinearse."
+            "value": "Vista previa en pausa: desplácese lentamente para que ShotPaste pueda realinearse."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aperçu en pause - faites défiler lentement pour que Lite Screen puisse se réaligner."
+            "value": "Aperçu en pause - faites défiler lentement pour que ShotPaste puisse se réaligner."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "プレビューが一時停止されました - Lite Screen が再調整できるようにゆっくりスクロールします。"
+            "value": "プレビューが一時停止されました - ShotPaste が再調整できるようにゆっくりスクロールします。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "미리보기가 일시중지되었습니다. Lite Screen가 다시 정렬할 수 있도록 천천히 스크롤하세요."
+            "value": "미리보기가 일시중지되었습니다. ShotPaste가 다시 정렬할 수 있도록 천천히 스크롤하세요."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Предварительный просмотр приостановлен: прокрутите медленно, чтобы Lite Screen мог выровнять изображение."
+            "value": "Предварительный просмотр приостановлен: прокрутите медленно, чтобы ShotPaste мог выровнять изображение."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bản xem trước đã tạm dừng, hãy cuộn chậm để Lite Screen căn chỉnh lại."
+            "value": "Bản xem trước đã tạm dừng, hãy cuộn chậm để ShotPaste căn chỉnh lại."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "预览已暂停 - 缓慢滚动，以便 Lite Screen 可以重新对齐。"
+            "value": "预览已暂停 - 缓慢滚动，以便 ShotPaste 可以重新对齐。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "預覽已暫停 - 緩慢滾動，以便 Lite Screen 可以重新對齊。"
+            "value": "預覽已暫停 - 緩慢滾動，以便 ShotPaste 可以重新對齊。"
           }
         }
       }
@@ -14388,61 +14388,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zeigt das neueste zusammengefügte Ergebnis an, während Lite Screen neuere Inhalte sperrt."
+            "value": "Zeigt das neueste zusammengefügte Ergebnis an, während ShotPaste neuere Inhalte sperrt."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Showing the latest stitched result while Lite Screen locks newer content."
+            "value": "Showing the latest stitched result while ShotPaste locks newer content."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mostrando el último resultado cosido mientras Lite Screen bloquea el contenido más nuevo."
+            "value": "Mostrando el último resultado cosido mientras ShotPaste bloquea el contenido más nuevo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Affichage du dernier résultat assemblé pendant que Lite Screen verrouille le contenu le plus récent."
+            "value": "Affichage du dernier résultat assemblé pendant que ShotPaste verrouille le contenu le plus récent."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen が新しいコンテンツをロックしている間、最新のステッチ結果を表示します。"
+            "value": "ShotPaste が新しいコンテンツをロックしている間、最新のステッチ結果を表示します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen가 최신 콘텐츠를 잠그는 동안 최신 연결 결과를 표시합니다."
+            "value": "ShotPaste가 최신 콘텐츠를 잠그는 동안 최신 연결 결과를 표시합니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Показан последний сшитый результат, в то время как Lite Screen блокирует новый контент."
+            "value": "Показан последний сшитый результат, в то время как ShotPaste блокирует новый контент."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Đang hiển thị kết quả ghép mới nhất trong khi Lite Screen khóa phần nội dung mới hơn."
+            "value": "Đang hiển thị kết quả ghép mới nhất trong khi ShotPaste khóa phần nội dung mới hơn."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "显示最新的拼接结果，同时 Lite Screen 锁定更新的内容。"
+            "value": "显示最新的拼接结果，同时 ShotPaste 锁定更新的内容。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "顯示最新的拼接結果，同時 Lite Screen 鎖定更新的內容。"
+            "value": "顯示最新的拼接結果，同時 ShotPaste 鎖定更新的內容。"
           }
         }
       }

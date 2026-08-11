@@ -3,9 +3,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_PATH="$ROOT_DIR/.build/macos/Release/Lite Screen.app"
+APP_PATH="$ROOT_DIR/.build/macos/Release/ShotPaste.app"
 OUTPUT_DIR="$ROOT_DIR/build/local-release"
-DMG_PATH="$OUTPUT_DIR/LiteScreen-local-macOS-arm64.dmg"
+DMG_PATH="$OUTPUT_DIR/ShotPaste-local-macOS-arm64.dmg"
 STAGING_DIR="$(mktemp -d)"
 
 cleanup() {
@@ -18,7 +18,7 @@ trap cleanup EXIT
   exit 1
 }
 
-LITESCREEN_LOCAL_RELEASE_COMPILER_WORKAROUND=1 \
+SHOTPASTE_LOCAL_RELEASE_COMPILER_WORKAROUND=1 \
   "$ROOT_DIR/scripts/build_and_run.sh" build --configuration Release "$@"
 
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
@@ -33,13 +33,13 @@ while IFS= read -r -d '' old_dmg; do
   rm -f -- "$old_dmg"
 done < <(/usr/bin/find "$OUTPUT_DIR" -maxdepth 1 -type f -name '*.dmg' -print0)
 
-ditto "$APP_PATH" "$STAGING_DIR/Lite Screen.app"
+ditto "$APP_PATH" "$STAGING_DIR/ShotPaste.app"
 ln -s /Applications "$STAGING_DIR/Applications"
 sed 's/@VERSION@/local/g' "$ROOT_DIR/docs/release/START-HERE-macOS.txt" \
   > "$STAGING_DIR/START-HERE-macOS.txt"
 
 hdiutil create \
-  -volname "Lite Screen Local" \
+  -volname "ShotPaste Local" \
   -srcfolder "$STAGING_DIR" \
   -format UDZO \
   -ov \

@@ -1,13 +1,13 @@
 # Support
 
-Lite Screen is a community-maintained open-source project.
+ShotPaste is a community-maintained open-source project.
 
 ## Before opening an issue
 
 1. Read the [README](README.md), [feature list](docs/FEATURES.md), and
    [development guide](docs/DEVELOPMENT.md).
 2. Search existing issues and try the latest release when practical.
-3. Collect the Lite Screen version, operating-system version, installation
+3. Collect the ShotPaste version, operating-system version, installation
    method, exact steps, and sanitized diagnostics.
 
 Use the repository issue forms for reproducible bugs, feature requests, and

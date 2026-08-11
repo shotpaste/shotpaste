@@ -131,31 +131,31 @@
         }
       }
     },
-    "menu.quit-litescreen": {
+    "menu.quit-shotpaste": {
       "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Beenden Sie Lite Screen"
+            "value": "Beenden Sie ShotPaste"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quit Lite Screen"
+            "value": "Quit ShotPaste"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Salir de Lite Screen"
+            "value": "Salir de ShotPaste"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quitter Lite Screen"
+            "value": "Quitter ShotPaste"
           }
         },
         "ja": {
@@ -167,31 +167,31 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 종료"
+            "value": "ShotPaste 종료"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Выйти из Lite Screen"
+            "value": "Выйти из ShotPaste"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Thoát Lite Screen"
+            "value": "Thoát ShotPaste"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "退出 Lite Screen"
+            "value": "退出 ShotPaste"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "退出 Lite Screen"
+            "value": "退出 ShotPaste"
           }
         }
       }

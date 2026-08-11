@@ -9,7 +9,7 @@ cd "$ROOT_DIR"
 
 if command -v swiftformat >/dev/null 2>&1; then
   echo "Formatting codebase..."
-  swiftformat platforms/mac/LiteScreen platforms/mac/LiteScreenTests platforms/mac/Tools
+  swiftformat platforms/mac/ShotPaste platforms/mac/ShotPasteTests platforms/mac/Tools
 else
   echo "error: SwiftFormat is not installed. Run 'brew install swiftformat' first."
   exit 1

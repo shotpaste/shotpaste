@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Remove stale generated Lite Screen app bundles while preserving canonical products.
+# Remove stale generated ShotPaste app bundles while preserving canonical products.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -17,12 +17,12 @@ fi
   exit 1
 }
 
-CANONICAL_DEBUG="$ROOT_DIR/.build/macos/Debug/Lite Screen Debug.app"
-CANONICAL_RELEASE="$ROOT_DIR/.build/macos/Release/Lite Screen.app"
+CANONICAL_DEBUG="$ROOT_DIR/.build/macos/Debug/ShotPaste Debug.app"
+CANONICAL_RELEASE="$ROOT_DIR/.build/macos/Release/ShotPaste.app"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 REMOVED=0
 
-pgrep -x LiteScreen >/dev/null 2>&1 && pkill -x LiteScreen >/dev/null 2>&1 || true
+pgrep -x ShotPaste >/dev/null 2>&1 && pkill -x ShotPaste >/dev/null 2>&1 || true
 
 remove_candidate() {
   local candidate="$1"
@@ -30,7 +30,7 @@ remove_candidate() {
   base_name="$(basename "$candidate")"
 
   [[ "$candidate" != "$CANONICAL_DEBUG" && "$candidate" != "$CANONICAL_RELEASE" ]] || return 0
-  [[ "$base_name" == "Lite Screen Debug.app" || "$base_name" == "Lite Screen.app" ]] || return 0
+  [[ "$base_name" == "ShotPaste Debug.app" || "$base_name" == "ShotPaste.app" ]] || return 0
 
   case "$candidate" in
     "$ROOT_DIR/.build/"*|"$ROOT_DIR/build/"*|"$HOME/Library/Developer/Xcode/DerivedData/"*) ;;
@@ -55,7 +55,7 @@ scan_root() {
     remove_candidate "$candidate"
   done < <(
     /usr/bin/find "$search_root" -type d \( \
-      -name 'Lite Screen Debug.app' -o -name 'Lite Screen.app' \
+      -name 'ShotPaste Debug.app' -o -name 'ShotPaste.app' \
     \) -prune -print0
   )
 }

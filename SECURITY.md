@@ -4,17 +4,17 @@
 
 Do not disclose a suspected vulnerability in a public issue, discussion, or pull request. Use GitHub's private vulnerability reporting flow:
 
-[Report a vulnerability privately](https://github.com/ahtcfg24/LiteScreen/security/advisories/new)
+[Report a vulnerability privately](https://github.com/shotpaste/shotpaste/security/advisories/new)
 
 Include the affected platform and version, impact, reproduction steps or proof of concept, and any suggested mitigation. Maintainers will acknowledge a complete report when it has been reviewed; no fixed response-time promise is made while the project is volunteer-maintained.
 
 ## Supported versions
 
-Security fixes target the latest released version and the current `master` branch. Older versions may be asked to upgrade before receiving a fix.
+Security fixes target the latest released version and the current `main` branch. Older versions may be asked to upgrade before receiving a fix.
 
 ## Security model
 
-Lite Screen is local-first:
+ShotPaste is local-first:
 
 - Capture, recording, OCR, QR recognition, history, and clipboard processing happen locally.
 - The project does not operate an account service, telemetry collector, or upload relay.

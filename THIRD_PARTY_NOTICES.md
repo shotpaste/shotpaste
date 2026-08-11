@@ -1,6 +1,6 @@
 # Third-party notices
 
-This file accompanies Lite Screen source and binary distributions. The project
+This file accompanies ShotPaste source and binary distributions. The project
 documentation is intentionally concise; required copyright and license text is
 kept here without abbreviation.
 

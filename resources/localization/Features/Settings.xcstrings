@@ -6,61 +6,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "config.toml stimmt nicht mehr mit den Lite Screen-Einstellungen überein und kann außerhalb der App bearbeitet worden sein. Beim Synchronisieren wird sie durch die aktuellen Einstellungen ersetzt."
+            "value": "config.toml stimmt nicht mehr mit den ShotPaste-Einstellungen überein und kann außerhalb der App bearbeitet worden sein. Beim Synchronisieren wird sie durch die aktuellen Einstellungen ersetzt."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "config.toml no longer matches Lite Screen settings and may have edits from outside the app. Syncing will replace it with current settings."
+            "value": "config.toml no longer matches ShotPaste settings and may have edits from outside the app. Syncing will replace it with current settings."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "config.toml ya no coincide con los ajustes de Lite Screen y puede tener cambios hechos fuera de la app. Al sincronizar se reemplazará con los ajustes actuales."
+            "value": "config.toml ya no coincide con los ajustes de ShotPaste y puede tener cambios hechos fuera de la app. Al sincronizar se reemplazará con los ajustes actuales."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "config.toml ne correspond plus aux réglages de Lite Screen et peut contenir des modifications faites hors de l’app. La synchronisation la remplacera par les réglages actuels."
+            "value": "config.toml ne correspond plus aux réglages de ShotPaste et peut contenir des modifications faites hors de l’app. La synchronisation la remplacera par les réglages actuels."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "config.toml が Lite Screen の設定と一致せず、アプリ外で編集されている可能性があります。同期すると現在の設定で置き換えます。"
+            "value": "config.toml が ShotPaste の設定と一致せず、アプリ外で編集されている可能性があります。同期すると現在の設定で置き換えます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "config.toml이 더 이상 Lite Screen 설정과 일치하지 않으며 앱 외부에서 편집되었을 수 있습니다. 동기화하면 현재 설정으로 교체됩니다."
+            "value": "config.toml이 더 이상 ShotPaste 설정과 일치하지 않으며 앱 외부에서 편집되었을 수 있습니다. 동기화하면 현재 설정으로 교체됩니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "config.toml больше не совпадает с настройками Lite Screen и могла быть изменена вне приложения. При синхронизации она будет заменена текущими настройками."
+            "value": "config.toml больше не совпадает с настройками ShotPaste и могла быть изменена вне приложения. При синхронизации она будет заменена текущими настройками."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "config.toml không còn khớp với cài đặt Lite Screen và có thể đã được sửa bên ngoài ứng dụng. Đồng bộ sẽ thay thế bằng cài đặt hiện tại."
+            "value": "config.toml không còn khớp với cài đặt ShotPaste và có thể đã được sửa bên ngoài ứng dụng. Đồng bộ sẽ thay thế bằng cài đặt hiện tại."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "config.toml 不再与 Lite Screen 设置一致，可能已在应用外被编辑。同步会用当前设置替换它。"
+            "value": "config.toml 不再与 ShotPaste 设置一致，可能已在应用外被编辑。同步会用当前设置替换它。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "config.toml 不再與 Lite Screen 設定一致，可能已在 App 外被編輯。同步會用目前設定取代它。"
+            "value": "config.toml 不再與 ShotPaste 設定一致，可能已在 App 外被編輯。同步會用目前設定取代它。"
           }
         }
       }
@@ -838,61 +838,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sync vorgemerkt. Lite Screen aktualisiert config.toml in Kürze."
+            "value": "Sync vorgemerkt. ShotPaste aktualisiert config.toml in Kürze."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sync queued. Lite Screen will update config.toml shortly."
+            "value": "Sync queued. ShotPaste will update config.toml shortly."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sincronización en cola. Lite Screen actualizará config.toml en breve."
+            "value": "Sincronización en cola. ShotPaste actualizará config.toml en breve."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Synchronisation en attente. Lite Screen mettra config.toml à jour bientôt."
+            "value": "Synchronisation en attente. ShotPaste mettra config.toml à jour bientôt."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "同期を予約しました。Lite Screen がまもなく config.toml を更新します。"
+            "value": "同期を予約しました。ShotPaste がまもなく config.toml を更新します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "동기화가 대기 중입니다. Lite Screen가 곧 config.toml을 업데이트합니다."
+            "value": "동기화가 대기 중입니다. ShotPaste가 곧 config.toml을 업데이트합니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Синхронизация поставлена в очередь. Lite Screen скоро обновит config.toml."
+            "value": "Синхронизация поставлена в очередь. ShotPaste скоро обновит config.toml."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Đã xếp hàng đồng bộ. Lite Screen sẽ cập nhật config.toml sau ít giây."
+            "value": "Đã xếp hàng đồng bộ. ShotPaste sẽ cập nhật config.toml sau ít giây."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "同步已排队。Lite Screen 稍后会更新 config.toml。"
+            "value": "同步已排队。ShotPaste 稍后会更新 config.toml。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "同步已排程。Lite Screen 稍後會更新 config.toml。"
+            "value": "同步已排程。ShotPaste 稍後會更新 config.toml。"
           }
         }
       }
@@ -1222,61 +1222,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wenn du bestätigst, ersetzt Lite Screen config.toml durch Standardwerte und setzt App-Einstellungen zurück. Gespeicherte Aufnahmen werden nicht gelöscht."
+            "value": "Wenn du bestätigst, ersetzt ShotPaste config.toml durch Standardwerte und setzt App-Einstellungen zurück. Gespeicherte Aufnahmen werden nicht gelöscht."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "If you confirm, Lite Screen will replace config.toml with default values and reset app settings. Saved captures are not deleted."
+            "value": "If you confirm, ShotPaste will replace config.toml with default values and reset app settings. Saved captures are not deleted."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Si confirmas, Lite Screen reemplazará config.toml con valores predeterminados y restablecerá los ajustes de la app. Las capturas guardadas no se eliminan."
+            "value": "Si confirmas, ShotPaste reemplazará config.toml con valores predeterminados y restablecerá los ajustes de la app. Las capturas guardadas no se eliminan."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Si vous confirmez, Lite Screen remplacera config.toml par les valeurs par défaut et réinitialisera les réglages de l’app. Les captures enregistrées ne sont pas supprimées."
+            "value": "Si vous confirmez, ShotPaste remplacera config.toml par les valeurs par défaut et réinitialisera les réglages de l’app. Les captures enregistrées ne sont pas supprimées."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "確認すると、Lite Screen は config.toml をデフォルト値で置き換え、アプリ設定をリセットします。保存済みのキャプチャは削除されません。"
+            "value": "確認すると、ShotPaste は config.toml をデフォルト値で置き換え、アプリ設定をリセットします。保存済みのキャプチャは削除されません。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "확인하면 Lite Screen가 config.toml을 기본값으로 교체하고 앱 설정을 재설정합니다. 저장된 캡처는 삭제되지 않습니다."
+            "value": "확인하면 ShotPaste가 config.toml을 기본값으로 교체하고 앱 설정을 재설정합니다. 저장된 캡처는 삭제되지 않습니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Если подтвердить действие, Lite Screen заменит config.toml значениями по умолчанию и сбросит настройки приложения. Сохраненные снимки не удаляются."
+            "value": "Если подтвердить действие, ShotPaste заменит config.toml значениями по умолчанию и сбросит настройки приложения. Сохраненные снимки не удаляются."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nếu xác nhận, Lite Screen sẽ thay config.toml bằng giá trị mặc định và đặt lại cài đặt ứng dụng. Ảnh và bản ghi đã lưu sẽ không bị xóa."
+            "value": "Nếu xác nhận, ShotPaste sẽ thay config.toml bằng giá trị mặc định và đặt lại cài đặt ứng dụng. Ảnh và bản ghi đã lưu sẽ không bị xóa."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "确认后，Lite Screen 会用默认值替换 config.toml，并重置应用设置。已保存的捕捉内容不会被删除。"
+            "value": "确认后，ShotPaste 会用默认值替换 config.toml，并重置应用设置。已保存的捕捉内容不会被删除。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "確認後，Lite Screen 會用預設值取代 config.toml，並重置 App 設定。已儲存的擷取內容不會被刪除。"
+            "value": "確認後，ShotPaste 會用預設值取代 config.toml，並重置 App 設定。已儲存的擷取內容不會被刪除。"
           }
         }
       }
@@ -2194,61 +2194,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wählen Sie, wo Lite Screen Aufnahmen speichert"
+            "value": "Wählen Sie, wo ShotPaste Aufnahmen speichert"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose where Lite Screen saves captures"
+            "value": "Choose where ShotPaste saves captures"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Elige dónde Lite Screen guarda las capturas"
+            "value": "Elige dónde ShotPaste guarda las capturas"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choisissez où Lite Screen enregistre les captures"
+            "value": "Choisissez où ShotPaste enregistre les captures"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen がキャプチャを保存する場所を選択します"
+            "value": "ShotPaste がキャプチャを保存する場所を選択します"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen가 캡처를 저장할 위치를 선택하세요"
+            "value": "ShotPaste가 캡처를 저장할 위치를 선택하세요"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Выберите, где Lite Screen сохраняет снимки"
+            "value": "Выберите, где ShotPaste сохраняет снимки"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Chọn nơi Lite Screen lưu ảnh và video"
+            "value": "Chọn nơi ShotPaste lưu ảnh và video"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "选择 Lite Screen 保存截屏与录屏的位置"
+            "value": "选择 ShotPaste 保存截屏与录屏的位置"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "選擇 Lite Screen 儲存截圖與錄製的位置"
+            "value": "選擇 ShotPaste 儲存截圖與錄製的位置"
           }
         }
       }
@@ -2389,25 +2389,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desktop/Lite Screen"
+            "value": "Desktop/ShotPaste"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desktop/Lite Screen"
+            "value": "Desktop/ShotPaste"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Escritorio/Lite Screen"
+            "value": "Escritorio/ShotPaste"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bureau/Lite Screen"
+            "value": "Bureau/ShotPaste"
           }
         },
         "ja": {
@@ -2419,31 +2419,31 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "데스크탑/Lite Screen"
+            "value": "데스크탑/ShotPaste"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Рабочий стол / Lite Screen"
+            "value": "Рабочий стол / ShotPaste"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desktop/Lite Screen"
+            "value": "Desktop/ShotPaste"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "桌面/Lite Screen"
+            "value": "桌面/ShotPaste"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "桌面/Lite Screen"
+            "value": "桌面/ShotPaste"
           }
         }
       }
@@ -2584,61 +2584,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wählen Sie die in Lite Screen verwendete Sprache"
+            "value": "Wählen Sie die in ShotPaste verwendete Sprache"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose the language used across Lite Screen"
+            "value": "Choose the language used across ShotPaste"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Elige el idioma que usa Lite Screen"
+            "value": "Elige el idioma que usa ShotPaste"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choisissez la langue utilisée dans Lite Screen"
+            "value": "Choisissez la langue utilisée dans ShotPaste"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 全体で使用する言語を選択"
+            "value": "ShotPaste 全体で使用する言語を選択"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 전체에서 사용할 언어를 선택하세요"
+            "value": "ShotPaste 전체에서 사용할 언어를 선택하세요"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Выберите язык, используемый в Lite Screen"
+            "value": "Выберите язык, используемый в ShotPaste"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Chọn ngôn ngữ dùng trong toàn bộ Lite Screen"
+            "value": "Chọn ngôn ngữ dùng trong toàn bộ ShotPaste"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "选择 Lite Screen 中使用的语言"
+            "value": "选择 ShotPaste 中使用的语言"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "選擇 Lite Screen 使用的語言"
+            "value": "選擇 ShotPaste 使用的語言"
           }
         }
       }
@@ -2649,61 +2649,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen neu starten"
+            "value": "ShotPaste neu starten"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Relaunch Lite Screen"
+            "value": "Relaunch ShotPaste"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reiniciar Lite Screen"
+            "value": "Reiniciar ShotPaste"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Relancer Lite Screen"
+            "value": "Relancer ShotPaste"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen を再起動"
+            "value": "ShotPaste を再起動"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 다시 실행"
+            "value": "ShotPaste 다시 실행"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Перезапустить Lite Screen"
+            "value": "Перезапустить ShotPaste"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mở lại Lite Screen"
+            "value": "Mở lại ShotPaste"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "重新启动 Lite Screen"
+            "value": "重新启动 ShotPaste"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "重新啟動 Lite Screen"
+            "value": "重新啟動 ShotPaste"
           }
         }
       }
@@ -2714,61 +2714,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen muss beendet und erneut geöffnet werden, damit diese Sprachänderung in der ganzen App angewendet wird."
+            "value": "ShotPaste muss beendet und erneut geöffnet werden, damit diese Sprachänderung in der ganzen App angewendet wird."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen needs to quit and reopen to apply this language change everywhere."
+            "value": "ShotPaste needs to quit and reopen to apply this language change everywhere."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen debe cerrarse y volver a abrirse para aplicar este cambio de idioma en toda la app."
+            "value": "ShotPaste debe cerrarse y volver a abrirse para aplicar este cambio de idioma en toda la app."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen doit se fermer puis se rouvrir pour appliquer ce changement de langue dans toute l’app."
+            "value": "ShotPaste doit se fermer puis se rouvrir pour appliquer ce changement de langue dans toute l’app."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "この言語変更をアプリ全体に反映するには、Lite Screen を終了して再度開く必要があります。"
+            "value": "この言語変更をアプリ全体に反映するには、ShotPaste を終了して再度開く必要があります。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 언어 변경을 앱 전체에 적용하려면 Lite Screen를 종료한 뒤 다시 열어야 합니다."
+            "value": "이 언어 변경을 앱 전체에 적용하려면 ShotPaste를 종료한 뒤 다시 열어야 합니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Чтобы применить это изменение языка во всем приложении, Lite Screen нужно закрыть и открыть снова."
+            "value": "Чтобы применить это изменение языка во всем приложении, ShotPaste нужно закрыть и открыть снова."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen cần thoát và mở lại để áp dụng thay đổi ngôn ngữ ở toàn bộ ứng dụng."
+            "value": "ShotPaste cần thoát và mở lại để áp dụng thay đổi ngôn ngữ ở toàn bộ ứng dụng."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 需要退出并重新打开，才能在整个应用中应用此语言更改。"
+            "value": "ShotPaste 需要退出并重新打开，才能在整个应用中应用此语言更改。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 需要先結束並重新開啟，才能在整個應用程式中套用這次語言變更。"
+            "value": "ShotPaste 需要先結束並重新開啟，才能在整個應用程式中套用這次語言變更。"
           }
         }
       }
@@ -2779,61 +2779,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen neu starten?"
+            "value": "ShotPaste neu starten?"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Relaunch Lite Screen?"
+            "value": "Relaunch ShotPaste?"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "¿Reiniciar Lite Screen?"
+            "value": "¿Reiniciar ShotPaste?"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Relancer Lite Screen ?"
+            "value": "Relancer ShotPaste ?"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen を再起動しますか？"
+            "value": "ShotPaste を再起動しますか？"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen를 다시 실행할까요?"
+            "value": "ShotPaste를 다시 실행할까요?"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Перезапустить Lite Screen?"
+            "value": "Перезапустить ShotPaste?"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mở lại Lite Screen?"
+            "value": "Mở lại ShotPaste?"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "重新启动 Lite Screen？"
+            "value": "重新启动 ShotPaste？"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "重新啟動 Lite Screen？"
+            "value": "重新啟動 ShotPaste？"
           }
         }
       }
@@ -2844,61 +2844,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen konnte nicht neu gestartet werden"
+            "value": "ShotPaste konnte nicht neu gestartet werden"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Could Not Relaunch Lite Screen"
+            "value": "Could Not Relaunch ShotPaste"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo reiniciar Lite Screen"
+            "value": "No se pudo reiniciar ShotPaste"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible de relancer Lite Screen"
+            "value": "Impossible de relancer ShotPaste"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen を再起動できませんでした"
+            "value": "ShotPaste を再起動できませんでした"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen를 다시 실행할 수 없습니다"
+            "value": "ShotPaste를 다시 실행할 수 없습니다"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Не удалось перезапустить Lite Screen"
+            "value": "Не удалось перезапустить ShotPaste"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Không thể mở lại Lite Screen"
+            "value": "Không thể mở lại ShotPaste"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法重新启动 Lite Screen"
+            "value": "无法重新启动 ShotPaste"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "無法重新啟動 Lite Screen"
+            "value": "無法重新啟動 ShotPaste"
           }
         }
       }
@@ -3624,61 +3624,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Greifen Sie über die Menüleiste auf Lite Screen zu. Wenn das Symbol ausgeblendet ist, öffnen Sie Lite Screen erneut, um die Einstellungen anzuzeigen."
+            "value": "Greifen Sie über die Menüleiste auf ShotPaste zu. Wenn das Symbol ausgeblendet ist, öffnen Sie ShotPaste erneut, um die Einstellungen anzuzeigen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Access Lite Screen from the menu bar. When hidden, open Lite Screen again to show settings."
+            "value": "Access ShotPaste from the menu bar. When hidden, open ShotPaste again to show settings."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Accede a Lite Screen desde la barra de menú. Cuando esté oculto, vuelve a abrir Lite Screen para mostrar la configuración."
+            "value": "Accede a ShotPaste desde la barra de menú. Cuando esté oculto, vuelve a abrir ShotPaste para mostrar la configuración."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Accédez à Lite Screen depuis la barre de menus. S'il est masqué, ouvrez à nouveau Lite Screen pour afficher les paramètres."
+            "value": "Accédez à ShotPaste depuis la barre de menus. S'il est masqué, ouvrez à nouveau ShotPaste pour afficher les paramètres."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "メニューバーからLite Screenにアクセスします。非表示の場合は、もう一度Lite Screenを開いて設定を表示します。"
+            "value": "メニューバーからShotPasteにアクセスします。非表示の場合は、もう一度ShotPasteを開いて設定を表示します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "메뉴 바에서 Lite Screen에 액세스합니다. 아이콘이 숨겨져 있을 때 설정을 표시하려면 Lite Screen를 다시 실행하십시오."
+            "value": "메뉴 바에서 ShotPaste에 액세스합니다. 아이콘이 숨겨져 있을 때 설정을 표시하려면 ShotPaste를 다시 실행하십시오."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Доступ к Lite Screen из строки меню. Если он скрыт, снова откройте Lite Screen, чтобы показать настройки."
+            "value": "Доступ к ShotPaste из строки меню. Если он скрыт, снова откройте ShotPaste, чтобы показать настройки."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Truy cập Lite Screen từ thanh menu. Khi bị ẩn, hãy mở lại Lite Screen một lần nữa để hiển thị cài đặt."
+            "value": "Truy cập ShotPaste từ thanh menu. Khi bị ẩn, hãy mở lại ShotPaste một lần nữa để hiển thị cài đặt."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "从菜单栏访问 Lite Screen。隐藏时，再次打开 Lite Screen 以显示设置。"
+            "value": "从菜单栏访问 ShotPaste。隐藏时，再次打开 ShotPaste 以显示设置。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "從選單列存取 Lite Screen。隱藏時，再次打開 Lite Screen 以顯示設定。"
+            "value": "從選單列存取 ShotPaste。隱藏時，再次打開 ShotPaste 以顯示設定。"
           }
         }
       }
@@ -4079,61 +4079,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wo Lite Screen Aufnahmen speichert"
+            "value": "Wo ShotPaste Aufnahmen speichert"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Where Lite Screen stores captures"
+            "value": "Where ShotPaste stores captures"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dónde almacena Lite Screen las capturas"
+            "value": "Dónde almacena ShotPaste las capturas"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Où Lite Screen stocke les captures"
+            "value": "Où ShotPaste stocke les captures"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen がキャプチャを保存する場所"
+            "value": "ShotPaste がキャプチャを保存する場所"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 매장이 캡처하는 곳"
+            "value": "ShotPaste 매장이 캡처하는 곳"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Где Lite Screen хранит снимки"
+            "value": "Где ShotPaste хранит снимки"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nơi Lite Screen lưu ảnh và video"
+            "value": "Nơi ShotPaste lưu ảnh và video"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 保存截屏与录屏的位置"
+            "value": "ShotPaste 保存截屏与录屏的位置"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 儲存截圖與錄製的位置"
+            "value": "ShotPaste 儲存截圖與錄製的位置"
           }
         }
       }
@@ -4599,61 +4599,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Starten Sie Lite Screen, wenn Sie sich anmelden"
+            "value": "Starten Sie ShotPaste, wenn Sie sich anmelden"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Launch Lite Screen when you log in"
+            "value": "Launch ShotPaste when you log in"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Inicie Lite Screen cuando inicie sesión"
+            "value": "Inicie ShotPaste cuando inicie sesión"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lancez Lite Screen lorsque vous vous connectez"
+            "value": "Lancez ShotPaste lorsque vous vous connectez"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ログイン時にLite Screenを起動する"
+            "value": "ログイン時にShotPasteを起動する"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "로그인 후 Lite Screen를 실행하세요"
+            "value": "로그인 후 ShotPaste를 실행하세요"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Запустите Lite Screen при входе в систему"
+            "value": "Запустите ShotPaste при входе в систему"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mở Lite Screen khi bạn đăng nhập"
+            "value": "Mở ShotPaste khi bạn đăng nhập"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "登录时启动 Lite Screen"
+            "value": "登录时启动 ShotPaste"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "登入時啟動 Lite Screen"
+            "value": "登入時啟動 ShotPaste"
           }
         }
       }
@@ -5054,61 +5054,61 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This will move all capture files to Trash and remove them from Clipboard History. This action cannot be undone in Lite Screen."
+            "value": "This will move all capture files to Trash and remove them from Clipboard History. This action cannot be undone in ShotPaste."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Thao tác này sẽ chuyển toàn bộ file capture vào Thùng rác và xóa khỏi lịch sử bảng nhớ tạm. Không thể hoàn tác trong Lite Screen."
+            "value": "Thao tác này sẽ chuyển toàn bộ file capture vào Thùng rác và xóa khỏi lịch sử bảng nhớ tạm. Không thể hoàn tác trong ShotPaste."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alle Aufnahmedateien werden in den Papierkorb gelegt und aus dem Zwischenablageverlauf entfernt. Dies kann in Lite Screen nicht rückgängig gemacht werden."
+            "value": "Alle Aufnahmedateien werden in den Papierkorb gelegt und aus dem Zwischenablageverlauf entfernt. Dies kann in ShotPaste nicht rückgängig gemacht werden."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se moverán todos los archivos de captura a la papelera y se quitarán del historial del portapapeles. Esta acción no se puede deshacer en Lite Screen."
+            "value": "Se moverán todos los archivos de captura a la papelera y se quitarán del historial del portapapeles. Esta acción no se puede deshacer en ShotPaste."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tous les fichiers de capture seront déplacés vers la corbeille et retirés de l’historique du presse-papiers. Cette action est irréversible dans Lite Screen."
+            "value": "Tous les fichiers de capture seront déplacés vers la corbeille et retirés de l’historique du presse-papiers. Cette action est irréversible dans ShotPaste."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "すべてのキャプチャファイルがゴミ箱に移動され、クリップボード履歴から削除されます。この操作は Lite Screen では取り消せません。"
+            "value": "すべてのキャプチャファイルがゴミ箱に移動され、クリップボード履歴から削除されます。この操作は ShotPaste では取り消せません。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "모든 캡처 파일이 휴지통으로 이동되고 클립보드 기록에서 제거됩니다. 이 작업은 Lite Screen에서 되돌릴 수 없습니다."
+            "value": "모든 캡처 파일이 휴지통으로 이동되고 클립보드 기록에서 제거됩니다. 이 작업은 ShotPaste에서 되돌릴 수 없습니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Все файлы записей будут перемещены в корзину и удалены из истории буфера обмена. Это действие нельзя отменить в Lite Screen."
+            "value": "Все файлы записей будут перемещены в корзину и удалены из истории буфера обмена. Это действие нельзя отменить в ShotPaste."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "所有截屏与录屏文件将被移到废纸篓并从剪贴板历史中移除。此操作在 Lite Screen 中无法撤销。"
+            "value": "所有截屏与录屏文件将被移到废纸篓并从剪贴板历史中移除。此操作在 ShotPaste 中无法撤销。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "所有截圖與錄製檔案將移到垃圾桶並從剪貼簿記錄中移除。此操作在 Lite Screen 中無法還原。"
+            "value": "所有截圖與錄製檔案將移到垃圾桶並從剪貼簿記錄中移除。此操作在 ShotPaste 中無法還原。"
           }
         }
       }
@@ -8876,61 +8876,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gewähre einmal Zugriff auf %@, damit Lite Screen config.toml erstellen und direkte Bearbeitungen beim Start anwenden kann."
+            "value": "Gewähre einmal Zugriff auf %@, damit ShotPaste config.toml erstellen und direkte Bearbeitungen beim Start anwenden kann."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Grant access to %@ once so Lite Screen can create config.toml and apply direct edits on launch."
+            "value": "Grant access to %@ once so ShotPaste can create config.toml and apply direct edits on launch."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Concede acceso a %@ una vez para que Lite Screen pueda crear config.toml y aplicar ediciones directas al iniciar."
+            "value": "Concede acceso a %@ una vez para que ShotPaste pueda crear config.toml y aplicar ediciones directas al iniciar."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Accordez une fois l’accès à %@ afin que Lite Screen puisse créer config.toml et appliquer les modifications directes au lancement."
+            "value": "Accordez une fois l’accès à %@ afin que ShotPaste puisse créer config.toml et appliquer les modifications directes au lancement."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ へのアクセスを一度許可すると、Lite Screen は config.toml を作成し、起動時に有効な直接編集を適用できます。"
+            "value": "%@ へのアクセスを一度許可すると、ShotPaste は config.toml を作成し、起動時に有効な直接編集を適用できます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@에 한 번 접근을 허용하면 Lite Screen가 config.toml을 만들고 실행 시 직접 수정 사항을 적용할 수 있습니다."
+            "value": "%@에 한 번 접근을 허용하면 ShotPaste가 config.toml을 만들고 실행 시 직접 수정 사항을 적용할 수 있습니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Один раз предоставьте доступ к %@, чтобы Lite Screen мог создать config.toml и применять прямые изменения при запуске."
+            "value": "Один раз предоставьте доступ к %@, чтобы ShotPaste мог создать config.toml и применять прямые изменения при запуске."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cấp quyền cho %@ một lần để Lite Screen có thể tạo config.toml và áp dụng chỉnh sửa trực tiếp khi khởi động."
+            "value": "Cấp quyền cho %@ một lần để ShotPaste có thể tạo config.toml và áp dụng chỉnh sửa trực tiếp khi khởi động."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "授予一次 %@ 的访问权限，让 Lite Screen 创建 config.toml，并在启动时应用直接编辑。"
+            "value": "授予一次 %@ 的访问权限，让 ShotPaste 创建 config.toml，并在启动时应用直接编辑。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "授予一次 %@ 的取用權限，讓 Lite Screen 建立 config.toml，並在啟動時套用直接編輯。"
+            "value": "授予一次 %@ 的取用權限，讓 ShotPaste 建立 config.toml，並在啟動時套用直接編輯。"
           }
         }
       }
@@ -9516,61 +9516,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen-Konfiguration exportieren"
+            "value": "ShotPaste-Konfiguration exportieren"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Export Lite Screen Config"
+            "value": "Export ShotPaste Config"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exportar configuración de Lite Screen"
+            "value": "Exportar configuración de ShotPaste"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exporter la config Lite Screen"
+            "value": "Exporter la config ShotPaste"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 設定を書き出す"
+            "value": "ShotPaste 設定を書き出す"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 구성 내보내기"
+            "value": "ShotPaste 구성 내보내기"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Экспорт конфигурации Lite Screen"
+            "value": "Экспорт конфигурации ShotPaste"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Xuất cấu hình Lite Screen"
+            "value": "Xuất cấu hình ShotPaste"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "导出 Lite Screen 配置"
+            "value": "导出 ShotPaste 配置"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "匯出 Lite Screen 設定"
+            "value": "匯出 ShotPaste 設定"
           }
         }
       }
@@ -9580,61 +9580,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen-Konfiguration importieren"
+            "value": "ShotPaste-Konfiguration importieren"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Import Lite Screen Config"
+            "value": "Import ShotPaste Config"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Importar configuración de Lite Screen"
+            "value": "Importar configuración de ShotPaste"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Importer la config Lite Screen"
+            "value": "Importer la config ShotPaste"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 設定を読み込む"
+            "value": "ShotPaste 設定を読み込む"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 구성 가져오기"
+            "value": "ShotPaste 구성 가져오기"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Импорт конфигурации Lite Screen"
+            "value": "Импорт конфигурации ShotPaste"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nhập cấu hình Lite Screen"
+            "value": "Nhập cấu hình ShotPaste"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "导入 Lite Screen 配置"
+            "value": "导入 ShotPaste 配置"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "匯入 Lite Screen 設定"
+            "value": "匯入 ShotPaste 設定"
           }
         }
       }
@@ -10543,61 +10543,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Externe Auslöser über litescreen://-URLs zulassen"
+            "value": "Externe Auslöser über shotpaste://-URLs zulassen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Allow external triggers via litescreen:// URLs"
+            "value": "Allow external triggers via shotpaste:// URLs"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Permitir activadores externos mediante URL litescreen://"
+            "value": "Permitir activadores externos mediante URL shotpaste://"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Autoriser les déclencheurs externes via les URL litescreen://"
+            "value": "Autoriser les déclencheurs externes via les URL shotpaste://"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "litescreen:// URLを介した外部トリガーを许可する"
+            "value": "shotpaste:// URLを介した外部トリガーを许可する"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "litescreen:// URL을 통한 외부 트리거 허용"
+            "value": "shotpaste:// URL을 통한 외부 트리거 허용"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Разрешить внешние триггеры через URL-адреса litescreen://"
+            "value": "Разрешить внешние триггеры через URL-адреса shotpaste://"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cho phép kích hoạt bên ngoài qua URL litescreen://"
+            "value": "Cho phép kích hoạt bên ngoài qua URL shotpaste://"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "允许通过 litescreen:// URL 进行外部触发"
+            "value": "允许通过 shotpaste:// URL 进行外部触发"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "允許透過 litescreen:// URL 進行外部觸發"
+            "value": "允許透過 shotpaste:// URL 進行外部觸發"
           }
         }
       }

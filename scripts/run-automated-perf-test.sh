@@ -1,21 +1,21 @@
 #!/bin/bash
-# Automated end-to-end performance & leak profiling for Lite Screen
+# Automated end-to-end performance & leak profiling for ShotPaste
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-PROCESS_NAME="LiteScreen"
-APP_BUNDLE="$ROOT_DIR/.build/macos/Debug/Lite Screen Debug.app"
+PROCESS_NAME="ShotPaste"
+APP_BUNDLE="$ROOT_DIR/.build/macos/Debug/ShotPaste Debug.app"
 
 cd "$ROOT_DIR"
 
 echo "=========================================================="
-echo "⚡ AUTOMATED LITE SCREEN PERFORMANCE & MEMORY LEAK BENCHMARK"
+echo "⚡ AUTOMATED SHOTPASTE PERFORMANCE & MEMORY LEAK BENCHMARK"
 echo "=========================================================="
 
 PID=$(pgrep -x "$PROCESS_NAME" | head -n 1 || true)
 if [ -z "$PID" ]; then
-    echo "Building and launching the canonical Lite Screen Debug app..."
+    echo "Building and launching the canonical ShotPaste Debug app..."
     "$ROOT_DIR/scripts/build_and_run.sh" build
     open -n "$APP_BUNDLE"
     sleep 3
@@ -23,11 +23,11 @@ if [ -z "$PID" ]; then
 fi
 
 if [ -z "$PID" ]; then
-    echo "❌ Error: Unable to locate or launch Lite Screen process."
+    echo "❌ Error: Unable to locate or launch ShotPaste process."
     exit 1
 fi
 
-echo "Connected to Lite Screen (PID: $PID)"
+echo "Connected to ShotPaste (PID: $PID)"
 
 measure() {
     local label="$1"
@@ -74,15 +74,15 @@ printf "|------------------------|-------------|-------------|-------------|----
 measure "1. Idle Baseline" 5
 
 # Phase 2: Fullscreen Capture
-open "litescreen://capture/fullscreen" 2>/dev/null || true
+open "shotpaste://capture/fullscreen" 2>/dev/null || true
 measure "2. Fullscreen Capture" 4
 
 # Phase 3: History Browser
-open "litescreen://open/history" 2>/dev/null || true
+open "shotpaste://open/history" 2>/dev/null || true
 measure "3. Capture History" 4
 
 # Phase 4: Settings Window
-open "litescreen://settings" 2>/dev/null || true
+open "shotpaste://settings" 2>/dev/null || true
 measure "4. Preferences View" 4
 
 # Phase 5: Post-test Idle

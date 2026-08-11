@@ -1,8 +1,0 @@
-<Window x:Class="LiteScreen.Windows.Views.MouseClickOverlayWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
-        ResizeMode="NoResize" ShowInTaskbar="False" ShowActivated="False"
-        Topmost="True" IsHitTestVisible="False" AutomationProperties.AutomationId="MouseClickEffectPreview">
-  <Canvas x:Name="RippleCanvas" ClipToBounds="True"/>
-</Window>

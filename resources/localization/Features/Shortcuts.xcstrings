@@ -137,61 +137,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sie können Screenshots oder Aufnahmen nicht per Tastaturkürzel aus einer App heraus erfassen. Sie müssen Lite Screen manuell öffnen, um die Aufnahmefunktionen zu verwenden."
+            "value": "Sie können Screenshots oder Aufnahmen nicht per Tastaturkürzel aus einer App heraus erfassen. Sie müssen ShotPaste manuell öffnen, um die Aufnahmefunktionen zu verwenden."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won't be able to capture screenshots or recordings using keyboard shortcuts from any app. You'll need to open Lite Screen manually to use capture features."
+            "value": "You won't be able to capture screenshots or recordings using keyboard shortcuts from any app. You'll need to open ShotPaste manually to use capture features."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No podrás realizar capturas de pantalla ni grabaciones utilizando atajos de teclado desde ninguna aplicación. Deberá abrir Lite Screen manualmente para utilizar las funciones de captura."
+            "value": "No podrás realizar capturas de pantalla ni grabaciones utilizando atajos de teclado desde ninguna aplicación. Deberá abrir ShotPaste manualmente para utilizar las funciones de captura."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vous ne pourrez pas capturer de captures d'écran ou d'enregistrements à l'aide des raccourcis clavier d'une application. Vous devrez ouvrir Lite Screen manuellement pour utiliser les fonctionnalités de capture."
+            "value": "Vous ne pourrez pas capturer de captures d'écran ou d'enregistrements à l'aide des raccourcis clavier d'une application. Vous devrez ouvrir ShotPaste manuellement pour utiliser les fonctionnalités de capture."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "どのアプリからでも、キーボード ショートカットを使用してスクリーンショットや録音をキャプチャすることはできません。キャプチャ機能を使用するには、Lite Screen を手動で開く必要があります。"
+            "value": "どのアプリからでも、キーボード ショートカットを使用してスクリーンショットや録音をキャプチャすることはできません。キャプチャ機能を使用するには、ShotPaste を手動で開く必要があります。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "어떤 앱에서도 키보드 단축키를 사용하여 스크린샷이나 녹음을 캡처할 수 없습니다. 캡처 기능을 사용하려면 Lite Screen를 수동으로 열어야 합니다."
+            "value": "어떤 앱에서도 키보드 단축키를 사용하여 스크린샷이나 녹음을 캡처할 수 없습니다. 캡처 기능을 사용하려면 ShotPaste를 수동으로 열어야 합니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Вы не сможете делать снимки экрана или записи с помощью сочетаний клавиш ни в одном приложении. Вам нужно будет открыть Lite Screen вручную, чтобы использовать функции захвата."
+            "value": "Вы не сможете делать снимки экрана или записи с помощью сочетаний клавиш ни в одном приложении. Вам нужно будет открыть ShotPaste вручную, чтобы использовать функции захвата."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bạn sẽ không thể dùng phím tắt để chụp ảnh hoặc ghi màn hình từ bất kỳ ứng dụng nào. Bạn sẽ cần mở Lite Screen thủ công để dùng các tính năng chụp."
+            "value": "Bạn sẽ không thể dùng phím tắt để chụp ảnh hoặc ghi màn hình từ bất kỳ ứng dụng nào. Bạn sẽ cần mở ShotPaste thủ công để dùng các tính năng chụp."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "关闭后，你将无法在任何应用中使用键盘快捷键截屏或进行屏幕录制，需要手动打开 Lite Screen 才能使用相关功能。"
+            "value": "关闭后，你将无法在任何应用中使用键盘快捷键截屏或进行屏幕录制，需要手动打开 ShotPaste 才能使用相关功能。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "關閉後，你將無法在任何應用程式中使用鍵盤快速鍵來截圖或進行螢幕錄製；必須手動開啟 Lite Screen 才能使用這些功能。"
+            "value": "關閉後，你將無法在任何應用程式中使用鍵盤快速鍵來截圖或進行螢幕錄製；必須手動開啟 ShotPaste 才能使用這些功能。"
           }
         }
       }
@@ -787,61 +787,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Für die Lite Screen-Verknüpfungen, die Sie derzeit aktiviert haben, wurden keine überlappenden macOS-Screenshot-Verknüpfungen gefunden."
+            "value": "Für die ShotPaste-Verknüpfungen, die Sie derzeit aktiviert haben, wurden keine überlappenden macOS-Screenshot-Verknüpfungen gefunden."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No overlapping macOS screenshot shortcuts were found for the Lite Screen shortcuts you currently have enabled."
+            "value": "No overlapping macOS screenshot shortcuts were found for the ShotPaste shortcuts you currently have enabled."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se encontraron atajos de captura de pantalla de macOS superpuestos para los atajos de Lite Screen que tienes habilitados actualmente."
+            "value": "No se encontraron atajos de captura de pantalla de macOS superpuestos para los atajos de ShotPaste que tienes habilitados actualmente."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucun raccourci de capture d'écran macOS se chevauchant n'a été trouvé pour les raccourcis Lite Screen que vous avez actuellement activés."
+            "value": "Aucun raccourci de capture d'écran macOS se chevauchant n'a été trouvé pour les raccourcis ShotPaste que vous avez actuellement activés."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "現在有効な Lite Screen のショートカットと重複する macOS のスクリーンショットショートカットは見つかりませんでした。"
+            "value": "現在有効な ShotPaste のショートカットと重複する macOS のスクリーンショットショートカットは見つかりませんでした。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "현재 활성화한 Lite Screen 단축키에 대해 겹치는 macOS 스크린샷 단축키가 발견되지 않았습니다."
+            "value": "현재 활성화한 ShotPaste 단축키에 대해 겹치는 macOS 스크린샷 단축키가 발견되지 않았습니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Для включенных в данный момент ярлыков Lite Screen не обнаружено перекрывающихся ярлыков снимков экрана macOS."
+            "value": "Для включенных в данный момент ярлыков ShotPaste не обнаружено перекрывающихся ярлыков снимков экрана macOS."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Không tìm thấy phím tắt chụp màn hình của macOS bị trùng với các phím tắt Lite Screen đang bật."
+            "value": "Không tìm thấy phím tắt chụp màn hình của macOS bị trùng với các phím tắt ShotPaste đang bật."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "对于您当前启用的 Lite Screen 快捷方式，没有找到重叠的 macOS 屏幕截图快捷方式。"
+            "value": "对于您当前启用的 ShotPaste 快捷方式，没有找到重叠的 macOS 屏幕截图快捷方式。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "對於您當前啓用的 Lite Screen 快捷方式，沒有找到重疊的 macOS 螢幕截圖快捷方式。"
+            "value": "對於您當前啓用的 ShotPaste 快捷方式，沒有找到重疊的 macOS 螢幕截圖快捷方式。"
           }
         }
       }
@@ -1241,61 +1241,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deaktivieren Sie die überlappenden macOS-Verknüpfungen, um Konflikte mit den Lite Screen-Verknüpfungen zu vermeiden, die Sie aktiviert lassen."
+            "value": "Deaktivieren Sie die überlappenden macOS-Verknüpfungen, um Konflikte mit den ShotPaste-Verknüpfungen zu vermeiden, die Sie aktiviert lassen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn off the overlapping macOS shortcuts to avoid conflicts with the Lite Screen shortcuts you keep enabled."
+            "value": "Turn off the overlapping macOS shortcuts to avoid conflicts with the ShotPaste shortcuts you keep enabled."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desactive los atajos de macOS superpuestos para evitar conflictos con los atajos de Lite Screen que mantiene habilitados."
+            "value": "Desactive los atajos de macOS superpuestos para evitar conflictos con los atajos de ShotPaste que mantiene habilitados."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Désactivez les raccourcis macOS qui se chevauchent pour éviter les conflits avec les raccourcis Lite Screen que vous gardez activés."
+            "value": "Désactivez les raccourcis macOS qui se chevauchent pour éviter les conflits avec les raccourcis ShotPaste que vous gardez activés."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "有効にした Lite Screen ショートカットとの競合を避けるには、重複する macOS ショートカットをオフにしてください。"
+            "value": "有効にした ShotPaste ショートカットとの競合を避けるには、重複する macOS ショートカットをオフにしてください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "활성화된 Lite Screen 단축키와의 충돌을 방지하려면 겹치는 macOS 단축키를 끄세요."
+            "value": "활성화된 ShotPaste 단축키와의 충돌을 방지하려면 겹치는 macOS 단축키를 끄세요."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Отключите перекрывающиеся ярлыки macOS, чтобы избежать конфликтов с ярлыками Lite Screen, которые вы оставляете включенными."
+            "value": "Отключите перекрывающиеся ярлыки macOS, чтобы избежать конфликтов с ярлыками ShotPaste, которые вы оставляете включенными."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tắt các phím tắt macOS bị trùng để tránh xung đột với các phím tắt Lite Screen mà bạn muốn giữ bật."
+            "value": "Tắt các phím tắt macOS bị trùng để tránh xung đột với các phím tắt ShotPaste mà bạn muốn giữ bật."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "关闭重叠的 macOS 快捷方式，以避免与您保持启用的 Lite Screen 快捷方式发生冲突。"
+            "value": "关闭重叠的 macOS 快捷方式，以避免与您保持启用的 ShotPaste 快捷方式发生冲突。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "關閉重疊的 macOS 快捷方式，以避免與您保持啓用的 Lite Screen 快捷方式發生衝突。"
+            "value": "關閉重疊的 macOS 快捷方式，以避免與您保持啓用的 ShotPaste 快捷方式發生衝突。"
           }
         }
       }
@@ -1306,61 +1306,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "macOS-Screenshot-Verknüpfungen überschneiden sich mit Lite Screen"
+            "value": "macOS-Screenshot-Verknüpfungen überschneiden sich mit ShotPaste"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "macOS screenshot shortcuts overlap with Lite Screen"
+            "value": "macOS screenshot shortcuts overlap with ShotPaste"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Los atajos de captura de pantalla de macOS se superponen con Lite Screen"
+            "value": "Los atajos de captura de pantalla de macOS se superponen con ShotPaste"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les raccourcis de capture d'écran macOS se chevauchent avec Lite Screen"
+            "value": "Les raccourcis de capture d'écran macOS se chevauchent avec ShotPaste"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "macOS のスクリーンショットショートカットが Lite Screen と重複しています"
+            "value": "macOS のスクリーンショットショートカットが ShotPaste と重複しています"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "macOS 스크린샷 단축키가 Lite Screen와 겹칩니다"
+            "value": "macOS 스크린샷 단축키가 ShotPaste와 겹칩니다"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ярлыки снимков экрана macOS совпадают с ярлыками Lite Screen"
+            "value": "Ярлыки снимков экрана macOS совпадают с ярлыками ShotPaste"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Phím tắt chụp màn hình macOS đang trùng với Lite Screen"
+            "value": "Phím tắt chụp màn hình macOS đang trùng với ShotPaste"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "macOS 屏幕截图快捷键与 Lite Screen 重叠"
+            "value": "macOS 屏幕截图快捷键与 ShotPaste 重叠"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "macOS 螢幕截圖快捷鍵與 Lite Screen 重疊"
+            "value": "macOS 螢幕截圖快捷鍵與 ShotPaste 重疊"
           }
         }
       }

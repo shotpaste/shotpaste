@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# reset-permissions.sh — Reset all TCC permissions for Lite Screen
+# reset-permissions.sh — Reset all TCC permissions for ShotPaste
 #
 # Usage:
 #   ./scripts/reset-permissions.sh           # Interactive mode (asks for confirmation)
@@ -8,10 +8,10 @@
 
 set -euo pipefail
 
-APP_NAME="Lite Screen"
-APP_PROCESS="LiteScreen"
-APP_PATH="/Applications/Lite Screen.app"
-FALLBACK_BUNDLE_ID="com.ahtcfg24.litescreen"
+APP_NAME="ShotPaste"
+APP_PROCESS="ShotPaste"
+APP_PATH="/Applications/ShotPaste.app"
+FALLBACK_BUNDLE_ID="com.ahtcfg24.shotpaste"
 
 # ─── Auto-detect bundle ID from app name ─────────────────────────
 resolve_bundle_id() {
@@ -136,7 +136,7 @@ echo -e "${YELLOW}  Resetting TCC Permissions                           ${NC}"
 echo -e "${YELLOW}═══════════════════════════════════════════════════════${NC}"
 echo ""
 
-# TCC services used by Lite Screen
+# TCC services used by ShotPaste
 TCC_SERVICES=(
   "ScreenCapture"
   "Microphone"

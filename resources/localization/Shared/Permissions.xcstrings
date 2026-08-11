@@ -7,61 +7,61 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen konnte den Zugriff auf diesen Ordner nicht aufrechterhalten. Bitte wählen Sie den Ordner erneut aus und bestätigen Sie die Berechtigung."
+            "value" : "ShotPaste konnte den Zugriff auf diesen Ordner nicht aufrechterhalten. Bitte wählen Sie den Ordner erneut aus und bestätigen Sie die Berechtigung."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen could not persist access to this folder. Please choose the folder again and confirm permission."
+            "value" : "ShotPaste could not persist access to this folder. Please choose the folder again and confirm permission."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen no pudo mantener el acceso a esta carpeta. Elija la carpeta nuevamente y confirme el permiso."
+            "value" : "ShotPaste no pudo mantener el acceso a esta carpeta. Elija la carpeta nuevamente y confirme el permiso."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen n'a pas pu conserver l'accès à ce dossier. Veuillez choisir à nouveau le dossier et confirmer l'autorisation."
+            "value" : "ShotPaste n'a pas pu conserver l'accès à ce dossier. Veuillez choisir à nouveau le dossier et confirmer l'autorisation."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen はこのフォルダーへのアクセスを維持できませんでした。もう一度フォルダーを選択し、許可を確認してください。"
+            "value" : "ShotPaste はこのフォルダーへのアクセスを維持できませんでした。もう一度フォルダーを選択し、許可を確認してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen는 이 폴더에 대한 액세스를 유지할 수 없습니다. 폴더를 다시 선택하고 권한을 확인해 주세요."
+            "value" : "ShotPaste는 이 폴더에 대한 액세스를 유지할 수 없습니다. 폴더를 다시 선택하고 권한을 확인해 주세요."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen не удалось сохранить доступ к этой папке. Пожалуйста, выберите папку еще раз и подтвердите разрешение."
+            "value" : "ShotPaste не удалось сохранить доступ к этой папке. Пожалуйста, выберите папку еще раз и подтвердите разрешение."
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen không thể lưu quyền truy cập thư mục này. Vui lòng chọn lại thư mục và xác nhận quyền."
+            "value" : "ShotPaste không thể lưu quyền truy cập thư mục này. Vui lòng chọn lại thư mục và xác nhận quyền."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen 无法持久访问此文件夹。请再次选择该文件夹并确认权限。"
+            "value" : "ShotPaste 无法持久访问此文件夹。请再次选择该文件夹并确认权限。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen 無法持久訪問此檔案夾。請再次選擇該檔案夾並確認權限。"
+            "value" : "ShotPaste 無法持久訪問此檔案夾。請再次選擇該檔案夾並確認權限。"
           }
         }
       }
@@ -137,61 +137,61 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wählen Sie, wo Lite Screen Screenshots und Aufnahmen speichern soll"
+            "value" : "Wählen Sie, wo ShotPaste Screenshots und Aufnahmen speichern soll"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choose where Lite Screen should save screenshots and recordings"
+            "value" : "Choose where ShotPaste should save screenshots and recordings"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elija dónde Lite Screen debe guardar capturas de pantalla y grabaciones"
+            "value" : "Elija dónde ShotPaste debe guardar capturas de pantalla y grabaciones"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choisissez où Lite Screen doit enregistrer les captures d'écran et les enregistrements"
+            "value" : "Choisissez où ShotPaste doit enregistrer les captures d'écran et les enregistrements"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen がスクリーンショットと録画を保存する場所を選択します"
+            "value" : "ShotPaste がスクリーンショットと録画を保存する場所を選択します"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen가 스크린샷과 녹음을 저장할 위치를 선택하세요"
+            "value" : "ShotPaste가 스크린샷과 녹음을 저장할 위치를 선택하세요"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Выберите, где Lite Screen должен сохранять снимки экрана и записи"
+            "value" : "Выберите, где ShotPaste должен сохранять снимки экрана и записи"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chọn nơi Lite Screen sẽ lưu ảnh chụp và bản ghi"
+            "value" : "Chọn nơi ShotPaste sẽ lưu ảnh chụp và bản ghi"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择 Lite Screen 保存屏幕截图和录屏的位置"
+            "value" : "选择 ShotPaste 保存屏幕截图和录屏的位置"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "選擇 Lite Screen 保存螢幕截圖和錄屏的位置"
+            "value" : "選擇 ShotPaste 保存螢幕截圖和錄屏的位置"
           }
         }
       }
@@ -592,61 +592,61 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen benötigt bestimmte Berechtigungen, um Ihren Bildschirm und Audio aufzunehmen."
+            "value" : "ShotPaste benötigt bestimmte Berechtigungen, um Ihren Bildschirm und Audio aufzunehmen."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen requires certain permissions to capture your screen and audio."
+            "value" : "ShotPaste requires certain permissions to capture your screen and audio."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen requiere ciertos permisos para capturar su pantalla y audio."
+            "value" : "ShotPaste requiere ciertos permisos para capturar su pantalla y audio."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen nécessite certaines autorisations pour capturer votre écran et votre audio."
+            "value" : "ShotPaste nécessite certaines autorisations pour capturer votre écran et votre audio."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen が画面と音声をキャプチャするには、いくつかの権限が必要です。"
+            "value" : "ShotPaste が画面と音声をキャプチャするには、いくつかの権限が必要です。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen가 화면과 오디오를 캡처하려면 특정 권한이 필요합니다."
+            "value" : "ShotPaste가 화면과 오디오를 캡처하려면 특정 권한이 필요합니다."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen требует определенных разрешений для захвата экрана и звука."
+            "value" : "ShotPaste требует определенных разрешений для захвата экрана и звука."
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen cần một số quyền để chụp màn hình và ghi âm."
+            "value" : "ShotPaste cần một số quyền để chụp màn hình và ghi âm."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen 需要截屏、访问麦克风音频及文件等权限。"
+            "value" : "ShotPaste 需要截屏、访问麦克风音频及文件等权限。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen 需要擷取螢幕畫面、麥克風音訊與檔案等相關權限。"
+            "value" : "ShotPaste 需要擷取螢幕畫面、麥克風音訊與檔案等相關權限。"
           }
         }
       }

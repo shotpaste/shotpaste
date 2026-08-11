@@ -1,9 +1,9 @@
 #!/bin/bash
-# Run the LiteScreen XCTest suite with CI-like local settings.
+# Run the ShotPaste XCTest suite with CI-like local settings.
 #
 # Usage:
 #   ./scripts/run-tests.sh
-#   ./scripts/run-tests.sh -only-testing:LiteScreenTests/SomeTests
+#   ./scripts/run-tests.sh -only-testing:ShotPasteTests/SomeTests
 #   ./scripts/run-tests.sh --open-result
 
 set -euo pipefail
@@ -12,8 +12,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
 
-PROJECT="${PROJECT:-platforms/mac/LiteScreen.xcodeproj}"
-SCHEME="${SCHEME:-LiteScreen}"
+PROJECT="${PROJECT:-platforms/mac/ShotPaste.xcodeproj}"
+SCHEME="${SCHEME:-ShotPaste}"
 CONFIGURATION="${CONFIGURATION:-Debug}"
 DESTINATION="${DESTINATION:-platform=macOS}"
 BUILD_DIR="$ROOT_DIR/build"
@@ -73,8 +73,8 @@ Options:
 
 Examples:
   $0
-  $0 -only-testing:LiteScreenTests/CaptureOutputNamingTests
-  LITESCREEN_RUN_MICROPHONE_INTEGRATION=1 $0 -only-testing:LiteScreenTests/MicrophoneAudioCapturerTests/testMicrophoneAudioCapturerStartStopRealMicrophoneIntegration
+  $0 -only-testing:ShotPasteTests/CaptureOutputNamingTests
+  SHOTPASTE_RUN_MICROPHONE_INTEGRATION=1 $0 -only-testing:ShotPasteTests/MicrophoneAudioCapturerTests/testMicrophoneAudioCapturerStartStopRealMicrophoneIntegration
 EOF
 }
 
@@ -170,10 +170,10 @@ mkdir -p "${mkdir_paths[@]}"
 
 cleanup_test_apps() {
   # XCTest needs an app host while running, but it must not become another
-  # launchable Lite Screen copy after the test process exits.
+  # launchable ShotPaste copy after the test process exits.
   rm -rf \
-    "$PRODUCTS_ROOT/Debug/Lite Screen Debug.app" \
-    "$PRODUCTS_ROOT/Release/Lite Screen.app"
+    "$PRODUCTS_ROOT/Debug/ShotPaste Debug.app" \
+    "$PRODUCTS_ROOT/Release/ShotPaste.app"
 }
 trap cleanup_test_apps EXIT
 
@@ -196,7 +196,7 @@ XCODEBUILD_CMD=(
   "CONFIGURATION_BUILD_DIR=$PRODUCTS_ROOT/$CONFIGURATION"
   COMPILER_INDEX_STORE_ENABLE=NO
   INDEX_ENABLE_DATA_STORE=NO
-  LITESCREEN_SKIP_POST_SIGN=1
+  SHOTPASTE_SKIP_POST_SIGN=1
 )
 
 if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then

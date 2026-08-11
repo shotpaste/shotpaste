@@ -40,8 +40,8 @@ for arg in "$@"; do
 done
 
 DEFAULT_ARGS=()
-[[ "$HAS_INPUT" -eq 1 ]] || DEFAULT_ARGS+=(--source-png "$ROOT_DIR/assets/lite-screen-icon.png")
-[[ "$HAS_APPICONSET" -eq 1 ]] || DEFAULT_ARGS+=(--appiconset "$ROOT_DIR/platforms/mac/LiteScreen/Resources/Assets.xcassets/AppIcon.appiconset")
-[[ "$HAS_PREFIX" -eq 1 ]] || DEFAULT_ARGS+=(--filename-prefix "LiteScreenIcon")
+[[ "$HAS_INPUT" -eq 1 ]] || DEFAULT_ARGS+=(--source-png "$ROOT_DIR/assets/shotpaste-icon.png")
+[[ "$HAS_APPICONSET" -eq 1 ]] || DEFAULT_ARGS+=(--appiconset "$ROOT_DIR/platforms/mac/ShotPaste/Resources/Assets.xcassets/AppIcon.appiconset")
+[[ "$HAS_PREFIX" -eq 1 ]] || DEFAULT_ARGS+=(--filename-prefix "ShotPasteIcon")
 
 exec "$GENERATOR" "${DEFAULT_ARGS[@]}" "$@"

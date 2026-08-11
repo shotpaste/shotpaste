@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Sign a Lite Screen app with a certificate-backed identity and reject ad-hoc output.
+# Sign a ShotPaste app with a certificate-backed identity and reject ad-hoc output.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_PATH="${1:-}"
 CONFIGURATION="${2:-Release}"
-ENTITLEMENTS_SOURCE="${LITESCREEN_ENTITLEMENTS_PATH:-$ROOT_DIR/platforms/mac/LiteScreen/LiteScreen.entitlements}"
-KEYCHAIN_PATH="${LITESCREEN_KEYCHAIN_PATH:-}"
-ALLOW_UNTRUSTED_SELF_SIGNED="${LITESCREEN_ALLOW_UNTRUSTED_SELF_SIGNED:-0}"
+ENTITLEMENTS_SOURCE="${SHOTPASTE_ENTITLEMENTS_PATH:-$ROOT_DIR/platforms/mac/ShotPaste/ShotPaste.entitlements}"
+KEYCHAIN_PATH="${SHOTPASTE_KEYCHAIN_PATH:-}"
+ALLOW_UNTRUSTED_SELF_SIGNED="${SHOTPASTE_ALLOW_UNTRUSTED_SELF_SIGNED:-0}"
+FIXED_RELEASE_IDENTITY_SHA1="35517841F1D32EC1ED7D1F411565845C4AA4B70A"
 
 fail() {
   printf "error: %s\n" "$1" >&2
@@ -23,8 +24,8 @@ usage() {
 Usage: scripts/sign-macos-app.sh <app-path> [Debug|Release]
 
 The script requires a certificate-backed code-signing identity. Set
-LITESCREEN_CODESIGN_IDENTITY to an identity hash/name, or let the script select
-a Lite Screen local-development, fixed release, Apple Development, or Developer
+SHOTPASTE_CODESIGN_IDENTITY to an identity hash/name, or let the script select
+a ShotPaste local-development, fixed release, Apple Development, or Developer
 ID identity.
 Ad-hoc signing is intentionally rejected because it changes macOS privacy identity.
 USAGE
@@ -64,15 +65,15 @@ identity_hash_matching() {
   '
 }
 
-SIGN_IDENTITY="${LITESCREEN_CODESIGN_IDENTITY:-}"
+SIGN_IDENTITY="${SHOTPASTE_CODESIGN_IDENTITY:-}"
 if [[ -z "$SIGN_IDENTITY" ]]; then
   if [[ "$CONFIGURATION" == "Release" ]]; then
-    for pattern in "Developer ID Application:" "Lite Screen Self-Signed" "Lite Screen Local Development" "LiteScreen Self-Signed" "Apple Development:"; do
+    for pattern in "Developer ID Application:" "$FIXED_RELEASE_IDENTITY_SHA1" "ShotPaste Local Development" "Apple Development:"; do
       SIGN_IDENTITY="$(identity_hash_matching "$pattern")"
       [[ -n "$SIGN_IDENTITY" ]] && break
     done
   else
-    for pattern in "Lite Screen Local Development" "Lite Screen Self-Signed" "LiteScreen Self-Signed" "Apple Development:" "Developer ID Application:"; do
+    for pattern in "ShotPaste Local Development" "$FIXED_RELEASE_IDENTITY_SHA1" "Apple Development:" "Developer ID Application:"; do
       SIGN_IDENTITY="$(identity_hash_matching "$pattern")"
       [[ -n "$SIGN_IDENTITY" ]] && break
     done
@@ -80,12 +81,12 @@ if [[ -z "$SIGN_IDENTITY" ]]; then
 fi
 
 [[ -n "$SIGN_IDENTITY" && "$SIGN_IDENTITY" != "-" ]] || fail \
-  "No stable code-signing identity is available. Run scripts/create-signing-cert.sh once or set LITESCREEN_CODESIGN_IDENTITY."
+  "No stable code-signing identity is available. Run scripts/create-signing-cert.sh once or set SHOTPASTE_CODESIGN_IDENTITY."
 
 IDENTITY_LINE="$(identity_listing | /usr/bin/grep -F "$SIGN_IDENTITY" | /usr/bin/head -1 || true)"
 [[ -n "$IDENTITY_LINE" ]] || fail "The configured code-signing identity is not available in the selected keychain."
 
-TIMESTAMP_MODE="${LITESCREEN_CODESIGN_TIMESTAMP:-auto}"
+TIMESTAMP_MODE="${SHOTPASTE_CODESIGN_TIMESTAMP:-auto}"
 case "$TIMESTAMP_MODE" in
   auto)
     if [[ "$IDENTITY_LINE" == *"Developer ID Application:"* ]]; then
@@ -101,18 +102,18 @@ case "$TIMESTAMP_MODE" in
     TIMESTAMP_ARGS=(--timestamp=none)
     ;;
   *)
-    fail "LITESCREEN_CODESIGN_TIMESTAMP must be auto, required, or none."
+    fail "SHOTPASTE_CODESIGN_TIMESTAMP must be auto, required, or none."
     ;;
 esac
 
 BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Contents/Info.plist")"
 EXECUTABLE_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP_PATH/Contents/Info.plist")"
-EXPECTED_BUNDLE_ID="${LITESCREEN_EXPECTED_BUNDLE_ID:-}"
+EXPECTED_BUNDLE_ID="${SHOTPASTE_EXPECTED_BUNDLE_ID:-}"
 if [[ -z "$EXPECTED_BUNDLE_ID" ]]; then
   if [[ "$CONFIGURATION" == "Debug" ]]; then
-    EXPECTED_BUNDLE_ID="com.ahtcfg24.litescreen.debug"
+    EXPECTED_BUNDLE_ID="com.ahtcfg24.shotpaste.debug"
   else
-    EXPECTED_BUNDLE_ID="com.ahtcfg24.litescreen"
+    EXPECTED_BUNDLE_ID="com.ahtcfg24.shotpaste"
   fi
 fi
 [[ "$BUNDLE_ID" == "$EXPECTED_BUNDLE_ID" ]] || fail \

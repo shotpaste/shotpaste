@@ -25,7 +25,7 @@ sparkle_private_key.pem
 /tmp/
 
 # Secrets - never commit
-platforms/mac/LiteScreen/Config/Secrets.xcconfig
+platforms/mac/ShotPaste/Config/Secrets.xcconfig
 *.xcuserstate
 .env
 .env.*

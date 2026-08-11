@@ -1,6 +1,6 @@
 //
 //  ocr-readme-benchmark.swift
-//  LiteScreen
+//  ShotPaste
 //
 //  Reproducible OCR benchmark used for README transparency notes.
 //
@@ -149,7 +149,7 @@ struct OCRReadmeBenchmark {
     [
       CorpusEntry(
         languageIdentifier: "en",
-        text: "LiteScreen keeps screenshots readable, searchable, and ready to share across your team."
+        text: "ShotPaste keeps screenshots readable, searchable, and ready to share across your team."
       ),
       CorpusEntry(
         languageIdentifier: "en",
@@ -162,7 +162,7 @@ struct OCRReadmeBenchmark {
 
       CorpusEntry(
         languageIdentifier: "vi",
-        text: "LiteScreen giúp trích xuất văn bản rõ ràng để bạn sao chép ghi chú từ ảnh chụp màn hình nhanh hơn."
+        text: "ShotPaste giúp trích xuất văn bản rõ ràng để bạn sao chép ghi chú từ ảnh chụp màn hình nhanh hơn."
       ),
       CorpusEntry(
         languageIdentifier: "vi",
@@ -173,17 +173,17 @@ struct OCRReadmeBenchmark {
         text: "Các khung cài đặt, đoạn mô tả dài và tiêu đề có dấu đều nên được giữ nguyên nội dung sau khi nhận dạng."
       ),
 
-      CorpusEntry(languageIdentifier: "zh-Hans", text: "LiteScreen 现在会优先保留正文内容，方便你直接复制截图里的长段落和标题。"),
+      CorpusEntry(languageIdentifier: "zh-Hans", text: "ShotPaste 现在会优先保留正文内容，方便你直接复制截图里的长段落和标题。"),
       CorpusEntry(languageIdentifier: "zh-Hans", text: "如果一张截图里有多段说明文字，OCR 结果应该尽量保持自然分段与正确标点。"),
       CorpusEntry(languageIdentifier: "zh-Hans", text: "准确的中文识别对于整理笔记、产品说明和界面文案都非常重要。"),
 
-      CorpusEntry(languageIdentifier: "zh-Hant", text: "LiteScreen 現在會優先保留正文內容，方便你直接複製截圖裡的長段落和標題。"),
+      CorpusEntry(languageIdentifier: "zh-Hant", text: "ShotPaste 現在會優先保留正文內容，方便你直接複製截圖裡的長段落和標題。"),
       CorpusEntry(languageIdentifier: "zh-Hant", text: "如果一張截圖裡有多段說明文字，OCR 結果應該盡量保持自然分段與正確標點。"),
       CorpusEntry(languageIdentifier: "zh-Hant", text: "準確的中文辨識對整理筆記、產品說明和介面文案都非常重要。"),
 
       CorpusEntry(
         languageIdentifier: "es",
-        text: "LiteScreen extrae texto limpio para que copiar instrucciones desde una captura sea un paso rápido y fiable."
+        text: "ShotPaste extrae texto limpio para que copiar instrucciones desde una captura sea un paso rápido y fiable."
       ),
       CorpusEntry(
         languageIdentifier: "es",
@@ -194,17 +194,17 @@ struct OCRReadmeBenchmark {
         text: "Los títulos, números y signos de puntuación también importan cuando compartes documentación interna."
       ),
 
-      CorpusEntry(languageIdentifier: "ja", text: "LiteScreen は長い説明文や見出しをそのままコピーしやすいように、読みやすい OCR を目指しています。"),
+      CorpusEntry(languageIdentifier: "ja", text: "ShotPaste は長い説明文や見出しをそのままコピーしやすいように、読みやすい OCR を目指しています。"),
       CorpusEntry(languageIdentifier: "ja", text: "複数の段落があるスクリーンショットでも、自然な流れで文章を取り出せることが大切です。"),
       CorpusEntry(languageIdentifier: "ja", text: "設定画面、メモ、リリースノートの文字が正確に読めると作業がかなり速くなります。"),
 
-      CorpusEntry(languageIdentifier: "ko", text: "LiteScreen 는 긴 설명 문장과 제목도 자연스럽게 복사할 수 있도록 읽기 쉬운 OCR 결과를 목표로 합니다."),
+      CorpusEntry(languageIdentifier: "ko", text: "ShotPaste 는 긴 설명 문장과 제목도 자연스럽게 복사할 수 있도록 읽기 쉬운 OCR 결과를 목표로 합니다."),
       CorpusEntry(languageIdentifier: "ko", text: "여러 단락이 있는 화면이라도 문맥이 이어지도록 텍스트를 안정적으로 추출하는 것이 중요합니다."),
       CorpusEntry(languageIdentifier: "ko", text: "설정 화면, 메모, 릴리스 노트에 있는 한글 문장을 정확하게 읽어야 작업 속도가 빨라집니다."),
 
       CorpusEntry(
         languageIdentifier: "ru",
-        text: "LiteScreen помогает быстро копировать длинные заметки и заголовки со скриншотов без ручного перепечатывания."
+        text: "ShotPaste помогает быстро копировать длинные заметки и заголовки со скриншотов без ручного перепечатывания."
       ),
       CorpusEntry(
         languageIdentifier: "ru",
@@ -217,7 +217,7 @@ struct OCRReadmeBenchmark {
 
       CorpusEntry(
         languageIdentifier: "fr",
-        text: "LiteScreen extrait un texte propre pour que les captures d’écran deviennent faciles à relire et à partager."
+        text: "ShotPaste extrait un texte propre pour que les captures d’écran deviennent faciles à relire et à partager."
       ),
       CorpusEntry(
         languageIdentifier: "fr",
@@ -230,7 +230,7 @@ struct OCRReadmeBenchmark {
 
       CorpusEntry(
         languageIdentifier: "de",
-        text: "LiteScreen extrahiert sauberen Text, damit lange Hinweise und Überschriften schnell aus Screenshots kopiert werden können."
+        text: "ShotPaste extrahiert sauberen Text, damit lange Hinweise und Überschriften schnell aus Screenshots kopiert werden können."
       ),
       CorpusEntry(
         languageIdentifier: "de",

@@ -1,0 +1,2 @@
+"NSMicrophoneUsageDescription" = "ShotPaste needs microphone access to record audio with your screen recordings.";
+"NSScreenCaptureUsageDescription" = "ShotPaste needs screen recording permission to capture screenshots and record your screen.";

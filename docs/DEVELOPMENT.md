@@ -30,7 +30,7 @@ Requirements:
 The macOS build scripts reject ad-hoc signatures so privacy permissions remain
 stable across local rebuilds. An existing Apple Development or Developer ID
 identity can be used. If none is available, create the development-only
-`Lite Screen Local Development` identity in the login keychain:
+`ShotPaste Local Development` identity in the login keychain:
 
 ```bash
 ./scripts/create-signing-cert.sh
@@ -38,8 +38,8 @@ identity can be used. If none is available, create the development-only
 
 Keep this identity in the login keychain for later local builds. The script uses
 a temporary PKCS#12 file only for import, deletes it on exit, and never prints or
-exports release credentials. Do not name a local certificate
-`Lite Screen Self-Signed`; that name is reserved for the fixed release identity.
+exports release credentials. Identities created by this script are always for
+local development and must never replace the fixed release identity.
 
 Build the canonical Debug app:
 
@@ -61,17 +61,17 @@ Build and launch:
 
 Products:
 
-- Debug: `.build/macos/Debug/Lite Screen Debug.app`
-- Release: `.build/macos/Release/Lite Screen.app`
+- Debug: `.build/macos/Debug/ShotPaste Debug.app`
+- Release: `.build/macos/Release/ShotPaste.app`
 
 ### Release signing identity
 
-Official release builds use the fixed self-signed certificate
-`Lite Screen Self-Signed` with SHA-1 fingerprint
-`35517841F1D32EC1ED7D1F411565845C4AA4B70A`. Maintainer CI reads it from
+Official release builds use the existing self-signed certificate with SHA-1
+fingerprint `35517841F1D32EC1ED7D1F411565845C4AA4B70A`. Its certificate subject is
+preserved from releases made before the product rename. Maintainer CI reads it from
 `SELF_SIGNED_CERT_P12` and `SELF_SIGNED_CERT_PASSWORD`. These release credentials
 are maintainer-only; contributors do not need them for local builds. Do not
-replace, recreate, or rotate the release certificate, and never populate those
+replace, recreate, rename, or rotate the release certificate, and never populate those
 secrets with output from a local certificate. macOS privacy permissions are tied
 to the application signing identity.
 
@@ -122,7 +122,7 @@ Windows:
 The macOS client maintains its user-editable preferences at:
 
 ```text
-~/.config/lite-screen/config.toml
+~/.config/shotpaste/config.toml
 ```
 
 Validated direct edits are applied on the next app launch. Changes made in the
@@ -131,7 +131,7 @@ edit that requires review. Capture history, clipboard payloads, credentials,
 security-scoped bookmarks, caches, and other device-private state are excluded.
 
 Windows stores preferences internally at
-`%LOCALAPPDATA%\LiteScreen\settings.json`; it does not expose a TOML import or
+`%LOCALAPPDATA%\ShotPaste\settings.json`; it does not expose a TOML import or
 export contract.
 
 ## Localization

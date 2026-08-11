@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-APP_NAME="${APP_NAME:-LiteScreen}"
+APP_NAME="${APP_NAME:-ShotPaste}"
 BUNDLE_ID="${BUNDLE_ID:-}"
 DAYS="${DAYS:-14}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-build/crash-logs}"
@@ -48,7 +48,7 @@ Options:
 
 Examples:
   $0
-  $0 --app LiteScreen --bundle-id com.ahtcfg24.litescreen --days 7
+  $0 --app ShotPaste --bundle-id com.ahtcfg24.shotpaste --days 7
   APP_NAME="My App" BUNDLE_ID=com.example.MyApp $0 --output-dir /tmp/crashes
 EOF
 }

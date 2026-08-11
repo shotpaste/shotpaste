@@ -137,61 +137,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deaktivieren Sie die macOS-Screenshot-Verknüpfungen, die sich mit den Lite Screen-Verknüpfungen überschneiden, die Sie behalten möchten"
+            "value": "Deaktivieren Sie die macOS-Screenshot-Verknüpfungen, die sich mit den ShotPaste-Verknüpfungen überschneiden, die Sie behalten möchten"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Uncheck the macOS screenshot shortcuts that overlap with the Lite Screen shortcuts you want to keep on"
+            "value": "Uncheck the macOS screenshot shortcuts that overlap with the ShotPaste shortcuts you want to keep on"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desmarque los atajos de captura de pantalla de macOS que se superponen con los atajos de Lite Screen que desea conservar"
+            "value": "Desmarque los atajos de captura de pantalla de macOS que se superponen con los atajos de ShotPaste que desea conservar"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Décochez les raccourcis de capture d'écran macOS qui chevauchent les raccourcis Lite Screen que vous souhaitez conserver"
+            "value": "Décochez les raccourcis de capture d'écran macOS qui chevauchent les raccourcis ShotPaste que vous souhaitez conserver"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "残しておきたい Lite Screen ショートカットと重複する macOS スクリーンショット ショートカットのチェックを外します"
+            "value": "残しておきたい ShotPaste ショートカットと重複する macOS スクリーンショット ショートカットのチェックを外します"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "유지하려는 Lite Screen 단축키와 겹치는 macOS 스크린샷 단축키를 선택 취소하세요"
+            "value": "유지하려는 ShotPaste 단축키와 겹치는 macOS 스크린샷 단축키를 선택 취소하세요"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Снимите флажки с ярлыков снимков экрана macOS, которые перекрываются с ярлыками Lite Screen, которые вы хотите сохранить"
+            "value": "Снимите флажки с ярлыков снимков экрана macOS, которые перекрываются с ярлыками ShotPaste, которые вы хотите сохранить"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bỏ chọn các phím tắt chụp màn hình của macOS đang trùng với phím tắt Lite Screen mà bạn muốn giữ"
+            "value": "Bỏ chọn các phím tắt chụp màn hình của macOS đang trùng với phím tắt ShotPaste mà bạn muốn giữ"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "取消选中与您要保留的 Lite Screen 快捷方式重叠的 macOS 屏幕截图快捷方式"
+            "value": "取消选中与您要保留的 ShotPaste 快捷方式重叠的 macOS 屏幕截图快捷方式"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "取消選中與您要保留的 Lite Screen 快捷方式重疊的 macOS 螢幕截圖快捷方式"
+            "value": "取消選中與您要保留的 ShotPaste 快捷方式重疊的 macOS 螢幕截圖快捷方式"
           }
         }
       }

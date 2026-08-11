@@ -20,9 +20,9 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TMP_ROOT="${TMPDIR:-/tmp}"
-BINARY_PATH="${TMP_ROOT%/}/litescreen-scroll-capture-accuracy-benchmark"
-MODULE_CACHE_PATH="${TMP_ROOT%/}/litescreen-scroll-benchmark-module-cache"
-STDERR_PATH="${TMP_ROOT%/}/litescreen-scroll-capture-accuracy-benchmark.stderr"
+BINARY_PATH="${TMP_ROOT%/}/shotpaste-scroll-capture-accuracy-benchmark"
+MODULE_CACHE_PATH="${TMP_ROOT%/}/shotpaste-scroll-benchmark-module-cache"
+STDERR_PATH="${TMP_ROOT%/}/shotpaste-scroll-capture-accuracy-benchmark.stderr"
 
 cd "$REPO_ROOT"
 
@@ -32,7 +32,7 @@ swiftc -parse-as-library \
   platforms/mac/Tools/Benchmarks/scrolling-capture-accuracy/scrolling-capture-accuracy-benchmark.swift \
   platforms/mac/Tools/Benchmarks/scrolling-capture-accuracy/scrolling-capture-accuracy-metrics.swift \
   platforms/mac/Tools/Benchmarks/scrolling-capture-accuracy/scrolling-capture-accuracy-support.swift \
-  platforms/mac/LiteScreen/Services/Capture/ScrollingCapture/ScrollingCaptureStitcher.swift
+  platforms/mac/ShotPaste/Services/Capture/ScrollingCapture/ScrollingCaptureStitcher.swift
 
 : > "$STDERR_PATH"
 set +e

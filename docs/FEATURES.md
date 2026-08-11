@@ -1,6 +1,6 @@
 # Feature list
 
-Lite Screen is a local-first desktop capture application with separate native
+ShotPaste is a local-first desktop capture application with separate native
 implementations for macOS and Windows. The two clients aim for the same product
 workflow while using the APIs and conventions of each operating system.
 
@@ -77,7 +77,7 @@ workflow while using the APIs and conventions of each operating system.
 - Separate after-capture actions for screenshots and recordings: save, copy,
   and show Quick Access.
 - Configurable One Shot, Clipboard History, and active-recording shortcuts.
-- `litescreen://` URL commands for One Shot, history, and settings.
+- `shotpaste://` URL commands for One Shot, history, and settings.
 - Appearance, language, diagnostics, startup, storage, output, recording, and
   history controls.
 - macOS also maintains a local TOML preferences file; Windows stores settings
@@ -93,7 +93,7 @@ unavailable.
 ## Privacy boundary
 
 - Processing and storage are local to the device.
-- Lite Screen has no project-operated account, telemetry, upload, cloud storage,
+- ShotPaste has no project-operated account, telemetry, upload, cloud storage,
   or sync service.
 - OCR and QR payloads are treated as text and are not executed automatically.
 - Screen capture, microphone, accessibility/input, file, and startup permissions

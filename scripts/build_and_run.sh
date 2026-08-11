@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="LiteScreen"
-RELEASE_BUNDLE_NAME="Lite Screen"
-DEBUG_BUNDLE_NAME="Lite Screen Debug"
-SCHEME="LiteScreen"
-PROJECT="platforms/mac/LiteScreen.xcodeproj"
-LOG_SUBSYSTEM="${LOG_SUBSYSTEM:-Lite Screen}"
+APP_NAME="ShotPaste"
+RELEASE_BUNDLE_NAME="ShotPaste"
+DEBUG_BUNDLE_NAME="ShotPaste Debug"
+SCHEME="ShotPaste"
+PROJECT="platforms/mac/ShotPaste.xcodeproj"
+LOG_SUBSYSTEM="${LOG_SUBSYSTEM:-ShotPaste}"
 
 MODE="run"
 CONFIGURATION="${CONFIGURATION:-Debug}"
@@ -45,11 +45,11 @@ ${BOLD}Usage:${NC} $0 [build|run|--logs|--telemetry|--debug|--verify] [options]
 
 ${BOLD}Modes:${NC}
   build               Build and sign the canonical app without launching it
-  run                 Kill, build, and launch Lite Screen (default)
-  --logs, logs        Launch then stream unified logs for process == "LiteScreen"
+  run                 Kill, build, and launch ShotPaste (default)
+  --logs, logs        Launch then stream unified logs for process == "ShotPaste"
   --telemetry         Launch then stream unified logs for subsystem == "$LOG_SUBSYSTEM"
   --debug, debug      Build then launch the app binary under lldb
-  --verify, verify    Launch and confirm the LiteScreen process is running
+  --verify, verify    Launch and confirm the ShotPaste process is running
 
 ${BOLD}Options:${NC}
   --configuration C   Build configuration: Debug or Release. Default: Debug
@@ -219,7 +219,7 @@ run_xcodebuild() {
     CODE_SIGN_IDENTITY=
     CODE_SIGNING_REQUIRED=NO
     CODE_SIGNING_ALLOWED=NO
-    LITESCREEN_SKIP_POST_SIGN=1
+    SHOTPASTE_SKIP_POST_SIGN=1
   )
 
   if [[ "$QUIET" -eq 1 ]]; then
@@ -229,7 +229,7 @@ run_xcodebuild() {
   # Xcode 26.6 / Swift 6.3.3 can crash in EarlyPerfInliner while compiling this
   # Swift 5 target. The local packaging dry run enables this narrow workaround;
   # the pinned GitHub release toolchain remains optimized.
-  if [[ "$CONFIGURATION" == "Release" && "${LITESCREEN_LOCAL_RELEASE_COMPILER_WORKAROUND:-0}" == "1" ]]; then
+  if [[ "$CONFIGURATION" == "Release" && "${SHOTPASTE_LOCAL_RELEASE_COMPILER_WORKAROUND:-0}" == "1" ]]; then
     args+=(SWIFT_COMPILATION_MODE=incremental SWIFT_OPTIMIZATION_LEVEL=-Onone)
   fi
 

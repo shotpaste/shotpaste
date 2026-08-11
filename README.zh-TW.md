@@ -1,4 +1,4 @@
-# Lite Screen
+# ShotPaste
 
 適用於 macOS 與 Windows 的原生、本機優先螢幕擷取與錄影工具。
 
@@ -8,7 +8,7 @@
 [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
-Lite Screen 為 macOS 與 Windows 提供彼此獨立的原生客戶端。擷取、OCR、錄影、
+ShotPaste 為 macOS 與 Windows 提供彼此獨立的原生客戶端。擷取、OCR、錄影、
 歷史記錄、剪貼簿處理與設定皆保留在本機。專案不提供帳號、遙測、雲端上傳、
 遠端儲存或同步服務。
 
@@ -59,13 +59,13 @@ Windows PowerShell：
 
 ## 下載
 
-請從 [GitHub Releases](https://github.com/ahtcfg24/LiteScreen/releases) 下載
+請從 [GitHub Releases](https://github.com/shotpaste/shotpaste/releases) 下載
 最新的 macOS DMG 或 Windows 可攜式 ZIP。開啟套件前，請核對隨附的校驗碼並閱讀
 [發布信任說明](SECURITY.md#release-trust)。
 
 ## 授權與致謝
 
-Lite Screen 採用 [BSD 3-Clause License](LICENSE)。專案致謝與來源歷史請參閱
+ShotPaste 採用 [BSD 3-Clause License](LICENSE)。專案致謝與來源歷史請參閱
 [NOTICE.md](NOTICE.md)，相依元件授權請參閱
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 

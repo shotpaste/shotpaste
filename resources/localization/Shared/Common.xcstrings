@@ -680,61 +680,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Installieren Sie Lite Screen in /Applications, bevor Sie Berechtigungen erteilen. Aktueller Pfad: %@"
+            "value": "Installieren Sie ShotPaste in /Applications, bevor Sie Berechtigungen erteilen. Aktueller Pfad: %@"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Install Lite Screen in /Applications before granting permissions. Current path: %@"
+            "value": "Install ShotPaste in /Applications before granting permissions. Current path: %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Instale Lite Screen en /Aplicaciones antes de otorgar permisos. Ruta actual: %@"
+            "value": "Instale ShotPaste en /Aplicaciones antes de otorgar permisos. Ruta actual: %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Installez Lite Screen dans /Applications avant d'accorder les autorisations. Chemin actuel : %@"
+            "value": "Installez ShotPaste dans /Applications avant d'accorder les autorisations. Chemin actuel : %@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "権限を付与する前に、/Applications に Lite Screen をインストールします。現在のパス: %@"
+            "value": "権限を付与する前に、/Applications に ShotPaste をインストールします。現在のパス: %@"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "권한을 부여하기 전에 /Applications에 Lite Screen를 설치하세요. 현재 경로: %@"
+            "value": "권한을 부여하기 전에 /Applications에 ShotPaste를 설치하세요. 현재 경로: %@"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Прежде чем предоставлять разрешения, установите Lite Screen в каталоге /Applications. Текущий путь: %@"
+            "value": "Прежде чем предоставлять разрешения, установите ShotPaste в каталоге /Applications. Текущий путь: %@"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hãy cài Lite Screen trong /Applications trước khi cấp quyền. Đường dẫn hiện tại: %@"
+            "value": "Hãy cài ShotPaste trong /Applications trước khi cấp quyền. Đường dẫn hiện tại: %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请先将 Lite Screen 安装到 /Applications，再授予权限。当前路径：%@"
+            "value": "请先将 ShotPaste 安装到 /Applications，再授予权限。当前路径：%@"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "請先將 Lite Screen 安裝到 /Applications，再授予權限。目前路徑：%@"
+            "value": "請先將 ShotPaste 安裝到 /Applications，再授予權限。目前路徑：%@"
           }
         }
       }

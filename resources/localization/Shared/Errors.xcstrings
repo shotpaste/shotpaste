@@ -72,61 +72,61 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen hat Ihre Diagnoseprotokolle in einer Datei gebündelt. Ziehen Sie die Datei unten auf die Berichtsseite."
+            "value" : "ShotPaste hat Ihre Diagnoseprotokolle in einer Datei gebündelt. Ziehen Sie die Datei unten auf die Berichtsseite."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen bundled your diagnostic logs into one file. Drag the file below to the report page."
+            "value" : "ShotPaste bundled your diagnostic logs into one file. Drag the file below to the report page."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen agrupó tus logs de diagnóstico en un archivo. Arrastra el archivo siguiente a la página de informe."
+            "value" : "ShotPaste agrupó tus logs de diagnóstico en un archivo. Arrastra el archivo siguiente a la página de informe."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen a regroupé vos journaux de diagnostic dans un fichier. Faites glisser le fichier ci-dessous vers la page de rapport."
+            "value" : "ShotPaste a regroupé vos journaux de diagnostic dans un fichier. Faites glisser le fichier ci-dessous vers la page de rapport."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen は診断ログを1つのファイルにまとめました。下のファイルを報告ページへドラッグしてください。"
+            "value" : "ShotPaste は診断ログを1つのファイルにまとめました。下のファイルを報告ページへドラッグしてください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen가 진단 로그를 하나의 파일로 묶었습니다. 아래 파일을 신고 페이지로 드래그하세요."
+            "value" : "ShotPaste가 진단 로그를 하나의 파일로 묶었습니다. 아래 파일을 신고 페이지로 드래그하세요."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen собрал журналы диагностики в один файл. Перетащите файл ниже на страницу отчета."
+            "value" : "ShotPaste собрал журналы диагностики в один файл. Перетащите файл ниже на страницу отчета."
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen đã gom log chẩn đoán thành một tệp. Hãy kéo tệp bên dưới vào trang báo lỗi."
+            "value" : "ShotPaste đã gom log chẩn đoán thành một tệp. Hãy kéo tệp bên dưới vào trang báo lỗi."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen 已将诊断日志打包为一个文件。将下面的文件拖到报告页面。"
+            "value" : "ShotPaste 已将诊断日志打包为一个文件。将下面的文件拖到报告页面。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen 已將診斷日誌打包成一個檔案。將下面的檔案拖到回報頁面。"
+            "value" : "ShotPaste 已將診斷日誌打包成一個檔案。將下面的檔案拖到回報頁面。"
           }
         }
       }
@@ -137,61 +137,61 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen konnte kein Diagnose-Log-Bundle vorbereiten. Sie können die Berichtsseite trotzdem öffnen und das Problem beschreiben."
+            "value" : "ShotPaste konnte kein Diagnose-Log-Bundle vorbereiten. Sie können die Berichtsseite trotzdem öffnen und das Problem beschreiben."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen could not prepare a diagnostic log bundle. You can still open the report page and describe the problem."
+            "value" : "ShotPaste could not prepare a diagnostic log bundle. You can still open the report page and describe the problem."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen no pudo preparar un paquete de logs de diagnóstico. Aun así puedes abrir la página de informe y describir el problema."
+            "value" : "ShotPaste no pudo preparar un paquete de logs de diagnóstico. Aun así puedes abrir la página de informe y describir el problema."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen n’a pas pu préparer de lot de journaux de diagnostic. Vous pouvez quand même ouvrir la page de rapport et décrire le problème."
+            "value" : "ShotPaste n’a pas pu préparer de lot de journaux de diagnostic. Vous pouvez quand même ouvrir la page de rapport et décrire le problème."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen は診断ログバンドルを準備できませんでした。報告ページを開いて問題を説明することはできます。"
+            "value" : "ShotPaste は診断ログバンドルを準備できませんでした。報告ページを開いて問題を説明することはできます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen가 진단 로그 묶음을 준비하지 못했습니다. 신고 페이지를 열어 문제를 설명할 수 있습니다."
+            "value" : "ShotPaste가 진단 로그 묶음을 준비하지 못했습니다. 신고 페이지를 열어 문제를 설명할 수 있습니다."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen не удалось подготовить пакет журналов диагностики. Вы все равно можете открыть страницу отчета и описать проблему."
+            "value" : "ShotPaste не удалось подготовить пакет журналов диагностики. Вы все равно можете открыть страницу отчета и описать проблему."
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen không thể chuẩn bị gói log chẩn đoán. Bạn vẫn có thể mở trang báo lỗi và mô tả vấn đề."
+            "value" : "ShotPaste không thể chuẩn bị gói log chẩn đoán. Bạn vẫn có thể mở trang báo lỗi và mô tả vấn đề."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen 无法准备诊断日志包。你仍然可以打开报告页面并描述问题。"
+            "value" : "ShotPaste 无法准备诊断日志包。你仍然可以打开报告页面并描述问题。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lite Screen 無法準備診斷日誌包。你仍然可以開啟回報頁面並描述問題。"
+            "value" : "ShotPaste 無法準備診斷日誌包。你仍然可以開啟回報頁面並描述問題。"
           }
         }
       }

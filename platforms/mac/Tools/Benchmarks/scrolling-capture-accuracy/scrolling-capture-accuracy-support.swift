@@ -1,6 +1,6 @@
 //
 //  scrolling-capture-accuracy-support.swift
-//  LiteScreen
+//  ShotPaste
 //
 //  Synthetic corpus and pixel metrics for Scroll Capture accuracy benchmark.
 //

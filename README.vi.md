@@ -1,4 +1,4 @@
-# Lite Screen
+# ShotPaste
 
 Công cụ chụp và ghi màn hình gốc, ưu tiên dữ liệu cục bộ cho macOS và Windows.
 
@@ -8,7 +8,7 @@ Công cụ chụp và ghi màn hình gốc, ưu tiên dữ liệu cục bộ cho
 [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
-Lite Screen cung cấp hai ứng dụng gốc độc lập cho macOS và Windows. Ảnh chụp,
+ShotPaste cung cấp hai ứng dụng gốc độc lập cho macOS và Windows. Ảnh chụp,
 OCR, bản ghi, lịch sử, dữ liệu bảng tạm và cấu hình đều nằm trên thiết bị. Dự án
 không cung cấp tài khoản, đo lường từ xa, tải lên đám mây, lưu trữ từ xa hay
 đồng bộ.
@@ -65,7 +65,7 @@ Xem [cấu trúc dự án và hướng dẫn biên dịch](docs/DEVELOPMENT.md).
 ## Tải xuống và giấy phép
 
 Các gói macOS và Windows mới nhất có tại
-[GitHub Releases](https://github.com/ahtcfg24/LiteScreen/releases). Lite Screen
+[GitHub Releases](https://github.com/shotpaste/shotpaste/releases). ShotPaste
 dùng [Giấy phép BSD 3-Clause](LICENSE). Lời cảm ơn và lịch sử mã nguồn nằm trong
 [NOTICE.md](NOTICE.md), còn giấy phép của các phụ thuộc nằm trong
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -7,61 +7,61 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "What's new in Lite Screen"
+            "value": "What's new in ShotPaste"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Có gì mới trong Lite Screen"
+            "value": "Có gì mới trong ShotPaste"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Was ist neu in Lite Screen"
+            "value": "Was ist neu in ShotPaste"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Novedades en Lite Screen"
+            "value": "Novedades en ShotPaste"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nouveautés dans Lite Screen"
+            "value": "Nouveautés dans ShotPaste"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screenの新機能"
+            "value": "ShotPasteの新機能"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen의 새로운 기능"
+            "value": "ShotPaste의 새로운 기능"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Что нового в Lite Screen"
+            "value": "Что нового в ShotPaste"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 的新功能"
+            "value": "ShotPaste 的新功能"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 的新功能"
+            "value": "ShotPaste 的新功能"
           }
         }
       }
@@ -202,61 +202,61 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen is now officially registered with the Apple Developer Program and certified by Apple, bypassing Gatekeeper's protections for a secure launch."
+            "value": "ShotPaste is now officially registered with the Apple Developer Program and certified by Apple, bypassing Gatekeeper's protections for a secure launch."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen hiện đã đăng ký Apple Developer Program và được Apple xác thực (Notarized), giúp ứng dụng khởi chạy an toàn và vượt qua lớp bảo vệ Gatekeeper."
+            "value": "ShotPaste hiện đã đăng ký Apple Developer Program và được Apple xác thực (Notarized), giúp ứng dụng khởi chạy an toàn và vượt qua lớp bảo vệ Gatekeeper."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen ist jetzt offiziell beim Apple Developer Program registriert und von Apple zertifiziert, um die Gatekeeper-Schutzfunktionen für einen sicheren Start zu umgehen."
+            "value": "ShotPaste ist jetzt offiziell beim Apple Developer Program registriert und von Apple zertifiziert, um die Gatekeeper-Schutzfunktionen für einen sicheren Start zu umgehen."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen ahora está oficialmente registrada en el Programa de Desarrolladores de Apple y certificada por Apple, lo que evita las protecciones de Gatekeeper para un inicio seguro."
+            "value": "ShotPaste ahora está oficialmente registrada en el Programa de Desarrolladores de Apple y certificada por Apple, lo que evita las protecciones de Gatekeeper para un inicio seguro."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen est désormais officiellement enregistrée auprès du programme de développement Apple et certifiée by Apple, contournant les protections Gatekeeper pour un lancement sécurisé."
+            "value": "ShotPaste est désormais officiellement enregistrée auprès du programme de développement Apple et certifiée by Apple, contournant les protections Gatekeeper pour un lancement sécurisé."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite ScreenはApple Developer Programに正式に登録され、Appleによって公証（Notarized）されました。これにより、Gatekeeperの保護を回避して安全に起動できます。"
+            "value": "ShotPasteはApple Developer Programに正式に登録され、Appleによって公証（Notarized）されました。これにより、Gatekeeperの保護を回避して安全に起動できます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen는 이제 공식적으로 Apple Developer Program에 등록되고 Apple의 공증(Notarized)을 받아, Gatekeeper 보안을 통과하고 안전하게 실행할 수 있습니다."
+            "value": "ShotPaste는 이제 공식적으로 Apple Developer Program에 등록되고 Apple의 공증(Notarized)을 받아, Gatekeeper 보안을 통과하고 안전하게 실행할 수 있습니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen теперь официально зарегистрировано в программе разработчиков Apple и заверено Apple, что позволяет обходить защиту Gatekeeper для безопасного запуска."
+            "value": "ShotPaste теперь официально зарегистрировано в программе разработчиков Apple и заверено Apple, что позволяет обходить защиту Gatekeeper для безопасного запуска."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 现已正式注册 Apple 开发者计划并获得 Apple 公证认证，绕过 Gatekeeper 保护以实现安全启动。"
+            "value": "ShotPaste 现已正式注册 Apple 开发者计划并获得 Apple 公证认证，绕过 Gatekeeper 保护以实现安全启动。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 現已正式註冊 Apple 開發者計劃並獲得 Apple 公證認證，繞過 Gatekeeper 保護以實現安全啟動。"
+            "value": "ShotPaste 現已正式註冊 Apple 開發者計劃並獲得 Apple 公證認證，繞過 Gatekeeper 保護以實現安全啟動。"
           }
         }
       }

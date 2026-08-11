@@ -1437,61 +1437,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen benötigt eine Mikrofonberechtigung. Bitte aktivieren Sie es in den Systemeinstellungen > Datenschutz und Sicherheit > Mikrofon."
+            "value": "ShotPaste benötigt eine Mikrofonberechtigung. Bitte aktivieren Sie es in den Systemeinstellungen > Datenschutz und Sicherheit > Mikrofon."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen needs microphone permission. Please enable it in System Settings > Privacy & Security > Microphone."
+            "value": "ShotPaste needs microphone permission. Please enable it in System Settings > Privacy & Security > Microphone."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen necesita permiso del micrófono. Habilítelo en Configuración del sistema > Privacidad y seguridad > Micrófono."
+            "value": "ShotPaste necesita permiso del micrófono. Habilítelo en Configuración del sistema > Privacidad y seguridad > Micrófono."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen a besoin de l'autorisation du microphone. Veuillez l'activer dans Paramètres système > Confidentialité et sécurité > Microphone."
+            "value": "ShotPaste a besoin de l'autorisation du microphone. Veuillez l'activer dans Paramètres système > Confidentialité et sécurité > Microphone."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen にはマイクの許可が必要です。 [システム設定] > [プライバシーとセキュリティ] > [マイク] で有効にしてください。"
+            "value": "ShotPaste にはマイクの許可が必要です。 [システム設定] > [プライバシーとセキュリティ] > [マイク] で有効にしてください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen에는 마이크 권한이 필요합니다. 시스템 설정 > 개인 정보 보호 및 보안 > 마이크에서 활성화해 주세요."
+            "value": "ShotPaste에는 마이크 권한이 필요합니다. 시스템 설정 > 개인 정보 보호 및 보안 > 마이크에서 활성화해 주세요."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen требуется разрешение микрофона. Включите его в «Настройки системы» > «Конфиденциальность и безопасность» > «Микрофон»."
+            "value": "ShotPaste требуется разрешение микрофона. Включите его в «Настройки системы» > «Конфиденциальность и безопасность» > «Микрофон»."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen cần quyền Microphone. Vui lòng bật trong Cài đặt hệ thống > Quyền riêng tư & Bảo mật > Microphone."
+            "value": "ShotPaste cần quyền Microphone. Vui lòng bật trong Cài đặt hệ thống > Quyền riêng tư & Bảo mật > Microphone."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 需要麦克风权限。请在系统设置 > 隐私和安全 > 麦克风中启用它。"
+            "value": "ShotPaste 需要麦克风权限。请在系统设置 > 隐私和安全 > 麦克风中启用它。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 需要麥克風權限。請在系統設置 > 隱私和安全 > 麥克風中啓用它。"
+            "value": "ShotPaste 需要麥克風權限。請在系統設置 > 隱私和安全 > 麥克風中啓用它。"
           }
         }
       }
@@ -1502,61 +1502,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen benötigt eine Mikrofonberechtigung, um Audio aufzunehmen. Bitte gewähren Sie den Zugriff in den Systemeinstellungen."
+            "value": "ShotPaste benötigt eine Mikrofonberechtigung, um Audio aufzunehmen. Bitte gewähren Sie den Zugriff in den Systemeinstellungen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen needs microphone permission to record audio. Please grant access in System Settings."
+            "value": "ShotPaste needs microphone permission to record audio. Please grant access in System Settings."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen necesita permiso del micrófono para grabar audio. Conceda acceso en Configuración del sistema."
+            "value": "ShotPaste necesita permiso del micrófono para grabar audio. Conceda acceso en Configuración del sistema."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen a besoin de l'autorisation du microphone pour enregistrer de l'audio. Veuillez accorder l'accès dans les paramètres système."
+            "value": "ShotPaste a besoin de l'autorisation du microphone pour enregistrer de l'audio. Veuillez accorder l'accès dans les paramètres système."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen が音声を録音するにはマイクの許可が必要です。システム設定でアクセスを許可してください。"
+            "value": "ShotPaste が音声を録音するにはマイクの許可が必要です。システム設定でアクセスを許可してください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen가 오디오를 녹음하려면 마이크 권한이 필요합니다. 시스템 설정에서 액세스 권한을 부여하세요."
+            "value": "ShotPaste가 오디오를 녹음하려면 마이크 권한이 필요합니다. 시스템 설정에서 액세스 권한을 부여하세요."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen требуется разрешение микрофона для записи звука. Пожалуйста, предоставьте доступ в настройках системы."
+            "value": "ShotPaste требуется разрешение микрофона для записи звука. Пожалуйста, предоставьте доступ в настройках системы."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen cần quyền Microphone để ghi âm. Vui lòng cấp quyền trong Cài đặt hệ thống."
+            "value": "ShotPaste cần quyền Microphone để ghi âm. Vui lòng cấp quyền trong Cài đặt hệ thống."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 需要麦克风权限才能录制音频。请在系统设置中授予访问权限。"
+            "value": "ShotPaste 需要麦克风权限才能录制音频。请在系统设置中授予访问权限。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 需要麥克風權限才能錄製音頻。請在系統設置中授予訪問權限。"
+            "value": "ShotPaste 需要麥克風權限才能錄製音頻。請在系統設置中授予訪問權限。"
           }
         }
       }
@@ -4297,61 +4297,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wählen Sie, wo Lite Screen Screenshots und Aufnahmen speichern soll"
+            "value": "Wählen Sie, wo ShotPaste Screenshots und Aufnahmen speichern soll"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose where Lite Screen should save screenshots and recordings"
+            "value": "Choose where ShotPaste should save screenshots and recordings"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Elija dónde Lite Screen debe guardar capturas de pantalla y grabaciones"
+            "value": "Elija dónde ShotPaste debe guardar capturas de pantalla y grabaciones"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choisissez où Lite Screen doit enregistrer les captures d'écran et les enregistrements"
+            "value": "Choisissez où ShotPaste doit enregistrer les captures d'écran et les enregistrements"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen がスクリーンショットと録画を保存する場所を選択します"
+            "value": "ShotPaste がスクリーンショットと録画を保存する場所を選択します"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen가 스크린샷과 녹음을 저장할 위치를 선택하세요"
+            "value": "ShotPaste가 스크린샷과 녹음을 저장할 위치를 선택하세요"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Выберите, где Lite Screen должен сохранять снимки экрана и записи"
+            "value": "Выберите, где ShotPaste должен сохранять снимки экрана и записи"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Chọn nơi Lite Screen sẽ lưu ảnh chụp và bản ghi"
+            "value": "Chọn nơi ShotPaste sẽ lưu ảnh chụp và bản ghi"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "选择 Lite Screen 保存屏幕截图和录屏的位置"
+            "value": "选择 ShotPaste 保存屏幕截图和录屏的位置"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "選擇 Lite Screen 保存螢幕截圖和錄屏的位置"
+            "value": "選擇 ShotPaste 保存螢幕截圖和錄屏的位置"
           }
         }
       }
@@ -5272,61 +5272,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen benötigt eine Zugriffsberechtigung für den Speicherordner, um fortzufahren. Bitte wählen Sie einen Speicherordner unter „Einstellungen → Allgemein“."
+            "value": "ShotPaste benötigt eine Zugriffsberechtigung für den Speicherordner, um fortzufahren. Bitte wählen Sie einen Speicherordner unter „Einstellungen → Allgemein“."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen needs a save folder permission to continue. Please choose a save folder in Preferences → General."
+            "value": "ShotPaste needs a save folder permission to continue. Please choose a save folder in Preferences → General."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen necesita permiso para acceder a la carpeta de guardado para continuar. Elija una carpeta de guardado en Preferencias → General."
+            "value": "ShotPaste necesita permiso para acceder a la carpeta de guardado para continuar. Elija una carpeta de guardado en Preferencias → General."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen a besoin d'une autorisation d'accès au dossier de sauvegarde pour continuer. Veuillez choisir un dossier dans Préférences → Général."
+            "value": "ShotPaste a besoin d'une autorisation d'accès au dossier de sauvegarde pour continuer. Veuillez choisir un dossier dans Préférences → Général."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "続行するには Lite Screen に保存フォルダへのアクセス権限が必要です。「環境設定 → 一般」で保存フォルダを選択してください。"
+            "value": "続行するには ShotPaste に保存フォルダへのアクセス権限が必要です。「環境設定 → 一般」で保存フォルダを選択してください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "계속하려면 Lite Screen에 저장 폴더 접근 권한이 필요합니다. 환경 설정 → 일반에서 저장 폴더를 선택하세요."
+            "value": "계속하려면 ShotPaste에 저장 폴더 접근 권한이 필요합니다. 환경 설정 → 일반에서 저장 폴더를 선택하세요."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Чтобы продолжить, Lite Screen требуется доступ к папке сохранения. Выберите папку сохранения в «Настройки → Основные»."
+            "value": "Чтобы продолжить, ShotPaste требуется доступ к папке сохранения. Выберите папку сохранения в «Настройки → Основные»."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen cần quyền truy cập thư mục lưu để tiếp tục. Hãy chọn thư mục lưu trong Tùy chọn → Chung."
+            "value": "ShotPaste cần quyền truy cập thư mục lưu để tiếp tục. Hãy chọn thư mục lưu trong Tùy chọn → Chung."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 需要访问保存文件夹才能继续。请在“偏好设置 → 通用”中选择保存文件夹。"
+            "value": "ShotPaste 需要访问保存文件夹才能继续。请在“偏好设置 → 通用”中选择保存文件夹。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lite Screen 需要存取儲存資料夾才能繼續。請在「偏好設定 → 一般」中選擇儲存資料夾。"
+            "value": "ShotPaste 需要存取儲存資料夾才能繼續。請在「偏好設定 → 一般」中選擇儲存資料夾。"
           }
         }
       }

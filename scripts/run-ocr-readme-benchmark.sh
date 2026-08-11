@@ -19,23 +19,23 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TMP_ROOT="${TMPDIR:-/tmp}"
-BINARY_PATH="${TMP_ROOT%/}/litescreen-ocr-readme-benchmark"
-MODULE_CACHE_PATH="${TMP_ROOT%/}/litescreen-ocr-readme-benchmark-module-cache"
-STDERR_PATH="${TMP_ROOT%/}/litescreen-ocr-readme-benchmark.stderr"
+BINARY_PATH="${TMP_ROOT%/}/shotpaste-ocr-readme-benchmark"
+MODULE_CACHE_PATH="${TMP_ROOT%/}/shotpaste-ocr-readme-benchmark-module-cache"
+STDERR_PATH="${TMP_ROOT%/}/shotpaste-ocr-readme-benchmark.stderr"
 
 cd "$REPO_ROOT"
 
 swiftc -module-cache-path "$MODULE_CACHE_PATH" \
   -o "$BINARY_PATH" \
   platforms/mac/Tools/Benchmarks/ocr/ocr-readme-benchmark.swift \
-  platforms/mac/LiteScreen/Services/Media/OCRService.swift \
-  platforms/mac/LiteScreen/Services/Media/OCR/VerticalCJKTextNormalizer.swift \
-  platforms/mac/LiteScreen/Services/Media/OCR/VerticalCJKBitmapAnalysis.swift \
-  platforms/mac/LiteScreen/Services/Media/OCR/OCRRequest.swift \
-  platforms/mac/LiteScreen/Services/Media/OCR/OCRResult.swift \
-  platforms/mac/LiteScreen/Services/Media/OCR/VisionOCRProfile.swift \
-  platforms/mac/LiteScreen/Services/Media/OCR/OCRBenchmarkMetrics.swift \
-  platforms/mac/LiteScreen/Services/Media/OCR/OCRBenchmarkHarness.swift
+  platforms/mac/ShotPaste/Services/Media/OCRService.swift \
+  platforms/mac/ShotPaste/Services/Media/OCR/VerticalCJKTextNormalizer.swift \
+  platforms/mac/ShotPaste/Services/Media/OCR/VerticalCJKBitmapAnalysis.swift \
+  platforms/mac/ShotPaste/Services/Media/OCR/OCRRequest.swift \
+  platforms/mac/ShotPaste/Services/Media/OCR/OCRResult.swift \
+  platforms/mac/ShotPaste/Services/Media/OCR/VisionOCRProfile.swift \
+  platforms/mac/ShotPaste/Services/Media/OCR/OCRBenchmarkMetrics.swift \
+  platforms/mac/ShotPaste/Services/Media/OCR/OCRBenchmarkHarness.swift
 
 : > "$STDERR_PATH"
 set +e

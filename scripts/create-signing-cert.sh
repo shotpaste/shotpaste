@@ -2,8 +2,9 @@
 # create-signing-cert.sh — Create a local development code-signing identity.
 #
 # This script never creates or exports official release credentials. Published
-# releases use the fixed "Lite Screen Self-Signed" identity documented in
-# docs/DEVELOPMENT.md. Do not recreate or replace that identity.
+# releases use the existing identity with SHA-1 fingerprint
+# 35517841F1D32EC1ED7D1F411565845C4AA4B70A documented in docs/DEVELOPMENT.md.
+# Do not recreate or replace that identity.
 #
 # Usage: ./scripts/create-signing-cert.sh [cert-name] [validity-days]
 #
@@ -15,12 +16,11 @@
 
 set -euo pipefail
 
-RELEASE_CERT_NAME="Lite Screen Self-Signed"
-CERT_NAME="${1:-Lite Screen Local Development}"
+CERT_NAME="${1:-ShotPaste Local Development}"
 VALIDITY_DAYS="${2:-3650}"  # 10 years default
 
-if [[ "$CERT_NAME" == "$RELEASE_CERT_NAME" ]]; then
-  echo "Error: '$RELEASE_CERT_NAME' is reserved for the fixed release identity." >&2
+if [[ "$CERT_NAME" == "ShotPaste Self-Signed" || "$CERT_NAME" == "ShotPaste Release" ]]; then
+  echo "Error: '$CERT_NAME' is reserved for release-signing use." >&2
   echo "Use the default local identity or choose another development-only name." >&2
   exit 1
 fi
@@ -57,7 +57,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "=== Lite Screen Local Development Certificate ==="
+echo "=== ShotPaste Local Development Certificate ==="
 echo ""
 echo "Certificate name: $CERT_NAME"
 echo "Validity: $VALIDITY_DAYS days"
@@ -87,7 +87,7 @@ x509_extensions    = codesign
 
 [ req_dn ]
 CN = $CERT_NAME
-O  = Lite Screen
+O  = ShotPaste
 
 [ codesign ]
 keyUsage         = critical, digitalSignature

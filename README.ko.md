@@ -1,4 +1,4 @@
-# Lite Screen
+# ShotPaste
 
 macOS와 Windows를 위한 네이티브 로컬 우선 화면 캡처 도구입니다.
 
@@ -8,7 +8,7 @@ macOS와 Windows를 위한 네이티브 로컬 우선 화면 캡처 도구입니
 [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
-Lite Screen은 macOS와 Windows에 서로 독립적인 네이티브 클라이언트를 제공합니다.
+ShotPaste은 macOS와 Windows에 서로 독립적인 네이티브 클라이언트를 제공합니다.
 캡처, OCR, 녹화, 기록, 클립보드 처리와 설정은 기기에만 저장됩니다. 계정, 원격
 측정, 클라우드 업로드, 원격 저장소 또는 동기화 서비스는 제공하지 않습니다.
 
@@ -64,8 +64,8 @@ Windows PowerShell:
 ## 다운로드 및 라이선스
 
 최신 macOS 및 Windows 패키지는
-[GitHub Releases](https://github.com/ahtcfg24/LiteScreen/releases)에서 받을 수
-있습니다. Lite Screen은 [BSD 3-Clause License](LICENSE)로 공개됩니다. 감사와 코드
+[GitHub Releases](https://github.com/shotpaste/shotpaste/releases)에서 받을 수
+있습니다. ShotPaste은 [BSD 3-Clause License](LICENSE)로 공개됩니다. 감사와 코드
 이력은 [NOTICE.md](NOTICE.md), 의존성 라이선스는
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)를 참조하세요.
 

@@ -1,4 +1,4 @@
-Lite Screen @VERSION@ - macOS (Apple Silicon)
+ShotPaste @VERSION@ - macOS (Apple Silicon)
 ================================================
 
 This DMG is self-signed and is not Apple-notarized.
@@ -6,10 +6,10 @@ This DMG is self-signed and is not Apple-notarized.
 1. Download the DMG and SHA256SUMS.txt from the same GitHub Release.
 2. Run:
 
-     shasum -a 256 LiteScreen-v@VERSION@-macOS-arm64.dmg
+     shasum -a 256 ShotPaste-v@VERSION@-macOS-arm64.dmg
 
    Compare the result with the matching DMG line in SHA256SUMS.txt.
-3. Open the DMG and drag "Lite Screen.app" to Applications.
+3. Open the DMG and drag "ShotPaste.app" to Applications.
 4. If Gatekeeper blocks the first launch, open System Settings > Privacy &
    Security, choose Open Anyway, and confirm.
 5. Grant Screen Recording, Microphone, or Accessibility permissions only when
@@ -22,6 +22,6 @@ This DMG is self-signed and is not Apple-notarized.
 
 1. 从同一个 GitHub Release 下载 DMG 与 SHA256SUMS.txt。
 2. 运行上面的 shasum 命令，并与 SHA256SUMS.txt 中对应的 DMG 行核对。
-3. 打开 DMG，将“Lite Screen.app”拖入“应用程序”。
+3. 打开 DMG，将“ShotPaste.app”拖入“应用程序”。
 4. 首次启动若被拦截，请进入“系统设置 > 隐私与安全性”，选择“仍要打开”。
 5. 仅在使用对应功能时授予屏幕录制、麦克风或辅助功能权限。
