@@ -8,6 +8,8 @@ macOS와 Windows를 위한 네이티브 로컬 우선 화면 캡처 도구입니
 [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
+**공식 웹사이트:** [shotpaste.com](https://www.shotpaste.com/)
+
 ShotPaste은 macOS와 Windows에 서로 독립적인 네이티브 클라이언트를 제공합니다.
 캡처, OCR, 녹화, 기록, 클립보드 처리와 설정은 기기에만 저장됩니다. 계정, 원격
 측정, 클라우드 업로드, 원격 저장소 또는 동기화 서비스는 제공하지 않습니다.

@@ -8,6 +8,8 @@
 [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
+**官方網站：** [shotpaste.com](https://www.shotpaste.com/)
+
 ShotPaste 為 macOS 與 Windows 提供彼此獨立的原生客戶端。擷取、OCR、錄影、
 歷史記錄、剪貼簿處理與設定皆保留在本機。專案不提供帳號、遙測、雲端上傳、
 遠端儲存或同步服務。

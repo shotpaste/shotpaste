@@ -8,6 +8,8 @@ Công cụ chụp và ghi màn hình gốc, ưu tiên dữ liệu cục bộ cho
 [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
+**Trang web chính thức:** [shotpaste.com](https://www.shotpaste.com/)
+
 ShotPaste cung cấp hai ứng dụng gốc độc lập cho macOS và Windows. Ảnh chụp,
 OCR, bản ghi, lịch sử, dữ liệu bảng tạm và cấu hình đều nằm trên thiết bị. Dự án
 không cung cấp tài khoản, đo lường từ xa, tải lên đám mây, lưu trữ từ xa hay

@@ -8,6 +8,8 @@ Native, local-first screen capture for macOS and Windows.
 [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
+**Official website:** [shotpaste.com](https://www.shotpaste.com/)
+
 ShotPaste provides independent native clients for macOS and Windows. Capture,
 OCR, recording, history, clipboard processing, and configuration stay on the
 device. The project does not provide accounts, telemetry, cloud upload, remote

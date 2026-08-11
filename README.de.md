@@ -8,6 +8,8 @@ Native, lokal arbeitende Bildschirmaufnahme für macOS und Windows.
 [한국어](README.ko.md) · [Русский](README.ru.md) ·
 [Français](README.fr.md) · **Deutsch**
 
+**Offizielle Website:** [shotpaste.com](https://www.shotpaste.com/)
+
 ShotPaste bietet unabhängige native Anwendungen für macOS und Windows.
 Aufnahmen, OCR, Bildschirmvideos, Verlauf, Zwischenablage und Einstellungen
 bleiben auf dem Gerät. Das Projekt bietet weder Konten noch Telemetrie,

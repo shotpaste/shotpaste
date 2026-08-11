@@ -8,6 +8,8 @@
 [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
+**官网：** [shotpaste.com](https://www.shotpaste.com/)
+
 ShotPaste 为 macOS 和 Windows 提供彼此独立的原生客户端。截屏、OCR、
 录屏、历史记录、剪贴板处理和配置都保存在本机。项目不提供账号、遥测、云上传、
 远程存储或同步服务。

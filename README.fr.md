@@ -8,6 +8,8 @@ Capture et enregistrement d’écran natifs et locaux pour macOS et Windows.
 [한국어](README.ko.md) · [Русский](README.ru.md) · **Français** ·
 [Deutsch](README.de.md)
 
+**Site officiel :** [shotpaste.com](https://www.shotpaste.com/)
+
 ShotPaste propose des clients natifs indépendants pour macOS et Windows. Les
 captures, l’OCR, les enregistrements, l’historique, le presse-papiers et les
 réglages restent sur l’appareil. Le projet ne propose ni compte, ni télémétrie,

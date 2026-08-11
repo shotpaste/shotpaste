@@ -8,6 +8,8 @@ macOS と Windows 向けのネイティブかつローカル優先の画面キ�
 [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
+**公式サイト:** [shotpaste.com](https://www.shotpaste.com/)
+
 ShotPaste は macOS と Windows に独立したネイティブクライアントを提供します。
 キャプチャ、OCR、録画、履歴、クリップボード処理、設定は端末内に保持されます。
 アカウント、テレメトリ、クラウドアップロード、リモート保存、同期機能はありません。

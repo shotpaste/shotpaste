@@ -8,6 +8,8 @@ Captura y grabación de pantalla nativa y local para macOS y Windows.
 [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
+**Sitio web oficial:** [shotpaste.com](https://www.shotpaste.com/)
+
 ShotPaste ofrece clientes nativos independientes para macOS y Windows. Las
 capturas, el OCR, las grabaciones, el historial, el portapapeles y la
 configuración permanecen en el dispositivo. El proyecto no ofrece cuentas,
