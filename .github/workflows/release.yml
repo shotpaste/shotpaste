@@ -99,7 +99,12 @@ jobs:
           rm -f "$p12_path"
 
           identity_hash="$(security find-identity -p basic "$keychain_path" | awk '$2 ~ /^[[:xdigit:]]{40}$/ { print toupper($2); exit }')"
-          expected_hash="35517841F1D32EC1ED7D1F411565845C4AA4B70A"
+          expected_hash="$(
+            openssl x509 \
+              -in "$GITHUB_WORKSPACE/.github/signing/ShotPaste-Release-Self-Signed.crt" \
+              -noout -fingerprint -sha1 \
+              | awk -F= '{ gsub(":", "", $2); print toupper($2) }'
+          )"
           [[ -n "$identity_hash" ]] || {
             echo "::error::The imported P12 does not contain a usable code-signing identity"
             exit 1

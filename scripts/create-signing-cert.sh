@@ -3,7 +3,7 @@
 #
 # This script never creates or exports official release credentials. Published
 # releases use the existing identity with SHA-1 fingerprint
-# 35517841F1D32EC1ED7D1F411565845C4AA4B70A documented in docs/DEVELOPMENT.md.
+# 8CBB386A17831C9C093C6BA693C4F60BC239A213 documented in docs/DEVELOPMENT.md.
 # Do not recreate or replace that identity.
 #
 # Usage: ./scripts/create-signing-cert.sh [cert-name] [validity-days]
@@ -19,7 +19,9 @@ set -euo pipefail
 CERT_NAME="${1:-ShotPaste Local Development}"
 VALIDITY_DAYS="${2:-3650}"  # 10 years default
 
-if [[ "$CERT_NAME" == "ShotPaste Self-Signed" || "$CERT_NAME" == "ShotPaste Release" ]]; then
+if [[ "$CERT_NAME" == "ShotPaste Self-Signed" || \
+  "$CERT_NAME" == "ShotPaste Release" || \
+  "$CERT_NAME" == "ShotPaste Release Self-Signed" ]]; then
   echo "Error: '$CERT_NAME' is reserved for release-signing use." >&2
   echo "Use the default local identity or choose another development-only name." >&2
   exit 1

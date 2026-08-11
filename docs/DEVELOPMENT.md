@@ -66,14 +66,18 @@ Products:
 
 ### Release signing identity
 
-Official release builds use the existing self-signed certificate with SHA-1
-fingerprint `35517841F1D32EC1ED7D1F411565845C4AA4B70A`. Its certificate subject is
-preserved from releases made before the product rename. Maintainer CI reads it from
-`SELF_SIGNED_CERT_P12` and `SELF_SIGNED_CERT_PASSWORD`. These release credentials
-are maintainer-only; contributors do not need them for local builds. Do not
-replace, recreate, rename, or rotate the release certificate, and never populate those
-secrets with output from a local certificate. macOS privacy permissions are tied
-to the application signing identity.
+Until an Apple Developer ID certificate is available, official release builds use
+the fixed self-signed identity `ShotPaste Release Self-Signed`, with SHA-1
+fingerprint `8CBB386A17831C9C093C6BA693C4F60BC239A213`. The public certificate is tracked at
+`.github/signing/ShotPaste-Release-Self-Signed.crt` so maintainers can audit the
+identity without access to private material.
+
+The exportable identity and its password are stored only in the repository Actions
+secrets `SELF_SIGNED_CERT_P12` and `SELF_SIGNED_CERT_PASSWORD`. The P12 contains the
+private key and must never be committed. These release credentials are
+maintainer-only; contributors do not need them for local builds. Do not replace,
+recreate, rename, or rotate the release certificate. macOS privacy permissions are
+tied to the application signing identity.
 
 ### Automated releases
 
