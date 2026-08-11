@@ -267,7 +267,12 @@ run_xcodebuild() {
   # Swift 5 target. The local packaging dry run enables this narrow workaround;
   # the pinned GitHub release toolchain remains optimized.
   if [[ "$CONFIGURATION" == "Release" && "${SHOTPASTE_LOCAL_RELEASE_COMPILER_WORKAROUND:-0}" == "1" ]]; then
-    args+=(SWIFT_COMPILATION_MODE=incremental SWIFT_OPTIMIZATION_LEVEL=-Onone)
+    args+=(
+      SWIFT_COMPILATION_MODE=incremental
+      SWIFT_OPTIMIZATION_LEVEL=-Onone
+      ENABLE_DEBUG_DYLIB=NO
+      ENABLE_PREVIEWS=NO
+    )
   fi
 
   args+=("$action")
