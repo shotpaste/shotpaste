@@ -32,6 +32,18 @@ ShotPaste 為 macOS 與 Windows 提供彼此獨立的原生客戶端。擷取、
 
 完整內容請參閱[功能列表](docs/FEATURES.md)。
 
+## 功能展示
+
+| **One Shot** | **截圖** |
+|:---:|:---:|
+| [![One Shot 模式選擇器](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![截圖選區與工具列](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
+| **內嵌標註** | **捲動擷取** |
+| [![內嵌標註工具](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![捲動擷取選區](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
+| **錄影** | **Quick Access 與釘選** |
+| [![錄影區域與選項](assets/readme/recording.png)](assets/readme/recording.png) | [![Quick Access 卡片與置頂圖片](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
+| **剪貼簿歷史** | **自訂** |
+| [![可搜尋的擷取與剪貼簿歷史](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![截圖自訂設定](assets/readme/customization.png)](assets/readme/customization.png) |
+
 ## 平台
 
 | | macOS | Windows |

@@ -36,6 +36,18 @@ không cung cấp tài khoản, đo lường từ xa, tải lên đám mây, lư
 
 Xem [danh sách tính năng đầy đủ](docs/FEATURES.md).
 
+## Thư viện tính năng
+
+| **One Shot** | **Ảnh chụp** |
+|:---:|:---:|
+| [![Bộ chọn chế độ One Shot](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![Vùng chọn và thanh công cụ ảnh chụp](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
+| **Chú thích trực tiếp** | **Chụp cuộn** |
+| [![Công cụ chú thích trực tiếp](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![Vùng chọn chụp cuộn](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
+| **Ghi màn hình** | **Quick Access và ghim** |
+| [![Vùng và tùy chọn ghi màn hình](assets/readme/recording.png)](assets/readme/recording.png) | [![Thẻ Quick Access và ảnh ghim](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
+| **Lịch sử bảng tạm** | **Tùy chỉnh** |
+| [![Lịch sử ảnh chụp và bảng tạm có thể tìm kiếm](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![Cài đặt tùy chỉnh ảnh chụp](assets/readme/customization.png)](assets/readme/customization.png) |
+
 ## Nền tảng
 
 | | macOS | Windows |

@@ -32,6 +32,18 @@ ShotPaste 为 macOS 和 Windows 提供彼此独立的原生客户端。截屏、
 
 完整说明见[功能列表](docs/FEATURES.md)。
 
+## 功能展示
+
+| **One Shot** | **截图** |
+|:---:|:---:|
+| [![One Shot 模式选择器](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![截图选区与工具栏](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
+| **内联标注** | **滚动截屏** |
+| [![内联标注工具](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![滚动截屏选区](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
+| **录屏** | **Quick Access 与贴图** |
+| [![录屏区域与选项](assets/readme/recording.png)](assets/readme/recording.png) | [![Quick Access 卡片与置顶贴图](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
+| **剪贴板历史** | **自定义** |
+| [![可搜索的捕获与剪贴板历史](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![截图自定义设置](assets/readme/customization.png)](assets/readme/customization.png) |
+
 ## 平台
 
 | | macOS | Windows |

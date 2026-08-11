@@ -39,6 +39,18 @@ ni envoi vers le cloud, ni stockage distant, ni synchronisation.
 
 Consultez la [liste complète des fonctionnalités](docs/FEATURES.md).
 
+## Galerie des fonctionnalités
+
+| **One Shot** | **Captures** |
+|:---:|:---:|
+| [![Sélecteur de mode One Shot](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![Zone et barre d’outils de capture](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
+| **Annotation intégrée** | **Capture avec défilement** |
+| [![Outils d’annotation intégrée](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![Zone de capture avec défilement](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
+| **Enregistrement** | **Quick Access et épingles** |
+| [![Zone et options d’enregistrement](assets/readme/recording.png)](assets/readme/recording.png) | [![Carte Quick Access et image épinglée](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
+| **Historique du presse-papiers** | **Personnalisation** |
+| [![Historique consultable des captures et du presse-papiers](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![Réglages de personnalisation des captures](assets/readme/customization.png)](assets/readme/customization.png) |
+
 ## Plateformes
 
 | | macOS | Windows |

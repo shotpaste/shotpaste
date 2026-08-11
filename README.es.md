@@ -36,6 +36,18 @@ telemetría, subida a la nube, almacenamiento remoto ni sincronización.
 
 Consulta la [lista completa de funciones](docs/FEATURES.md).
 
+## Galería de funciones
+
+| **One Shot** | **Capturas** |
+|:---:|:---:|
+| [![Selector de modos One Shot](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![Selección y barra de captura](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
+| **Anotación integrada** | **Captura con desplazamiento** |
+| [![Herramientas de anotación integrada](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![Selección de captura con desplazamiento](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
+| **Grabación** | **Quick Access y fijados** |
+| [![Área y opciones de grabación](assets/readme/recording.png)](assets/readme/recording.png) | [![Tarjeta de Quick Access e imagen fijada](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
+| **Historial del portapapeles** | **Personalización** |
+| [![Historial de capturas y portapapeles con búsqueda](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![Ajustes de personalización de capturas](assets/readme/customization.png)](assets/readme/customization.png) |
+
 ## Plataformas
 
 | | macOS | Windows |

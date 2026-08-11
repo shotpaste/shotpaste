@@ -36,6 +36,18 @@ storage, or synchronization.
 
 See [the complete feature list](docs/FEATURES.md).
 
+## Feature gallery
+
+| **One Shot** | **Screenshots** |
+|:---:|:---:|
+| [![One Shot mode picker](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![Screenshot selection and toolbar](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
+| **Inline annotation** | **Scrolling capture** |
+| [![Inline annotation tools](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![Scrolling capture selection](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
+| **Recording** | **Quick Access and pins** |
+| [![Recording area and options](assets/readme/recording.png)](assets/readme/recording.png) | [![Quick Access card and pinned image](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
+| **Clipboard History** | **Customization** |
+| [![Searchable capture and clipboard history](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![Capture customization settings](assets/readme/customization.png)](assets/readme/customization.png) |
+
 ## Platforms
 
 | | macOS | Windows |

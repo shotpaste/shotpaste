@@ -35,6 +35,18 @@ ShotPaste は macOS と Windows に独立したネイティブクライアント
 
 詳細は[機能一覧](docs/FEATURES.md)を参照してください。
 
+## 機能ギャラリー
+
+| **One Shot** | **スクリーンショット** |
+|:---:|:---:|
+| [![One Shot モード選択](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![スクリーンショットの範囲とツールバー](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
+| **インライン注釈** | **スクロールキャプチャ** |
+| [![インライン注釈ツール](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![スクロールキャプチャの範囲](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
+| **録画** | **Quick Access とピン** |
+| [![録画範囲とオプション](assets/readme/recording.png)](assets/readme/recording.png) | [![Quick Access カードとピン留め画像](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
+| **クリップボード履歴** | **カスタマイズ** |
+| [![検索可能なキャプチャとクリップボード履歴](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![キャプチャのカスタマイズ設定](assets/readme/customization.png)](assets/readme/customization.png) |
+
 ## プラットフォーム
 
 | | macOS | Windows |

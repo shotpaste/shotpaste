@@ -39,6 +39,18 @@ Cloud-Uploads, entfernten Speicher oder Synchronisierung.
 
 Siehe [vollständige Funktionsliste](docs/FEATURES.md).
 
+## Funktionsübersicht
+
+| **One Shot** | **Screenshots** |
+|:---:|:---:|
+| [![One-Shot-Modusauswahl](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![Screenshot-Bereich und Werkzeugleiste](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
+| **Integrierte Anmerkungen** | **Scroll-Aufnahme** |
+| [![Werkzeuge für integrierte Anmerkungen](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![Bereich für die Scroll-Aufnahme](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
+| **Aufnahme** | **Quick Access und Pins** |
+| [![Aufnahmebereich und Optionen](assets/readme/recording.png)](assets/readme/recording.png) | [![Quick-Access-Karte und angeheftetes Bild](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
+| **Zwischenablageverlauf** | **Anpassung** |
+| [![Durchsuchbarer Aufnahme- und Zwischenablageverlauf](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![Einstellungen zur Screenshot-Anpassung](assets/readme/customization.png)](assets/readme/customization.png) |
+
 ## Plattformen
 
 | | macOS | Windows |

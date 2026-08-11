@@ -36,6 +36,18 @@ OCR, записи, история, буфер обмена и настройки
 
 См. [полный список функций](docs/FEATURES.md).
 
+## Галерея возможностей
+
+| **One Shot** | **Снимки** |
+|:---:|:---:|
+| [![Выбор режима One Shot](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![Область снимка и панель инструментов](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
+| **Встроенные аннотации** | **Захват прокрутки** |
+| [![Инструменты встроенных аннотаций](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![Область захвата прокрутки](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
+| **Запись** | **Quick Access и закрепления** |
+| [![Область и параметры записи](assets/readme/recording.png)](assets/readme/recording.png) | [![Карточка Quick Access и закреплённое изображение](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
+| **История буфера обмена** | **Настройка** |
+| [![История снимков и буфера обмена с поиском](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![Параметры настройки снимков](assets/readme/customization.png)](assets/readme/customization.png) |
+
 ## Платформы
 
 | | macOS | Windows |

@@ -35,6 +35,18 @@ ShotPaste은 macOS와 Windows에 서로 독립적인 네이티브 클라이언�
 
 자세한 내용은 [전체 기능 목록](docs/FEATURES.md)을 참조하세요.
 
+## 기능 갤러리
+
+| **One Shot** | **스크린샷** |
+|:---:|:---:|
+| [![One Shot 모드 선택기](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![스크린샷 영역 및 도구 모음](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
+| **인라인 주석** | **스크롤 캡처** |
+| [![인라인 주석 도구](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![스크롤 캡처 영역](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
+| **녹화** | **Quick Access 및 고정** |
+| [![녹화 영역 및 옵션](assets/readme/recording.png)](assets/readme/recording.png) | [![Quick Access 카드 및 고정 이미지](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
+| **클립보드 기록** | **사용자 설정** |
+| [![검색 가능한 캡처 및 클립보드 기록](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![캡처 사용자 설정](assets/readme/customization.png)](assets/readme/customization.png) |
+
 ## 플랫폼
 
 | | macOS | Windows |
