@@ -61,7 +61,7 @@ struct ShotPasteDeepLinkHandler {
     case .captureOneShot:
       screenCaptureViewModel.startOneShot()
     case .openHistory:
-      HistoryFloatingManager.shared.toggle()
+      HistoryWindowController.shared.showWindow()
     case .openSettings(let tab):
       AppStatusBarController.shared.openPreferencesWindow(tab: tab)
     }

@@ -65,9 +65,22 @@ Windows PowerShell:
 
 最新の macOS・Windows パッケージは
 [GitHub Releases](https://github.com/shotpaste/shotpaste/releases) から入手できます。
-ShotPaste は [BSD 3-Clause License](LICENSE) で公開されています。謝辞とコードの
-来歴は [NOTICE.md](NOTICE.md)、依存関係のライセンスは
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。
+ShotPaste は [BSD 3-Clause License](LICENSE) で公開されています。
+
+### 謝辞とソースの来歴
+
+ShotPaste は [Snapzy](https://github.com/duongductrong/Snapzy) と
+[ShareX](https://github.com/ShareX/ShareX) に感謝します。両プロジェクトの
+オープンソース成果は、ShotPaste の開発に多大な助力と着想をもたらしました。
+
+macOS クライアントは BSD 3-Clause License の下で公開された Snapzy のコミット
+[`a6f8edf01a48e9dd9bdc4212b0e3472725219274`](https://github.com/duongductrong/Snapzy/commit/a6f8edf01a48e9dd9bdc4212b0e3472725219274)
+を出発点とし、その後大きく異なるコードへ発展しました。Windows クライアントは、
+ShareX の調査からも一部知見を得つつ、同じ ShotPaste 製品ワークフローを独立して
+ネイティブ実装したものです。
+
+保持が必要な第三者の著作権表示とライセンス本文は
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) に収録しています。
 
 貢献、サポート、責任ある報告については [CONTRIBUTING.md](CONTRIBUTING.md)、
 [SUPPORT.md](SUPPORT.md)、[SECURITY.md](SECURITY.md) を参照してください。

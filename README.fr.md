@@ -71,9 +71,23 @@ compilation](docs/DEVELOPMENT.md).
 
 Les paquets macOS et Windows actuels sont disponibles dans
 [GitHub Releases](https://github.com/shotpaste/shotpaste/releases). ShotPaste
-est distribué sous [licence BSD à 3 clauses](LICENSE). Les remerciements et
-l’historique du code figurent dans [NOTICE.md](NOTICE.md), et les licences des
-dépendances dans [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+est distribué sous [licence BSD à 3 clauses](LICENSE).
+
+### Remerciements et historique du code source
+
+ShotPaste remercie [Snapzy](https://github.com/duongductrong/Snapzy) et
+[ShareX](https://github.com/ShareX/ShareX). Leurs travaux open source ont
+constitué une aide et une source d’inspiration importantes pendant le
+développement de ce projet.
+
+Le client macOS est issu du commit Snapzy
+[`a6f8edf01a48e9dd9bdc4212b0e3472725219274`](https://github.com/duongductrong/Snapzy/commit/a6f8edf01a48e9dd9bdc4212b0e3472725219274),
+publié sous licence BSD à 3 clauses, et s’en est depuis considérablement écarté.
+Le client Windows est une implémentation native indépendante du même parcours
+produit ShotPaste, également éclairée en partie par l’étude de ShareX.
+
+Les mentions de copyright et textes de licence tiers qui doivent être conservés
+figurent dans [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Consultez [CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.md](SUPPORT.md) et
 [SECURITY.md](SECURITY.md) pour contribuer, demander de l’aide ou effectuer un

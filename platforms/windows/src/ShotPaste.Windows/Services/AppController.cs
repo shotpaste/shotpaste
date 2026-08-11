@@ -105,7 +105,11 @@ public sealed class AppController : IDisposable
         else if (!string.IsNullOrWhiteSpace(recoveryScan.Warning))
             _tray.ShowMessage("录屏恢复", recoveryScan.Warning, Forms.ToolTipIcon.Warning);
         _mainWindow = new MainWindow(this, _history, _settings);
-        if (App.UiTestMode) ShowHistory();
+        if (App.UiTestMode)
+        {
+            _mainWindow.Show();
+            _mainWindow.WindowState = WindowState.Normal;
+        }
         _historyMaintenanceTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromHours(24) };
         _historyMaintenanceTimer.Tick += async (_, _) => await _history.PruneAsync(_settings.Current.HistoryRetentionDays, _settings.Current.HistoryMaxCount);
         _historyMaintenanceTimer.Start();
@@ -181,8 +185,8 @@ public sealed class AppController : IDisposable
                 case HotkeyAction.OneShot: StartOneShot(); break;
                 case HotkeyAction.History: ShowHistory(); break;
                 case HotkeyAction.HistoryMode:
-                    ShowHistory();
-                    _mainWindow?.ToggleHistoryMode();
+                    if (_mainWindow?.IsVisible == true) _mainWindow.ToggleHistoryMode();
+                    else ShowHistory();
                     break;
                 case HotkeyAction.RecordingPause:
                     if (_recording.IsRecording) _recording.TogglePause();
@@ -357,7 +361,7 @@ public sealed class AppController : IDisposable
                 await ProcessOcrImageAsync(result.Image);
                 break;
             case OneShotMode.Clipboard:
-                ShowAllHistoryExpanded();
+                ShowClipboardHistory();
                 break;
         }
     });
@@ -612,18 +616,14 @@ public sealed class AppController : IDisposable
         }
     }
 
-    public void ShowHistory()
-    {
-        if (_mainWindow is null) return;
-        _mainWindow.Show();
-        _mainWindow.WindowState = WindowState.Normal;
-        if (!_mainWindow.IsCompactMode) _mainWindow.Activate();
-    }
+    public void ShowHistory() => ShowHistory(_settings.Current.DefaultHistoryFilter);
 
-    private void ShowAllHistoryExpanded()
+    private void ShowClipboardHistory() => ShowHistory("Clipboard");
+
+    private void ShowHistory(string initialFilter)
     {
         if (_mainWindow is null) return;
-        _mainWindow.ShowAllExpanded();
+        _mainWindow.ShowExpanded(initialFilter);
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();

@@ -21,7 +21,7 @@ public partial class MainWindow : Window
     private readonly SettingsStore _settings;
     private CancellationTokenSource? _filterCancellation;
     private bool _allowClose;
-    private string _selectedKind = "Screenshot";
+    private string _selectedKind = "Clipboard";
     private bool _applyingHistoryMode;
     private bool _restoreListFocus;
     private double _compactHorizontalOffset;
@@ -124,9 +124,11 @@ public partial class MainWindow : Window
         ApplyHistoryMode(IsCompactMode ? "Expanded" : "Compact");
     }
 
-    public void ShowAllExpanded()
+    public void ShowExpanded(string initialFilter)
     {
-        _selectedKind = "All";
+        _selectedKind = initialFilter;
+        SearchBox.Clear();
+        TimeFilter.SelectedIndex = 0;
         UpdateKindPills();
         ApplyHistoryMode("Expanded");
     }

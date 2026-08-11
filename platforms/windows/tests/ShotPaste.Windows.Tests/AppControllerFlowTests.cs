@@ -81,11 +81,30 @@ public sealed class AppControllerFlowTests
         Assert.Contains("case OneShotMode.Ocr when result.Image is not null:", method, StringComparison.Ordinal);
         Assert.Contains("ProcessOcrImageAsync(result.Image)", method, StringComparison.Ordinal);
         Assert.Contains("FinishImageCaptureAsync", method, StringComparison.Ordinal);
-        Assert.Contains("ShowAllHistoryExpanded()", method, StringComparison.Ordinal);
+        Assert.Contains("ShowClipboardHistory()", method, StringComparison.Ordinal);
 
         Assert.Contains("await ExecuteRecordingRequestAsync(request);", controller, StringComparison.Ordinal);
         Assert.Contains("_tray.OneShotRequested += (_, _) => StartOneShot();", controller, StringComparison.Ordinal);
         Assert.Contains("case HotkeyAction.OneShot: StartOneShot();", controller, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ClipboardHistoryEntryPoints_OpenExpandedWithConfiguredClipboardDefault()
+    {
+        var controller = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Services", "AppController.cs"));
+        var historyWindow = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "MainWindow.xaml.cs"));
+
+        Assert.Contains("public void ShowHistory() => ShowHistory(_settings.Current.DefaultHistoryFilter);",
+            controller, StringComparison.Ordinal);
+        Assert.Contains("private void ShowClipboardHistory() => ShowHistory(\"Clipboard\");",
+            controller, StringComparison.Ordinal);
+        Assert.Contains("_mainWindow.ShowExpanded(initialFilter);", controller, StringComparison.Ordinal);
+        Assert.Contains("public void ShowExpanded(string initialFilter)", historyWindow, StringComparison.Ordinal);
+        Assert.Contains("ApplyHistoryMode(\"Expanded\");", historyWindow, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShowAllHistoryExpanded", controller, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShowAllExpanded", historyWindow, StringComparison.Ordinal);
     }
 
     [Fact]

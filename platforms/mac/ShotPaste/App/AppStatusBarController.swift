@@ -501,7 +501,7 @@ final class AppStatusBarController: ObservableObject {
 
   @objc private func openHistoryAction() {
     logMenuAction("openHistory")
-    HistoryFloatingManager.shared.toggle()
+    HistoryWindowController.shared.showWindow()
   }
 
   @objc private func grantPermissionAction() {

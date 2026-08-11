@@ -207,7 +207,7 @@ enum ShotPasteConfigurationExporter {
     writer.section("history.floating")
     writer.value("enabled", manager.isEnabled)
     writer.value("position", manager.position.rawValue)
-    writer.value("default_filter", manager.defaultFilter?.rawValue ?? CaptureHistoryCategory.screenshot.rawValue)
+    writer.value("default_filter", manager.defaultFilter?.rawValue ?? CaptureHistoryCategory.clipboard.rawValue)
     writer.value("max_displayed_items", manager.maxDisplayedItems)
     writer.value("scale", manager.panelScale)
   }

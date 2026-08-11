@@ -66,9 +66,22 @@ Xem [cấu trúc dự án và hướng dẫn biên dịch](docs/DEVELOPMENT.md).
 
 Các gói macOS và Windows mới nhất có tại
 [GitHub Releases](https://github.com/shotpaste/shotpaste/releases). ShotPaste
-dùng [Giấy phép BSD 3-Clause](LICENSE). Lời cảm ơn và lịch sử mã nguồn nằm trong
-[NOTICE.md](NOTICE.md), còn giấy phép của các phụ thuộc nằm trong
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+dùng [Giấy phép BSD 3-Clause](LICENSE).
+
+### Lời cảm ơn và lịch sử mã nguồn
+
+ShotPaste trân trọng cảm ơn [Snapzy](https://github.com/duongductrong/Snapzy) và
+[ShareX](https://github.com/ShareX/ShareX). Công trình mã nguồn mở của họ đã hỗ
+trợ đáng kể và truyền cảm hứng trong quá trình phát triển dự án này.
+
+Ứng dụng macOS bắt đầu từ commit Snapzy
+[`a6f8edf01a48e9dd9bdc4212b0e3472725219274`](https://github.com/duongductrong/Snapzy/commit/a6f8edf01a48e9dd9bdc4212b0e3472725219274),
+được phát hành theo Giấy phép BSD 3-Clause, và kể từ đó đã phát triển khác biệt
+đáng kể. Ứng dụng Windows là một bản triển khai gốc độc lập của cùng quy trình
+sản phẩm ShotPaste, đồng thời có tham khảo một phần từ việc nghiên cứu ShareX.
+
+Các thông báo bản quyền và văn bản giấy phép bắt buộc của bên thứ ba được lưu
+trong [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Xem [CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.md](SUPPORT.md) và
 [SECURITY.md](SECURITY.md) để đóng góp, nhận trợ giúp hoặc báo cáo có trách nhiệm.

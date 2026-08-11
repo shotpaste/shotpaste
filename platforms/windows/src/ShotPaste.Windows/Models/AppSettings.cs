@@ -70,7 +70,7 @@ public sealed class AppSettings
     public int RecordingGifFps { get; set; } = 15;
     public int HistoryRetentionDays { get; set; }
     public int HistoryMaxCount { get; set; }
-    public string DefaultHistoryFilter { get; set; } = "Screenshot";
+    public string DefaultHistoryFilter { get; set; } = "Clipboard";
     public string Theme { get; set; } = "System";
     public string ScreenshotFormat { get; set; } = "Png";
     public int JpegQuality { get; set; } = 90;

@@ -16,7 +16,7 @@ struct HistoryFloatingContentView: View {
     .defaultStyle
   @Environment(\.colorScheme) private var colorScheme
 
-  @State private var selectedCompactFilter: CaptureHistoryCategory? = .screenshot
+  @State private var selectedCompactFilter: CaptureHistoryCategory? = .clipboard
   @State private var usesExplicitCompactFilterSelection = false
   @State private var selectedId: UUID? = nil
   @State private var expandedSelectedIds: Set<UUID> = []

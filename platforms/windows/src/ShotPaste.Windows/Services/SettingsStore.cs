@@ -151,7 +151,7 @@ public sealed class SettingsStore
             : "Inverted";
         settings.DefaultHistoryFilter = settings.DefaultHistoryFilter is "Screenshot" or "ScrollingScreenshot" or "Recording" or "Clipboard"
             ? settings.DefaultHistoryFilter
-            : "Screenshot";
+            : "Clipboard";
         settings.QuickAccessSwipeSensitivity = Math.Clamp(settings.QuickAccessSwipeSensitivity, 0.5, 3);
         settings.RecordingSystemAudioVolume = Math.Clamp(settings.RecordingSystemAudioVolume, 0d, 1d);
         settings.RecordingMicrophoneVolume = Math.Clamp(settings.RecordingMicrophoneVolume, 0d, 1d);

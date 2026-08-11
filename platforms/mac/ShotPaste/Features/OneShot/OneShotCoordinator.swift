@@ -163,7 +163,7 @@ final class OneShotCoordinator: ObservableObject {
       DiagnosticLogger.shared.log(.info, .action, "One Shot handing off to clipboard history")
       state.beginTerminating(clearSelection: true)
       finish(result: nil) {
-        HistoryFloatingManager.shared.showExpandedAll()
+        HistoryFloatingManager.shared.showClipboardHistory()
       }
     }
   }

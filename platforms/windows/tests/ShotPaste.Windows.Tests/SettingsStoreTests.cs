@@ -83,6 +83,18 @@ public sealed class SettingsStoreTests
         Assert.Equal("TopCenter", store.Current.HistoryPanelPosition);
         Assert.Equal(10, store.Current.HistoryPanelMaxItems);
         Assert.Equal("Hud", store.Current.HistoryBackgroundStyle);
+        Assert.Equal("Clipboard", store.Current.DefaultHistoryFilter);
+    }
+
+    [Fact]
+    public void Constructor_NormalizesInvalidHistoryFilterToClipboard()
+    {
+        var store = new SettingsStore(new AppSettings
+        {
+            DefaultHistoryFilter = "Unknown"
+        });
+
+        Assert.Equal("Clipboard", store.Current.DefaultHistoryFilter);
     }
 
     [Fact]

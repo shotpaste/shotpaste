@@ -235,7 +235,7 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
     case .deleteRecording:
       deleteRecordingFromShortcut()
     case .openHistory:
-      HistoryFloatingManager.shared.toggle()
+      HistoryWindowController.shared.showWindow()
     }
   }
 

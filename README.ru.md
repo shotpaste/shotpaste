@@ -66,9 +66,23 @@ Windows PowerShell:
 
 Актуальные пакеты для macOS и Windows доступны в
 [GitHub Releases](https://github.com/shotpaste/shotpaste/releases). ShotPaste
-выпускается по [лицензии BSD 3-Clause](LICENSE). Благодарности и история кода
-приведены в [NOTICE.md](NOTICE.md), а лицензии зависимостей — в
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+выпускается по [лицензии BSD 3-Clause](LICENSE).
+
+### Благодарности и история исходного кода
+
+ShotPaste благодарит проекты [Snapzy](https://github.com/duongductrong/Snapzy)
+и [ShareX](https://github.com/ShareX/ShareX). Их открытый исходный код оказал
+существенную помощь и послужил источником вдохновения при разработке проекта.
+
+Клиент для macOS берёт начало от коммита Snapzy
+[`a6f8edf01a48e9dd9bdc4212b0e3472725219274`](https://github.com/duongductrong/Snapzy/commit/a6f8edf01a48e9dd9bdc4212b0e3472725219274),
+опубликованного по лицензии BSD 3-Clause, и с тех пор значительно изменился.
+Клиент для Windows представляет собой независимую нативную реализацию того же
+рабочего процесса ShotPaste, при разработке которой также частично учитывался
+опыт ShareX.
+
+Обязательные уведомления об авторских правах и тексты лицензий сторонних
+компонентов сохранены в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Правила участия, получения помощи и ответственного сообщения об ошибках см. в
 [CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.md](SUPPORT.md) и

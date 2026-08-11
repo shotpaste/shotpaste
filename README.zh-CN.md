@@ -65,8 +65,20 @@ Windows PowerShell：
 
 ## 协议与致谢
 
-ShotPaste 使用 [BSD 3-Clause License](LICENSE)。项目致谢与来源历史见
-[NOTICE.md](NOTICE.md)，依赖项协议见
+ShotPaste 使用 [BSD 3-Clause License](LICENSE)。
+
+### 致谢与来源历史
+
+ShotPaste 感谢 [Snapzy](https://github.com/duongductrong/Snapzy) 与
+[ShareX](https://github.com/ShareX/ShareX)。在本项目的开发过程中，它们的开源成果
+提供了重要帮助与灵感。
+
+macOS 客户端最初基于 Snapzy 的提交
+[`a6f8edf01a48e9dd9bdc4212b0e3472725219274`](https://github.com/duongductrong/Snapzy/commit/a6f8edf01a48e9dd9bdc4212b0e3472725219274)，
+并遵循 BSD 3-Clause License；此后，其代码已产生大量演进与差异。Windows 客户端
+则是同一 ShotPaste 产品工作流的独立原生实现，其开发也部分借鉴了 ShareX。
+
+必须保留的第三方版权与许可文本收录于
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 欢迎参与贡献；提交拉取请求前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。使用帮助

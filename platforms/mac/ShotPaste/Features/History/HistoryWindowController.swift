@@ -82,7 +82,7 @@ final class HistoryWindowController {
 
   func showWindow() {
     DiagnosticLogger.shared.log(.info, .history, "History window requested")
-    HistoryFloatingManager.shared.showExpanded()
+    HistoryFloatingManager.shared.showDefaultHistory()
     NSApp.activate(ignoringOtherApps: true)
   }
 

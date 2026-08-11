@@ -111,6 +111,38 @@ final class HistoryFloatingLayoutTests: XCTestCase {
     XCTAssertNotEqual(HistoryFloatingPresentationMode.compact, HistoryFloatingPresentationMode.expanded)
   }
 
+  func testClipboardHistoryEntryOpensExpandedClipboardView() {
+    let manager = HistoryFloatingManager.shared
+    let originalFilter = manager.expandedFilter
+    let originalTimeFilter = manager.expandedTimeFilter
+    let originalSearchText = manager.searchText
+    defer {
+      manager.hide()
+      manager.expandedFilter = originalFilter
+      manager.expandedTimeFilter = originalTimeFilter
+      manager.searchText = originalSearchText
+    }
+
+    manager.expandedFilter = .screenshot
+    manager.expandedTimeFilter = .last7Days
+    manager.searchText = "previous search"
+    manager.showClipboardHistory()
+
+    XCTAssertEqual(manager.presentationMode, .expanded)
+    XCTAssertEqual(manager.expandedFilter, .clipboard)
+    XCTAssertEqual(manager.expandedTimeFilter, .all)
+    XCTAssertTrue(manager.searchText.isEmpty)
+  }
+
+  func testDefaultConfigurationUsesClipboardHistoryFilter() throws {
+    let parsed = try SimpleTOMLParser.parse(ShotPasteConfigurationDefaultDocument.toml())
+
+    XCTAssertEqual(
+      parsed.value(at: "history", "floating", "default_filter")?.stringValue,
+      CaptureHistoryCategory.clipboard.rawValue
+    )
+  }
+
   func testPanelResignDuringPresentationDoesNotDismiss() {
     XCTAssertFalse(
       HistoryFloatingManager.shouldDismissPanelAfterResigningKey(

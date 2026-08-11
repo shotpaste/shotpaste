@@ -168,7 +168,7 @@ enum ShotPasteConfigurationDefaultDocument {
     writer.section("history.floating")
     writer.value("enabled", true)
     writer.value("position", HistoryPanelPosition.topCenter.rawValue)
-    writer.value("default_filter", CaptureHistoryCategory.screenshot.rawValue)
+    writer.value("default_filter", CaptureHistoryCategory.clipboard.rawValue)
     writer.value("max_displayed_items", 10)
     writer.value("scale", HistoryFloatingLayout.defaultScale)
   }

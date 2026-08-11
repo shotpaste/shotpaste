@@ -35,7 +35,7 @@ final class HistoryFloatingManager: ObservableObject {
     }
   }
 
-  @Published var defaultFilter: CaptureHistoryCategory? = .screenshot {
+  @Published var defaultFilter: CaptureHistoryCategory? = .clipboard {
     didSet {
       if let filter = defaultFilter {
         UserDefaults.standard.set(filter.rawValue, forKey: Keys.defaultFilter)
@@ -86,7 +86,7 @@ final class HistoryFloatingManager: ObservableObject {
   )
 
   @Published private(set) var presentationMode: HistoryFloatingPresentationMode = .compact
-  @Published var expandedFilter: CaptureHistoryCategory? = .screenshot
+  @Published var expandedFilter: CaptureHistoryCategory? = .clipboard
   @Published var expandedTimeFilter: HistoryFloatingTimeFilter = .all
   @Published var searchText: String = ""
 
@@ -194,17 +194,13 @@ final class HistoryFloatingManager: ObservableObject {
     if panelController.isPresenting {
       hide()
     } else {
-      isEnabled ? showCompact() : showExpanded()
+      showDefaultHistory()
     }
   }
 
-  /// Show the floating history panel
+  /// Show the complete history window using the configured opening filter.
   func show() {
-    guard isEnabled else {
-      DiagnosticLogger.shared.log(.debug, .history, "Floating history show skipped; disabled")
-      return
-    }
-    showCompact()
+    showDefaultHistory()
   }
 
   /// Hide the floating history panel
@@ -235,18 +231,16 @@ final class HistoryFloatingManager: ObservableObject {
     presentCurrentMode()
   }
 
-  /// One Shot clipboard navigation always opens the complete history surface
-  /// with the All filter, regardless of the user's ordinary default filter.
+  /// Open the complete history surface using the user's configured default filter.
+  func showDefaultHistory() {
+    showExpanded(initialFilter: defaultFilter)
+    focusPanel()
+  }
+
+  /// Clipboard-specific entry points always open the complete Clipboard view.
   /// Re-presenting an already-visible panel updates and focuses the same panel.
-  func showExpandedAll() {
-    expandedFilter = nil
-    expandedTimeFilter = .all
-    searchText = ""
-    presentationMode = .expanded
-    DiagnosticLogger.shared.log(.info, .history, "Floating history expanded from One Shot", context: [
-      "filter": "all",
-    ])
-    presentCurrentMode()
+  func showClipboardHistory() {
+    showExpanded(initialFilter: .clipboard)
     focusPanel()
   }
 
