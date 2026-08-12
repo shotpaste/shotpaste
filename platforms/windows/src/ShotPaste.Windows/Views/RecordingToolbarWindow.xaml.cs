@@ -32,6 +32,7 @@ public partial class RecordingToolbarWindow : Window
     public RecordingToolbarWindow(ScreenRecordingService recording, AppSettings settings)
     {
         InitializeComponent();
+        WindowAppearanceService.Attach(this, WindowBackdropKind.Acrylic);
         ShowInTaskbar = App.UiTestMode;
         _recording = recording;
         _microphone = new MicrophoneLevelMonitor(settings);
@@ -74,17 +75,17 @@ public partial class RecordingToolbarWindow : Window
     private void UpdateMicrophoneFeedback(MicrophoneLevelSnapshot snapshot)
     {
         MicrophoneMeter.Value = snapshot.Level;
-        var (text, color) = snapshot.State switch
+        var (text, brushKey) = snapshot.State switch
         {
-            MicrophoneFeedbackState.Active => ("麦克风", "#FF30D158"),
-            MicrophoneFeedbackState.NoInput => ("无输入", "#FFFF9F0A"),
-            MicrophoneFeedbackState.Muted => ("已静音", "#FFFF9F0A"),
-            MicrophoneFeedbackState.Disconnected => ("设备断开", "#FFFF453A"),
-            _ => ("未启用", "#FF8E8E93")
+            MicrophoneFeedbackState.Active => ("麦克风", "SuccessBrush"),
+            MicrophoneFeedbackState.NoInput => ("无输入", "WarningBrush"),
+            MicrophoneFeedbackState.Muted => ("已静音", "WarningBrush"),
+            MicrophoneFeedbackState.Disconnected => ("设备断开", "DangerBrush"),
+            _ => ("未启用", "HudSecondaryTextBrush")
         };
         MicrophoneStateText.Text = LocalizationService.TranslatePhrase(text);
-        var brush = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(color));
-        MicrophoneDot.Foreground = brush;
+        var brush = (System.Windows.Media.Brush)FindResource(brushKey);
+        MicrophoneDot.Fill = brush;
         MicrophoneMeter.Foreground = brush;
         MicrophonePanel.ToolTip = LocalizationService.TranslatePhrase(text);
     }
@@ -148,18 +149,16 @@ public partial class RecordingToolbarWindow : Window
         var paused = _recording.IsPaused;
         if (_displayedPaused == paused) return;
         _displayedPaused = paused;
-        PauseGlyph.Text = paused ? "▶" : "Ⅱ";
+        PauseGlyph.Content = FindResource(paused ? "Icon.Resume" : "Icon.Pause");
         PauseButton.ToolTip = paused ? "继续录制" : "暂停录制";
-        StatusDot.Fill = new SolidColorBrush(
-            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(
-                paused ? "#FFFF9F0A" : "#FFFF453A"));
+        StatusDot.Fill = (System.Windows.Media.Brush)FindResource(paused ? "WarningBrush" : "Annotation.RedBrush");
         if (paused) _pulse?.Stop(this);
         StatusDot.Opacity = paused ? 0.55 : 1;
         if (!paused) StartPulse();
     }
     public void SetPenActive(bool active)
     {
-        PenButton.Background = active ? (System.Windows.Media.Brush)FindResource("HudSelectedBrush") : new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#14FFFFFF"));
+        PenButton.Background = (System.Windows.Media.Brush)FindResource(active ? "HudSelectedBrush" : "HudInputBrush");
         PenButton.ToolTip = active ? "关闭标注" : "在录制画面上标注";
     }
     private void OnWindowMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e) { if (e.ChangedButton == System.Windows.Input.MouseButton.Left) DragMove(); }

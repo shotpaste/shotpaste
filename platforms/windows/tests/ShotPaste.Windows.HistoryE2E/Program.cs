@@ -65,11 +65,8 @@ internal static class Program
             throw new InvalidOperationException($"History database changed during layout E2E: {countAfterFirstSession}/500 rows remain.");
         var persisted = JsonSerializer.Deserialize<AppSettings>(await File.ReadAllTextAsync(settingsFile)) ??
                         throw new InvalidOperationException("Persisted settings could not be read.");
-        if (Math.Abs(persisted.HistoryCompactHeight - 230) > 8)
-            throw new InvalidOperationException(
-                $"Compact history height was contaminated by expanded-mode constraints: {persisted.HistoryCompactHeight}.");
         if (persisted.HistoryExpandedLeft is null || persisted.HistoryExpandedTop is null)
-            throw new InvalidOperationException("Expanded history position was not persisted.");
+            throw new InvalidOperationException("History window position was not persisted.");
 
         var restart = await RunRestartSessionAsync(executable, dataRoot, outputRoot, persisted);
         var clipboard = await RunClipboardSessionAsync(executable, outputRoot);
@@ -80,8 +77,6 @@ internal static class Program
             FirstSession = first,
             Persisted = new
             {
-                persisted.HistoryCompactWidth,
-                persisted.HistoryCompactHeight,
                 persisted.HistoryExpandedWidth,
                 persisted.HistoryExpandedHeight,
                 persisted.HistoryExpandedLeft,
@@ -151,48 +146,38 @@ internal static class Program
         try
         {
             var startup = Stopwatch.StartNew();
-            var compact = await WaitForAutomationIdAsync(product.Id, "CompactHistoryCarousel");
-            await WaitUntilAsync(() => VisibleListItems(compact).Length > 0,
-                "Compact history did not realize any cards.");
-            startup.Stop();
-            product.Refresh();
-            var workingSetAtStartup = product.WorkingSet64;
-            var window = AncestorWindow(compact);
-            var compactBounds = PhysicalBounds(window);
-            AssertTopCentered(window, compactBounds);
-            var compactScreenshot = Path.Combine(outputRoot, "history-compact-500-items.png");
-            SaveWindowScreenshot(compactBounds, compactScreenshot);
-
-            Invoke(await WaitForAutomationIdAsync(product.Id, "HistoryModeToggle"));
             var expanded = await WaitForAutomationIdAsync(product.Id, "ExpandedHistoryGrid");
             await WaitUntilAsync(() => VisibleListItems(expanded).Length > 0,
-                "Expanded history did not realize any cards.");
+                "Full history grid did not realize any cards at startup.");
+            startup.Stop();
             var initialRealized = VisibleListItems(expanded).Length;
-            if (initialRealized >= 500)
-                throw new InvalidOperationException("Expanded grid realized every history item; virtualization is not active.");
+            var clipboardItemCount = Enumerable.Range(0, 500).Count(index => index % 7 is 4 or 5 or 6);
+            if (initialRealized >= clipboardItemCount)
+                throw new InvalidOperationException("Full history grid realized every clipboard item; virtualization is not active.");
+            product.Refresh();
+            var workingSetAtStartup = product.WorkingSet64;
+            var window = AncestorWindow(expanded);
+            var clipboardFilter = await WaitForAutomationIdAsync(product.Id, "ClipboardHistoryFilter");
+            if (string.IsNullOrWhiteSpace(clipboardFilter.Current.ItemStatus))
+                throw new InvalidOperationException("Clipboard was not the selected history filter at startup.");
+            if (FindByAutomationId(product.Id, "HistoryModeToggle") is not null ||
+                FindByAutomationId(product.Id, "CompactHistoryCarousel") is not null)
+                throw new InvalidOperationException("Removed compact-history controls are still exposed through UI Automation.");
 
             var firstItem = VisibleListItems(expanded).First();
             ((SelectionItemPattern)firstItem.GetCurrentPattern(SelectionItemPattern.Pattern)).Select();
             var scroll = (ScrollPattern)expanded.GetCurrentPattern(ScrollPattern.Pattern);
             scroll.Scroll(ScrollAmount.NoAmount, ScrollAmount.LargeIncrement);
+            await Task.Delay(350);
+            if (VisibleListItems(expanded).Length == 0)
+                throw new InvalidOperationException("Full history grid became blank after the first large scroll.");
             scroll.Scroll(ScrollAmount.NoAmount, ScrollAmount.LargeIncrement);
             await Task.Delay(350);
+            if (VisibleListItems(expanded).Length == 0)
+                throw new InvalidOperationException("Full history grid became blank after the second large scroll.");
             var scrolledPercent = scroll.Current.VerticalScrollPercent;
             if (scrolledPercent <= 0)
-                throw new InvalidOperationException("Expanded history did not scroll vertically.");
-
-            Invoke(await WaitForAutomationIdAsync(product.Id, "HistoryModeToggle"));
-            compact = await WaitForAutomationIdAsync(product.Id, "CompactHistoryCarousel");
-            await Task.Delay(250);
-            if (!VisibleListItems(compact).Any(item => IsSelected(item)))
-                throw new InvalidOperationException("Selected history item was not preserved when switching to compact mode.");
-            Invoke(await WaitForAutomationIdAsync(product.Id, "HistoryModeToggle"));
-            expanded = await WaitForAutomationIdAsync(product.Id, "ExpandedHistoryGrid");
-            await Task.Delay(350);
-            scroll = (ScrollPattern)expanded.GetCurrentPattern(ScrollPattern.Pattern);
-            if (Math.Abs(scroll.Current.VerticalScrollPercent - scrolledPercent) > 8)
-                throw new InvalidOperationException(
-                    $"Expanded scroll position changed across mode switches: {scrolledPercent} -> {scroll.Current.VerticalScrollPercent}.");
+                throw new InvalidOperationException("Full history grid did not scroll vertically.");
 
             window = AncestorWindow(expanded);
             var handle = new IntPtr(window.Current.NativeWindowHandle);
@@ -201,7 +186,11 @@ internal static class Program
                 (int)Math.Round(140 * dpiScale), (int)Math.Round(115 * dpiScale),
                 (int)Math.Round(1120 * dpiScale), (int)Math.Round(740 * dpiScale),
                 Native.SwpNoZOrder | Native.SwpShowWindow);
-            await Task.Delay(600);
+            await WaitUntilAsync(() => VisibleListItems(expanded).Length > 0,
+                "Full history grid became blank after scrolling and resizing.");
+            var fullBounds = PhysicalBounds(window);
+            var fullScreenshot = Path.Combine(outputRoot, "history-full-clipboard.png");
+            SaveWindowScreenshot(fullBounds, fullScreenshot);
 
             var search = await WaitForAutomationIdAsync(product.Id, "HistorySearch");
             var filterClock = Stopwatch.StartNew();
@@ -215,9 +204,9 @@ internal static class Program
             if (!resultItem.Current.Name.Contains("needle-history-item", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException($"Unexpected search result: {resultItem.Current.Name}.");
 
-            var expandedBounds = PhysicalBounds(window);
-            var expandedScreenshot = Path.Combine(outputRoot, "history-expanded-filtered.png");
-            SaveWindowScreenshot(expandedBounds, expandedScreenshot);
+            var filteredBounds = PhysicalBounds(window);
+            var filteredScreenshot = Path.Combine(outputRoot, "history-full-filtered.png");
+            SaveWindowScreenshot(filteredBounds, filteredScreenshot);
             await Task.Delay(750);
             product.Refresh();
             var peakWorkingSet = product.PeakWorkingSet64;
@@ -234,10 +223,10 @@ internal static class Program
                 SearchResults = 1,
                 WorkingSetAtStartupBytes = workingSetAtStartup,
                 PeakWorkingSetBytes = peakWorkingSet,
-                CompactBounds = compactBounds,
-                ExpandedBounds = expandedBounds,
-                CompactScreenshot = compactScreenshot,
-                ExpandedScreenshot = expandedScreenshot
+                FullBounds = fullBounds,
+                FilteredBounds = filteredBounds,
+                FullScreenshot = fullScreenshot,
+                FilteredScreenshot = filteredScreenshot
             };
         }
         finally { StopExactProcess(product); }
@@ -252,10 +241,6 @@ internal static class Program
         using var product = Launch(executable, dataRoot);
         try
         {
-            var compact = await WaitForAutomationIdAsync(product.Id, "CompactHistoryCarousel");
-            await WaitUntilAsync(() => VisibleListItems(compact).Length > 0,
-                "Compact history did not restore after restart.");
-            Invoke(await WaitForAutomationIdAsync(product.Id, "HistoryModeToggle"));
             var expanded = await WaitForAutomationIdAsync(product.Id, "ExpandedHistoryGrid");
             try
             {
@@ -311,8 +296,6 @@ internal static class Program
             {
                 try
                 {
-                    await WaitForAutomationIdAsync(product.Id, "CompactHistoryCarousel");
-                    Invoke(await WaitForAutomationIdAsync(product.Id, "HistoryModeToggle"));
                     var expanded = await WaitForAutomationIdAsync(product.Id, "ExpandedHistoryGrid");
                     SetClipboardFiles(fixtures.AllPaths);
                     await WaitUntilAsync(() => TryCountHistoryRows(database) == fixtures.AllPaths.Count,
@@ -370,8 +353,6 @@ internal static class Program
             {
                 try
                 {
-                    await WaitForAutomationIdAsync(restart.Id, "CompactHistoryCarousel");
-                    Invoke(await WaitForAutomationIdAsync(restart.Id, "HistoryModeToggle"));
                     var expanded = await WaitForAutomationIdAsync(restart.Id, "ExpandedHistoryGrid");
                     var search = await WaitForAutomationIdAsync(restart.Id, "HistorySearch");
                     ((ValuePattern)search.GetCurrentPattern(ValuePattern.Pattern)).SetValue(largePrefix);
@@ -436,12 +417,8 @@ internal static class Program
         var settings = new AppSettings
         {
             SaveDirectory = Path.Combine(root, "Captures"),
-            HistoryPanelPosition = "TopCenter",
-            HistoryCompactWidth = 860,
-            HistoryCompactHeight = 230,
             HistoryExpandedWidth = 980,
             HistoryExpandedHeight = 680,
-            HistoryPanelMaxItems = 50,
             Language = "en-US",
             ClipboardHistoryEnabled = clipboardHistoryEnabled,
             ShortcutsEnabled = false,
@@ -498,7 +475,7 @@ internal static class Program
             var imageBacked = kind is 0 or 1 or 2 or 3 or 4;
             var fixturePath = Path.Combine(fixtureRoot, $"fixture-{index:D4}.jpg");
             if (imageBacked) File.WriteAllBytes(fixturePath, thumbnailBytes);
-            var text = index == 17
+            var text = index == 19
                 ? "needle-history-item · unique searchable clipboard payload"
                 : $"history fixture item {index:D4} · " + new string((char)('a' + index % 26), index % 8 + 8);
             insert.Parameters.AddWithValue("$id", Guid.NewGuid().ToString("D"));
@@ -510,7 +487,7 @@ internal static class Program
                     ? Path.Combine(Path.GetDirectoryName(database)!, $"fixture-{index:D4}.dat")
                     : DBNull.Value);
             insert.Parameters.AddWithValue("$thumbnail", kind == 2 ? fixturePath : DBNull.Value);
-            insert.Parameters.AddWithValue("$text", kind == 5 || index == 17 ? text : DBNull.Value);
+            insert.Parameters.AddWithValue("$text", kind == 5 || index == 19 ? text : DBNull.Value);
             insert.Parameters.AddWithValue("$size", index * 37L);
             insert.Parameters.AddWithValue("$width", kind is 0 or 1 or 4 ? 1280 : 0);
             insert.Parameters.AddWithValue("$height", kind is 0 or 1 or 4 ? 720 : 0);
@@ -762,15 +739,20 @@ internal static class Program
         return Convert.ToInt32(command.ExecuteScalar());
     }
 
+    private static AutomationElement? FindByAutomationId(int processId, string id)
+    {
+        var condition = new AndCondition(
+            new PropertyCondition(AutomationElement.ProcessIdProperty, processId),
+            new PropertyCondition(AutomationElement.AutomationIdProperty, id));
+        return AutomationElement.RootElement.FindFirst(TreeScope.Descendants, condition);
+    }
+
     private static async Task<AutomationElement> WaitForAutomationIdAsync(int processId, string id)
     {
         AutomationElement? result = null;
         await WaitUntilAsync(() =>
         {
-            var condition = new AndCondition(
-                new PropertyCondition(AutomationElement.ProcessIdProperty, processId),
-                new PropertyCondition(AutomationElement.AutomationIdProperty, id));
-            result = AutomationElement.RootElement.FindFirst(TreeScope.Descendants, condition);
+            result = FindByAutomationId(processId, id);
             return result is not null && !result.Current.IsOffscreen;
         }, $"Automation element {id} did not appear.");
         return result!;
@@ -794,27 +776,11 @@ internal static class Program
     private static void Invoke(AutomationElement element) =>
         ((InvokePattern)element.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
 
-    private static bool IsSelected(AutomationElement item) =>
-        (bool)item.GetCurrentPropertyValue(SelectionItemPattern.IsSelectedProperty);
-
     private static Drawing.Rectangle PhysicalBounds(AutomationElement element)
     {
         var bounds = element.Current.BoundingRectangle;
         return Drawing.Rectangle.FromLTRB((int)Math.Round(bounds.Left), (int)Math.Round(bounds.Top),
             (int)Math.Round(bounds.Right), (int)Math.Round(bounds.Bottom));
-    }
-
-    private static void AssertTopCentered(AutomationElement window, Drawing.Rectangle bounds)
-    {
-        var screen = Forms.Screen.FromHandle(new IntPtr(window.Current.NativeWindowHandle));
-        var centerDelta = Math.Abs(bounds.Left + bounds.Width / 2d -
-                                   (screen.WorkingArea.Left + screen.WorkingArea.Width / 2d));
-        if (centerDelta > 24)
-            throw new InvalidOperationException($"Compact history was not horizontally centered: delta={centerDelta:N1}px.");
-        if (Math.Abs(bounds.Top - screen.WorkingArea.Top) > 48)
-            throw new InvalidOperationException($"Compact history was not positioned near the top work area: {bounds.Top}.");
-        if (bounds.Right > screen.WorkingArea.Right || bounds.Bottom > screen.WorkingArea.Bottom)
-            throw new InvalidOperationException("Compact history extended outside the working area.");
     }
 
     private static void SaveWindowScreenshot(Drawing.Rectangle bounds, string path)

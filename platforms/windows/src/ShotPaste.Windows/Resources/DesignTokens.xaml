@@ -1,0 +1,156 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+  <!-- Spacing: shared 8pt grid with the macOS implementation. -->
+  <sys:Double x:Key="Space.Xs">4</sys:Double>
+  <sys:Double x:Key="Space.Sm">8</sys:Double>
+  <sys:Double x:Key="Space.Md">16</sys:Double>
+  <sys:Double x:Key="Space.Lg">24</sys:Double>
+  <sys:Double x:Key="Space.Xl">32</sys:Double>
+
+  <!-- Corner radii. -->
+  <CornerRadius x:Key="Radius.Xs">4</CornerRadius>
+  <CornerRadius x:Key="Radius.Sm">6</CornerRadius>
+  <CornerRadius x:Key="Radius.Md">8</CornerRadius>
+  <CornerRadius x:Key="Radius.Lg">12</CornerRadius>
+  <CornerRadius x:Key="Radius.Toolbar">14</CornerRadius>
+  <CornerRadius x:Key="Radius.Card">18</CornerRadius>
+  <CornerRadius x:Key="Radius.Window">24</CornerRadius>
+  <CornerRadius x:Key="Radius.Pill">999</CornerRadius>
+
+  <!-- Typography. -->
+  <FontFamily x:Key="Font.Family">Segoe UI Variable Text, Segoe UI</FontFamily>
+  <sys:Double x:Key="FontSize.Label.Small">10</sys:Double>
+  <sys:Double x:Key="FontSize.Label.Medium">11</sys:Double>
+  <sys:Double x:Key="FontSize.SectionHeader">11</sys:Double>
+  <sys:Double x:Key="FontSize.Body">12</sys:Double>
+  <FontWeight x:Key="FontWeight.Medium">Medium</FontWeight>
+  <FontWeight x:Key="FontWeight.SectionHeader">SemiBold</FontWeight>
+
+  <!-- Control geometry. -->
+  <sys:Double x:Key="Control.MinHeight">32</sys:Double>
+  <sys:Double x:Key="Control.IconButtonSize">32</sys:Double>
+  <sys:Double x:Key="Control.IconSize">15</sys:Double>
+  <sys:Double x:Key="Control.DividerHeight">20</sys:Double>
+  <sys:Double x:Key="CheckBox.GlyphSize">16</sys:Double>
+  <sys:Double x:Key="CheckBox.FocusSize">20</sys:Double>
+  <sys:Double x:Key="RadioButton.GlyphSize">16</sys:Double>
+  <sys:Double x:Key="ToggleSwitch.Width">34</sys:Double>
+  <sys:Double x:Key="ToggleSwitch.Height">20</sys:Double>
+  <sys:Double x:Key="ToggleSwitch.ThumbSize">14</sys:Double>
+  <sys:Double x:Key="Slider.TrackHeight">4</sys:Double>
+  <sys:Double x:Key="Slider.ThumbSize">14</sys:Double>
+  <sys:Double x:Key="ScrollBar.Thickness">8</sys:Double>
+  <sys:Double x:Key="ScrollBar.ThumbThickness">4</sys:Double>
+  <sys:Double x:Key="Window.TitleBarHeight">44</sys:Double>
+  <sys:Double x:Key="Window.CaptionButtonWidth">38</sys:Double>
+  <sys:Double x:Key="Menu.IconSize">16</sys:Double>
+  <sys:Double x:Key="Toast.IconSize">18</sys:Double>
+  <sys:Double x:Key="Popup.MaxHeight">360</sys:Double>
+  <Thickness x:Key="Control.Padding">10,6</Thickness>
+  <Thickness x:Key="Control.CompactPadding">8,4</Thickness>
+  <Thickness x:Key="Control.BorderThickness">1</Thickness>
+  <Thickness x:Key="Control.NoBorder">0</Thickness>
+  <Thickness x:Key="Toolbar.Padding">10,6</Thickness>
+  <Thickness x:Key="CheckBox.ContentMargin">8,0,0,0</Thickness>
+  <Thickness x:Key="ToggleSwitch.ContentMargin">9,0,0,0</Thickness>
+  <Thickness x:Key="ComboBox.ItemPadding">10,7</Thickness>
+  <Thickness x:Key="ComboBox.PopupPadding">4</Thickness>
+  <Thickness x:Key="Menu.ItemPadding">10,7</Thickness>
+  <Thickness x:Key="Menu.PopupPadding">5</Thickness>
+  <Thickness x:Key="Toast.Padding">14,10</Thickness>
+  <Thickness x:Key="ToolTip.Padding">9,6</Thickness>
+  <Thickness x:Key="Settings.TabPadding">16,8</Thickness>
+  <Thickness x:Key="Settings.TabMargin">4,0</Thickness>
+  <Thickness x:Key="Settings.CardPadding">16</Thickness>
+  <Thickness x:Key="Settings.CardMargin">0,0,0,12</Thickness>
+  <Thickness x:Key="Settings.SectionMargin">0,0,0,8</Thickness>
+
+  <!-- Motion and shadow metrics. -->
+  <Duration x:Key="Animation.Fast">0:0:0.15</Duration>
+  <Duration x:Key="Animation.Press">0:0:0.10</Duration>
+  <Duration x:Key="Animation.Panel">0:0:0.18</Duration>
+  <sys:Double x:Key="Shadow.Popup.Blur">18</sys:Double>
+  <sys:Double x:Key="Shadow.Popup.Depth">8</sys:Double>
+  <sys:Double x:Key="Shadow.Popup.Opacity">0.35</sys:Double>
+  <sys:Double x:Key="Shadow.Direction">270</sys:Double>
+
+  <!-- Runtime replaces AccentColor with the current Windows system accent. -->
+  <Color x:Key="AccentColor">#FF0078D4</Color>
+  <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource AccentColor}" />
+  <SolidColorBrush x:Key="AccentSoftBrush" Color="{DynamicResource AccentColor}" Opacity="0.15" />
+  <SolidColorBrush x:Key="AccentPressedBrush" Color="{DynamicResource AccentColor}" Opacity="0.78" />
+  <SolidColorBrush x:Key="FocusRingBrush" Color="{DynamicResource AccentColor}" Opacity="0.55" />
+  <SolidColorBrush x:Key="AccentForegroundBrush" Color="#FFFFFFFF" />
+
+  <!-- HUD colors intentionally stay dark on both application themes. -->
+  <SolidColorBrush x:Key="HudBrush" Color="#EE24242A" />
+  <SolidColorBrush x:Key="HudBorderBrush" Color="#38FFFFFF" />
+  <SolidColorBrush x:Key="HudHoverBrush" Color="#1FFFFFFF" />
+  <SolidColorBrush x:Key="HudPressedBrush" Color="#2EFFFFFF" />
+  <SolidColorBrush x:Key="HudSelectedBrush" Color="#26FFFFFF" />
+  <SolidColorBrush x:Key="HudInputBrush" Color="#18FFFFFF" />
+  <SolidColorBrush x:Key="HudOverlayBrush" Color="#8A000000" />
+  <SolidColorBrush x:Key="HudBadgeBrush" Color="#C9000000" />
+  <SolidColorBrush x:Key="HudPreviewBrush" Color="#74000000" />
+  <SolidColorBrush x:Key="HudTextBrush" Color="#FFF4F4F5" />
+  <SolidColorBrush x:Key="HudSecondaryTextBrush" Color="#FFB4B4BD" />
+  <SolidColorBrush x:Key="HudDividerBrush" Color="#30FFFFFF" />
+  <SolidColorBrush x:Key="HudSwatchBorderBrush" Color="#52FFFFFF" />
+  <SolidColorBrush x:Key="DangerBrush" Color="#FFFF5A57" />
+  <SolidColorBrush x:Key="DangerSoftBrush" Color="#FFFF5A57" Opacity="0.14" />
+  <SolidColorBrush x:Key="WarningBrush" Color="#FFFF9F0A" />
+  <SolidColorBrush x:Key="SuccessBrush" Color="#FF30D158" />
+  <SolidColorBrush x:Key="SuccessSoftBrush" Color="#FF30D158" Opacity="0.15" />
+  <SolidColorBrush x:Key="InfoBrush" Color="#FF0A84FF" />
+  <LinearGradientBrush x:Key="Toast.InfoGradient" StartPoint="0,0" EndPoint="1,1">
+    <GradientStop Color="#FF64D2FF" Offset="0"/><GradientStop Color="#FF0A84FF" Offset="1"/>
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Toast.SuccessGradient" StartPoint="0,0" EndPoint="1,1">
+    <GradientStop Color="#FF66E28A" Offset="0"/><GradientStop Color="#FF20B94B" Offset="1"/>
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Toast.WarningGradient" StartPoint="0,0" EndPoint="1,1">
+    <GradientStop Color="#FFFFD60A" Offset="0"/><GradientStop Color="#FFFF8A00" Offset="1"/>
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Toast.ErrorGradient" StartPoint="0,0" EndPoint="1,1">
+    <GradientStop Color="#FFFF6961" Offset="0"/><GradientStop Color="#FFFF375F" Offset="1"/>
+  </LinearGradientBrush>
+
+  <!-- Capture overlays and the annotation palette are functional colors, not theme colors. -->
+  <SolidColorBrush x:Key="Capture.DimBrush" Color="#6B000000" />
+  <SolidColorBrush x:Key="Capture.StrongDimBrush" Color="#80000000" />
+  <SolidColorBrush x:Key="Recording.DimBrush" Color="#52000000" />
+  <SolidColorBrush x:Key="Capture.HitTargetBrush" Color="#01000000" />
+  <SolidColorBrush x:Key="Capture.SelectionFillBrush" Color="#140A84FF" />
+  <SolidColorBrush x:Key="Capture.MarqueeFillBrush" Color="#1F0A84FF" />
+  <SolidColorBrush x:Key="Capture.SelectionBrush" Color="#FF0A84FF" />
+  <SolidColorBrush x:Key="Annotation.RedBrush" Color="#FFFF453A" />
+  <SolidColorBrush x:Key="Annotation.OrangeBrush" Color="#FFFF9F0A" />
+  <SolidColorBrush x:Key="Annotation.YellowBrush" Color="#FFFFD60A" />
+  <SolidColorBrush x:Key="Annotation.GreenBrush" Color="#FF30D158" />
+  <SolidColorBrush x:Key="Annotation.BlueBrush" Color="#FF0A84FF" />
+  <SolidColorBrush x:Key="Annotation.PurpleBrush" Color="#FFBF5AF2" />
+  <SolidColorBrush x:Key="Annotation.WhiteBrush" Color="#FFFFFFFF" />
+  <SolidColorBrush x:Key="Annotation.BlackBrush" Color="#FF000000" />
+  <SolidColorBrush x:Key="Annotation.SpotlightBrush" Color="#91000000" />
+  <SolidColorBrush x:Key="Annotation.BlurSelectionBrush" Color="#18FFFFFF" />
+  <SolidColorBrush x:Key="Pinned.BackgroundBrush" Color="#DD111113" />
+  <SolidColorBrush x:Key="Pinned.BorderBrush" Color="#55FFFFFF" />
+  <sys:String x:Key="Annotation.Stroke.Red">Stroke:#FFFF453A</sys:String>
+  <sys:String x:Key="Annotation.Stroke.Orange">Stroke:#FFFF9F0A</sys:String>
+  <sys:String x:Key="Annotation.Stroke.Yellow">Stroke:#FFFFD60A</sys:String>
+  <sys:String x:Key="Annotation.Stroke.Green">Stroke:#FF30D158</sys:String>
+  <sys:String x:Key="Annotation.Stroke.Blue">Stroke:#FF0A84FF</sys:String>
+  <sys:String x:Key="Annotation.Stroke.Purple">Stroke:#FFBF5AF2</sys:String>
+  <sys:String x:Key="Annotation.Stroke.White">Stroke:#FFFFFFFF</sys:String>
+  <sys:String x:Key="Annotation.Stroke.Black">Stroke:#FF000000</sys:String>
+  <sys:String x:Key="Annotation.Red.Value">#FFFF453A</sys:String>
+  <sys:String x:Key="Annotation.Yellow.Value">#FFFFD60A</sys:String>
+  <sys:String x:Key="Annotation.Green.Value">#FF30D158</sys:String>
+  <sys:String x:Key="Annotation.Blue.Value">#FF0A84FF</sys:String>
+  <sys:String x:Key="Annotation.Background.Clear">TextBackground:Clear</sys:String>
+  <sys:String x:Key="Annotation.Background.White">TextBackground:#FFFFFFFF</sys:String>
+  <sys:String x:Key="Annotation.Background.Black">TextBackground:#FF000000</sys:String>
+  <sys:String x:Key="Annotation.Background.Yellow">TextBackground:#FFFFD60A</sys:String>
+  <sys:String x:Key="Annotation.Background.Blue">TextBackground:#FF0A84FF</sys:String>
+</ResourceDictionary>

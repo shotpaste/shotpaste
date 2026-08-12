@@ -187,7 +187,6 @@ internal static class Program
         var settings = new AppSettings
         {
             SaveDirectory = Path.Combine(root, "Captures"),
-            HistoryPanelPosition = "TopCenter",
             Language = language,
             ClipboardHistoryEnabled = false,
             ShortcutsEnabled = false,

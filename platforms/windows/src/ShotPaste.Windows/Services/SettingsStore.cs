@@ -121,17 +121,10 @@ public sealed class SettingsStore
             ? settings.OcrRecognitionLanguage
             : "Auto";
         settings.JpegQuality = Math.Clamp(settings.JpegQuality, 1, 100);
-        settings.HistoryPanelPosition = settings.HistoryPanelPosition is "TopCenter" or "TopLeft" or "TopRight" or "BottomLeft" or "BottomRight"
-            ? settings.HistoryPanelPosition
-            : "TopCenter";
-        settings.HistoryPanelScale = Math.Clamp(settings.HistoryPanelScale, 0.75d, 1.5d);
-        settings.HistoryCompactWidth = Math.Clamp(settings.HistoryCompactWidth, 560d, 1600d);
-        settings.HistoryCompactHeight = Math.Clamp(settings.HistoryCompactHeight, 200d, 720d);
         settings.HistoryExpandedWidth = Math.Clamp(settings.HistoryExpandedWidth, 860d, 2400d);
         settings.HistoryExpandedHeight = Math.Clamp(settings.HistoryExpandedHeight, 520d, 1600d);
         settings.HistoryExpandedLeft = NormalizeWindowCoordinate(settings.HistoryExpandedLeft);
         settings.HistoryExpandedTop = NormalizeWindowCoordinate(settings.HistoryExpandedTop);
-        settings.HistoryPanelMaxItems = Math.Clamp(settings.HistoryPanelMaxItems, 3, 50);
         settings.HistoryBackgroundStyle = settings.HistoryBackgroundStyle is "Hud" or "Solid"
             ? settings.HistoryBackgroundStyle
             : "Hud";
@@ -149,9 +142,6 @@ public sealed class SettingsStore
         settings.QuickAccessTrackpadSwipeMode = settings.QuickAccessTrackpadSwipeMode is "Natural" or "Inverted"
             ? settings.QuickAccessTrackpadSwipeMode
             : "Inverted";
-        settings.DefaultHistoryFilter = settings.DefaultHistoryFilter is "Screenshot" or "ScrollingScreenshot" or "Recording" or "Clipboard"
-            ? settings.DefaultHistoryFilter
-            : "Clipboard";
         settings.QuickAccessSwipeSensitivity = Math.Clamp(settings.QuickAccessSwipeSensitivity, 0.5, 3);
         settings.RecordingSystemAudioVolume = Math.Clamp(settings.RecordingSystemAudioVolume, 0d, 1d);
         settings.RecordingMicrophoneVolume = Math.Clamp(settings.RecordingMicrophoneVolume, 0d, 1d);

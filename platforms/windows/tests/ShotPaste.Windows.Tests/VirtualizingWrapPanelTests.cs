@@ -47,4 +47,14 @@ public sealed class VirtualizingWrapPanelTests
         Assert.Equal(-1, layout.LastIndex);
         Assert.Equal(0, layout.ExtentHeight);
     }
+
+    [Fact]
+    public void CalculateLayout_ClampsStaleOffsetAfterFilterShrinks()
+    {
+        var layout = VirtualizingWrapPanel.CalculateLayout(1, 900, 290, 238, 5000, 600);
+
+        Assert.Equal(0, layout.FirstIndex);
+        Assert.Equal(0, layout.LastIndex);
+        Assert.Equal(238, layout.ExtentHeight);
+    }
 }

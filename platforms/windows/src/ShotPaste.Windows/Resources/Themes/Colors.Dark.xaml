@@ -1,0 +1,37 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Color x:Key="WindowColor">#FF161618</Color>
+  <Color x:Key="SurfaceColor">#FF232326</Color>
+  <Color x:Key="SurfaceSecondaryColor">#FF303034</Color>
+  <Color x:Key="TextColor">#FFF4F4F5</Color>
+  <Color x:Key="SecondaryTextColor">#FFA1A1AA</Color>
+  <Color x:Key="ShadowColor">#FF000000</Color>
+
+  <SolidColorBrush x:Key="WindowBrush" Color="{StaticResource WindowColor}" />
+  <SolidColorBrush x:Key="HistoryHudBrush" Color="{StaticResource WindowColor}" Opacity="0.92" />
+  <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
+  <SolidColorBrush x:Key="SurfaceSecondaryBrush" Color="{StaticResource SurfaceSecondaryColor}" />
+  <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextColor}" />
+  <SolidColorBrush x:Key="SecondaryTextBrush" Color="{StaticResource SecondaryTextColor}" />
+  <SolidColorBrush x:Key="BorderBrush" Color="#35FFFFFF" />
+  <SolidColorBrush x:Key="HoverBackgroundBrush" Color="{StaticResource TextColor}" Opacity="0.10" />
+  <SolidColorBrush x:Key="PressedBackgroundBrush" Color="{StaticResource TextColor}" Opacity="0.15" />
+  <SolidColorBrush x:Key="DisabledBackgroundBrush" Color="{StaticResource TextColor}" Opacity="0.07" />
+
+  <SolidColorBrush x:Key="ControlBackgroundBrush" Color="#FF29292D" />
+  <SolidColorBrush x:Key="ControlBackgroundHoverBrush" Color="#FF343438" />
+  <SolidColorBrush x:Key="ControlBackgroundPressedBrush" Color="#FF3D3D42" />
+  <SolidColorBrush x:Key="ControlBorderBrush" Color="#35FFFFFF" />
+  <SolidColorBrush x:Key="ControlBorderHoverBrush" Color="#5AFFFFFF" />
+  <SolidColorBrush x:Key="PopupBackgroundBrush" Color="#FF2A2A2E" />
+  <SolidColorBrush x:Key="PopupBorderBrush" Color="#3BFFFFFF" />
+  <SolidColorBrush x:Key="WindowBackdropBrush" Color="#D9161618" />
+  <SolidColorBrush x:Key="TitleBarBrush" Color="#B81D1D20" />
+  <SolidColorBrush x:Key="CardHoverBrush" Color="#FF29292D" />
+  <SolidColorBrush x:Key="CardHoverBorderBrush" Color="#58FFFFFF" />
+  <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#52FFFFFF" />
+  <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="#85FFFFFF" />
+  <SolidColorBrush x:Key="MenuSeparatorBrush" Color="#24FFFFFF" />
+  <SolidColorBrush x:Key="DialogOverlayBrush" Color="#52000000" />
+  <SolidColorBrush x:Key="ToastBackgroundBrush" Color="#EC2A2A2E" />
+</ResourceDictionary>

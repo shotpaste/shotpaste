@@ -5,6 +5,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using ShotPaste.Windows.Interop;
 using ShotPaste.Windows.Models;
+using ShotPaste.Windows.Services;
 using Forms = System.Windows.Forms;
 using WpfButton = System.Windows.Controls.Button;
 using WpfColor = System.Windows.Media.Color;
@@ -25,6 +26,7 @@ public partial class RecordingInkToolbarWindow : Window
         _ink = ink;
         _initializing = true;
         InitializeComponent();
+        WindowAppearanceService.Attach(this, WindowBackdropKind.Acrylic);
         WidthSlider.Value = ink.State.StrokeWidth;
         FadeCheckBox.IsChecked = ink.State.FadeEnabled;
         RefreshPolicyEditor();

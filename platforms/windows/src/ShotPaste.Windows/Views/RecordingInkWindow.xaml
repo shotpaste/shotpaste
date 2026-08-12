@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" Topmost="True" KeyDown="OnKeyDown">
-  <Grid Background="#01000000">
+  <Grid Background="{DynamicResource Capture.HitTargetBrush}">
     <Canvas x:Name="DrawingCanvas" Background="Transparent"
             MouseLeftButtonDown="OnCanvasMouseDown" MouseMove="OnCanvasMouseMove" MouseLeftButtonUp="OnCanvasMouseUp"/>
   </Grid>

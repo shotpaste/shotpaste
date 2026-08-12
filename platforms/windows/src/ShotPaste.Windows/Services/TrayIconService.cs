@@ -1,7 +1,15 @@
 using System.Drawing;
 using System.Windows;
-using Forms = System.Windows.Forms;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media;
+using System.Windows.Shapes;
 using ShotPaste.Windows.Models;
+using Forms = System.Windows.Forms;
+using WpfApplication = System.Windows.Application;
+using WpfContextMenu = System.Windows.Controls.ContextMenu;
+using WpfMenuItem = System.Windows.Controls.MenuItem;
+using WpfPath = System.Windows.Shapes.Path;
+using WpfSeparator = System.Windows.Controls.Separator;
 
 namespace ShotPaste.Windows.Services;
 
@@ -13,10 +21,11 @@ public sealed class TrayIconService : IDisposable
     private readonly Forms.Timer _recordingTimer = new() { Interval = 250 };
     private readonly Func<TimeSpan>? _recordingElapsed;
     private Icon? _ownedIcon;
-    private Forms.ToolStripMenuItem? _recordingItem;
-    private Forms.ToolStripMenuItem? _oneShotItem;
-    private Forms.ToolStripMenuItem? _pauseRecordingItem;
-    private Forms.ToolStripSeparator? _recordingSeparator;
+    private WpfContextMenu? _menu;
+    private WpfMenuItem? _recordingItem;
+    private WpfMenuItem? _oneShotItem;
+    private WpfMenuItem? _pauseRecordingItem;
+    private WpfSeparator? _recordingSeparator;
     private AppSettings _settings;
     private bool _isRecording;
     private bool _isPaused;
@@ -36,7 +45,7 @@ public sealed class TrayIconService : IDisposable
         _icon = new Forms.NotifyIcon { Text = "ShotPaste", Visible = settings.ShowTrayIcon };
         try
         {
-            var resource = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/Assets/shotpaste-icon.png"));
+            var resource = WpfApplication.GetResourceStream(new Uri("pack://application:,,,/ShotPaste;component/Assets/shotpaste-icon.png"));
             if (resource is not null)
             {
                 using var bitmap = new Bitmap(resource.Stream);
@@ -47,8 +56,9 @@ public sealed class TrayIconService : IDisposable
         }
         catch (IOException) { _icon.Icon = SystemIcons.Application; }
         _icon.Icon ??= SystemIcons.Application;
-        _icon.ContextMenuStrip = BuildMenu(settings);
+        _menu = BuildMenu(settings);
         _recordingTimer.Tick += (_, _) => UpdateTooltip();
+        _icon.MouseUp += OnTrayMouseUp;
         _icon.MouseClick += (_, args) =>
         {
             if (args.Button != Forms.MouseButtons.Left || !_isRecording || _settings.ShowRecordingToolbar) return;
@@ -66,24 +76,10 @@ public sealed class TrayIconService : IDisposable
     public void ShowMessage(string? title, string? message, Forms.ToolTipIcon kind = Forms.ToolTipIcon.Info)
     {
         var content = NormalizeBalloonContent(title, message);
-        _icon.BalloonTipTitle = content.Title;
-        _icon.BalloonTipText = content.Message;
-        _icon.BalloonTipIcon = kind;
-        _icon.ShowBalloonTip(2500);
+        ToastService.Show(content.Title, content.Message, kind);
     }
 
-    /// <summary>
-    /// Dismisses an outstanding shell notification before a capture starts.
-    /// NotifyIcon does not expose a close-balloon API; briefly removing and
-    /// restoring the same icon reliably retracts its notification while keeping
-    /// the configured menu and event handlers intact.
-    /// </summary>
-    public void DismissMessage()
-    {
-        if (!_icon.Visible) return;
-        _icon.Visible = false;
-        _icon.Visible = true;
-    }
+    public void DismissMessage() => ToastService.Dismiss();
 
     internal static (string Title, string Message) NormalizeBalloonContent(string? title, string? message)
     {
@@ -97,9 +93,8 @@ public sealed class TrayIconService : IDisposable
     {
         _settings = settings;
         _icon.Visible = settings.ShowTrayIcon;
-        var previous = _icon.ContextMenuStrip;
-        _icon.ContextMenuStrip = BuildMenu(settings);
-        previous?.Dispose();
+        if (_menu is not null) _menu.IsOpen = false;
+        _menu = BuildMenu(settings);
         UpdateTooltip();
     }
 
@@ -107,53 +102,116 @@ public sealed class TrayIconService : IDisposable
     {
         _isRecording = isRecording;
         _isPaused = isPaused;
-        if (_oneShotItem is not null) _oneShotItem.Enabled = !isRecording;
+        if (_oneShotItem is not null) _oneShotItem.IsEnabled = !isRecording;
         if (_recordingItem is not null)
         {
-            _recordingItem.Visible = isRecording;
-            _recordingItem.Text = LocalizationService.TranslatePhrase("停止录制", _settings.Language);
+            _recordingItem.Visibility = isRecording ? Visibility.Visible : Visibility.Collapsed;
+            _recordingItem.Header = LocalizationService.TranslatePhrase("停止录制", _settings.Language);
         }
         if (_pauseRecordingItem is not null)
         {
-            _pauseRecordingItem.Visible = isRecording;
-            _pauseRecordingItem.Text = LocalizationService.TranslatePhrase(isPaused ? "继续录制" : "暂停录制", _settings.Language);
+            _pauseRecordingItem.Visibility = isRecording ? Visibility.Visible : Visibility.Collapsed;
+            _pauseRecordingItem.Header = LocalizationService.TranslatePhrase(isPaused ? "继续录制" : "暂停录制", _settings.Language);
+            _pauseRecordingItem.Icon = CreateIcon(isPaused ? "Icon.Resume" : "Icon.Pause");
         }
-        if (_recordingSeparator is not null) _recordingSeparator.Visible = isRecording;
+        if (_recordingSeparator is not null)
+            _recordingSeparator.Visibility = isRecording ? Visibility.Visible : Visibility.Collapsed;
         if (isRecording && _settings.ShowRecordingDurationInTray) _recordingTimer.Start();
         else _recordingTimer.Stop();
         UpdateTooltip();
     }
 
-    private Forms.ContextMenuStrip BuildMenu(AppSettings settings)
+    private void OnTrayMouseUp(object? sender, Forms.MouseEventArgs e)
     {
-        var menu = new Forms.ContextMenuStrip();
-        _recordingItem = new Forms.ToolStripMenuItem(
-            LocalizationService.TranslatePhrase("停止录制", settings.Language),
-            null, (_, _) => RecordingRequested?.Invoke(this, EventArgs.Empty)) { Visible = _isRecording };
+        if (e.Button != Forms.MouseButtons.Right || _menu is null) return;
+        var menu = _menu;
+        var dispatcher = WpfApplication.Current?.Dispatcher;
+        if (dispatcher is null) return;
+        _ = dispatcher.BeginInvoke(() =>
+        {
+            menu.Placement = PlacementMode.MousePoint;
+            menu.IsOpen = false;
+            menu.IsOpen = true;
+        });
+    }
+
+    private WpfContextMenu BuildMenu(AppSettings settings)
+    {
+        var menu = new WpfContextMenu { StaysOpen = false };
+        _recordingItem = CreateMenuItem("停止录制", null, "Icon.Stop", settings,
+            () => RecordingRequested?.Invoke(this, EventArgs.Empty));
+        _recordingItem.Visibility = _isRecording ? Visibility.Visible : Visibility.Collapsed;
         menu.Items.Add(_recordingItem);
-        _pauseRecordingItem = new Forms.ToolStripMenuItem(LocalizationService.TranslatePhrase(_isPaused ? "继续录制" : "暂停录制", settings.Language), null,
-            (_, _) => PauseRecordingRequested?.Invoke(this, EventArgs.Empty)) { Visible = _isRecording };
+
+        _pauseRecordingItem = CreateMenuItem(_isPaused ? "继续录制" : "暂停录制", null,
+            _isPaused ? "Icon.Resume" : "Icon.Pause", settings,
+            () => PauseRecordingRequested?.Invoke(this, EventArgs.Empty));
+        _pauseRecordingItem.Visibility = _isRecording ? Visibility.Visible : Visibility.Collapsed;
         menu.Items.Add(_pauseRecordingItem);
-        _recordingSeparator = new Forms.ToolStripSeparator { Visible = _isRecording };
+
+        _recordingSeparator = CreateSeparator();
+        _recordingSeparator.Visibility = _isRecording ? Visibility.Visible : Visibility.Collapsed;
         menu.Items.Add(_recordingSeparator);
-        _oneShotItem = new Forms.ToolStripMenuItem(
-            Label("一键 Shot", settings.OneShotHotkey, settings),
-            null,
-            (_, _) => OneShotRequested?.Invoke(this, EventArgs.Empty)) { Enabled = !_isRecording };
+
+        _oneShotItem = CreateMenuItem("一键 Shot", settings.OneShotHotkey, "Icon.OneShot", settings,
+            () => OneShotRequested?.Invoke(this, EventArgs.Empty));
+        _oneShotItem.IsEnabled = !_isRecording;
         menu.Items.Add(_oneShotItem);
-        menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add(Label("剪贴板历史", settings.HistoryHotkey, settings), null, (_, _) => HistoryRequested?.Invoke(this, EventArgs.Empty));
-        menu.Items.Add(LocalizationService.TranslatePhrase("设置", settings.Language), null, (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty));
-        menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add(LocalizationService.TranslatePhrase("退出 ShotPaste", settings.Language), null, (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty));
+        menu.Items.Add(CreateSeparator());
+        menu.Items.Add(CreateMenuItem("剪贴板历史", settings.HistoryHotkey, "Icon.History", settings,
+            () => HistoryRequested?.Invoke(this, EventArgs.Empty)));
+        menu.Items.Add(CreateMenuItem("设置", null, "Icon.Settings", settings,
+            () => SettingsRequested?.Invoke(this, EventArgs.Empty)));
+        menu.Items.Add(CreateSeparator());
+        menu.Items.Add(CreateMenuItem("退出 ShotPaste", null, "Icon.Exit", settings,
+            () => ExitRequested?.Invoke(this, EventArgs.Empty)));
         return menu;
     }
 
-    private static string Label(string title, string shortcut, AppSettings settings)
+    private static WpfMenuItem CreateMenuItem(
+        string title,
+        string? shortcut,
+        string iconKey,
+        AppSettings settings,
+        Action action)
     {
-        var localized = LocalizationService.TranslatePhrase(title, settings.Language);
-        return settings.ShortcutsEnabled && !string.IsNullOrWhiteSpace(shortcut) ? $"{localized}    {shortcut}" : localized;
+        var item = new WpfMenuItem
+        {
+            Header = Label(title, settings),
+            InputGestureText = settings.ShortcutsEnabled ? shortcut ?? string.Empty : string.Empty,
+            Icon = CreateIcon(iconKey)
+        };
+        item.Click += (_, _) => action();
+        return item;
     }
+
+    private static WpfSeparator CreateSeparator()
+    {
+        var separator = new WpfSeparator();
+        separator.SetResourceReference(FrameworkElement.StyleProperty, "MenuSeparator");
+        return separator;
+    }
+
+    private static WpfPath CreateIcon(string resourceKey)
+    {
+        var icon = new WpfPath
+        {
+            Data = WpfApplication.Current?.TryFindResource(resourceKey) as Geometry,
+            Width = 16,
+            Height = 16,
+            Stretch = Stretch.Uniform,
+            Fill = System.Windows.Media.Brushes.Transparent,
+            StrokeThickness = 1.7,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round,
+            StrokeLineJoin = PenLineJoin.Round
+        };
+        icon.SetResourceReference(Shape.StrokeProperty, "TextBrush");
+        return icon;
+    }
+
+    private static string Label(string title, AppSettings settings) =>
+        LocalizationService.TranslatePhrase(title, settings.Language);
 
     private void UpdateTooltip()
     {
@@ -174,6 +232,7 @@ public sealed class TrayIconService : IDisposable
     {
         _recordingTimer.Stop();
         _recordingTimer.Dispose();
+        if (_menu is not null) _menu.IsOpen = false;
         _icon.Visible = false;
         _icon.Dispose();
         _ownedIcon?.Dispose();

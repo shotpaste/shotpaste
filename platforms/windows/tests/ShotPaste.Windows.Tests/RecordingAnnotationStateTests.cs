@@ -14,8 +14,19 @@ public sealed class RecordingAnnotationStateTests
         {
             try
             {
-                var ink = new RecordingInkWindow(new System.Drawing.Rectangle(0, 0, 320, 180));
-                _ = new RecordingInkToolbarWindow(ink);
+                var app = new ShotPaste.Windows.App();
+                app.InitializeComponent();
+                try
+                {
+                    var ink = new RecordingInkWindow(new System.Drawing.Rectangle(0, 0, 320, 180));
+                    var toolbar = new RecordingInkToolbarWindow(ink);
+                    toolbar.Close();
+                    ink.Close();
+                }
+                finally
+                {
+                    app.Shutdown();
+                }
             }
             catch (Exception exception)
             {

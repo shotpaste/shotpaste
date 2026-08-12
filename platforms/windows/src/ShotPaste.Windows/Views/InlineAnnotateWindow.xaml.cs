@@ -92,7 +92,7 @@ public partial class InlineAnnotateWindow : Window
     private WpfPoint _pointerStart;
     private string _resizeHandle = string.Empty;
     private string _tool = "Selection";
-    private WpfColor _color = (WpfColor)ColorConverter.ConvertFromString("#FFFF453A");
+    private WpfColor _color;
     private WpfColor? _textBackgroundColor;
     private double _fontSize = 20;
     private double _cornerRadius;
@@ -160,6 +160,7 @@ public partial class InlineAnnotateWindow : Window
         OneShotRecordingOptions oneShotRecordingOptions)
     {
         InitializeComponent();
+        _color = ((SolidColorBrush)FindResource("Annotation.RedBrush")).Color;
         ShowInTaskbar = App.UiTestMode;
         _backdropSource = backdrop;
         _physicalBounds = physicalBounds;
@@ -470,8 +471,8 @@ public partial class InlineAnnotateWindow : Window
                  })
         {
             var selected = string.Equals(button.Tag?.ToString(), _oneShotMode.ToString(), StringComparison.Ordinal);
-            button.Background = selected ? Brushes.White : Brushes.Transparent;
-            button.Foreground = selected ? Brushes.Black : (Brush)FindResource("HudTextBrush");
+            button.Background = selected ? (Brush)FindResource("Annotation.WhiteBrush") : Brushes.Transparent;
+            button.Foreground = selected ? (Brush)FindResource("Annotation.BlackBrush") : (Brush)FindResource("HudTextBrush");
             button.IsEnabled = !_oneShotCommitted || selected;
             button.Opacity = button.IsEnabled ? 1 : 0.42;
             button.ToolTip = button.IsEnabled
@@ -988,7 +989,7 @@ public partial class InlineAnnotateWindow : Window
         var color = new SolidColorBrush(style.StrokeColor);
         arrow.Effect = new System.Windows.Media.Effects.DropShadowEffect
         {
-            Color = Colors.Black,
+            Color = (WpfColor)FindResource("ShadowColor"),
             BlurRadius = style.ArrowType == ArrowTypeKind.Classic ? 2 : 4.5,
             ShadowDepth = style.ArrowType == ArrowTypeKind.Classic ? 1 : 2,
             Opacity = style.ArrowType == ArrowTypeKind.Classic ? 0.2 : 0.3,
@@ -1021,7 +1022,7 @@ public partial class InlineAnnotateWindow : Window
         arrow.Fill = color;
         if (style.ArrowType == ArrowTypeKind.Outlined)
         {
-            arrow.Stroke = Brushes.White;
+            arrow.Stroke = (Brush)FindResource("Annotation.WhiteBrush");
             arrow.StrokeThickness = Math.Max(1.5, 1.1 + style.StrokeWidth * 0.32);
             arrow.StrokeLineJoin = PenLineJoin.Round;
         }
@@ -1526,12 +1527,12 @@ public partial class InlineAnnotateWindow : Window
             case "Spotlight":
                 _activeElement = new WpfPath
                 {
-                    Fill = new SolidColorBrush(WpfColor.FromArgb(145, 0, 0, 0)),
+                    Fill = (Brush)FindResource("Annotation.SpotlightBrush"),
                     IsHitTestVisible = false
                 };
                 break;
             case "Blur":
-                _activeElement = new WpfRectangle { Stroke = Brushes.White, StrokeThickness = 2, StrokeDashArray = [5, 3], Fill = new SolidColorBrush(WpfColor.FromArgb(24, 255, 255, 255)) };
+                _activeElement = new WpfRectangle { Stroke = (Brush)FindResource("Annotation.WhiteBrush"), StrokeThickness = 2, StrokeDashArray = [5, 3], Fill = (Brush)FindResource("Annotation.BlurSelectionBrush") };
                 break;
             case "Text":
                 AddText("输入文字", _drawStart, _activeStyle);
@@ -1771,7 +1772,7 @@ public partial class InlineAnnotateWindow : Window
         var badge = new Border
         {
             Width = 30, Height = 30, CornerRadius = new CornerRadius(15), Background = new SolidColorBrush(style.StrokeColor),
-            Child = new TextBlock { Text = (_counter++).ToString(), Foreground = Brushes.White, FontWeight = FontWeights.Bold, FontSize = 14, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }
+            Child = new TextBlock { Text = (_counter++).ToString(), Foreground = (Brush)FindResource("Annotation.WhiteBrush"), FontWeight = FontWeights.Bold, FontSize = 14, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }
         };
         Canvas.SetLeft(badge, point.X - 15); Canvas.SetTop(badge, point.Y - 15);
         AnnotationCanvas.Children.Add(badge);

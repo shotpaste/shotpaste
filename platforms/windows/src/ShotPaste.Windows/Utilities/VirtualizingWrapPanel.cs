@@ -60,13 +60,15 @@ public sealed class VirtualizingWrapPanel : VirtualizingPanel, IScrollInfo
         viewportHeight = Math.Max(0, viewportHeight);
         var columns = Math.Max(1, (int)Math.Floor(availableWidth / itemWidth));
         var rows = itemCount == 0 ? 0 : (int)Math.Ceiling(itemCount / (double)columns);
-        var firstRow = Math.Max(0, (int)Math.Floor(Math.Max(0, verticalOffset) / itemHeight));
+        var extentHeight = rows * itemHeight;
+        var coercedOffset = Math.Clamp(verticalOffset, 0, Math.Max(0, extentHeight - viewportHeight));
+        var firstRow = Math.Max(0, (int)Math.Floor(coercedOffset / itemHeight));
         var visibleRows = Math.Max(1, (int)Math.Ceiling(viewportHeight / itemHeight) + 1);
         var firstIndex = Math.Min(itemCount, firstRow * columns);
         var lastIndex = itemCount == 0
             ? -1
             : Math.Min(itemCount - 1, ((firstRow + visibleRows) * columns) - 1);
-        return new WrapLayout(columns, rows, firstIndex, lastIndex, rows * itemHeight);
+        return new WrapLayout(columns, rows, firstIndex, lastIndex, extentHeight);
     }
 
     protected override Size MeasureOverride(Size availableSize)
@@ -98,7 +100,7 @@ public sealed class VirtualizingWrapPanel : VirtualizingPanel, IScrollInfo
             for (var itemIndex = layout.FirstIndex; itemIndex <= layout.LastIndex; itemIndex++, childIndex++)
             {
                 var child = (UIElement)generator.GenerateNext(out var newlyRealized);
-                if (newlyRealized)
+                if (newlyRealized || !InternalChildren.Contains(child))
                 {
                     if (childIndex >= InternalChildren.Count) AddInternalChild(child);
                     else InsertInternalChild(childIndex, child);

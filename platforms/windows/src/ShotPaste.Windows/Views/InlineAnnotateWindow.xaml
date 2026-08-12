@@ -19,7 +19,7 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
-            <Border x:Name="Chrome" CornerRadius="11" Background="{TemplateBinding Background}">
+            <Border x:Name="Chrome" CornerRadius="{DynamicResource Radius.Lg}" Background="{TemplateBinding Background}">
               <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
             <ControlTemplate.Triggers>
@@ -38,7 +38,7 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
-            <Border x:Name="Chrome" CornerRadius="7" Background="{TemplateBinding Background}"
+            <Border x:Name="Chrome" CornerRadius="{DynamicResource Radius.Sm}" Background="{TemplateBinding Background}"
                     BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
               <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
@@ -56,19 +56,29 @@
       <Setter Property="MinHeight" Value="20"/>
       <Setter Property="Padding" Value="0"/>
       <Setter Property="Foreground" Value="{DynamicResource HudTextBrush}"/>
-      <Setter Property="BorderBrush" Value="#52FFFFFF"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource HudSwatchBorderBrush}"/>
       <Setter Property="BorderThickness" Value="1"/>
       <Setter Property="Cursor" Value="Hand"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
-            <Border x:Name="Chrome" CornerRadius="10" Background="{TemplateBinding Background}"
+            <Border x:Name="Chrome" CornerRadius="{DynamicResource Radius.Lg}" Background="{TemplateBinding Background}"
+                    RenderTransformOrigin="0.5,0.5"
                     BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+              <Border.RenderTransform><ScaleTransform x:Name="SwatchScale" ScaleX="1" ScaleY="1"/></Border.RenderTransform>
               <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
             <ControlTemplate.Triggers>
-              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="Opacity" Value="0.8"/></Trigger>
-              <Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Opacity" Value="0.62"/></Trigger>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Chrome" Property="Opacity" Value="0.9"/>
+                <Trigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="SwatchScale" Storyboard.TargetProperty="ScaleX" To="1.1" Duration="0:0:0.15"/><DoubleAnimation Storyboard.TargetName="SwatchScale" Storyboard.TargetProperty="ScaleY" To="1.1" Duration="0:0:0.15"/></Storyboard></BeginStoryboard></Trigger.EnterActions>
+                <Trigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="SwatchScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.15"/><DoubleAnimation Storyboard.TargetName="SwatchScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.15"/></Storyboard></BeginStoryboard></Trigger.ExitActions>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Chrome" Property="Opacity" Value="0.62"/>
+                <Trigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="SwatchScale" Storyboard.TargetProperty="ScaleX" To="0.96" Duration="0:0:0.1"/><DoubleAnimation Storyboard.TargetName="SwatchScale" Storyboard.TargetProperty="ScaleY" To="0.96" Duration="0:0:0.1"/></Storyboard></BeginStoryboard></Trigger.EnterActions>
+                <Trigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="SwatchScale" Storyboard.TargetProperty="ScaleX" To="1.1" Duration="0:0:0.1"/><DoubleAnimation Storyboard.TargetName="SwatchScale" Storyboard.TargetProperty="ScaleY" To="1.1" Duration="0:0:0.1"/></Storyboard></BeginStoryboard></Trigger.ExitActions>
+              </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
         </Setter.Value>
@@ -79,10 +89,10 @@
     <Image x:Name="BackdropImage" Stretch="Fill" IsHitTestVisible="False"
            RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True"/>
     <Canvas x:Name="DimCanvas" IsHitTestVisible="False">
-      <Rectangle x:Name="DimTop" Fill="#6B000000"/>
-      <Rectangle x:Name="DimLeft" Fill="#6B000000"/>
-      <Rectangle x:Name="DimRight" Fill="#6B000000"/>
-      <Rectangle x:Name="DimBottom" Fill="#6B000000"/>
+      <Rectangle x:Name="DimTop" Fill="{DynamicResource Capture.DimBrush}"/>
+      <Rectangle x:Name="DimLeft" Fill="{DynamicResource Capture.DimBrush}"/>
+      <Rectangle x:Name="DimRight" Fill="{DynamicResource Capture.DimBrush}"/>
+      <Rectangle x:Name="DimBottom" Fill="{DynamicResource Capture.DimBrush}"/>
     </Canvas>
 
     <Canvas x:Name="OverlayCanvas">
@@ -100,45 +110,45 @@
         <!-- Selection chrome stays outside the Viewbox: handles remain a constant screen size and are never exported. -->
         <Canvas x:Name="ElementSelectionChrome" Visibility="Collapsed" ClipToBounds="False"
                 MouseMove="OnElementSelectionMouseMove" MouseLeftButtonUp="OnElementSelectionMouseUp">
-          <Rectangle x:Name="ElementMoveHitTarget" Visibility="Collapsed" Fill="#01000000" Cursor="SizeAll"
+          <Rectangle x:Name="ElementMoveHitTarget" Visibility="Collapsed" Fill="{DynamicResource Capture.HitTargetBrush}" Cursor="SizeAll"
                      MouseLeftButtonDown="OnElementMoveMouseDown"/>
-          <Rectangle x:Name="ElementSelectionBorder" Fill="#140A84FF" Stroke="#FF0A84FF" StrokeThickness="1.4"
+          <Rectangle x:Name="ElementSelectionBorder" Fill="{DynamicResource Capture.SelectionFillBrush}" Stroke="{DynamicResource Capture.SelectionBrush}" StrokeThickness="1.4"
                      StrokeDashArray="4,4" IsHitTestVisible="False"/>
-          <Ellipse x:Name="ElementHandleTopLeft" Tag="TopLeft" Width="10" Height="10" Fill="White" Stroke="#FF0A84FF" StrokeThickness="2"
+          <Ellipse x:Name="ElementHandleTopLeft" Tag="TopLeft" Width="10" Height="10" Fill="{DynamicResource Annotation.WhiteBrush}" Stroke="{DynamicResource Capture.SelectionBrush}" StrokeThickness="2"
                    Cursor="SizeNWSE" MouseLeftButtonDown="OnElementResizeMouseDown"/>
-          <Ellipse x:Name="ElementHandleTopRight" Tag="TopRight" Width="10" Height="10" Fill="White" Stroke="#FF0A84FF" StrokeThickness="2"
+          <Ellipse x:Name="ElementHandleTopRight" Tag="TopRight" Width="10" Height="10" Fill="{DynamicResource Annotation.WhiteBrush}" Stroke="{DynamicResource Capture.SelectionBrush}" StrokeThickness="2"
                    Cursor="SizeNESW" MouseLeftButtonDown="OnElementResizeMouseDown"/>
-          <Ellipse x:Name="ElementHandleBottomRight" Tag="BottomRight" Width="10" Height="10" Fill="White" Stroke="#FF0A84FF" StrokeThickness="2"
+          <Ellipse x:Name="ElementHandleBottomRight" Tag="BottomRight" Width="10" Height="10" Fill="{DynamicResource Annotation.WhiteBrush}" Stroke="{DynamicResource Capture.SelectionBrush}" StrokeThickness="2"
                    Cursor="SizeNWSE" MouseLeftButtonDown="OnElementResizeMouseDown"/>
-          <Ellipse x:Name="ElementHandleBottomLeft" Tag="BottomLeft" Width="10" Height="10" Fill="White" Stroke="#FF0A84FF" StrokeThickness="2"
+          <Ellipse x:Name="ElementHandleBottomLeft" Tag="BottomLeft" Width="10" Height="10" Fill="{DynamicResource Annotation.WhiteBrush}" Stroke="{DynamicResource Capture.SelectionBrush}" StrokeThickness="2"
                    Cursor="SizeNESW" MouseLeftButtonDown="OnElementResizeMouseDown"/>
-          <Rectangle x:Name="SelectionMarquee" Visibility="Collapsed" Fill="#1F0A84FF" Stroke="#FF0A84FF" StrokeThickness="1.2"
+          <Rectangle x:Name="SelectionMarquee" Visibility="Collapsed" Fill="{DynamicResource Capture.MarqueeFillBrush}" Stroke="{DynamicResource Capture.SelectionBrush}" StrokeThickness="1.2"
                      StrokeDashArray="5,3" IsHitTestVisible="False"/>
         </Canvas>
         <!-- Keep the border out of the image layout so it cannot shrink/re-scale selected pixels. -->
-        <Border BorderBrush="White" BorderThickness="1.4" IsHitTestVisible="False">
-          <Border.Effect><DropShadowEffect Color="Black" BlurRadius="5" ShadowDepth="1" Opacity="0.72"/></Border.Effect>
+        <Border BorderBrush="{DynamicResource Annotation.WhiteBrush}" BorderThickness="1.4" IsHitTestVisible="False">
+          <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="5" ShadowDepth="1" Opacity="0.72"/></Border.Effect>
         </Border>
-        <Canvas x:Name="OneShotOcrOverlay" Visibility="Collapsed" Background="#01000000" Cursor="Cross"
+        <Canvas x:Name="OneShotOcrOverlay" Visibility="Collapsed" Background="{DynamicResource Capture.HitTargetBrush}" Cursor="Cross"
                 MouseLeftButtonDown="OnOneShotOcrMouseDown" MouseMove="OnOneShotOcrMouseMove" MouseLeftButtonUp="OnOneShotOcrMouseUp">
-          <Rectangle x:Name="OcrDimTop" Fill="#80000000" IsHitTestVisible="False"/>
-          <Rectangle x:Name="OcrDimLeft" Fill="#80000000" IsHitTestVisible="False"/>
-          <Rectangle x:Name="OcrDimRight" Fill="#80000000" IsHitTestVisible="False"/>
-          <Rectangle x:Name="OcrDimBottom" Fill="#80000000" IsHitTestVisible="False"/>
-          <Rectangle x:Name="OcrSelectionMarquee" Visibility="Collapsed" Fill="Transparent" Stroke="White"
+          <Rectangle x:Name="OcrDimTop" Fill="{DynamicResource Capture.StrongDimBrush}" IsHitTestVisible="False"/>
+          <Rectangle x:Name="OcrDimLeft" Fill="{DynamicResource Capture.StrongDimBrush}" IsHitTestVisible="False"/>
+          <Rectangle x:Name="OcrDimRight" Fill="{DynamicResource Capture.StrongDimBrush}" IsHitTestVisible="False"/>
+          <Rectangle x:Name="OcrDimBottom" Fill="{DynamicResource Capture.StrongDimBrush}" IsHitTestVisible="False"/>
+          <Rectangle x:Name="OcrSelectionMarquee" Visibility="Collapsed" Fill="Transparent" Stroke="{DynamicResource Annotation.WhiteBrush}"
                      StrokeThickness="1.5" StrokeDashArray="5,3" IsHitTestVisible="False"/>
         </Canvas>
       </Grid>
 
       <Canvas x:Name="ResizeChrome" Visibility="Collapsed">
-        <Path x:Name="VisualTopLeft" Width="16" Height="16" Data="M 16,1 L 1,1 L 1,16" Stroke="White" StrokeThickness="2.4" Stretch="None" IsHitTestVisible="False"/>
-        <Rectangle x:Name="VisualTop" Width="22" Height="2.4" Fill="White" IsHitTestVisible="False"/>
-        <Path x:Name="VisualTopRight" Width="16" Height="16" Data="M 0,1 L 15,1 L 15,16" Stroke="White" StrokeThickness="2.4" Stretch="None" IsHitTestVisible="False"/>
-        <Rectangle x:Name="VisualRight" Width="2.4" Height="22" Fill="White" IsHitTestVisible="False"/>
-        <Path x:Name="VisualBottomRight" Width="16" Height="16" Data="M 15,0 L 15,15 L 0,15" Stroke="White" StrokeThickness="2.4" Stretch="None" IsHitTestVisible="False"/>
-        <Rectangle x:Name="VisualBottom" Width="22" Height="2.4" Fill="White" IsHitTestVisible="False"/>
-        <Path x:Name="VisualBottomLeft" Width="16" Height="16" Data="M 1,0 L 1,15 L 16,15" Stroke="White" StrokeThickness="2.4" Stretch="None" IsHitTestVisible="False"/>
-        <Rectangle x:Name="VisualLeft" Width="2.4" Height="22" Fill="White" IsHitTestVisible="False"/>
+        <Path x:Name="VisualTopLeft" Width="16" Height="16" Data="M 16,1 L 1,1 L 1,16" Stroke="{DynamicResource Annotation.WhiteBrush}" StrokeThickness="2.4" Stretch="None" IsHitTestVisible="False"/>
+        <Rectangle x:Name="VisualTop" Width="22" Height="2.4" Fill="{DynamicResource Annotation.WhiteBrush}" IsHitTestVisible="False"/>
+        <Path x:Name="VisualTopRight" Width="16" Height="16" Data="M 0,1 L 15,1 L 15,16" Stroke="{DynamicResource Annotation.WhiteBrush}" StrokeThickness="2.4" Stretch="None" IsHitTestVisible="False"/>
+        <Rectangle x:Name="VisualRight" Width="2.4" Height="22" Fill="{DynamicResource Annotation.WhiteBrush}" IsHitTestVisible="False"/>
+        <Path x:Name="VisualBottomRight" Width="16" Height="16" Data="M 15,0 L 15,15 L 0,15" Stroke="{DynamicResource Annotation.WhiteBrush}" StrokeThickness="2.4" Stretch="None" IsHitTestVisible="False"/>
+        <Rectangle x:Name="VisualBottom" Width="22" Height="2.4" Fill="{DynamicResource Annotation.WhiteBrush}" IsHitTestVisible="False"/>
+        <Path x:Name="VisualBottomLeft" Width="16" Height="16" Data="M 1,0 L 1,15 L 16,15" Stroke="{DynamicResource Annotation.WhiteBrush}" StrokeThickness="2.4" Stretch="None" IsHitTestVisible="False"/>
+        <Rectangle x:Name="VisualLeft" Width="2.4" Height="22" Fill="{DynamicResource Annotation.WhiteBrush}" IsHitTestVisible="False"/>
         <Rectangle x:Name="HandleTopLeft" Tag="TopLeft" Width="20" Height="20" Fill="Transparent" Cursor="SizeNWSE" MouseLeftButtonDown="OnResizeMouseDown"/>
         <Rectangle x:Name="HandleTop" Tag="Top" Width="30" Height="18" Fill="Transparent" Cursor="SizeNS" MouseLeftButtonDown="OnResizeMouseDown"/>
         <Rectangle x:Name="HandleTopRight" Tag="TopRight" Width="20" Height="20" Fill="Transparent" Cursor="SizeNESW" MouseLeftButtonDown="OnResizeMouseDown"/>
@@ -149,38 +159,38 @@
         <Rectangle x:Name="HandleLeft" Tag="Left" Width="18" Height="30" Fill="Transparent" Cursor="SizeWE" MouseLeftButtonDown="OnResizeMouseDown"/>
       </Canvas>
 
-      <Border x:Name="Toolbar" Visibility="Collapsed" Height="46" CornerRadius="14" Background="{DynamicResource HudBrush}"
+      <Border x:Name="Toolbar" Visibility="Collapsed" Height="46" CornerRadius="{DynamicResource Radius.Toolbar}" Background="{DynamicResource HudBrush}"
               BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="8,6">
-        <Border.Effect><DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="8" Opacity="0.48"/></Border.Effect>
+        <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="24" ShadowDepth="8" Opacity="0.48"/></Border.Effect>
         <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
           <StackPanel x:Name="ToolbarContent" Orientation="Horizontal">
             <Button x:Name="MoveButton" AutomationProperties.AutomationId="OneShotMoveToolbar" Style="{StaticResource HudTextButton}" ToolTip="移动选区（按住 Space）"
                     PreviewMouseLeftButtonDown="OnMoveMouseDown" MouseMove="OnToolbarMoveMouseMove" MouseLeftButtonUp="OnToolbarMoveMouseUp">
               <ContentControl x:Name="MoveIcon" Content="Move" ContentTemplate="{StaticResource AnnotationMoveIcon}" IsHitTestVisible="False"/>
             </Button>
-            <Separator Margin="5,5" Background="#30FFFFFF"/>
+            <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
             <Button Content="Selection" AutomationProperties.AutomationId="InlineToolSelection" ContentTemplate="{StaticResource AnnotationSelectionIcon}" Tag="Selection" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="选择"/>
-            <Separator Margin="5,5" Background="#30FFFFFF"/>
+            <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
             <Button Content="Rectangle" AutomationProperties.AutomationId="InlineToolRectangle" ContentTemplate="{StaticResource AnnotationRectangleIcon}" Tag="Rectangle" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="矩形"/>
             <Button Content="FilledRectangle" AutomationProperties.AutomationId="InlineToolFilledRectangle" ContentTemplate="{StaticResource AnnotationFilledRectangleIcon}" Tag="FilledRectangle" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="填充矩形"/>
             <Button Content="Oval" AutomationProperties.AutomationId="InlineToolOval" ContentTemplate="{StaticResource AnnotationOvalIcon}" Tag="Oval" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="椭圆形"/>
             <Button Content="Arrow" AutomationProperties.AutomationId="InlineToolArrow" ContentTemplate="{StaticResource AnnotationArrowIcon}" Tag="Arrow" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="箭头"/>
             <Button Content="Line" AutomationProperties.AutomationId="InlineToolLine" ContentTemplate="{StaticResource AnnotationLineIcon}" Tag="Line" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="直线"/>
-            <Separator Margin="5,5" Background="#30FFFFFF"/>
+            <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
             <Button Content="Text" AutomationProperties.AutomationId="InlineToolText" ContentTemplate="{StaticResource AnnotationTextIcon}" Tag="Text" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="文字"/>
             <Button Content="Highlighter" AutomationProperties.AutomationId="InlineToolHighlighter" ContentTemplate="{StaticResource AnnotationHighlighterIcon}" Tag="Highlighter" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="荧光笔"/>
             <Button Content="Blur" AutomationProperties.AutomationId="InlineToolBlur" ContentTemplate="{StaticResource AnnotationBlurIcon}" Tag="Blur" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="模糊"/>
             <Button Content="Spotlight" AutomationProperties.AutomationId="InlineToolSpotlight" ContentTemplate="{StaticResource AnnotationSpotlightIcon}" Tag="Spotlight" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="聚光灯"/>
             <Button Content="Counter" AutomationProperties.AutomationId="InlineToolCounter" ContentTemplate="{StaticResource AnnotationCounterIcon}" Tag="Counter" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="计数器"/>
             <Button Content="Pencil" AutomationProperties.AutomationId="InlineToolPencil" ContentTemplate="{StaticResource AnnotationPencilIcon}" Tag="Pencil" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="铅笔"/>
-            <Separator Margin="5,5" Background="#30FFFFFF"/>
+            <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
             <Button x:Name="UndoButton" AutomationProperties.AutomationId="InlineUndo" Content="Undo" ContentTemplate="{StaticResource AnnotationUndoIcon}" Style="{StaticResource HudIconButton}" Click="OnUndo" ToolTip="撤销"/>
             <Button x:Name="RedoButton" AutomationProperties.AutomationId="InlineRedo" Content="Redo" ContentTemplate="{StaticResource AnnotationRedoIcon}" Style="{StaticResource HudIconButton}" Click="OnRedo" ToolTip="重做"/>
             <StackPanel x:Name="OneShotToolbarActions" Visibility="Collapsed" Orientation="Horizontal">
-              <Separator Margin="5,5" Background="#30FFFFFF"/>
+              <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
               <Button Content="OCR" AutomationProperties.AutomationId="OneShotOcr" ContentTemplate="{StaticResource AnnotationOcrIcon}"
                       Style="{StaticResource HudIconButton}" Click="OnOneShotOcr" ToolTip="提取文字"/>
-              <Separator Margin="5,5" Background="#30FFFFFF"/>
+              <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
               <Button Content="Pin" AutomationProperties.AutomationId="OneShotPin" ContentTemplate="{StaticResource AnnotationPinIcon}"
                       Style="{StaticResource HudIconButton}" Click="OnPin" ToolTip="贴到屏幕"/>
               <Button Content="Copy" AutomationProperties.AutomationId="OneShotCopy" ContentTemplate="{StaticResource AnnotationCopyIcon}"
@@ -194,79 +204,79 @@
         </ScrollViewer>
       </Border>
 
-      <Border x:Name="PropertiesBar" Visibility="Collapsed" Height="38" CornerRadius="14" Background="{DynamicResource HudBrush}"
+      <Border x:Name="PropertiesBar" Visibility="Collapsed" Height="38" CornerRadius="{DynamicResource Radius.Toolbar}" Background="{DynamicResource HudBrush}"
               BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="6,5">
-        <Border.Effect><DropShadowEffect Color="Black" BlurRadius="18" ShadowDepth="6" Opacity="0.4"/></Border.Effect>
+        <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="18" ShadowDepth="6" Opacity="0.4"/></Border.Effect>
         <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
           <StackPanel x:Name="PropertiesContent" Orientation="Horizontal" VerticalAlignment="Center">
-            <Border Height="24" CornerRadius="8" Background="#17FFFFFF" Padding="8,0" Margin="0,0,8,0" MaxWidth="142">
+            <Border Height="24" CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource HudInputBrush}" Padding="8,0" Margin="0,0,8,0" MaxWidth="142">
               <StackPanel Orientation="Horizontal"><TextBlock Text="工具" Foreground="{DynamicResource HudSecondaryTextBrush}" Margin="0,0,7,0"/><TextBlock x:Name="ContextPillText" AutomationProperties.AutomationId="ContextPillText" Text="选择" Foreground="{DynamicResource HudTextBrush}" FontWeight="SemiBold" FontSize="12"/></StackPanel>
             </Border>
 
             <StackPanel x:Name="StrokeColorGroup" Orientation="Horizontal" VerticalAlignment="Center">
               <TextBlock x:Name="StrokeColorLabel" Text="颜色" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,7,0"/>
-              <Button Tag="Stroke:#FFFF453A" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="#FFFF453A" Click="OnColorSelected"/>
-              <Button Tag="Stroke:#FFFF9F0A" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="#FFFF9F0A" Click="OnColorSelected"/>
-              <Button Tag="Stroke:#FFFFD60A" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="#FFFFD60A" Click="OnColorSelected"/>
-              <Button Tag="Stroke:#FF30D158" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="#FF30D158" Click="OnColorSelected"/>
-              <Button Tag="Stroke:#FF0A84FF" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="#FF0A84FF" Click="OnColorSelected"/>
-              <Button Tag="Stroke:#FFBF5AF2" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="#FFBF5AF2" Click="OnColorSelected"/>
-              <Button Tag="Stroke:#FFFFFFFF" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="White" Click="OnColorSelected"/>
-              <Button Tag="Stroke:#FF000000" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,8,0" Background="Black" Click="OnColorSelected"/>
+              <Button Tag="{StaticResource Annotation.Stroke.Red}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="{DynamicResource Annotation.RedBrush}" Click="OnColorSelected"/>
+              <Button Tag="{StaticResource Annotation.Stroke.Orange}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="{DynamicResource Annotation.OrangeBrush}" Click="OnColorSelected"/>
+              <Button Tag="{StaticResource Annotation.Stroke.Yellow}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="{DynamicResource Annotation.YellowBrush}" Click="OnColorSelected"/>
+              <Button Tag="{StaticResource Annotation.Stroke.Green}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="{DynamicResource Annotation.GreenBrush}" Click="OnColorSelected"/>
+              <Button Tag="{StaticResource Annotation.Stroke.Blue}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="{DynamicResource Annotation.BlueBrush}" Click="OnColorSelected"/>
+              <Button Tag="{StaticResource Annotation.Stroke.Purple}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="{DynamicResource Annotation.PurpleBrush}" Click="OnColorSelected"/>
+              <Button Tag="{StaticResource Annotation.Stroke.White}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="{DynamicResource Annotation.WhiteBrush}" Click="OnColorSelected"/>
+              <Button Tag="{StaticResource Annotation.Stroke.Black}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,8,0" Background="{DynamicResource Annotation.BlackBrush}" Click="OnColorSelected"/>
             </StackPanel>
 
             <StackPanel x:Name="TextBackgroundGroup" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
               <TextBlock Text="背景" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,7,0"/>
-              <Button Tag="TextBackground:Clear" Content="╱" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="Transparent" Click="OnColorSelected"/>
-              <Button Tag="TextBackground:#FFFFFFFF" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="White" Click="OnColorSelected"/>
-              <Button Tag="TextBackground:#FF000000" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="Black" Click="OnColorSelected"/>
-              <Button Tag="TextBackground:#FFFFD60A" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="#FFFFD60A" Click="OnColorSelected"/>
-              <Button Tag="TextBackground:#FF0A84FF" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,8,0" Background="#FF0A84FF" Click="OnColorSelected"/>
+              <Button Tag="{StaticResource Annotation.Background.Clear}" Content="{StaticResource Icon.Line}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="Transparent" Click="OnColorSelected"/>
+              <Button Tag="{StaticResource Annotation.Background.White}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="{DynamicResource Annotation.WhiteBrush}" Click="OnColorSelected"/>
+              <Button Tag="{StaticResource Annotation.Background.Black}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="{DynamicResource Annotation.BlackBrush}" Click="OnColorSelected"/>
+              <Button Tag="{StaticResource Annotation.Background.Yellow}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="{DynamicResource Annotation.YellowBrush}" Click="OnColorSelected"/>
+              <Button Tag="{StaticResource Annotation.Background.Blue}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,8,0" Background="{DynamicResource Annotation.BlueBrush}" Click="OnColorSelected"/>
             </StackPanel>
 
             <StackPanel x:Name="BlurTypeGroup" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
               <TextBlock Text="模糊" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,7,0"/>
-              <Button Tag="Blur:Pixelated" Content="▦" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="像素化"/>
-              <Button Tag="Blur:Gaussian" Content="◉" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="高斯"/>
-              <Button Tag="Blur:Hexagonal" Content="⬡" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="六边形"/>
-              <Button Tag="Blur:Crystallized" Content="✦" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="结晶"/>
-              <Button Tag="Blur:Pointillism" Content="⠇" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="点彩"/>
-              <Button Tag="Blur:Halftone" Content="▒" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="半色调"/>
-              <Button Tag="Blur:Tape" Content="▰" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="胶带"/>
-              <Button Tag="Blur:Washi" Content="▧" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="和纸"/>
+              <Button Tag="Blur:Pixelated" Content="{StaticResource Icon.Pixelated}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="像素化"/>
+              <Button Tag="Blur:Gaussian" Content="{StaticResource Icon.Gaussian}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="高斯"/>
+              <Button Tag="Blur:Hexagonal" Content="{StaticResource Icon.Hexagon}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="六边形"/>
+              <Button Tag="Blur:Crystallized" Content="{StaticResource Icon.Crystal}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="结晶"/>
+              <Button Tag="Blur:Pointillism" Content="{StaticResource Icon.Points}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="点彩"/>
+              <Button Tag="Blur:Halftone" Content="{StaticResource Icon.Halftone}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="半色调"/>
+              <Button Tag="Blur:Tape" Content="{StaticResource Icon.Tape}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="胶带"/>
+              <Button Tag="Blur:Washi" Content="{StaticResource Icon.Washi}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="和纸"/>
             </StackPanel>
 
             <StackPanel x:Name="ArrowStyleGroup" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
               <TextBlock Text="样式" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,7,0"/>
-              <Button Tag="ArrowStyle:Straight" Content="↗" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="直线"/>
-              <Button Tag="ArrowStyle:CurvedRight" Content="↱" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="右弯"/>
-              <Button Tag="ArrowStyle:CurvedLeft" Content="↰" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="左弯"/>
+              <Button Tag="ArrowStyle:Straight" Content="{StaticResource Icon.ArrowStraight}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="直线"/>
+              <Button Tag="ArrowStyle:CurvedRight" Content="{StaticResource Icon.ArrowRightCurve}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="右弯"/>
+              <Button Tag="ArrowStyle:CurvedLeft" Content="{StaticResource Icon.ArrowLeftCurve}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="左弯"/>
               <TextBlock Text="外观" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
-              <Button Tag="ArrowType:Classic" Content="→" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="经典"/>
-              <Button Tag="ArrowType:Tapered" Content="➤" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="渐变"/>
-              <Button Tag="ArrowType:Outlined" Content="⇢" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="描边"/>
+              <Button Tag="ArrowType:Classic" Content="{StaticResource Icon.ArrowClassic}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="经典"/>
+              <Button Tag="ArrowType:Tapered" Content="{StaticResource Icon.ArrowTapered}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="渐变"/>
+              <Button Tag="ArrowType:Outlined" Content="{StaticResource Icon.ArrowOutlined}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="描边"/>
             </StackPanel>
 
             <StackPanel x:Name="ArrowBendGroup" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
               <TextBlock Text="弯曲" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
-              <Button Tag="ArrowBend:Primary" Content="↷" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
-              <Button Tag="ArrowBend:Alternate" Content="↶" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
+              <Button Tag="ArrowBend:Primary" Content="{StaticResource Icon.BendPrimary}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
+              <Button Tag="ArrowBend:Alternate" Content="{StaticResource Icon.BendAlternate}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
             </StackPanel>
 
             <StackPanel x:Name="ArrowEndpointGroup" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
               <TextBlock Text="起点" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
-              <Button Tag="StartHead:None" Content="—" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
-              <Button Tag="StartHead:Arrow" Content="▶" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
-              <Button Tag="StartHead:Circle" Content="●" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
+              <Button Tag="StartHead:None" Content="{StaticResource Icon.Line}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
+              <Button Tag="StartHead:Arrow" Content="{StaticResource Icon.ArrowHead}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
+              <Button Tag="StartHead:Circle" Content="{StaticResource Icon.Circle}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
               <TextBlock Text="终点" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
-              <Button Tag="EndHead:None" Content="—" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
-              <Button Tag="EndHead:Arrow" Content="▶" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
-              <Button Tag="EndHead:Circle" Content="●" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
+              <Button Tag="EndHead:None" Content="{StaticResource Icon.Line}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
+              <Button Tag="EndHead:Arrow" Content="{StaticResource Icon.ArrowHead}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
+              <Button Tag="EndHead:Circle" Content="{StaticResource Icon.Circle}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
             </StackPanel>
 
             <StackPanel x:Name="StrokeWidthGroup" Orientation="Horizontal" VerticalAlignment="Center">
               <TextBlock x:Name="StrokeWidthLabel" Text="描边" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
-              <TextBlock Text="╱" Foreground="{DynamicResource HudTextBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+              <ContentControl Content="{StaticResource Icon.Line}" ContentTemplate="{StaticResource Icon.Template}" Foreground="{DynamicResource HudTextBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
               <Slider x:Name="StrokeSlider" Style="{StaticResource HudSlider}" Minimum="1" Maximum="20" Value="4" Width="58" ValueChanged="OnStrokeChanged"
                       PreviewMouseLeftButtonDown="OnPropertySliderStarted" PreviewMouseLeftButtonUp="OnPropertySliderCompleted"/>
               <TextBlock x:Name="StrokeValue" Text="4" Foreground="{DynamicResource HudTextBrush}" FontSize="10" Width="34" TextAlignment="Right" VerticalAlignment="Center"/>
@@ -289,10 +299,10 @@
         </ScrollViewer>
       </Border>
 
-      <Border x:Name="OneShotSwitcher" Visibility="Collapsed" Width="520" Height="56" CornerRadius="16"
+      <Border x:Name="OneShotSwitcher" Visibility="Collapsed" Width="520" Height="56" CornerRadius="{DynamicResource Radius.Toolbar}"
               Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1"
               Padding="6" AutomationProperties.AutomationId="OneShotSwitcher">
-        <Border.Effect><DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="7" Opacity="0.45"/></Border.Effect>
+        <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="22" ShadowDepth="7" Opacity="0.45"/></Border.Effect>
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="34"/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/>
@@ -333,9 +343,9 @@
         </Grid>
       </Border>
 
-      <Border x:Name="OneShotModePanel" Visibility="Collapsed" CornerRadius="14"
+      <Border x:Name="OneShotModePanel" Visibility="Collapsed" CornerRadius="{DynamicResource Radius.Toolbar}"
               Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="12">
-        <Border.Effect><DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="7" Opacity="0.42"/></Border.Effect>
+        <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="20" ShadowDepth="7" Opacity="0.42"/></Border.Effect>
         <Grid>
           <StackPanel x:Name="OneShotScrollingPanel" Visibility="Collapsed">
             <TextBlock x:Name="OneShotScrollingHelpText" Visibility="Collapsed" Width="330" TextWrapping="Wrap"
@@ -359,24 +369,24 @@
                            Foreground="{DynamicResource HudTextBrush}"/>
             </StackPanel>
             <WrapPanel HorizontalAlignment="Center">
-              <CheckBox x:Name="OneShotRecordingCursor" Content="鼠标指针" Click="OnOneShotRecordingOptionChanged" Margin="6,3"
+              <CheckBox x:Name="OneShotRecordingCursor" Content="鼠标指针" Click="OnOneShotRecordingOptionChanged" Margin="6,3" Style="{DynamicResource HudCheckBox}"
                         Foreground="{DynamicResource HudTextBrush}"/>
-              <CheckBox x:Name="OneShotSystemAudio" Content="系统声音" Click="OnOneShotRecordingOptionChanged" Margin="6,3"
+              <CheckBox x:Name="OneShotSystemAudio" Content="系统声音" Click="OnOneShotRecordingOptionChanged" Margin="6,3" Style="{DynamicResource HudCheckBox}"
                         Foreground="{DynamicResource HudTextBrush}"/>
-              <CheckBox x:Name="OneShotMicrophone" Content="麦克风" Click="OnOneShotRecordingOptionChanged" Margin="6,3"
+              <CheckBox x:Name="OneShotMicrophone" Content="麦克风" Click="OnOneShotRecordingOptionChanged" Margin="6,3" Style="{DynamicResource HudCheckBox}"
                         Foreground="{DynamicResource HudTextBrush}"/>
             </WrapPanel>
           </StackPanel>
         </Grid>
       </Border>
 
-      <Border x:Name="InstructionBadge" CornerRadius="12" Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="14,8">
+      <Border x:Name="InstructionBadge" CornerRadius="{DynamicResource Radius.Lg}" Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="14,8">
         <TextBlock x:Name="InstructionText" Foreground="{DynamicResource HudTextBrush}" Text="拖动选择区域  ·  Esc 取消" FontSize="12" FontWeight="SemiBold"/>
       </Border>
-      <Border x:Name="SizeBadge" Visibility="Collapsed" CornerRadius="8" Background="{DynamicResource HudBrush}" Padding="9,5">
-        <TextBlock x:Name="SizeText" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+      <Border x:Name="SizeBadge" Visibility="Collapsed" CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource HudBrush}" Padding="9,5">
+        <TextBlock x:Name="SizeText" Foreground="{DynamicResource Annotation.WhiteBrush}" FontSize="11" FontWeight="SemiBold"/>
       </Border>
-      <Border x:Name="StatusBadge" Visibility="Collapsed" CornerRadius="9" Background="{DynamicResource HudBrush}"
+      <Border x:Name="StatusBadge" Visibility="Collapsed" CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource HudBrush}"
               BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="11,7">
         <TextBlock x:Name="InlineStatusText" AutomationProperties.AutomationId="InlineStatusText"
                    Foreground="{DynamicResource HudTextBrush}" FontSize="12" FontWeight="SemiBold"/>

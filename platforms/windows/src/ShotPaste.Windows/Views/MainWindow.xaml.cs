@@ -1,15 +1,12 @@
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
-using System.Windows.Media;
 using ShotPaste.Windows.Models;
 using ShotPaste.Windows.Services;
-using ShotPaste.Windows.Interop;
 using ShotPaste.Windows.Utilities;
 using Button = System.Windows.Controls.Button;
 using Panel = System.Windows.Controls.Panel;
-using Brush = System.Windows.Media.Brush;
 using ListBox = System.Windows.Controls.ListBox;
 
 namespace ShotPaste.Windows.Views;
@@ -22,27 +19,21 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _filterCancellation;
     private bool _allowClose;
     private string _selectedKind = "Clipboard";
-    private bool _applyingHistoryMode;
-    private bool _restoreListFocus;
-    private double _compactHorizontalOffset;
-    private double _expandedVerticalOffset;
     private readonly System.Windows.Threading.DispatcherTimer _persistSizeTimer = new()
     {
         Interval = TimeSpan.FromMilliseconds(350)
     };
-    public bool IsCompactMode { get; private set; }
-
     public MainWindow(AppController controller, CaptureHistoryStore history, SettingsStore settings)
     {
         InitializeComponent();
         _controller = controller;
         _history = history;
         _settings = settings;
+        WindowAppearanceService.Attach(this, WindowBackdropKind.Mica);
         Title = LocalizationService.Text(settings.Current.Language, "history.title");
-        SourceInitialized += (_, _) => ApplyActivationStyle();
-        ApplyHistoryMode("Compact");
+        Width = settings.Current.HistoryExpandedWidth;
+        Height = settings.Current.HistoryExpandedHeight;
         ApplyHistoryBackgroundStyle();
-        _selectedKind = settings.Current.DefaultHistoryFilter;
         UpdateKindPills();
         history.Items.CollectionChanged += (_, _) => Dispatcher.BeginInvoke(() => QueueFilter(TimeSpan.Zero));
         _persistSizeTimer.Tick += (_, _) =>
@@ -52,13 +43,8 @@ public partial class MainWindow : Window
         };
         SizeChanged += OnHistorySizeChanged;
         LocationChanged += OnHistoryLocationChanged;
-        Loaded += (_, _) =>
-        {
-            if (IsCompactMode) PositionCompactPanel(_settings.Current.HistoryPanelPosition);
-            else PositionExpandedWindow();
-            RestoreViewState();
-        };
-        QueueFilter(TimeSpan.Zero);
+        Loaded += (_, _) => PositionHistoryWindow();
+        QueueFilter(TimeSpan.Zero, resetScroll: true);
     }
 
     public void RefreshLocalization()
@@ -66,101 +52,27 @@ public partial class MainWindow : Window
         Title = LocalizationService.Text(LocalizationService.CurrentLanguage, "history.title");
         LocalizationService.LocalizeWindow(this);
         HistoryItems.Items.Refresh();
-        CompactHistoryItems.Items.Refresh();
     }
 
-    public void ApplyHistoryMode(string? mode)
+    public void ShowClipboardHistory()
     {
-        var selectedItem = ActiveHistoryItems.SelectedItem;
-        _restoreListFocus = ActiveHistoryItems.IsKeyboardFocusWithin;
-        CaptureScrollOffset();
-        _applyingHistoryMode = true;
-        IsCompactMode = string.Equals(mode, "Compact", StringComparison.OrdinalIgnoreCase);
-        HistoryItems.Visibility = IsCompactMode ? Visibility.Collapsed : Visibility.Visible;
-        CompactHistoryItems.Visibility = IsCompactMode ? Visibility.Visible : Visibility.Collapsed;
-        TopBar.Visibility = IsCompactMode ? Visibility.Collapsed : Visibility.Visible;
-        FilterBar.Visibility = IsCompactMode ? Visibility.Collapsed : Visibility.Visible;
-        HeaderUtilities.Visibility = IsCompactMode ? Visibility.Collapsed : Visibility.Visible;
-        SelectionActions.Visibility = !IsCompactMode && HistoryItems.SelectedItems.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        HistoryContent.Margin = IsCompactMode ? new Thickness(12, 12, 2, 6) : new Thickness(20, 0, 8, 14);
-        if (IsCompactMode)
-        {
-            var scale = Math.Clamp(_settings.Current.HistoryPanelScale, 0.75d, 1.5d);
-            MinWidth = 560 * scale;
-            MinHeight = 200 * scale;
-            Width = _settings.Current.HistoryCompactWidth * scale;
-            Height = _settings.Current.HistoryCompactHeight * scale;
-            ShowInTaskbar = App.UiTestMode;
-            Topmost = true;
-            WindowStartupLocation = WindowStartupLocation.Manual;
-            PositionCompactPanel(_settings.Current.HistoryPanelPosition);
-        }
-        else
-        {
-            MinWidth = 860;
-            MinHeight = 520;
-            Width = _settings.Current.HistoryExpandedWidth;
-            Height = _settings.Current.HistoryExpandedHeight;
-            ShowInTaskbar = true;
-            Topmost = false;
-            WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            PositionExpandedWindow();
-        }
-        UpdateHistoryModeToggle();
-        _applyingHistoryMode = false;
-        if (selectedItem is not null)
-        {
-            ActiveHistoryItems.SelectedItem = selectedItem;
-            ActiveHistoryItems.ScrollIntoView(selectedItem);
-        }
-        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(RestoreViewState));
-        ApplyActivationStyle();
-        QueueFilter(TimeSpan.Zero);
-    }
-
-    public void ToggleHistoryMode()
-    {
-        CaptureCurrentGeometry();
-        ApplyHistoryMode(IsCompactMode ? "Expanded" : "Compact");
-    }
-
-    public void ShowExpanded(string initialFilter)
-    {
-        _selectedKind = initialFilter;
+        _selectedKind = "Clipboard";
         SearchBox.Clear();
         TimeFilter.SelectedIndex = 0;
         UpdateKindPills();
-        ApplyHistoryMode("Expanded");
+        QueueFilter(TimeSpan.Zero, resetScroll: true);
     }
 
     public void ApplyHistoryBackgroundStyle()
     {
-        var source = FindResource(_settings.Current.HistoryBackgroundStyle == "Solid" ? "SurfaceBrush" : "WindowBrush") as Brush;
-        if (source is null) return;
-        var brush = source.CloneCurrentValue();
-        if (_settings.Current.HistoryBackgroundStyle == "Hud") brush.Opacity = 0.92;
-        RootBackground.Background = brush;
-        Background = brush;
-    }
-
-    private ListBox ActiveHistoryItems => IsCompactMode ? CompactHistoryItems : HistoryItems;
-
-    private void PositionCompactPanel(string? position)
-    {
-        const double margin = 18;
-        var area = CurrentWorkAreaInDips();
-        if (string.Equals(position, "TopCenter", StringComparison.OrdinalIgnoreCase))
+        var resourceKey = _settings.Current.HistoryBackgroundStyle switch
         {
-            Left = Math.Max(area.Left + margin, area.Left + (area.Width - Width) / 2);
-            Top = area.Top + margin;
-            return;
-        }
-        var onLeft = string.Equals(position, "TopLeft", StringComparison.OrdinalIgnoreCase) ||
-                     string.Equals(position, "BottomLeft", StringComparison.OrdinalIgnoreCase);
-        var onTop = string.Equals(position, "TopLeft", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(position, "TopRight", StringComparison.OrdinalIgnoreCase);
-        Left = onLeft ? area.Left + margin : Math.Max(area.Left + margin, area.Right - Width - margin);
-        Top = onTop ? area.Top + margin : Math.Max(area.Top + margin, area.Bottom - Height - margin);
+            "Solid" => "SurfaceBrush",
+            "Hud" => "HistoryHudBrush",
+            _ => "WindowBrush"
+        };
+        RootBackground.SetResourceReference(Panel.BackgroundProperty, resourceKey);
+        SetResourceReference(BackgroundProperty, resourceKey);
     }
 
     private Rect CurrentWorkAreaInDips()
@@ -175,7 +87,7 @@ public partial class MainWindow : Window
         return new Rect(topLeft, bottomRight);
     }
 
-    private void PositionExpandedWindow()
+    private void PositionHistoryWindow()
     {
         var area = CurrentWorkAreaInDips();
         var requestedLeft = _settings.Current.HistoryExpandedLeft ?? area.Left + (area.Width - Width) / 2;
@@ -184,32 +96,9 @@ public partial class MainWindow : Window
         Top = Math.Clamp(requestedTop, area.Top, Math.Max(area.Top, area.Bottom - Height));
     }
 
-    private void CaptureScrollOffset()
-    {
-        var scroller = FindVisualChild<ScrollViewer>(ActiveHistoryItems);
-        if (scroller is null) return;
-        if (IsCompactMode) _compactHorizontalOffset = scroller.HorizontalOffset;
-        else _expandedVerticalOffset = scroller.VerticalOffset;
-    }
-
-    private void RestoreViewState()
-    {
-        var scroller = FindVisualChild<ScrollViewer>(ActiveHistoryItems);
-        if (scroller is not null)
-        {
-            if (IsCompactMode) scroller.ScrollToHorizontalOffset(_compactHorizontalOffset);
-            else scroller.ScrollToVerticalOffset(_expandedVerticalOffset);
-        }
-        if (_restoreListFocus)
-        {
-            ActiveHistoryItems.Focus();
-            _restoreListFocus = false;
-        }
-    }
-
     private void OnHistorySizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (_applyingHistoryMode || !IsLoaded || WindowState != WindowState.Normal) return;
+        if (!IsLoaded || WindowState != WindowState.Normal) return;
         CaptureCurrentGeometry();
         _persistSizeTimer.Stop();
         _persistSizeTimer.Start();
@@ -217,7 +106,7 @@ public partial class MainWindow : Window
 
     private void OnHistoryLocationChanged(object? sender, EventArgs e)
     {
-        if (_applyingHistoryMode || !IsLoaded || IsCompactMode || WindowState != WindowState.Normal) return;
+        if (!IsLoaded || WindowState != WindowState.Normal) return;
         CaptureCurrentGeometry();
         _persistSizeTimer.Stop();
         _persistSizeTimer.Start();
@@ -225,38 +114,10 @@ public partial class MainWindow : Window
 
     private void CaptureCurrentGeometry()
     {
-        if (IsCompactMode)
-        {
-            var scale = Math.Clamp(_settings.Current.HistoryPanelScale, 0.75d, 1.5d);
-            _settings.Current.HistoryCompactWidth = ActualWidth / scale;
-            _settings.Current.HistoryCompactHeight = ActualHeight / scale;
-            return;
-        }
         _settings.Current.HistoryExpandedWidth = ActualWidth;
         _settings.Current.HistoryExpandedHeight = ActualHeight;
         _settings.Current.HistoryExpandedLeft = Left;
         _settings.Current.HistoryExpandedTop = Top;
-    }
-
-    private void OnToggleHistoryMode(object sender, RoutedEventArgs e)
-    {
-        ToggleHistoryMode();
-    }
-
-    private void UpdateHistoryModeToggle()
-    {
-        if (HistoryModeToggle is null) return;
-        HistoryModeToggle.Content = IsCompactMode ? "↗" : "↙";
-        HistoryModeToggle.ToolTip = LocalizedDialogService.Text(IsCompactMode ? "展开剪贴板历史面板" : "切换到紧凑剪贴板历史面板");
-    }
-
-    private void ApplyActivationStyle()
-    {
-        var handle = new System.Windows.Interop.WindowInteropHelper(this).Handle;
-        if (handle == IntPtr.Zero) return;
-        var style = NativeMethods.GetWindowLongPtr(handle, NativeMethods.GwlExStyle).ToInt64();
-        style = IsCompactMode ? style | NativeMethods.WsExNoActivate : style & ~NativeMethods.WsExNoActivate;
-        NativeMethods.SetWindowLongPtr(handle, NativeMethods.GwlExStyle, new IntPtr(style));
     }
 
     public void CloseForExit() { _allowClose = true; Close(); }
@@ -281,19 +142,19 @@ public partial class MainWindow : Window
 
     private void OnFilterChanged(object sender, EventArgs e)
     {
-        QueueFilter(TimeSpan.Zero);
+        QueueFilter(TimeSpan.Zero, resetScroll: true);
     }
 
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
     {
         if (ClearSearchButton is not null)
             ClearSearchButton.Visibility = string.IsNullOrWhiteSpace(SearchBox?.Text) ? Visibility.Collapsed : Visibility.Visible;
-        QueueFilter(TimeSpan.FromMilliseconds(150));
+        QueueFilter(TimeSpan.FromMilliseconds(150), resetScroll: true);
     }
 
-    private void QueueFilter(TimeSpan delay)
+    private void QueueFilter(TimeSpan delay, bool resetScroll = false)
     {
-        if (SearchBox is null || TimeFilter is null || HistoryItems is null || CompactHistoryItems is null) return;
+        if (SearchBox is null || TimeFilter is null || HistoryItems is null) return;
         _filterCancellation?.Cancel();
         _filterCancellation?.Dispose();
         _filterCancellation = new CancellationTokenSource();
@@ -303,7 +164,7 @@ public partial class MainWindow : Window
         var daysText = (TimeFilter.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "All";
         var threshold = int.TryParse(daysText, out var days) ? DateTimeOffset.Now.AddDays(-days) : (DateTimeOffset?)null;
         var snapshot = _history.Items.ToArray();
-        _ = ApplyFilterAsync(snapshot, query, kind, threshold, delay, cancellation);
+        _ = ApplyFilterAsync(snapshot, query, kind, threshold, delay, resetScroll, cancellation);
     }
 
     private async Task ApplyFilterAsync(
@@ -312,6 +173,7 @@ public partial class MainWindow : Window
         string kind,
         DateTimeOffset? threshold,
         TimeSpan delay,
+        bool resetScroll,
         CancellationToken cancellation)
     {
         try
@@ -319,14 +181,13 @@ public partial class MainWindow : Window
             if (delay > TimeSpan.Zero) await Task.Delay(delay, cancellation);
             var filtered = await Task.Run(() => snapshot
                 .Where(item => FilterItem(item, query, kind, threshold))
-                .Take(IsCompactMode ? Math.Clamp(_settings.Current.HistoryPanelMaxItems, 3, 50) : int.MaxValue)
                 .ToArray(), cancellation);
             cancellation.ThrowIfCancellationRequested();
             await Dispatcher.InvokeAsync(() =>
             {
                 if (cancellation.IsCancellationRequested) return;
                 HistoryItems.ItemsSource = filtered;
-                CompactHistoryItems.ItemsSource = filtered;
+                if (resetScroll && filtered.Length > 0) HistoryItems.ScrollIntoView(filtered[0]);
                 UpdateEmptyState();
             });
         }
@@ -336,7 +197,7 @@ public partial class MainWindow : Window
     private void OnKindPill(object sender, RoutedEventArgs e)
     {
         if (sender is not Button button) return;
-        _selectedKind = button.Tag?.ToString() ?? "Screenshot";
+        _selectedKind = button.Tag?.ToString() ?? "Clipboard";
         UpdateKindPills();
         OnFilterChanged(sender, e);
     }
@@ -347,8 +208,20 @@ public partial class MainWindow : Window
         foreach (var button in panel.Children.OfType<Button>())
         {
             var selected = Equals(button.Tag?.ToString(), _selectedKind);
-            button.Background = selected ? (Brush)FindResource("AccentSoftBrush") : (Brush)FindResource("SurfaceSecondaryBrush");
-            button.Foreground = selected ? (Brush)FindResource("AccentBrush") : (Brush)FindResource("TextBrush");
+            if (selected)
+            {
+                button.SetResourceReference(Button.BackgroundProperty, "AccentSoftBrush");
+                button.SetResourceReference(Button.ForegroundProperty, "AccentBrush");
+                button.SetResourceReference(Button.BorderBrushProperty, "AccentBrush");
+                AutomationProperties.SetItemStatus(button, LocalizedDialogService.Text("已选择"));
+            }
+            else
+            {
+                button.ClearValue(Button.BackgroundProperty);
+                button.ClearValue(Button.ForegroundProperty);
+                button.ClearValue(Button.BorderBrushProperty);
+                AutomationProperties.SetItemStatus(button, string.Empty);
+            }
         }
     }
 
@@ -363,14 +236,9 @@ public partial class MainWindow : Window
 
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (sender is not ListBox list || !ReferenceEquals(list, ActiveHistoryItems)) return;
-        if (IsCompactMode)
-        {
-            SelectionActions.Visibility = Visibility.Collapsed;
-            return;
-        }
+        if (sender is not ListBox list || !ReferenceEquals(list, HistoryItems)) return;
         var count = HistoryItems.SelectedItems.Count;
-        SelectionActions.Visibility = !IsCompactMode && count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        SelectionActions.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
         SelectionSummary.Text = $"已选择 {count} 项";
     }
 
@@ -412,23 +280,22 @@ public partial class MainWindow : Window
 
     private async void OnKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
-        var activeItems = ActiveHistoryItems;
         if (e.Key == System.Windows.Input.Key.A && (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) != 0)
         {
-            activeItems.SelectAll(); e.Handled = true;
+            HistoryItems.SelectAll(); e.Handled = true;
         }
         else if (e.Key == System.Windows.Input.Key.C && (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) != 0)
         {
-            _controller.CopyHistoryItems(activeItems.SelectedItems.Cast<CaptureHistoryItem>()); e.Handled = true;
+            _controller.CopyHistoryItems(HistoryItems.SelectedItems.Cast<CaptureHistoryItem>()); e.Handled = true;
         }
         else if (e.Key == System.Windows.Input.Key.Delete)
         {
-            var selected = activeItems.SelectedItems.Cast<CaptureHistoryItem>().ToArray();
+            var selected = HistoryItems.SelectedItems.Cast<CaptureHistoryItem>().ToArray();
             if (ConfirmDeletion(selected.Length))
                 foreach (var item in selected) await _history.RemoveAsync(item, true);
             e.Handled = true;
         }
-        else if (e.Key == System.Windows.Input.Key.Enter && activeItems.SelectedItem is CaptureHistoryItem item)
+        else if (e.Key == System.Windows.Input.Key.Enter && HistoryItems.SelectedItem is CaptureHistoryItem item)
         {
             _controller.RestoreHistoryItem(item); e.Handled = true;
         }
@@ -444,30 +311,11 @@ public partial class MainWindow : Window
         if (sender is ListBox { SelectedItem: CaptureHistoryItem item }) _controller.RestoreHistoryItem(item);
     }
 
-    private void OnCompactMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
-    {
-        var scroller = FindVisualChild<ScrollViewer>(CompactHistoryItems);
-        if (scroller is null) return;
-        scroller.ScrollToHorizontalOffset(scroller.HorizontalOffset - e.Delta);
-        e.Handled = true;
-    }
-
-    private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
-    {
-        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
-        {
-            var child = VisualTreeHelper.GetChild(parent, index);
-            if (child is T match) return match;
-            var descendant = FindVisualChild<T>(child);
-            if (descendant is not null) return descendant;
-        }
-        return null;
-    }
-
-    private static bool ConfirmDeletion(int count)
+    private bool ConfirmDeletion(int count)
     {
         if (count <= 0) return false;
         return LocalizedDialogService.Show(
+            this,
             $"确定删除选中的 {count} 条剪贴板历史记录？托管的临时文件也会一并删除。",
             "ShotPaste",
             MessageBoxButton.OKCancel,
@@ -477,7 +325,6 @@ public partial class MainWindow : Window
     private void OnClosing(object? sender, CancelEventArgs e)
     {
         _filterCancellation?.Cancel();
-        CaptureScrollOffset();
         CaptureCurrentGeometry();
         _persistSizeTimer.Stop();
         if (IsLoaded) _settings.Save();

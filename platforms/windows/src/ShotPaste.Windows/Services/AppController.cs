@@ -241,10 +241,6 @@ public sealed class AppController : IDisposable
             {
                 case HotkeyAction.OneShot: StartOneShot(); break;
                 case HotkeyAction.History: ShowHistory(); break;
-                case HotkeyAction.HistoryMode:
-                    if (_mainWindow?.IsVisible == true) _mainWindow.ToggleHistoryMode();
-                    else ShowHistory();
-                    break;
                 case HotkeyAction.RecordingPause:
                     if (_recording.IsRecording) _recording.TogglePause();
                     break;
@@ -673,18 +669,16 @@ public sealed class AppController : IDisposable
         }
     }
 
-    public void ShowHistory() => ShowHistory(_settings.Current.DefaultHistoryFilter);
-
-    private void ShowClipboardHistory() => ShowHistory("Clipboard");
-
-    private void ShowHistory(string initialFilter)
+    public void ShowHistory()
     {
         if (_mainWindow is null) return;
-        _mainWindow.ShowExpanded(initialFilter);
+        _mainWindow.ShowClipboardHistory();
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
     }
+
+    private void ShowClipboardHistory() => ShowHistory();
 
     public void ShowSettings(string? tab = null)
     {
@@ -712,7 +706,6 @@ public sealed class AppController : IDisposable
         foreach (Window openWindow in System.Windows.Application.Current.Windows)
             LocalizationService.LocalizeWindow(openWindow);
         _mainWindow?.RefreshLocalization();
-        _mainWindow?.ApplyHistoryMode("Compact");
         _mainWindow?.ApplyHistoryBackgroundStyle();
         _quickAccess?.RefreshSettings();
         StartupService.Apply(_settings.Current.LaunchAtStartup);

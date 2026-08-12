@@ -26,6 +26,7 @@ public partial class ScrollingProgressWindow : Window
     public ScrollingProgressWindow(bool showHints = true)
     {
         InitializeComponent();
+        WindowAppearanceService.Attach(this, WindowBackdropKind.Acrylic);
         GuidanceText.Visibility = showHints ? Visibility.Visible : Visibility.Collapsed;
         FooterHint.Visibility = showHints ? Visibility.Visible : Visibility.Collapsed;
         ShowInTaskbar = App.UiTestMode;

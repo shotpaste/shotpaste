@@ -12,6 +12,7 @@ public partial class OcrResultWindow : Window
     {
         _result = result;
         InitializeComponent();
+        WindowAppearanceService.Attach(this, WindowBackdropKind.Mica);
         DataContext = result;
     }
 

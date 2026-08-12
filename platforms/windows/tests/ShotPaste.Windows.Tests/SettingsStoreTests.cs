@@ -76,38 +76,15 @@ public sealed class SettingsStoreTests
     }
 
     [Fact]
-    public void NewSettings_DefaultToMacAlignedHistoryPresentation()
+    public void NewSettings_DefaultToFullHistoryPresentation()
     {
         var store = new SettingsStore(new AppSettings());
 
-        Assert.Equal("TopCenter", store.Current.HistoryPanelPosition);
-        Assert.Equal(10, store.Current.HistoryPanelMaxItems);
         Assert.Equal("Hud", store.Current.HistoryBackgroundStyle);
-        Assert.Equal("Clipboard", store.Current.DefaultHistoryFilter);
+        Assert.Equal(980, store.Current.HistoryExpandedWidth);
+        Assert.Equal(680, store.Current.HistoryExpandedHeight);
         Assert.Equal(30, store.Current.HistoryRetentionDays);
         Assert.Equal(1_000, store.Current.HistoryMaxCount);
-    }
-
-    [Fact]
-    public void Constructor_NormalizesInvalidHistoryFilterToClipboard()
-    {
-        var store = new SettingsStore(new AppSettings
-        {
-            DefaultHistoryFilter = "Unknown"
-        });
-
-        Assert.Equal("Clipboard", store.Current.DefaultHistoryFilter);
-    }
-
-    [Fact]
-    public void Constructor_PreservesExistingHistoryPosition()
-    {
-        var store = new SettingsStore(new AppSettings
-        {
-            HistoryPanelPosition = "BottomRight"
-        });
-
-        Assert.Equal("BottomRight", store.Current.HistoryPanelPosition);
     }
 
     [Fact]
@@ -115,14 +92,10 @@ public sealed class SettingsStoreTests
     {
         var store = new SettingsStore(new AppSettings
         {
-            HistoryCompactWidth = 20,
-            HistoryCompactHeight = 5000,
             HistoryExpandedWidth = 9999,
             HistoryExpandedHeight = 10
         });
 
-        Assert.Equal(560, store.Current.HistoryCompactWidth);
-        Assert.Equal(720, store.Current.HistoryCompactHeight);
         Assert.Equal(2400, store.Current.HistoryExpandedWidth);
         Assert.Equal(520, store.Current.HistoryExpandedHeight);
     }

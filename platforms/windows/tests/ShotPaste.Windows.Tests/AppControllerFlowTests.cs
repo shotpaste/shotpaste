@@ -89,22 +89,21 @@ public sealed class AppControllerFlowTests
     }
 
     [Fact]
-    public void ClipboardHistoryEntryPoints_OpenExpandedWithConfiguredClipboardDefault()
+    public void ClipboardHistoryEntryPoints_OpenFullPanelOnClipboardFilter()
     {
         var controller = File.ReadAllText(FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Services", "AppController.cs"));
         var historyWindow = File.ReadAllText(FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Views", "MainWindow.xaml.cs"));
 
-        Assert.Contains("public void ShowHistory() => ShowHistory(_settings.Current.DefaultHistoryFilter);",
+        Assert.Contains("public void ShowHistory()", controller, StringComparison.Ordinal);
+        Assert.Contains("private void ShowClipboardHistory() => ShowHistory();",
             controller, StringComparison.Ordinal);
-        Assert.Contains("private void ShowClipboardHistory() => ShowHistory(\"Clipboard\");",
-            controller, StringComparison.Ordinal);
-        Assert.Contains("_mainWindow.ShowExpanded(initialFilter);", controller, StringComparison.Ordinal);
-        Assert.Contains("public void ShowExpanded(string initialFilter)", historyWindow, StringComparison.Ordinal);
-        Assert.Contains("ApplyHistoryMode(\"Expanded\");", historyWindow, StringComparison.Ordinal);
-        Assert.DoesNotContain("ShowAllHistoryExpanded", controller, StringComparison.Ordinal);
-        Assert.DoesNotContain("ShowAllExpanded", historyWindow, StringComparison.Ordinal);
+        Assert.Contains("_mainWindow.ShowClipboardHistory();", controller, StringComparison.Ordinal);
+        Assert.Contains("public void ShowClipboardHistory()", historyWindow, StringComparison.Ordinal);
+        Assert.Contains("_selectedKind = \"Clipboard\";", historyWindow, StringComparison.Ordinal);
+        Assert.DoesNotContain("DefaultHistoryFilter", controller, StringComparison.Ordinal);
+        Assert.DoesNotContain("ApplyHistoryMode", historyWindow, StringComparison.Ordinal);
     }
 
     [Fact]

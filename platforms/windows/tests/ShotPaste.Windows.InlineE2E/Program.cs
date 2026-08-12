@@ -582,8 +582,7 @@ internal static class Program
 
     private static int HistoryItemCount(int processId)
     {
-        var list = FindByAutomationId(processId, "CompactHistoryCarousel") ??
-                   FindByAutomationId(processId, "ExpandedHistoryGrid");
+        var list = FindByAutomationId(processId, "ExpandedHistoryGrid");
         if (list is null) return 0;
         return list.FindAll(TreeScope.Descendants,
             new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ListItem)).Count;

@@ -32,8 +32,8 @@ public partial class MouseClickOverlayWindow : Window
         _opacity = Math.Clamp(settings.RecordingClickOpacity, 0.1d, 1d);
         _duration = TimeSpan.FromMilliseconds(Math.Clamp(settings.RecordingClickDurationMs, 100, 3000));
         _rippleCount = Math.Clamp(settings.RecordingClickRippleCount, 1, 5);
-        _leftBrush = CreateBrush(settings.RecordingClickLeftColor, "#FF7C3AED");
-        _rightBrush = CreateBrush(settings.RecordingClickRightColor, "#FFFF9F0A");
+        _leftBrush = CreateBrush(settings.RecordingClickLeftColor, "AccentBrush");
+        _rightBrush = CreateBrush(settings.RecordingClickRightColor, "WarningBrush");
         SourceInitialized += (_, _) =>
         {
             ApplyCaptureBounds();
@@ -130,12 +130,12 @@ public partial class MouseClickOverlayWindow : Window
         Height = Math.Max(1, corner.Y - origin.Y);
     }
 
-    private static SolidColorBrush CreateBrush(string value, string fallback)
+    private SolidColorBrush CreateBrush(string value, string fallbackResourceKey)
     {
         try { return new SolidColorBrush((WpfColor)WpfColorConverter.ConvertFromString(value)); }
         catch (Exception exception) when (exception is FormatException or NotSupportedException)
         {
-            return new SolidColorBrush((WpfColor)WpfColorConverter.ConvertFromString(fallback));
+            return ((SolidColorBrush)FindResource(fallbackResourceKey)).CloneCurrentValue();
         }
     }
 }

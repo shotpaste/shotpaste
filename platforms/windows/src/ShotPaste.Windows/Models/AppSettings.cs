@@ -73,7 +73,6 @@ public sealed class AppSettings
     public int RecordingGifFps { get; set; } = 15;
     public int HistoryRetentionDays { get; set; } = 30;
     public int HistoryMaxCount { get; set; } = 1_000;
-    public string DefaultHistoryFilter { get; set; } = "Clipboard";
     public string Theme { get; set; } = "System";
     public string ScreenshotFormat { get; set; } = "Png";
     public int JpegQuality { get; set; } = 90;
@@ -114,20 +113,14 @@ public sealed class AppSettings
     public bool ShortcutsEnabled { get; set; } = true;
     public string OneShotHotkey { get; set; } = "Ctrl+Shift+1";
     public string HistoryHotkey { get; set; } = "Ctrl+Shift+H";
-    public string HistoryModeHotkey { get; set; } = "Ctrl+Shift+J";
     public string RecordingPauseHotkey { get; set; } = "Ctrl+Shift+P";
     public string RecordingAnnotationHotkey { get; set; } = "Ctrl+Shift+D";
     public string RecordingRestartHotkey { get; set; } = "Ctrl+Shift+R";
     public string RecordingDeleteHotkey { get; set; } = "Ctrl+Shift+Backspace";
-    public string HistoryPanelPosition { get; set; } = "TopCenter";
-    public double HistoryPanelScale { get; set; } = 1d;
-    public double HistoryCompactWidth { get; set; } = 860d;
-    public double HistoryCompactHeight { get; set; } = 230d;
     public double HistoryExpandedWidth { get; set; } = 980d;
     public double HistoryExpandedHeight { get; set; } = 680d;
     public double? HistoryExpandedLeft { get; set; }
     public double? HistoryExpandedTop { get; set; }
-    public int HistoryPanelMaxItems { get; set; } = 10;
     public string HistoryBackgroundStyle { get; set; } = "Hud";
 
     public bool ScrollingAutoScrollEnabled { get; set; } = true;

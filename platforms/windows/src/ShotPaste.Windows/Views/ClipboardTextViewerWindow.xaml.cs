@@ -14,6 +14,7 @@ public partial class ClipboardTextViewerWindow : Window
     {
         _item = item;
         InitializeComponent();
+        WindowAppearanceService.Attach(this, WindowBackdropKind.Mica);
         Title = LocalizationService.TranslatePhrase("剪贴板文本");
         CopyButton.Content = LocalizationService.TranslatePhrase("复制全文");
         CloseButton.Content = LocalizationService.TranslatePhrase("关闭");

@@ -1,4 +1,5 @@
 using System.Windows;
+using ShotPaste.Windows.Views;
 
 namespace ShotPaste.Windows.Services;
 
@@ -17,14 +18,31 @@ public static class LocalizedDialogService
         string caption = "ShotPaste",
         MessageBoxButton buttons = MessageBoxButton.OK,
         MessageBoxImage image = MessageBoxImage.None) =>
-        System.Windows.MessageBox.Show(Text(message), Text(caption), buttons, image);
+        ShowCore(null, Text(message), Text(caption), buttons, image);
 
     public static MessageBoxResult Show(
         Window? owner,
         string message,
         string caption = "ShotPaste",
         MessageBoxButton buttons = MessageBoxButton.OK,
-        MessageBoxImage image = MessageBoxImage.None) => owner is null
-        ? System.Windows.MessageBox.Show(Text(message), Text(caption), buttons, image)
-        : System.Windows.MessageBox.Show(owner, Text(message), Text(caption), buttons, image);
+        MessageBoxImage image = MessageBoxImage.None) =>
+        ShowCore(owner, Text(message), Text(caption), buttons, image);
+
+    private static MessageBoxResult ShowCore(
+        Window? owner,
+        string message,
+        string caption,
+        MessageBoxButton buttons,
+        MessageBoxImage image)
+    {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher is not null && !dispatcher.CheckAccess())
+            return dispatcher.Invoke(() => ShowCore(owner, message, caption, buttons, image));
+
+        var dialog = new ShotPasteDialogWindow(message, caption, buttons, image);
+        if (owner?.IsVisible == true) dialog.Owner = owner;
+        else dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        _ = dialog.ShowDialog();
+        return dialog.Result;
+    }
 }

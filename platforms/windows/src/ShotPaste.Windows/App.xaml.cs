@@ -51,6 +51,14 @@ public partial class App : System.Windows.Application
         _commandService.Start(arguments => Dispatcher.BeginInvoke(() => _controller?.HandleExternalCommand(arguments)));
         _controller.Start();
         _controller.HandleExternalCommand(e.Args);
+        if (UiTestMode && e.Args.Any(argument => argument.Equals("--ui-test-toast", StringComparison.OrdinalIgnoreCase)))
+        {
+            _ = Dispatcher.BeginInvoke(() => ToastService.Show(
+                "UI redesign preview",
+                "Toast, material, icon, and motion system ready.",
+                ToastKind.Success,
+                TimeSpan.FromSeconds(30)));
+        }
     }
 
     private static bool TryGetArgumentValue(IReadOnlyList<string> arguments, string name, out string value)
@@ -106,6 +114,7 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        ThemeService.Shutdown();
         _controller?.Dispose();
         _commandService?.Dispose();
         _singleInstance?.Dispose();

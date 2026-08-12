@@ -30,7 +30,7 @@ public sealed class TrayIconServiceTests
     {
         var source = File.ReadAllText(FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Services", "TrayIconService.cs"));
-        var start = source.IndexOf("private Forms.ContextMenuStrip BuildMenu(AppSettings settings)", StringComparison.Ordinal);
+        var start = source.IndexOf("private WpfContextMenu BuildMenu(AppSettings settings)", StringComparison.Ordinal);
         var end = source.IndexOf("private static string Label", start, StringComparison.Ordinal);
 
         Assert.True(start >= 0 && end > start, "BuildMenu method was not found.");
@@ -43,6 +43,8 @@ public sealed class TrayIconServiceTests
         Assert.DoesNotContain("OcrRequested", method, StringComparison.Ordinal);
         Assert.DoesNotContain("录制屏幕", method, StringComparison.Ordinal);
         Assert.Contains("停止录制", method, StringComparison.Ordinal);
+        Assert.DoesNotContain("ContextMenuStrip", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShowBalloonTip", source, StringComparison.Ordinal);
     }
 
     private static string FindRepositoryFile(params string[] relativeParts)

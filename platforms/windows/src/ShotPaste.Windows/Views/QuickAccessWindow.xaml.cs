@@ -34,6 +34,7 @@ public partial class QuickAccessWindow : Window
     {
         App.WriteQuickAccessLog($"Initialize item kind={item.Kind} file={(string.IsNullOrWhiteSpace(item.FilePath) ? "(null)" : item.FilePath)}");
         InitializeComponent();
+        Services.WindowAppearanceService.Attach(this, Services.WindowBackdropKind.Acrylic);
         ShowInTaskbar = App.UiTestMode;
         _item = item;
         _controller = controller;

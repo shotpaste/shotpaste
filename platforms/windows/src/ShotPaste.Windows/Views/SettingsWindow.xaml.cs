@@ -2,6 +2,8 @@ using System.Net.Http;
 using System.Windows;
 using System.Windows.Input;
 using System.Text.Json;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using ShotPaste.Windows.Models;
 using ShotPaste.Windows.Services;
 using WpfTextBox = System.Windows.Controls.TextBox;
@@ -18,6 +20,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow(SettingsStore store, string? initialTab = null)
     {
         InitializeComponent();
+        WindowAppearanceService.Attach(this, WindowBackdropKind.Mica);
         _store = store;
         _draft = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(store.Current)) ?? new AppSettings();
         DataContext = _draft;
@@ -69,6 +72,25 @@ public partial class SettingsWindow : Window
             _ => null
         };
         if (item is not null) item.IsSelected = true;
+    }
+
+    private void OnSettingsTabChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded || !ReferenceEquals(e.Source, SettingsTabs)) return;
+        _ = Dispatcher.BeginInvoke(() =>
+        {
+            if (SettingsTabs.Template.FindName("PART_SelectedContentHost", SettingsTabs) is not System.Windows.Controls.ContentPresenter host) return;
+            host.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            });
+            var translate = host.RenderTransform as TranslateTransform ?? new TranslateTransform();
+            host.RenderTransform = translate;
+            translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(4, 0, TimeSpan.FromMilliseconds(150))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            });
+        });
     }
 
     private void OnChooseDirectory(object sender, RoutedEventArgs e)
@@ -162,8 +184,6 @@ public partial class SettingsWindow : Window
         _draft.HistoryRetentionDays = Math.Max(0, _draft.HistoryRetentionDays);
         _draft.HistoryMaxCount = Math.Max(0, _draft.HistoryMaxCount);
         _draft.DiagnosticsRetentionDays = Math.Clamp(_draft.DiagnosticsRetentionDays, 1, 30);
-        _draft.HistoryPanelScale = Math.Clamp(_draft.HistoryPanelScale, 0.75d, 1.5d);
-        _draft.HistoryPanelMaxItems = Math.Clamp(_draft.HistoryPanelMaxItems, 3, 50);
         _draft.QuickAccessAutoDismissSeconds = Math.Clamp(_draft.QuickAccessAutoDismissSeconds, 3, 30);
         _draft.QuickAccessScale = Math.Clamp(_draft.QuickAccessScale, 0.75d, 1.5d);
         _draft.RecordingGifFps = Math.Clamp(_draft.RecordingGifFps, 5, 30);
@@ -302,7 +322,7 @@ public partial class SettingsWindow : Window
     private (string Name, string Gesture)[] GetHotkeys() =>
     [
         ("One Shot", _draft.OneShotHotkey),
-        ("剪贴板历史", _draft.HistoryHotkey), ("切换剪贴板历史布局", _draft.HistoryModeHotkey),
+        ("剪贴板历史", _draft.HistoryHotkey),
         ("录屏暂停/继续", _draft.RecordingPauseHotkey),
         ("录屏标注", _draft.RecordingAnnotationHotkey), ("重新录制", _draft.RecordingRestartHotkey),
         ("删除当前录屏", _draft.RecordingDeleteHotkey)
@@ -319,7 +339,7 @@ public partial class SettingsWindow : Window
         var empty = new AppSettings
         {
             OneShotHotkey = string.Empty,
-            HistoryHotkey = string.Empty, HistoryModeHotkey = string.Empty,
+            HistoryHotkey = string.Empty,
             RecordingPauseHotkey = string.Empty, RecordingAnnotationHotkey = string.Empty,
             RecordingRestartHotkey = string.Empty, RecordingDeleteHotkey = string.Empty
         };
@@ -329,7 +349,7 @@ public partial class SettingsWindow : Window
     private void CopyHotkeys(AppSettings source)
     {
         _draft.OneShotHotkey = source.OneShotHotkey;
-        _draft.HistoryHotkey = source.HistoryHotkey; _draft.HistoryModeHotkey = source.HistoryModeHotkey;
+        _draft.HistoryHotkey = source.HistoryHotkey;
         _draft.RecordingPauseHotkey = source.RecordingPauseHotkey;
         _draft.RecordingAnnotationHotkey = source.RecordingAnnotationHotkey;
         _draft.RecordingRestartHotkey = source.RecordingRestartHotkey; _draft.RecordingDeleteHotkey = source.RecordingDeleteHotkey;
@@ -348,7 +368,6 @@ public partial class SettingsWindow : Window
             ShortcutsEnabled = previous.ShortcutsEnabled,
             OneShotHotkey = previous.OneShotHotkey,
             HistoryHotkey = previous.HistoryHotkey,
-            HistoryModeHotkey = previous.HistoryModeHotkey,
             RecordingPauseHotkey = previous.RecordingPauseHotkey,
             RecordingAnnotationHotkey = previous.RecordingAnnotationHotkey,
             RecordingRestartHotkey = previous.RecordingRestartHotkey,

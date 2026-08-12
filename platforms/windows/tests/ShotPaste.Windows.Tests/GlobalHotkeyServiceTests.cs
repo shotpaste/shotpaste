@@ -60,7 +60,6 @@ public sealed class GlobalHotkeyServiceTests
         {
             settings.OneShotHotkey,
             settings.HistoryHotkey,
-            settings.HistoryModeHotkey,
             settings.RecordingPauseHotkey,
             settings.RecordingAnnotationHotkey,
             settings.RecordingRestartHotkey,
@@ -81,8 +80,7 @@ public sealed class GlobalHotkeyServiceTests
                 HotkeyAction.RecordingPause,
                 HotkeyAction.RecordingAnnotation,
                 HotkeyAction.RecordingRestart,
-                HotkeyAction.RecordingDelete,
-                HotkeyAction.HistoryMode
+                HotkeyAction.RecordingDelete
             ],
             Enum.GetValues<HotkeyAction>());
     }

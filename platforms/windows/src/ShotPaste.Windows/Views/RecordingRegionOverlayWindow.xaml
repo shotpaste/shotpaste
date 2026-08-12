@@ -5,15 +5,15 @@
         AllowsTransparency="True" Background="Transparent" ShowInTaskbar="False"
         ShowActivated="False" Focusable="False" Topmost="True">
   <Canvas x:Name="OverlayCanvas">
-    <Rectangle x:Name="DimTop" Fill="#52000000"/>
-    <Rectangle x:Name="DimLeft" Fill="#52000000"/>
-    <Rectangle x:Name="DimRight" Fill="#52000000"/>
-    <Rectangle x:Name="DimBottom" Fill="#52000000"/>
-    <Rectangle x:Name="TopLine" Fill="#FF0A84FF"/>
-    <Rectangle x:Name="RightLine" Fill="#FF0A84FF"/>
-    <Rectangle x:Name="BottomLine" Fill="#FF0A84FF"/>
-    <Rectangle x:Name="LeftLine" Fill="#FF0A84FF"/>
-    <Rectangle x:Name="SelectionHitTarget" Fill="#01000000" Cursor="SizeAll"
+    <Rectangle x:Name="DimTop" Fill="{DynamicResource Recording.DimBrush}"/>
+    <Rectangle x:Name="DimLeft" Fill="{DynamicResource Recording.DimBrush}"/>
+    <Rectangle x:Name="DimRight" Fill="{DynamicResource Recording.DimBrush}"/>
+    <Rectangle x:Name="DimBottom" Fill="{DynamicResource Recording.DimBrush}"/>
+    <Rectangle x:Name="TopLine" Fill="{DynamicResource AccentBrush}"/>
+    <Rectangle x:Name="RightLine" Fill="{DynamicResource AccentBrush}"/>
+    <Rectangle x:Name="BottomLine" Fill="{DynamicResource AccentBrush}"/>
+    <Rectangle x:Name="LeftLine" Fill="{DynamicResource AccentBrush}"/>
+    <Rectangle x:Name="SelectionHitTarget" Fill="{DynamicResource Capture.HitTargetBrush}" Cursor="SizeAll"
                MouseLeftButtonDown="OnSelectionMouseDown"
                MouseMove="OnSelectionMouseMove"
                MouseEnter="OnSelectionMouseEnter"
