@@ -81,17 +81,28 @@ tied to the application signing identity.
 
 ### Automated releases
 
-Pushing a stable semantic-version tag in the form `vMAJOR.MINOR.PATCH`, such as
-`v1.2.3`, triggers `.github/workflows/release.yml`. The workflow builds the
-certificate-signed Apple Silicon DMG and the self-contained Windows x64 portable
-ZIP in parallel. It publishes a non-draft GitHub Release only after both jobs
-succeed, together with `SHA256SUMS.txt` and the two platform startup guides.
+macOS and Windows have independent stable release streams. Tags must point to a
+commit contained in `release` and use one of these exact forms:
 
-The macOS job requires the repository Actions secrets `SELF_SIGNED_CERT_P12` and
-`SELF_SIGNED_CERT_PASSWORD`. It verifies the imported certificate against the
-fixed release fingerprint before building. Invalid tags, missing credentials,
-failed tests, failed builds, or missing artifacts stop the workflow before a
-GitHub Release is created.
+- `macos-vMAJOR.MINOR.PATCH`, for example `macos-v1.3.0`, triggers
+  `.github/workflows/release-macos.yml`.
+- `windows-vMAJOR.MINOR.PATCH`, for example `windows-v1.2.4`, triggers
+  `.github/workflows/release-windows.yml`.
+
+Each workflow runs the native tests and release build for only its platform,
+creates the matching package, verifies `SHA256SUMS.txt`, and publishes a
+non-draft platform-specific GitHub Release with the matching startup guide.
+Platform releases can therefore advance at different versions and on different
+schedules. Pull requests into `release` still run both platform validation jobs
+so the stable source branch remains buildable for both clients.
+
+The macOS workflow requires the repository Actions secrets
+`SELF_SIGNED_CERT_P12` and `SELF_SIGNED_CERT_PASSWORD`. It verifies the imported
+certificate against the fixed release fingerprint before building. Invalid
+tags, tags outside `release`, missing credentials, failed tests, failed builds,
+or missing artifacts stop the applicable workflow before a GitHub Release is
+created. Official platform tags are immutable and may be created only by the
+repository owner.
 
 ## Windows
 

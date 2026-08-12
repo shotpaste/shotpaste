@@ -50,22 +50,51 @@ done
 
 REPO="shotpaste/shotpaste"
 
+is_stable_version() {
+  [[ "$1" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+}
+
+is_newer_version() {
+  local candidate="$1" current="$2"
+  local candidate_major candidate_minor candidate_patch
+  local current_major current_minor current_patch
+  IFS=. read -r candidate_major candidate_minor candidate_patch <<< "$candidate"
+  IFS=. read -r current_major current_minor current_patch <<< "$current"
+
+  (( candidate_major > current_major )) ||
+    (( candidate_major == current_major && candidate_minor > current_minor )) ||
+    (( candidate_major == current_major && candidate_minor == current_minor && candidate_patch > current_patch ))
+}
+
 if [[ -z "${VERSION:-}" ]]; then
-  info "Fetching latest release version…"
-  VERSION=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
-    | grep '"tag_name"' \
-    | head -1 \
-    | sed -E 's/.*"v([^"]+)".*/\1/')
-  [[ -n "$VERSION" ]] || fail "Could not determine the latest release version."
+  info "Fetching latest macOS release version…"
+  releases_json=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases?per_page=100")
+  latest_version=""
+  while IFS= read -r candidate_tag; do
+    candidate_version="${candidate_tag#macos-v}"
+    if is_stable_version "$candidate_version" &&
+      { [[ -z "$latest_version" ]] || is_newer_version "$candidate_version" "$latest_version"; }; then
+      latest_version="$candidate_version"
+    fi
+  done < <(
+    printf '%s' "$releases_json" \
+      | grep -Eo '"tag_name"[[:space:]]*:[[:space:]]*"macos-v[^"]+"' \
+      | sed -E 's/.*"(macos-v[^"]+)"/\1/'
+  )
+  VERSION="$latest_version"
+  [[ -n "$VERSION" ]] || fail "Could not determine the latest macOS release version."
+else
+  VERSION="${VERSION#macos-v}"
+  VERSION="${VERSION#v}"
 fi
 
-# Strip leading "v" if present
-VERSION="${VERSION#v}"
+is_stable_version "$VERSION" || fail "VERSION must use MAJOR.MINOR.PATCH."
+TAG="macos-v${VERSION}"
 
 DMG_NAME="ShotPaste-v${VERSION}-macOS-arm64.dmg"
 CHECKSUM_NAME="SHA256SUMS.txt"
-DOWNLOAD_URL="https://github.com/${REPO}/releases/download/v${VERSION}/${DMG_NAME}"
-CHECKSUM_URL="https://github.com/${REPO}/releases/download/v${VERSION}/${CHECKSUM_NAME}"
+DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/${DMG_NAME}"
+CHECKSUM_URL="https://github.com/${REPO}/releases/download/${TAG}/${CHECKSUM_NAME}"
 
 printf "\n${BOLD}ShotPaste Installer${RESET}  •  v%s\n\n" "$VERSION"
 

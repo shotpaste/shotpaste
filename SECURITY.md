@@ -23,7 +23,9 @@ information.
 
 | Version | Supported |
 | --- | --- |
-| Latest release | Yes |
+| Latest macOS release | Yes |
+| Latest Windows release | Yes |
+| Current `release` branch | Yes |
 | Current `main` branch | Yes |
 | Older releases | No; upgrade to the latest release |
 

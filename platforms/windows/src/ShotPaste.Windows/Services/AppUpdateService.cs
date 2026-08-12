@@ -55,8 +55,10 @@ internal sealed record AppUpdateCheckResult(
 
 internal sealed class AppUpdateService
 {
-    internal static readonly Uri LatestReleaseApiUri = new(
-        "https://api.github.com/repos/shotpaste/shotpaste/releases/latest");
+    internal static readonly Uri ReleasesApiUri = new(
+        "https://api.github.com/repos/shotpaste/shotpaste/releases?per_page=100");
+
+    private const string PlatformTagPrefix = "windows-v";
 
     private static readonly HttpClient SharedClient = new() { Timeout = TimeSpan.FromSeconds(15) };
     private readonly HttpClient _client;
@@ -77,7 +79,7 @@ internal sealed class AppUpdateService
         if (!AppReleaseVersion.TryParse(CurrentVersionString, out var currentVersion))
             throw new InvalidDataException("The installed application version is not stable SemVer.");
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, LatestReleaseApiUri);
+        using var request = new HttpRequestMessage(HttpMethod.Get, ReleasesApiUri);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
         request.Headers.UserAgent.ParseAdd($"ShotPaste/{currentVersion}");
@@ -96,11 +98,37 @@ internal sealed class AppUpdateService
         using var document = await JsonDocument.ParseAsync(
             responseStream,
             cancellationToken: cancellationToken).ConfigureAwait(false);
-        var root = document.RootElement;
+        if (document.RootElement.ValueKind != JsonValueKind.Array)
+            throw new InvalidDataException("GitHub returned an invalid stable Release.");
 
-        if (!root.TryGetProperty("tag_name", out var tagElement) ||
+        AppRelease? release = null;
+        foreach (var candidate in document.RootElement.EnumerateArray())
+        {
+            var parsed = ParseWindowsRelease(candidate);
+            if (parsed is not null &&
+                (release is null || parsed.Version.CompareTo(release.Version) > 0))
+                release = parsed;
+        }
+
+        if (release is null)
+            throw new InvalidDataException("GitHub returned no valid stable Windows Release.");
+
+        return new AppUpdateCheckResult(
+            release.Version.CompareTo(currentVersion) > 0
+                ? AppUpdateAvailability.UpdateAvailable
+                : AppUpdateAvailability.UpToDate,
+            currentVersion,
+            release);
+    }
+
+    private static AppRelease? ParseWindowsRelease(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty("tag_name", out var tagElement) ||
             tagElement.ValueKind != JsonValueKind.String ||
-            !AppReleaseVersion.TryParse(tagElement.GetString(), out var latestVersion) ||
+            tagElement.GetString() is not { } tag ||
+            !tag.StartsWith(PlatformTagPrefix, StringComparison.Ordinal) ||
+            !AppReleaseVersion.TryParse(tag[PlatformTagPrefix.Length..], out var version) ||
             !root.TryGetProperty("html_url", out var htmlUrlElement) ||
             htmlUrlElement.ValueKind != JsonValueKind.String ||
             !Uri.TryCreate(htmlUrlElement.GetString(), UriKind.Absolute, out var htmlUrl) ||
@@ -108,17 +136,21 @@ internal sealed class AppUpdateService
             draftElement.ValueKind != JsonValueKind.False ||
             !root.TryGetProperty("prerelease", out var prereleaseElement) ||
             prereleaseElement.ValueKind != JsonValueKind.False ||
+            !root.TryGetProperty("assets", out var assetsElement) ||
+            assetsElement.ValueKind != JsonValueKind.Array ||
+            !HasWindowsPackage(assetsElement, version) ||
             !IsTrustedReleasePageUri(htmlUrl))
-            throw new InvalidDataException("GitHub returned an invalid stable Release.");
+            return null;
 
-        var release = new AppRelease(latestVersion, htmlUrl);
-        return new AppUpdateCheckResult(
-            latestVersion.CompareTo(currentVersion) > 0
-                ? AppUpdateAvailability.UpdateAvailable
-                : AppUpdateAvailability.UpToDate,
-            currentVersion,
-            release);
+        return new AppRelease(version, htmlUrl);
     }
+
+    private static bool HasWindowsPackage(JsonElement assets, AppReleaseVersion version) =>
+        assets.EnumerateArray().Any(asset =>
+            asset.ValueKind == JsonValueKind.Object &&
+            asset.TryGetProperty("name", out var nameElement) &&
+            nameElement.ValueKind == JsonValueKind.String &&
+            nameElement.GetString() == $"ShotPaste-v{version}-Windows-x64-portable.zip");
 
     private static string? InstalledVersion()
     {
