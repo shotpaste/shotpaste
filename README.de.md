@@ -19,37 +19,51 @@ Cloud-Uploads, entfernten Speicher oder Synchronisierung.
 
 - **One Shot:** Bereich einmal auswählen und danach Screenshot,
   Scroll-Aufnahme, Aufnahme oder Zwischenablageverlauf wählen.
-- **Screenshots:** Auswahl im eingefrorenen Bild, Fenstererkennung sowie
-  konfigurierbares Format, Benennung, Skalierung, Mauszeiger und Desktopoptionen.
+
+  [![One-Shot-Modusauswahl](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+
+- **Screenshots und OCR:** Auswahl im eingefrorenen Bild, Fenstererkennung,
+  lokale Texterkennung sowie konfigurierbares Format, Benennung, Skalierung,
+  Mauszeiger und Desktopoptionen.
+
+  [![Lokale OCR aus einem Screenshot](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
 - **Integrierte Anmerkungen:** Auswahl, Formen, Pfeile, Text, Textmarker,
-  Mosaik, Fokus, Zähler, Stift, Rückgängig/Wiederholen, OCR, QR, Kopieren und
+  Mosaik, Fokus, Zähler, Stift, Rückgängig/Wiederholen, QR, Kopieren und
   Anheften.
+
+  [![Werkzeuge für integrierte Anmerkungen](assets/readme/inline.gif)](assets/readme/inline.gif)
+
 - **Scroll-Aufnahme:** manuelles oder automatisches Scrollen, Live-Vorschau,
   Schutz vor Duplikaten und falscher Richtung sowie Zusammensetzen langer Bilder.
+
+  [![Scroll-Aufnahme](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+
 - **Aufnahme:** Bereichsvideo oder GIF, Systemaudio, Mikrofon, Maus- und
   Klickeffekte, Tastenanzeige, Pause, Neustart, Verwerfen, Einzelbilder und
   Live-Zeichnen.
+
+  [![Aufnahme mit Live-Anmerkungen](assets/readme/recording.gif)](assets/readme/recording.gif)
+
 - **Quick Access und Pins:** konfigurierbare Karten, Kopieren/Speichern/Öffnen,
   Zieh- und Wischaktionen, Countdown und stets sichtbare Bild-Pins.
+
+  [![Quick-Access-Bild-Pin](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+
+  [![Mehrere stets sichtbare Bild-Pins](assets/readme/pin.gif)](assets/readme/pin.gif)
+
 - **Zwischenablageverlauf:** lokaler SQLite-Verlauf für Screenshots,
   Aufnahmen, Text, Bilder und Dateien mit Suche, Filtern, Aufbewahrung und
   Bereinigung.
+
+  [![Durchsuchbarer Aufnahme- und Zwischenablageverlauf](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+
 - **Anpassung:** globale Tastenkürzel, Aktionen nach der Aufnahme,
   Ausgabeordner, Darstellung, Diagnose, URL-Befehle und zehn Sprachen.
 
+  [![ShotPaste-Einstellungen](assets/readme/settings.gif)](assets/readme/settings.gif)
+
 Siehe [vollständige Funktionsliste](docs/FEATURES.md).
-
-## Funktionsübersicht
-
-| **One Shot** | **Screenshots** |
-|:---:|:---:|
-| [![One-Shot-Modusauswahl](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![Screenshot-Bereich und Werkzeugleiste](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
-| **Integrierte Anmerkungen** | **Scroll-Aufnahme** |
-| [![Werkzeuge für integrierte Anmerkungen](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![Bereich für die Scroll-Aufnahme](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
-| **Aufnahme** | **Quick Access und Pins** |
-| [![Aufnahmebereich und Optionen](assets/readme/recording.png)](assets/readme/recording.png) | [![Quick-Access-Karte und angeheftetes Bild](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
-| **Zwischenablageverlauf** | **Anpassung** |
-| [![Durchsuchbarer Aufnahme- und Zwischenablageverlauf](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![Einstellungen zur Screenshot-Anpassung](assets/readme/customization.png)](assets/readme/customization.png) |
 
 ## Plattformen
 

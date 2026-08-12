@@ -17,32 +17,46 @@ ShotPaste 为 macOS 和 Windows 提供彼此独立的原生客户端。截屏、
 ## 功能
 
 - **One Shot：** 只选择一次区域，即可切换截图、滚动截屏、录屏或剪贴板历史。
-- **截图：** 冻结选区、窗口识别、输出格式、命名、缩放、光标和桌面显示设置。
+
+  [![One Shot 模式选择器](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+
+- **截图与 OCR：** 冻结选区、窗口识别、输出格式、命名、缩放、光标和桌面显示
+  设置，以及本地文字识别。
+
+  [![截图本地 OCR](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
 - **内联标注：** 选择、形状、箭头、文字、高亮、马赛克、聚光灯、序号、画笔、
-  撤销/重做、OCR、二维码、复制和贴图。
+  撤销/重做、二维码、复制和贴图。
+
+  [![内联标注工具](assets/readme/inline.gif)](assets/readme/inline.gif)
+
 - **滚动截屏：** 手动/自动滚动、实时预览、方向和重复帧保护、长图拼接。
+
+  [![滚动截屏](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+
 - **录屏：** 区域视频或 GIF、系统声音、麦克风、鼠标效果、按键显示、暂停、
   重录、丢弃、快照和实时画笔。
+
+  [![录屏与实时画笔](assets/readme/recording.gif)](assets/readme/recording.gif)
+
 - **Quick Access 与贴图：** 可配置的捕获后卡片、复制/保存/打开、拖拽、滑动、
   倒计时和置顶图片。
+
+  [![Quick Access 贴图](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+
+  [![多张置顶贴图](assets/readme/pin.gif)](assets/readme/pin.gif)
+
 - **剪贴板历史：** 本地 SQLite 保存截图、录屏、文本、图片和复制的文件，支持
   搜索、筛选、保留策略和清理。
+
+  [![可搜索的捕获与剪贴板历史](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+
 - **自定义：** 全局快捷键、捕获后动作、输出目录、外观、诊断、URL 命令和
   10 种界面语言。
 
+  [![ShotPaste 设置](assets/readme/settings.gif)](assets/readme/settings.gif)
+
 完整说明见[功能列表](docs/FEATURES.md)。
-
-## 功能展示
-
-| **One Shot** | **截图** |
-|:---:|:---:|
-| [![One Shot 模式选择器](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![截图选区与工具栏](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
-| **内联标注** | **滚动截屏** |
-| [![内联标注工具](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![滚动截屏选区](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
-| **录屏** | **Quick Access 与贴图** |
-| [![录屏区域与选项](assets/readme/recording.png)](assets/readme/recording.png) | [![Quick Access 卡片与置顶贴图](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
-| **剪贴板历史** | **自定义** |
-| [![可搜索的捕获与剪贴板历史](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![截图自定义设置](assets/readme/customization.png)](assets/readme/customization.png) |
 
 ## 平台
 

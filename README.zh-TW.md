@@ -17,32 +17,46 @@ ShotPaste 為 macOS 與 Windows 提供彼此獨立的原生客戶端。擷取、
 ## 功能
 
 - **One Shot：** 只選取一次區域，即可切換截圖、捲動擷取、錄影或剪貼簿歷史。
-- **截圖：** 凍結選區、視窗辨識、輸出格式、命名、縮放、游標與桌面顯示設定。
+
+  [![One Shot 模式選擇器](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+
+- **截圖與 OCR：** 凍結選區、視窗辨識、輸出格式、命名、縮放、游標與桌面顯示
+  設定，以及本機文字辨識。
+
+  [![截圖本機 OCR](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
 - **內嵌標註：** 選取、形狀、箭頭、文字、螢光筆、馬賽克、聚光燈、編號、畫筆、
-  復原/重做、OCR、QR Code、複製與釘選。
+  復原/重做、QR Code、複製與釘選。
+
+  [![內嵌標註工具](assets/readme/inline.gif)](assets/readme/inline.gif)
+
 - **捲動擷取：** 手動/自動捲動、即時預覽、方向與重複畫面保護、長圖拼接。
+
+  [![捲動擷取](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+
 - **錄影：** 區域影片或 GIF、系統聲音、麥克風、滑鼠效果、按鍵顯示、暫停、
   重新錄製、捨棄、快照與即時畫筆。
+
+  [![錄影與即時畫筆](assets/readme/recording.gif)](assets/readme/recording.gif)
+
 - **Quick Access 與釘選：** 可設定的擷取後卡片、複製/儲存/開啟、拖放、滑動、
   倒數計時與置頂圖片。
+
+  [![Quick Access 釘選圖片](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+
+  [![多張置頂圖片](assets/readme/pin.gif)](assets/readme/pin.gif)
+
 - **剪貼簿歷史：** 以本機 SQLite 保存截圖、錄影、文字、圖片與複製的檔案，
   支援搜尋、篩選、保留規則與清理。
+
+  [![可搜尋的擷取與剪貼簿歷史](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+
 - **自訂：** 全域快速鍵、擷取後動作、輸出資料夾、外觀、診斷、URL 指令與
   10 種介面語言。
 
+  [![ShotPaste 設定](assets/readme/settings.gif)](assets/readme/settings.gif)
+
 完整內容請參閱[功能列表](docs/FEATURES.md)。
-
-## 功能展示
-
-| **One Shot** | **截圖** |
-|:---:|:---:|
-| [![One Shot 模式選擇器](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![截圖選區與工具列](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
-| **內嵌標註** | **捲動擷取** |
-| [![內嵌標註工具](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![捲動擷取選區](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
-| **錄影** | **Quick Access 與釘選** |
-| [![錄影區域與選項](assets/readme/recording.png)](assets/readme/recording.png) | [![Quick Access 卡片與置頂圖片](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
-| **剪貼簿歷史** | **自訂** |
-| [![可搜尋的擷取與剪貼簿歷史](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![截圖自訂設定](assets/readme/customization.png)](assets/readme/customization.png) |
 
 ## 平台
 

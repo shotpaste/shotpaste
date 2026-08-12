@@ -19,34 +19,47 @@ OCR, записи, история, буфер обмена и настройки
 
 - **One Shot:** один раз выберите область, затем используйте снимок, прокрутку,
   запись или историю буфера обмена.
-- **Снимки:** замороженная область выбора, распознавание окон, формат, имена,
-  масштаб, курсор и параметры рабочего стола.
+
+  [![Выбор режима One Shot](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+
+- **Снимки и OCR:** замороженная область выбора, распознавание окон и текста
+  на устройстве, формат, имена, масштаб, курсор и параметры рабочего стола.
+
+  [![Локальное OCR снимка](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
 - **Встроенные аннотации:** выбор, фигуры, стрелки, текст, маркер, мозаика,
-  прожектор, счётчик, карандаш, отмена/повтор, OCR, QR, копирование и закрепление.
+  прожектор, счётчик, карандаш, отмена/повтор, QR, копирование и закрепление.
+
+  [![Инструменты встроенных аннотаций](assets/readme/inline.gif)](assets/readme/inline.gif)
+
 - **Захват прокрутки:** ручная/автоматическая прокрутка, предпросмотр, защита от
   смены направления и дубликатов, склейка длинных изображений.
+
+  [![Захват прокрутки](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+
 - **Запись:** видео области или GIF, системный звук, микрофон, эффекты мыши,
   показ клавиш, пауза, перезапуск, удаление, снимки и рисование в реальном времени.
+
+  [![Запись с аннотациями в реальном времени](assets/readme/recording.gif)](assets/readme/recording.gif)
+
 - **Quick Access и закрепления:** настраиваемые карточки, копирование/сохранение/
   открытие, перетаскивание, жесты, таймер и изображения поверх окон.
+
+  [![Закрепление изображения из Quick Access](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+
+  [![Несколько изображений поверх окон](assets/readme/pin.gif)](assets/readme/pin.gif)
+
 - **История буфера обмена:** локальная SQLite для снимков, записей, текста,
   изображений и файлов с поиском, фильтрами, сроком хранения и очисткой.
+
+  [![История снимков и буфера обмена с поиском](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+
 - **Настройка:** глобальные сочетания клавиш, действия после захвата, папка
   вывода, оформление, диагностика, URL-команды и десять языков.
 
+  [![Настройки ShotPaste](assets/readme/settings.gif)](assets/readme/settings.gif)
+
 См. [полный список функций](docs/FEATURES.md).
-
-## Галерея возможностей
-
-| **One Shot** | **Снимки** |
-|:---:|:---:|
-| [![Выбор режима One Shot](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![Область снимка и панель инструментов](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
-| **Встроенные аннотации** | **Захват прокрутки** |
-| [![Инструменты встроенных аннотаций](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![Область захвата прокрутки](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
-| **Запись** | **Quick Access и закрепления** |
-| [![Область и параметры записи](assets/readme/recording.png)](assets/readme/recording.png) | [![Карточка Quick Access и закреплённое изображение](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
-| **История буфера обмена** | **Настройка** |
-| [![История снимков и буфера обмена с поиском](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![Параметры настройки снимков](assets/readme/customization.png)](assets/readme/customization.png) |
 
 ## Платформы
 

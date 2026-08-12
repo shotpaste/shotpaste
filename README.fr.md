@@ -19,37 +19,51 @@ ni envoi vers le cloud, ni stockage distant, ni synchronisation.
 
 - **One Shot :** sélectionnez une zone une seule fois, puis choisissez Capture,
   Capture avec défilement, Enregistrement ou Historique du presse-papiers.
-- **Captures :** sélection sur image figée, ciblage des fenêtres, format,
-  nommage, échelle, curseur et options du bureau configurables.
+
+  [![Sélecteur de mode One Shot](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+
+- **Captures et OCR :** sélection sur image figée, ciblage des fenêtres,
+  reconnaissance locale du texte, format, nommage, échelle, curseur et options
+  du bureau configurables.
+
+  [![OCR local depuis une capture](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
 - **Annotation intégrée :** sélection, formes, flèches, texte, surligneur,
-  mosaïque, projecteur, compteur, crayon, annuler/rétablir, OCR, QR, copie et
+  mosaïque, projecteur, compteur, crayon, annuler/rétablir, QR, copie et
   épinglage.
+
+  [![Outils d’annotation intégrée](assets/readme/inline.gif)](assets/readme/inline.gif)
+
 - **Capture avec défilement :** défilement manuel ou automatique, aperçu en
   direct, contrôle des doublons et du sens, assemblage en image longue.
+
+  [![Capture avec défilement](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+
 - **Enregistrement :** vidéo de zone ou GIF, son système, microphone, effets du
   pointeur, affichage des touches, pause, reprise, suppression, instantanés et
   dessin en direct.
+
+  [![Enregistrement avec annotation en direct](assets/readme/recording.gif)](assets/readme/recording.gif)
+
 - **Quick Access et épingles :** cartes configurables, copier/enregistrer/ouvrir,
   glisser, balayer, compte à rebours et images toujours visibles.
+
+  [![Image épinglée depuis Quick Access](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+
+  [![Plusieurs images toujours visibles](assets/readme/pin.gif)](assets/readme/pin.gif)
+
 - **Historique du presse-papiers :** stockage SQLite local des captures,
   enregistrements, textes, images et fichiers, avec recherche, filtres,
   conservation et nettoyage.
+
+  [![Historique consultable des captures et du presse-papiers](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+
 - **Personnalisation :** raccourcis globaux, actions après capture, dossier de
   sortie, apparence, diagnostics, commandes URL et dix langues d’interface.
 
+  [![Réglages de ShotPaste](assets/readme/settings.gif)](assets/readme/settings.gif)
+
 Consultez la [liste complète des fonctionnalités](docs/FEATURES.md).
-
-## Galerie des fonctionnalités
-
-| **One Shot** | **Captures** |
-|:---:|:---:|
-| [![Sélecteur de mode One Shot](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![Zone et barre d’outils de capture](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
-| **Annotation intégrée** | **Capture avec défilement** |
-| [![Outils d’annotation intégrée](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![Zone de capture avec défilement](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
-| **Enregistrement** | **Quick Access et épingles** |
-| [![Zone et options d’enregistrement](assets/readme/recording.png)](assets/readme/recording.png) | [![Carte Quick Access et image épinglée](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
-| **Historique du presse-papiers** | **Personnalisation** |
-| [![Historique consultable des captures et du presse-papiers](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![Réglages de personnalisation des captures](assets/readme/customization.png)](assets/readme/customization.png) |
 
 ## Plateformes
 

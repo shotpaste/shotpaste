@@ -19,34 +19,48 @@ storage, or synchronization.
 
 - **One Shot:** select an area once, then choose Screenshot, Scrolling,
   Recording, or Clipboard History.
-- **Screenshots:** frozen region selection, window targeting, configurable
-  output format, naming, scale, cursor, desktop, and notification behavior.
+
+  [![One Shot mode picker](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+
+- **Screenshots and OCR:** frozen region selection, window targeting, local
+  text recognition, and configurable output format, naming, scale, cursor,
+  desktop, and notification behavior.
+
+  [![Local OCR from a screenshot](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
 - **Inline annotation:** selection, shapes, arrows, text, highlighter, mosaic,
-  spotlight, counter, pencil, undo/redo, OCR, QR detection, copy, and pin.
+  spotlight, counter, pencil, undo/redo, QR detection, copy, and pin.
+
+  [![Inline annotation tools](assets/readme/inline.gif)](assets/readme/inline.gif)
+
 - **Scrolling capture:** manual and automatic scrolling, live preview,
   duplicate/direction protection, and long-image stitching.
+
+  [![Scrolling capture](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+
 - **Recording:** region video or GIF, system audio, microphone, cursor and click
   effects, keystroke overlay, pause/restart/discard, snapshots, and live ink.
+
+  [![Recording with live annotation](assets/readme/recording.gif)](assets/readme/recording.gif)
+
 - **Quick Access and pins:** configurable post-capture cards, copy/save/open,
   drag and swipe actions, countdown, and always-on-top image pins.
+
+  [![Quick Access image pin](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+
+  [![Multiple always-on-top image pins](assets/readme/pin.gif)](assets/readme/pin.gif)
+
 - **Clipboard History:** local SQLite history for captures, recordings, text,
   images, and copied files, with search, filters, retention, and cleanup.
+
+  [![Searchable capture and clipboard history](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+
 - **Customization:** global shortcuts, after-capture actions, output folders,
   appearance, diagnostics, URL commands, and ten interface languages.
 
+  [![ShotPaste settings](assets/readme/settings.gif)](assets/readme/settings.gif)
+
 See [the complete feature list](docs/FEATURES.md).
-
-## Feature gallery
-
-| **One Shot** | **Screenshots** |
-|:---:|:---:|
-| [![One Shot mode picker](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![Screenshot selection and toolbar](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
-| **Inline annotation** | **Scrolling capture** |
-| [![Inline annotation tools](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![Scrolling capture selection](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
-| **Recording** | **Quick Access and pins** |
-| [![Recording area and options](assets/readme/recording.png)](assets/readme/recording.png) | [![Quick Access card and pinned image](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
-| **Clipboard History** | **Customization** |
-| [![Searchable capture and clipboard history](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![Capture customization settings](assets/readme/customization.png)](assets/readme/customization.png) |
 
 ## Platforms
 

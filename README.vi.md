@@ -19,34 +19,47 @@ không cung cấp tài khoản, đo lường từ xa, tải lên đám mây, lư
 
 - **One Shot:** chọn vùng một lần rồi dùng Ảnh chụp, Chụp cuộn, Ghi màn hình
   hoặc Lịch sử bảng tạm.
-- **Ảnh chụp:** vùng chọn đóng băng, nhận diện cửa sổ, định dạng, tên tệp, tỉ lệ,
-  con trỏ và tùy chọn màn hình nền.
+
+  [![Bộ chọn chế độ One Shot](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+
+- **Ảnh chụp và OCR:** vùng chọn đóng băng, nhận diện cửa sổ và văn bản cục bộ,
+  định dạng, tên tệp, tỉ lệ, con trỏ và tùy chọn màn hình nền.
+
+  [![OCR cục bộ từ ảnh chụp](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
 - **Chú thích trực tiếp:** vùng chọn, hình, mũi tên, chữ, tô sáng, mosaic, đèn rọi,
-  số thứ tự, bút, hoàn tác/làm lại, OCR, QR, sao chép và ghim.
+  số thứ tự, bút, hoàn tác/làm lại, QR, sao chép và ghim.
+
+  [![Công cụ chú thích trực tiếp](assets/readme/inline.gif)](assets/readme/inline.gif)
+
 - **Chụp cuộn:** cuộn thủ công/tự động, xem trước trực tiếp, bảo vệ hướng và khung
   trùng, ghép ảnh dài.
+
+  [![Chụp cuộn](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+
 - **Ghi màn hình:** video vùng hoặc GIF, âm thanh hệ thống, micrô, hiệu ứng chuột,
   hiển thị phím, tạm dừng, ghi lại, hủy, ảnh nhanh và vẽ trực tiếp.
+
+  [![Ghi màn hình với chú thích trực tiếp](assets/readme/recording.gif)](assets/readme/recording.gif)
+
 - **Quick Access và ghim:** thẻ sau khi chụp có thể cấu hình, sao chép/lưu/mở,
   kéo thả, vuốt, đếm ngược và ảnh luôn nổi.
+
+  [![Ghim ảnh từ Quick Access](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+
+  [![Nhiều ảnh luôn nổi](assets/readme/pin.gif)](assets/readme/pin.gif)
+
 - **Lịch sử bảng tạm:** SQLite cục bộ cho ảnh, video, văn bản, hình và tệp đã sao
   chép, kèm tìm kiếm, bộ lọc, thời hạn lưu và dọn dẹp.
+
+  [![Lịch sử ảnh chụp và bảng tạm có thể tìm kiếm](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+
 - **Tùy chỉnh:** phím tắt toàn cục, hành động sau khi chụp, thư mục đầu ra, giao
   diện, chẩn đoán, lệnh URL và 10 ngôn ngữ.
 
+  [![Cài đặt ShotPaste](assets/readme/settings.gif)](assets/readme/settings.gif)
+
 Xem [danh sách tính năng đầy đủ](docs/FEATURES.md).
-
-## Thư viện tính năng
-
-| **One Shot** | **Ảnh chụp** |
-|:---:|:---:|
-| [![Bộ chọn chế độ One Shot](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![Vùng chọn và thanh công cụ ảnh chụp](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
-| **Chú thích trực tiếp** | **Chụp cuộn** |
-| [![Công cụ chú thích trực tiếp](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![Vùng chọn chụp cuộn](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
-| **Ghi màn hình** | **Quick Access và ghim** |
-| [![Vùng và tùy chọn ghi màn hình](assets/readme/recording.png)](assets/readme/recording.png) | [![Thẻ Quick Access và ảnh ghim](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
-| **Lịch sử bảng tạm** | **Tùy chỉnh** |
-| [![Lịch sử ảnh chụp và bảng tạm có thể tìm kiếm](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![Cài đặt tùy chỉnh ảnh chụp](assets/readme/customization.png)](assets/readme/customization.png) |
 
 ## Nền tảng
 

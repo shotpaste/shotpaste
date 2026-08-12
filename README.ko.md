@@ -18,34 +18,47 @@ ShotPaste은 macOS와 Windows에 서로 독립적인 네이티브 클라이언�
 
 - **One Shot:** 영역을 한 번 선택한 뒤 스크린샷, 스크롤 캡처, 녹화 또는
   클립보드 기록을 선택합니다.
-- **스크린샷:** 고정된 선택 화면, 창 인식, 형식, 파일 이름, 배율, 커서 및
-  데스크톱 표시 설정.
+
+  [![One Shot 모드 선택기](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+
+- **스크린샷 및 OCR:** 고정된 선택 화면, 창 인식, 로컬 텍스트 인식, 형식,
+  파일 이름, 배율, 커서 및 데스크톱 표시 설정.
+
+  [![스크린샷의 로컬 OCR](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
 - **인라인 주석:** 선택, 도형, 화살표, 텍스트, 형광펜, 모자이크, 스포트라이트,
-  번호, 펜, 실행 취소/다시 실행, OCR, QR, 복사 및 고정.
+  번호, 펜, 실행 취소/다시 실행, QR, 복사 및 고정.
+
+  [![인라인 주석 도구](assets/readme/inline.gif)](assets/readme/inline.gif)
+
 - **스크롤 캡처:** 수동/자동 스크롤, 실시간 미리보기, 방향 및 중복 프레임 보호,
   긴 이미지 결합.
+
+  [![스크롤 캡처](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+
 - **녹화:** 영역 비디오 또는 GIF, 시스템 오디오, 마이크, 마우스 효과, 키 표시,
   일시 중지, 다시 녹화, 폐기, 스냅샷 및 실시간 잉크.
+
+  [![실시간 주석이 포함된 녹화](assets/readme/recording.gif)](assets/readme/recording.gif)
+
 - **Quick Access 및 고정:** 구성 가능한 캡처 후 카드, 복사/저장/열기, 드래그,
   스와이프, 카운트다운 및 항상 위 이미지.
+
+  [![Quick Access 이미지 고정](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+
+  [![여러 개의 항상 위 이미지](assets/readme/pin.gif)](assets/readme/pin.gif)
+
 - **클립보드 기록:** 캡처, 녹화, 텍스트, 이미지와 복사된 파일을 로컬 SQLite에
   저장하고 검색, 필터, 보존 및 정리를 지원합니다.
+
+  [![검색 가능한 캡처 및 클립보드 기록](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+
 - **사용자 설정:** 전역 단축키, 캡처 후 동작, 출력 폴더, 모양, 진단, URL 명령과
   10개 인터페이스 언어.
 
+  [![ShotPaste 설정](assets/readme/settings.gif)](assets/readme/settings.gif)
+
 자세한 내용은 [전체 기능 목록](docs/FEATURES.md)을 참조하세요.
-
-## 기능 갤러리
-
-| **One Shot** | **스크린샷** |
-|:---:|:---:|
-| [![One Shot 모드 선택기](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![스크린샷 영역 및 도구 모음](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
-| **인라인 주석** | **스크롤 캡처** |
-| [![인라인 주석 도구](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![스크롤 캡처 영역](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
-| **녹화** | **Quick Access 및 고정** |
-| [![녹화 영역 및 옵션](assets/readme/recording.png)](assets/readme/recording.png) | [![Quick Access 카드 및 고정 이미지](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
-| **클립보드 기록** | **사용자 설정** |
-| [![검색 가능한 캡처 및 클립보드 기록](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![캡처 사용자 설정](assets/readme/customization.png)](assets/readme/customization.png) |
 
 ## 플랫폼
 

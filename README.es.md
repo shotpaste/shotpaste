@@ -19,34 +19,48 @@ telemetría, subida a la nube, almacenamiento remoto ni sincronización.
 
 - **One Shot:** selecciona una zona una vez y elige Captura, Captura con
   desplazamiento, Grabación o Historial del portapapeles.
-- **Capturas:** selección congelada, detección de ventanas, formato, nombres,
-  escala, cursor y opciones del escritorio.
+
+  [![Selector de modos One Shot](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+
+- **Capturas y OCR:** selección congelada, detección de ventanas,
+  reconocimiento de texto local, formato, nombres, escala, cursor y opciones
+  del escritorio.
+
+  [![OCR local desde una captura](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
 - **Anotación integrada:** selección, formas, flechas, texto, resaltador,
-  mosaico, foco, contador, lápiz, deshacer/rehacer, OCR, QR, copiar y fijar.
+  mosaico, foco, contador, lápiz, deshacer/rehacer, QR, copiar y fijar.
+
+  [![Herramientas de anotación integrada](assets/readme/inline.gif)](assets/readme/inline.gif)
+
 - **Captura con desplazamiento:** desplazamiento manual/automático, vista
   previa, protección de dirección y duplicados, y unión de imágenes largas.
+
+  [![Captura con desplazamiento](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+
 - **Grabación:** vídeo de región o GIF, audio del sistema, micrófono, efectos
   del ratón, teclas, pausa, reinicio, descarte, instantáneas y tinta en vivo.
+
+  [![Grabación con anotación en vivo](assets/readme/recording.gif)](assets/readme/recording.gif)
+
 - **Quick Access y fijados:** tarjetas configurables, copiar/guardar/abrir,
   arrastrar, deslizar, temporizador e imágenes siempre visibles.
+
+  [![Imagen fijada desde Quick Access](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+
+  [![Varias imágenes siempre visibles](assets/readme/pin.gif)](assets/readme/pin.gif)
+
 - **Historial del portapapeles:** SQLite local para capturas, grabaciones,
   texto, imágenes y archivos, con búsqueda, filtros, retención y limpieza.
+
+  [![Historial de capturas y portapapeles con búsqueda](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+
 - **Personalización:** atajos globales, acciones posteriores, carpeta de salida,
   apariencia, diagnóstico, comandos URL y diez idiomas.
 
+  [![Ajustes de ShotPaste](assets/readme/settings.gif)](assets/readme/settings.gif)
+
 Consulta la [lista completa de funciones](docs/FEATURES.md).
-
-## Galería de funciones
-
-| **One Shot** | **Capturas** |
-|:---:|:---:|
-| [![Selector de modos One Shot](assets/readme/one-shot.png)](assets/readme/one-shot.png) | [![Selección y barra de captura](assets/readme/screenshots.png)](assets/readme/screenshots.png) |
-| **Anotación integrada** | **Captura con desplazamiento** |
-| [![Herramientas de anotación integrada](assets/readme/inline-annotation.png)](assets/readme/inline-annotation.png) | [![Selección de captura con desplazamiento](assets/readme/scrolling-capture.png)](assets/readme/scrolling-capture.png) |
-| **Grabación** | **Quick Access y fijados** |
-| [![Área y opciones de grabación](assets/readme/recording.png)](assets/readme/recording.png) | [![Tarjeta de Quick Access e imagen fijada](assets/readme/quick-access-pins.png)](assets/readme/quick-access-pins.png) |
-| **Historial del portapapeles** | **Personalización** |
-| [![Historial de capturas y portapapeles con búsqueda](assets/readme/clipboard-history.png)](assets/readme/clipboard-history.png) | [![Ajustes de personalización de capturas](assets/readme/customization.png)](assets/readme/customization.png) |
 
 ## Plataformas
 
