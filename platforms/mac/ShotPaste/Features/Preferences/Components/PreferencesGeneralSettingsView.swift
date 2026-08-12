@@ -12,8 +12,10 @@ struct GeneralSettingsView: View {
   @AppStorage(PreferencesKeys.urlSchemeEnabled) private var urlSchemeEnabled = true
   @AppStorage(PreferencesKeys.showMenuBarIcon) private var showMenuBarIcon = true
   @AppStorage(PreferencesKeys.exportLocation) private var exportLocation = ""
+  @AppStorage(PreferencesKeys.checkForUpdatesAutomatically) private var checkForUpdatesAutomatically = true
   @Environment(\.openWindow) private var openWindow
   @ObservedObject private var themeManager = ThemeManager.shared
+  @ObservedObject private var updateManager = AppUpdateManager.shared
 
   @State private var startAtLogin = LoginItemManager.isEnabled
   private let fileAccessManager = SandboxFileAccessManager.shared
@@ -92,6 +94,25 @@ struct GeneralSettingsView: View {
         }
       }
 
+      Section(L10n.PreferencesGeneral.updatesSection) {
+        SettingRow(
+          icon: "arrow.triangle.2.circlepath",
+          title: L10n.PreferencesGeneral.checkAutomaticallyTitle,
+          description: L10n.PreferencesGeneral.checkAutomaticallyDescription
+        ) {
+          Toggle("", isOn: $checkForUpdatesAutomatically)
+            .labelsHidden()
+        }
+
+        SettingRow(
+          icon: "shippingbox.and.arrow.backward",
+          title: L10n.PreferencesGeneral.updateCheckButton,
+          description: updateStatusDescription
+        ) {
+          updateAction
+        }
+      }
+
       Section(L10n.PreferencesGeneral.helpSection) {
         SettingRow(
           icon: "exclamationmark.bubble",
@@ -114,6 +135,42 @@ struct GeneralSettingsView: View {
   }
 
   // MARK: - Helpers
+
+  private var updateStatusDescription: String {
+    switch updateManager.state {
+    case let .idle(currentVersion):
+      "\(L10n.PreferencesGeneral.updateCurrentVersion): \(currentVersion)"
+    case .checking:
+      L10n.PreferencesGeneral.updateChecking
+    case let .upToDate(version):
+      "\(L10n.PreferencesGeneral.updateUpToDate) · v\(version)"
+    case let .updateAvailable(_, release):
+      "\(L10n.PreferencesGeneral.updateAvailable) · v\(release.version)"
+    case let .failed(currentVersion):
+      "\(L10n.PreferencesGeneral.updateCheckFailed) \(L10n.PreferencesGeneral.updateCurrentVersion): \(currentVersion)"
+    }
+  }
+
+  @ViewBuilder
+  private var updateAction: some View {
+    switch updateManager.state {
+    case .checking:
+      ProgressView()
+        .controlSize(.small)
+    case .updateAvailable:
+      Button(L10n.PreferencesGeneral.updateOpenGitHubButton) {
+        updateManager.openAvailableRelease()
+      }
+      .buttonStyle(.borderedProminent)
+      .controlSize(.small)
+    default:
+      Button(L10n.PreferencesGeneral.updateCheckButton) {
+        updateManager.checkManually()
+      }
+      .buttonStyle(.bordered)
+      .controlSize(.small)
+    }
+  }
 
   private var exportLocationDisplay: String {
     if exportLocation.isEmpty {

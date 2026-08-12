@@ -4,7 +4,7 @@ namespace ShotPaste.Windows.Models;
 
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 11;
+    public const int CurrentSchemaVersion = 12;
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public string Language { get; set; } = "System";
     public bool PlaySounds { get; set; } = true;
@@ -64,6 +64,9 @@ public sealed class AppSettings
     public bool LaunchAtStartup { get; set; }
     public bool UrlSchemeEnabled { get; set; } = true;
     public bool ShowTrayIcon { get; set; } = true;
+    public bool CheckForUpdatesAutomatically { get; set; } = true;
+    public DateTimeOffset? LastUpdateCheckUtc { get; set; }
+    public string LastPromptedUpdateVersion { get; set; } = string.Empty;
     public bool ShowRecordingDurationInTray { get; set; } = true;
     public bool ShowRecordingToolbar { get; set; } = true;
     public int RecordingFps { get; set; } = 30;

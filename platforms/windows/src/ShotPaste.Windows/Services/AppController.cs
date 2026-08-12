@@ -17,6 +17,7 @@ public sealed class AppController : IDisposable
     private readonly CaptureHistoryStore _history = new();
     private readonly ScreenCaptureService _capture = new();
     private readonly ScreenRecordingService _recording = new();
+    private readonly AppUpdateService _updateService = new();
     private readonly SemaphoreSlim _operationGate = new(1, 1);
     private readonly ImageFileService _images;
     private readonly OcrService _ocr;
@@ -117,6 +118,61 @@ public sealed class AppController : IDisposable
             _tray.ShowMessage("部分快捷键不可用", "快捷键已被其他程序占用，可继续使用托盘菜单。", Forms.ToolTipIcon.Warning);
         _ready = true;
         while (_pendingCommands.Count > 0) ExecuteExternalCommand(UrlSchemeService.Parse(_pendingCommands.Dequeue()));
+#if !DEBUG
+        if (!App.UiTestMode)
+            _ = CheckForUpdatesAutomaticallyAsync();
+#endif
+    }
+
+    private async Task CheckForUpdatesAutomaticallyAsync()
+    {
+        if (!_settings.Current.CheckForUpdatesAutomatically) return;
+        var checkedAt = DateTimeOffset.UtcNow;
+        if (_settings.Current.LastUpdateCheckUtc is { } lastCheck &&
+            checkedAt - lastCheck < TimeSpan.FromHours(24))
+            return;
+
+        try
+        {
+            var result = await _updateService.CheckForUpdatesAsync();
+            _settings.Current.LastUpdateCheckUtc = checkedAt;
+            if (result.Availability != AppUpdateAvailability.UpdateAvailable)
+            {
+                _settings.Save();
+                return;
+            }
+
+            var version = result.LatestRelease.Version.ToString();
+            if (string.Equals(
+                    _settings.Current.LastPromptedUpdateVersion,
+                    version,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                _settings.Save();
+                return;
+            }
+
+            _settings.Current.LastPromptedUpdateVersion = version;
+            _settings.Save();
+            if (LocalizedDialogService.Show(
+                    $"{LocalizedDialogService.Text("当前版本")}: {result.CurrentVersion}\n" +
+                    $"{LocalizedDialogService.Text("最新版本")}: {result.LatestRelease.Version}\n\n" +
+                    LocalizedDialogService.Text("是否前往 GitHub Release 页面下载更新？"),
+                    LocalizedDialogService.Text("软件更新"),
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information) == MessageBoxResult.Yes)
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
+                    result.LatestRelease.PageUri.AbsoluteUri) { UseShellExecute = true });
+        }
+        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or
+                                                System.Text.Json.JsonException or InvalidDataException or
+                                                IOException or UnauthorizedAccessException or
+                                                System.ComponentModel.Win32Exception)
+        {
+            _settings.Current.LastUpdateCheckUtc = checkedAt;
+            try { _settings.Save(); } catch (Exception saveException) when (saveException is IOException or UnauthorizedAccessException) { }
+            App.WriteQuickAccessLog($"Automatic GitHub update check failed: {exception.GetType().Name}");
+        }
     }
 
     public void HandleExternalCommand(IReadOnlyList<string> arguments)

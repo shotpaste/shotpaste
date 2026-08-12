@@ -97,6 +97,9 @@ final class AppCoordinator {
       viewModel: environment.screenCaptureViewModel,
       didCrash: didCrash && DiagnosticLogger.shared.isEnabled
     )
+    #if !DEBUG
+      AppUpdateManager.shared.checkAutomaticallyIfNeeded()
+    #endif
     DiagnosticLogger.shared.log(
       .debug,
       .ui,
