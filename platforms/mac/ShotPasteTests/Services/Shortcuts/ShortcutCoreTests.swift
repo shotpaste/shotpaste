@@ -13,11 +13,13 @@ import XCTest
 final class ShortcutCoreTests: XCTestCase {
   func testDefaultGlobalShortcuts_matchDocumentedKeys() {
     XCTAssertEqual(ShortcutConfig.defaultOneShot.keyCode, UInt32(kVK_ANSI_1))
+    XCTAssertEqual(ShortcutConfig.defaultAgentMode.keyCode, UInt32(kVK_ANSI_A))
     XCTAssertEqual(ShortcutConfig.defaultHistory.keyCode, UInt32(kVK_ANSI_H))
 
     let expectedModifiers = ShortcutConfig.defaultModifiers(for: .current)
     XCTAssertEqual(ShortcutConfig.defaultOneShot.modifiers, expectedModifiers)
     XCTAssertEqual(ShortcutConfig.defaultHistory.modifiers, expectedModifiers)
+    XCTAssertEqual(ShortcutConfig.defaultAgentMode.modifiers, UInt32(optionKey))
 
     XCTAssertEqual(
       ShortcutConfig.defaultModifiers(for: .release),

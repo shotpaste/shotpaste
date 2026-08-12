@@ -200,7 +200,7 @@ struct ShotPasteMCPProtocol {
           return Self.toolResultResponse(
             id: id,
             result: .failure(
-              "tab must be general, capture, quick-access, history, shortcuts, permissions, or advanced."
+              "tab must be general, capture, quick-access, history, agent, shortcuts, permissions, or advanced."
             )
           )
         }
@@ -358,7 +358,7 @@ struct ShotPasteMCPProtocol {
           "tab": [
             "type": "string",
             "enum": [
-              "general", "capture", "quick-access", "history", "shortcuts", "permissions", "advanced",
+              "general", "capture", "quick-access", "history", "agent", "shortcuts", "permissions", "advanced",
             ],
           ],
         ],
