@@ -100,11 +100,18 @@ final class OneShotSessionState: ObservableObject {
   @Published var modeToolbarPosition: CGPoint?
 
   private(set) var switcherDisplayID: CGDirectDisplayID = 0
+  private let initialTab: OneShotTab
   private var currentHexValue: String?
   private var currentRGBValue: String?
 
-  init(recordingOptions: OneShotRecordingOptions? = nil) {
+  init(
+    initialTab: OneShotTab = .screenshot,
+    recordingOptions: OneShotRecordingOptions? = nil
+  ) {
+    let resolvedInitialTab = initialTab.isCaptureMode ? initialTab : .screenshot
+    self.initialTab = resolvedInitialTab
     self.recordingOptions = recordingOptions ?? .current()
+    activeTab = resolvedInitialTab
   }
 
   /// This state has no actor-bound teardown work. Keeping deinitialization
@@ -134,7 +141,7 @@ final class OneShotSessionState: ObservableObject {
   func arm(frozenDisplayIDs: Set<CGDirectDisplayID>) {
     guard phase == .preparing else { return }
     self.frozenDisplayIDs = frozenDisplayIDs
-    activeTab = .screenshot
+    activeTab = initialTab
     isPristine = true
     commitReason = nil
     selectionRectGlobal = nil

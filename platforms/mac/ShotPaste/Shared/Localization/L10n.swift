@@ -188,6 +188,16 @@ nonisolated enum L10n {
       defaultValue: "Allow external triggers via shotpaste:// URLs",
       comment: "Advanced preferences setting description"
     )
+    static let mcpServerTitle = string(
+      "preferences-advanced.mcp-server-title",
+      defaultValue: "MCP server",
+      comment: "Automation preferences MCP server setting title"
+    )
+    static let mcpServerDescription = string(
+      "preferences-advanced.mcp-server-description",
+      defaultValue: "Allow trusted agents to control ShotPaste through authenticated local MCP.",
+      comment: "Automation preferences MCP server setting description"
+    )
     static let diagnosticsSection = PreferencesGeneral.diagnosticsSection
     static let diagnosticLoggingTitle = PreferencesGeneral.diagnosticLoggingTitle
     static let diagnosticLoggingDescription = PreferencesGeneral.diagnosticLoggingDescription

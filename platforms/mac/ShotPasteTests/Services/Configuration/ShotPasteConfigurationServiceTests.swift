@@ -80,6 +80,21 @@ final class ShotPasteConfigurationServiceTests: XCTestCase {
     XCTAssertEqual(document.value(at: "quick_access", "two_finger_swipe_to_dismiss")?.boolValue, false)
   }
 
+  func testExportIncludesMCPServerSettingsWithoutAuthenticationToken() throws {
+    let defaults = UserDefaultsFactory.make()
+    defaults.set(true, forKey: PreferencesKeys.mcpServerEnabled)
+    defaults.set(49_333, forKey: PreferencesKeys.mcpServerPort)
+    defaults.set("secret-token-must-not-be-exported", forKey: PreferencesKeys.mcpServerAuthToken)
+
+    let source = ShotPasteConfigurationExporter.exportTOML(defaults: defaults)
+    let document = try SimpleTOMLParser.parse(source)
+
+    XCTAssertEqual(document.value(at: "general", "mcp_server_enabled")?.boolValue, true)
+    XCTAssertEqual(document.value(at: "general", "mcp_server_port")?.intValue, 49_333)
+    XCTAssertFalse(source.contains("secret-token-must-not-be-exported"))
+    XCTAssertFalse(source.contains("auth_token"))
+  }
+
   func testExportUsesBoundedHistoryDefaultsWhenUnset() throws {
     let source = ShotPasteConfigurationExporter.exportTOML(defaults: UserDefaultsFactory.make())
     let document = try SimpleTOMLParser.parse(source)

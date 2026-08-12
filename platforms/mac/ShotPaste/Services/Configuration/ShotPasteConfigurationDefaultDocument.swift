@@ -34,6 +34,8 @@ enum ShotPasteConfigurationDefaultDocument {
     writer.value("appearance", "system")
     writer.value("play_sounds", true)
     writer.value("url_scheme_enabled", true)
+    writer.value("mcp_server_enabled", false)
+    writer.value("mcp_server_port", ShotPasteMCPServer.defaultPort)
     writer.value("show_menu_bar_icon", true)
     writer.value("start_at_login", false)
     writer.value("export_location", SandboxFileAccessManager.shared.defaultExportDirectory.path)

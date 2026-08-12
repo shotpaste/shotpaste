@@ -33,9 +33,13 @@ struct PermissionGuideLaunchPolicy {
 @MainActor
 final class AppCoordinator {
   private let environment: AppEnvironment
+  private let automationController: ShotPasteAutomationController
 
   init(environment: AppEnvironment) {
     self.environment = environment
+    automationController = ShotPasteAutomationController(
+      screenCaptureViewModel: environment.screenCaptureViewModel
+    )
   }
 
   func applicationDidFinishLaunching() {
@@ -59,6 +63,12 @@ final class AppCoordinator {
 
     if defaults.object(forKey: PreferencesKeys.urlSchemeEnabled) == nil {
       defaults.set(true, forKey: PreferencesKeys.urlSchemeEnabled)
+    }
+    if defaults.object(forKey: PreferencesKeys.mcpServerEnabled) == nil {
+      defaults.set(false, forKey: PreferencesKeys.mcpServerEnabled)
+    }
+    if defaults.object(forKey: PreferencesKeys.mcpServerPort) == nil {
+      defaults.set(ShotPasteMCPServer.defaultPort, forKey: PreferencesKeys.mcpServerPort)
     }
 
     // History defaults
@@ -97,6 +107,7 @@ final class AppCoordinator {
       viewModel: environment.screenCaptureViewModel,
       didCrash: didCrash && DiagnosticLogger.shared.isEnabled
     )
+    ShotPasteMCPServer.shared.configure(automationController: automationController)
     #if !DEBUG
       AppUpdateManager.shared.checkAutomaticallyIfNeeded()
     #endif
@@ -132,11 +143,12 @@ final class AppCoordinator {
     LogCleanupScheduler.shared.stop()
     RecordingMetadataCleanupScheduler.shared.stop()
     MediaClipboardMonitor.shared.stop()
+    ShotPasteMCPServer.shared.stop()
     ShotPasteConfigurationSyncCoordinator.shared.stop()
   }
 
   func handleDeepLink(_ url: URL) {
-    ShotPasteDeepLinkHandler(screenCaptureViewModel: environment.screenCaptureViewModel)
+    ShotPasteDeepLinkHandler(automationController: automationController)
       .handle(url)
   }
 

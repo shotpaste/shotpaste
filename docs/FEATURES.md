@@ -77,7 +77,10 @@ workflow while using the APIs and conventions of each operating system.
 - Separate after-capture actions for screenshots and recordings: save, copy,
   and show Quick Access.
 - Configurable One Shot, Clipboard History, and active-recording shortcuts.
-- `shotpaste://` URL commands for One Shot, history, and settings.
+- Expanded `shotpaste://` commands for capture modes, filtered history,
+  settings, and recording controls.
+- Authenticated local MCP Streamable HTTP tools for macOS agents; see
+  [AUTOMATION.md](AUTOMATION.md).
 - Appearance, language, diagnostics, startup, storage, output, recording, and
   history controls.
 - macOS also maintains a local TOML preferences file; Windows stores settings

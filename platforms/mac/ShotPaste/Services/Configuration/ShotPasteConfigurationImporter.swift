@@ -94,6 +94,18 @@ enum ShotPasteConfigurationImporter {
     collectBool(&reader, "general", "url_scheme_enabled", mutations: &mutations) {
       defaults.set($0, forKey: PreferencesKeys.urlSchemeEnabled)
     }
+    collectBool(&reader, "general", "mcp_server_enabled", mutations: &mutations) {
+      defaults.set($0, forKey: PreferencesKeys.mcpServerEnabled)
+    }
+    collectInt(
+      &reader,
+      "general",
+      "mcp_server_port",
+      range: ShotPasteMCPServer.allowedPortRange,
+      mutations: &mutations
+    ) {
+      defaults.set($0, forKey: PreferencesKeys.mcpServerPort)
+    }
     collectBool(&reader, "general", "show_menu_bar_icon", mutations: &mutations) {
       defaults.set($0, forKey: PreferencesKeys.showMenuBarIcon)
       if defaults == UserDefaults.standard {

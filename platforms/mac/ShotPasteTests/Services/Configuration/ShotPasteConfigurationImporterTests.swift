@@ -103,6 +103,38 @@ final class ShotPasteConfigurationImporterTests: XCTestCase {
     )
   }
 
+  func testImportAppliesMCPServerSettings() {
+    let defaults = UserDefaultsFactory.make()
+    let source = """
+    schema_version = 1
+
+    [general]
+    mcp_server_enabled = true
+    mcp_server_port = 49222
+    """
+
+    let result = ShotPasteConfigurationImporter.importTOML(source, defaults: defaults)
+
+    XCTAssertFalse(result.hasErrors)
+    XCTAssertEqual(defaults.bool(forKey: PreferencesKeys.mcpServerEnabled), true)
+    XCTAssertEqual(defaults.integer(forKey: PreferencesKeys.mcpServerPort), 49_222)
+  }
+
+  func testImportRejectsPrivilegedMCPServerPort() {
+    let defaults = UserDefaultsFactory.make()
+    let source = """
+    schema_version = 1
+
+    [general]
+    mcp_server_port = 80
+    """
+
+    let result = ShotPasteConfigurationImporter.importTOML(source, defaults: defaults)
+
+    XCTAssertTrue(result.hasErrors)
+    XCTAssertEqual(result.appliedChangeCount, 0)
+  }
+
   func testImportAppliesQuickAccessTwoFingerSwipeSetting() {
     let defaults = UserDefaultsFactory.make()
     let manager = QuickAccessManager.shared

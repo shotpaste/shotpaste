@@ -255,10 +255,11 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
     captureManager.openScreenRecordingPreferences()
   }
 
-  func startOneShot() {
+  @discardableResult
+  func startOneShot(initialTab: OneShotTab = .screenshot) -> Bool {
     guard hasPermission else {
       requestPermission()
-      return
+      return false
     }
 
     guard !isAreaSelectionActive else {
@@ -267,7 +268,7 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
         style: .warning,
         position: .bottomCenter
       )
-      return
+      return false
     }
 
     let primaryDisplayID = ScreenUtility.activeDisplayID()
@@ -287,6 +288,7 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
     guard let oneShotState = OneShotCoordinator.shared.beginPreparation(
       switcherDisplayID: primaryDisplayID,
       switcherX: primaryScreen.frame.midX,
+      initialTab: initialTab,
       onTeardown: { [weak self] in
         hiddenWindowSession?.restore()
         self?.isAreaSelectionActive = false
@@ -309,7 +311,7 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
           prefetchedContentTask: prefetchedContentTask
         )
       }
-    ) else { return }
+    ) else { return false }
 
     isAreaSelectionActive = true
     DiagnosticLogger.shared.log(.info, .capture, "One Shot preparation started", context: [
@@ -385,6 +387,7 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
         OneShotCoordinator.shared.failPreparation(.captureFailed(error.localizedDescription))
       }
     }
+    return true
   }
 
   private func prepareInlineAreaAnnotateFrozenSession(

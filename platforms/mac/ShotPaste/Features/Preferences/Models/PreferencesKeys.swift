@@ -12,6 +12,9 @@ nonisolated enum PreferencesKeys {
   // General
   static let playSounds = "playSounds"
   static let urlSchemeEnabled = "urlSchemeEnabled"
+  static let mcpServerEnabled = "automation.mcp.enabled"
+  static let mcpServerPort = "automation.mcp.port"
+  static let mcpServerAuthToken = "automation.mcp.authToken"
   static let showMenuBarIcon = "showMenuBarIcon"
   static let exportLocation = "exportLocation"
   static let exportLocationBookmark = "exportLocation.bookmark"

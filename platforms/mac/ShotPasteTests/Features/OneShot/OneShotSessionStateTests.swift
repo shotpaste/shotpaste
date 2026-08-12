@@ -51,6 +51,21 @@ final class OneShotSessionStateTests: XCTestCase {
     XCTAssertTrue(state.showsTopSwitcher)
   }
 
+  func testAutomationCanPreselectScrollingOrRecordingWhenArming() {
+    for initialTab in [OneShotTab.scrolling, .recording] {
+      let state = OneShotSessionState(
+        initialTab: initialTab,
+        recordingOptions: recordingOptions
+      )
+      state.beginPreparing(switcherDisplayID: displayA, switcherX: 500)
+      state.arm(frozenDisplayIDs: [displayA])
+
+      XCTAssertEqual(state.activeTab, initialTab)
+      XCTAssertEqual(state.phase, .armed)
+      XCTAssertTrue(state.isPristine)
+    }
+  }
+
   func testOS011MovingSwitcherIsHorizontalClampedAndDoesNotCommit() {
     let state = makeArmedState()
 

@@ -73,9 +73,9 @@ printf "|------------------------|-------------|-------------|-------------|----
 # Phase 1: Baseline Idle
 measure "1. Idle Baseline" 5
 
-# Phase 2: Fullscreen Capture
-open "shotpaste://capture/fullscreen" 2>/dev/null || true
-measure "2. Fullscreen Capture" 4
+# Phase 2: One Shot screenshot selection
+open "shotpaste://capture/screenshot" 2>/dev/null || true
+measure "2. One Shot Capture" 4
 
 # Phase 3: History Browser
 open "shotpaste://open/history" 2>/dev/null || true

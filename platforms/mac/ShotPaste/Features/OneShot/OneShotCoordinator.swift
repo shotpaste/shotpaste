@@ -39,6 +39,7 @@ final class OneShotCoordinator: ObservableObject {
   func beginPreparation(
     switcherDisplayID: CGDirectDisplayID,
     switcherX: CGFloat,
+    initialTab: OneShotTab = .screenshot,
     onTeardown: @escaping () -> Void,
     onOCRImage: @escaping (CGImage) -> Void,
     resolveScrollingConfiguration: @escaping () -> OneShotScrollingConfiguration?
@@ -56,7 +57,7 @@ final class OneShotCoordinator: ObservableObject {
       return nil
     }
 
-    let state = OneShotSessionState()
+    let state = OneShotSessionState(initialTab: initialTab)
     state.beginPreparing(switcherDisplayID: switcherDisplayID, switcherX: switcherX)
     sessionState = state
     self.onTeardown = onTeardown

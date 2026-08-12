@@ -34,6 +34,11 @@ enum ShotPasteConfigurationExporter {
     writer.value("appearance", appearance(defaults: defaults))
     writer.value("play_sounds", defaults.object(forKey: PreferencesKeys.playSounds) as? Bool ?? true)
     writer.value("url_scheme_enabled", defaults.object(forKey: PreferencesKeys.urlSchemeEnabled) as? Bool ?? true)
+    writer.value("mcp_server_enabled", defaults.object(forKey: PreferencesKeys.mcpServerEnabled) as? Bool ?? false)
+    writer.value(
+      "mcp_server_port",
+      defaults.integerValue(PreferencesKeys.mcpServerPort, default: ShotPasteMCPServer.defaultPort)
+    )
     writer.value("show_menu_bar_icon", defaults.object(forKey: PreferencesKeys.showMenuBarIcon) as? Bool ?? true)
     writer.value("start_at_login", LoginItemManager.isEnabled)
     writer.value(

@@ -220,13 +220,22 @@ final class HistoryFloatingManager: ObservableObject {
   }
 
   func showExpanded(initialFilter: CaptureHistoryCategory? = nil) {
-    resetExpandedState(initialFilter: initialFilter ?? expandedFilter ?? defaultFilter)
+    presentExpanded(initialFilter: initialFilter ?? expandedFilter ?? defaultFilter)
+  }
+
+  /// Open the expanded history surface without a product category filter.
+  func showAllHistory() {
+    presentExpanded(initialFilter: nil)
+  }
+
+  private func presentExpanded(initialFilter: CaptureHistoryCategory?) {
+    resetExpandedState(initialFilter: initialFilter)
     presentationMode = .expanded
     DiagnosticLogger.shared.log(
       .info,
       .history,
       "Floating history expanded",
-      context: ["filter": (initialFilter ?? expandedFilter ?? defaultFilter)?.rawValue ?? "all"]
+      context: ["filter": initialFilter?.rawValue ?? "all"]
     )
     presentCurrentMode()
   }
@@ -385,8 +394,8 @@ final class HistoryFloatingManager: ObservableObject {
     !isShowing && !isModalInteractionActive
   }
 
-  private func resetExpandedState(initialFilter: CaptureHistoryCategory? = nil) {
-    expandedFilter = initialFilter ?? defaultFilter
+  private func resetExpandedState(initialFilter: CaptureHistoryCategory?) {
+    expandedFilter = initialFilter
     expandedTimeFilter = .all
     searchText = ""
   }
