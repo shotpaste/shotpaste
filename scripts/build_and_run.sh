@@ -247,6 +247,13 @@ run_xcodebuild() {
     CODE_SIGNING_REQUIRED=NO
     CODE_SIGNING_ALLOWED=NO
     SHOTPASTE_SKIP_POST_SIGN=1
+    # Xcode's debug dylib is a separate Mach-O. The fixed self-signed identity
+    # intentionally used by ShotPaste has no Apple-issued Team ID, so hardened
+    # runtime library validation rejects that dylib even when both files use the
+    # same certificate. Canonical runnable products therefore link the app
+    # directly and do not contain preview injection libraries.
+    ENABLE_DEBUG_DYLIB=NO
+    ENABLE_PREVIEWS=NO
   )
 
   if [[ "$QUIET" -eq 1 ]]; then
@@ -270,8 +277,6 @@ run_xcodebuild() {
     args+=(
       SWIFT_COMPILATION_MODE=incremental
       SWIFT_OPTIMIZATION_LEVEL=-Onone
-      ENABLE_DEBUG_DYLIB=NO
-      ENABLE_PREVIEWS=NO
     )
   fi
 
@@ -300,6 +305,10 @@ build_app() {
 
   [[ -d "$app_bundle" ]] || fail "Build finished but app bundle was not found: $app_bundle"
   [[ -x "$(app_binary_path)" ]] || fail "Built app binary is not executable: $(app_binary_path)"
+
+  if /usr/bin/otool -L "$(app_binary_path)" | /usr/bin/grep -q '\.debug\.dylib'; then
+    fail "Built app still links an Xcode debug dylib and will fail self-signed runtime library validation."
+  fi
 
   "$ROOT_DIR/scripts/sign-macos-app.sh" "$app_bundle" "$CONFIGURATION"
   "$ROOT_DIR/scripts/prune-macos-products.sh"
