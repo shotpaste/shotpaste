@@ -40,7 +40,7 @@ ShotPaste 為 macOS 與 Windows 提供彼此獨立的原生客戶端。擷取、
   [![錄影與即時畫筆](assets/readme/recording.gif)](assets/readme/recording.gif)
 
 - **Quick Access 與釘選：** 可設定的擷取後卡片、複製/儲存/開啟、拖放、滑動、
-  倒數計時與置頂圖片。
+  置頂圖片。
 
   [![Quick Access 釘選圖片](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
 

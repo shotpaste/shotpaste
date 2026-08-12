@@ -46,7 +46,7 @@ Cloud-Uploads, entfernten Speicher oder Synchronisierung.
   [![Aufnahme mit Live-Anmerkungen](assets/readme/recording.gif)](assets/readme/recording.gif)
 
 - **Quick Access und Pins:** konfigurierbare Karten, Kopieren/Speichern/Öffnen,
-  Zieh- und Wischaktionen, Countdown und stets sichtbare Bild-Pins.
+  Zieh- und Wischaktionen sowie stets sichtbare Bild-Pins.
 
   [![Quick-Access-Bild-Pin](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
 

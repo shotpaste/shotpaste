@@ -43,7 +43,7 @@ không cung cấp tài khoản, đo lường từ xa, tải lên đám mây, lư
   [![Ghi màn hình với chú thích trực tiếp](assets/readme/recording.gif)](assets/readme/recording.gif)
 
 - **Quick Access và ghim:** thẻ sau khi chụp có thể cấu hình, sao chép/lưu/mở,
-  kéo thả, vuốt, đếm ngược và ảnh luôn nổi.
+  kéo thả, vuốt và ảnh luôn nổi.
 
   [![Ghim ảnh từ Quick Access](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
 

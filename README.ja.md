@@ -42,7 +42,7 @@ ShotPaste は macOS と Windows に独立したネイティブクライアント
   [![ライブ注釈付き録画](assets/readme/recording.gif)](assets/readme/recording.gif)
 
 - **Quick Access とピン：** 設定可能なカード、コピー/保存/開く、ドラッグ、
-  スワイプ、カウントダウン、常に手前に表示する画像。
+  スワイプ、常に手前に表示する画像。
 
   [![Quick Access からの画像ピン留め](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
 

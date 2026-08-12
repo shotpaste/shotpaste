@@ -40,7 +40,7 @@ ShotPaste 为 macOS 和 Windows 提供彼此独立的原生客户端。截屏、
   [![录屏与实时画笔](assets/readme/recording.gif)](assets/readme/recording.gif)
 
 - **Quick Access 与贴图：** 可配置的捕获后卡片、复制/保存/打开、拖拽、滑动、
-  倒计时和置顶图片。
+  置顶图片。
 
   [![Quick Access 贴图](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
 

@@ -44,7 +44,7 @@ storage, or synchronization.
   [![Recording with live annotation](assets/readme/recording.gif)](assets/readme/recording.gif)
 
 - **Quick Access and pins:** configurable post-capture cards, copy/save/open,
-  drag and swipe actions, countdown, and always-on-top image pins.
+  drag and swipe actions, and always-on-top image pins.
 
   [![Quick Access image pin](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
 

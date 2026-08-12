@@ -44,7 +44,7 @@ telemetría, subida a la nube, almacenamiento remoto ni sincronización.
   [![Grabación con anotación en vivo](assets/readme/recording.gif)](assets/readme/recording.gif)
 
 - **Quick Access y fijados:** tarjetas configurables, copiar/guardar/abrir,
-  arrastrar, deslizar, temporizador e imágenes siempre visibles.
+  arrastrar, deslizar e imágenes siempre visibles.
 
   [![Imagen fijada desde Quick Access](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
 

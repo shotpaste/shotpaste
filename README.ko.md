@@ -42,7 +42,7 @@ ShotPaste은 macOS와 Windows에 서로 독립적인 네이티브 클라이언�
   [![실시간 주석이 포함된 녹화](assets/readme/recording.gif)](assets/readme/recording.gif)
 
 - **Quick Access 및 고정:** 구성 가능한 캡처 후 카드, 복사/저장/열기, 드래그,
-  스와이프, 카운트다운 및 항상 위 이미지.
+  스와이프 및 항상 위 이미지.
 
   [![Quick Access 이미지 고정](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
 

@@ -46,7 +46,7 @@ ni envoi vers le cloud, ni stockage distant, ni synchronisation.
   [![Enregistrement avec annotation en direct](assets/readme/recording.gif)](assets/readme/recording.gif)
 
 - **Quick Access et épingles :** cartes configurables, copier/enregistrer/ouvrir,
-  glisser, balayer, compte à rebours et images toujours visibles.
+  glisser, balayer et images toujours visibles.
 
   [![Image épinglée depuis Quick Access](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
 
