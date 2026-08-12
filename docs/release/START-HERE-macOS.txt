@@ -1,7 +1,7 @@
 ShotPaste @VERSION@ - macOS (Apple Silicon)
 ================================================
 
-This DMG is self-signed and is not Apple-notarized.
+This DMG is signed with ShotPaste's persistent self-signed certificate.
 
 1. Download the DMG and SHA256SUMS.txt from the same GitHub Release.
 2. Run:
@@ -18,7 +18,7 @@ This DMG is self-signed and is not Apple-notarized.
 中文
 ----
 
-该 DMG 使用项目自签名证书，尚未经过 Apple 公证。
+该 DMG 使用 ShotPaste 项目固定的自签名证书。
 
 1. 从同一个 GitHub Release 下载 DMG 与 SHA256SUMS.txt。
 2. 运行上面的 shasum 命令，并与 SHA256SUMS.txt 中对应的 DMG 行核对。

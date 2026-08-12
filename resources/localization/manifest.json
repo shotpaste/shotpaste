@@ -77,12 +77,6 @@
       ]
     },
     {
-      "file": "Features/WhatsNew.xcstrings",
-      "prefixes": [
-        "whats-new."
-      ]
-    },
-    {
       "file": "Shared/Common.xcstrings",
       "prefixes": [
         "action.",

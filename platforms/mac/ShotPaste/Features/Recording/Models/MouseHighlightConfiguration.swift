@@ -9,7 +9,7 @@
 import AppKit
 import Foundation
 
-struct MouseHighlightConfiguration {
+nonisolated struct MouseHighlightConfiguration {
   /// Maximum diameter of each expanding ripple ring (px)
   let highlightSize: CGFloat
 
@@ -87,12 +87,12 @@ struct MouseHighlightConfiguration {
   }
 }
 
-enum MouseClickButton {
+nonisolated enum MouseClickButton {
   case left
   case right
 }
 
-enum RecordingOverlayColorPreferences {
+nonisolated enum RecordingOverlayColorPreferences {
   static func color(forKey key: String, default fallback: NSColor, defaults: UserDefaults = .standard) -> NSColor {
     guard let data = defaults.data(forKey: key),
           let color = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSColor.self, from: data) else {

@@ -6,7 +6,7 @@
 //
 
 import AppKit
-import AVFoundation
+@preconcurrency import AVFoundation
 import Combine
 import CoreMedia
 import Foundation
@@ -148,7 +148,7 @@ enum RecordingVideoEncodingSettings {
   }
 }
 
-enum RecordingAudioEncodingSettings {
+nonisolated enum RecordingAudioEncodingSettings {
   static let sampleRate = 48_000
   static let channelCount = 2
   static let systemAudioBitrate = 128_000
@@ -206,6 +206,16 @@ enum RecordingAudioEncodingSettings {
 }
 
 enum RecordingAudioCompatibilityExporter {
+  private final nonisolated class SamplePipe: @unchecked Sendable {
+    let output: AVAssetReaderOutput
+    let input: AVAssetWriterInput
+
+    init(output: AVAssetReaderOutput, input: AVAssetWriterInput) {
+      self.output = output
+      self.input = input
+    }
+  }
+
   struct Result {
     let outputURL: URL
     let audioTrackCount: Int
@@ -522,20 +532,21 @@ enum RecordingAudioCompatibilityExporter {
     for (label, output, input) in outputsAndInputs {
       group.enter()
       let queue = DispatchQueue(label: "com.ahtcfg24.shotpaste.recording.audio-compatibility.\(label)")
+      let pipe = SamplePipe(output: output, input: input)
       var didFinish = false
 
       func finishInput() {
         if !didFinish {
           didFinish = true
-          input.markAsFinished()
+          pipe.input.markAsFinished()
           group.leave()
         }
       }
 
       input.requestMediaDataWhenReady(on: queue) {
-        while input.isReadyForMoreMediaData {
-          if let sampleBuffer = output.copyNextSampleBuffer() {
-            if !input.append(sampleBuffer) {
+        while pipe.input.isReadyForMoreMediaData {
+          if let sampleBuffer = pipe.output.copyNextSampleBuffer() {
+            if !pipe.input.append(sampleBuffer) {
               recordError(ExportError.appendFailed(label))
               finishInput()
               return
@@ -2021,14 +2032,16 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
   }
 
   private func startTimer() {
-    timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-      Task { @MainActor in
-        self?.updateElapsedTime()
-      }
-    }
+    timer = Timer.scheduledTimer(
+      timeInterval: 1.0,
+      target: self,
+      selector: #selector(updateElapsedTime),
+      userInfo: nil,
+      repeats: true
+    )
   }
 
-  private func updateElapsedTime() {
+  @objc private func updateElapsedTime() {
     guard let start = startTime, state == .recording else { return }
     elapsedSeconds = Int(Date().timeIntervalSince(start) - pausedDuration)
   }

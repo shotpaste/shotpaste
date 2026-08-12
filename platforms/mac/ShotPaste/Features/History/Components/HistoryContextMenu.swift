@@ -11,11 +11,11 @@ struct HistoryContextMenu: View {
   let record: CaptureHistoryRecord
 
   var body: some View {
-    Button("Open in Finder") {
+    Button(L10n.Common.openInFinder) {
       NSWorkspace.shared.activateFileViewerSelecting([record.fileURL])
     }
 
-    Button("Copy") {
+    Button(L10n.Common.copy) {
       HistoryWindowController.shared.copyToClipboard([record])
     }
 
@@ -25,7 +25,7 @@ struct HistoryContextMenu: View {
 
     Divider()
 
-    Button("Delete") {
+    Button(L10n.Common.deleteAction) {
       HistoryWindowController.shared.deleteRecords([record], asksConfirmation: false)
     }
   }

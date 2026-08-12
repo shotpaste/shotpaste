@@ -141,7 +141,6 @@ struct CaptureSettingsView: View {
               Toggle("", isOn: $includeOwnAppInScreenshots)
                 .labelsHidden()
             }
-
           }
         }
 
@@ -184,8 +183,8 @@ struct CaptureSettingsView: View {
 
             SettingRow(
               icon: "macwindow.on.rectangle",
-              title: "Window Targeting",
-              description: "Allow switching from a freeform region to an application window target"
+              title: L10n.PreferencesCapture.windowTargetingTitle,
+              description: L10n.PreferencesCapture.windowTargetingDescription
             ) {
               Toggle("", isOn: $screenshotWindowTargeting)
                 .labelsHidden()
@@ -193,8 +192,8 @@ struct CaptureSettingsView: View {
 
             SettingRow(
               icon: "magnifyingglass",
-              title: "Pixel Magnifier",
-              description: "Show the zoomed pixel view and color value while selecting"
+              title: L10n.PreferencesCapture.pixelMagnifierTitle,
+              description: L10n.PreferencesCapture.pixelMagnifierDescription
             ) {
               Toggle("", isOn: $screenshotMagnifierEnabled)
                 .labelsHidden()
@@ -203,8 +202,8 @@ struct CaptureSettingsView: View {
             if screenshotMagnifierEnabled {
               SettingRow(
                 icon: "plus.magnifyingglass",
-                title: "Initial Magnification",
-                description: "Starting magnifier zoom (1–20×)"
+                title: L10n.PreferencesCapture.magnifierZoomTitle,
+                description: L10n.PreferencesCapture.magnifierZoomDescription
               ) {
                 Stepper(value: $screenshotMagnifierZoom, in: 1 ... 20) {
                   Text("\(screenshotMagnifierZoom)×")
@@ -231,8 +230,8 @@ struct CaptureSettingsView: View {
             if screenshotFormat != ImageFormatOption.png.rawValue {
               SettingRow(
                 icon: "slider.horizontal.3",
-                title: "Lossy Quality",
-                description: "JPEG and WebP encoding quality (1–100)"
+                title: L10n.PreferencesCapture.lossyQualityTitle,
+                description: L10n.PreferencesCapture.lossyQualityDescription
               ) {
                 Stepper(value: $screenshotLossyQuality, in: 1 ... 100) {
                   Text("\(screenshotLossyQuality)")
@@ -244,11 +243,11 @@ struct CaptureSettingsView: View {
 
             SettingRow(
               icon: "arrow.up.left.and.arrow.down.right",
-              title: "Output Scale",
-              description: "Automatic and 1× preserve native pixels; 2× may upscale output"
+              title: L10n.PreferencesCapture.outputScaleTitle,
+              description: L10n.PreferencesCapture.outputScaleDescription
             ) {
               Picker("", selection: $screenshotScale) {
-                Text("Automatic").tag(0)
+                Text(L10n.Common.automatic).tag(0)
                 Text("1×").tag(1)
                 Text("2×").tag(2)
               }
@@ -258,11 +257,11 @@ struct CaptureSettingsView: View {
 
             SettingRow(
               icon: "paintpalette",
-              title: "Color Space",
-              description: "Choose automatic display matching, sRGB, or Display P3"
+              title: L10n.PreferencesCapture.colorSpaceTitle,
+              description: L10n.PreferencesCapture.colorSpaceDescription
             ) {
               Picker("", selection: $screenshotColorSpace) {
-                Text("Automatic").tag("auto")
+                Text(L10n.Common.automatic).tag("auto")
                 Text("sRGB").tag("srgb")
                 Text("Display P3").tag("displayP3")
               }
@@ -337,8 +336,8 @@ struct CaptureSettingsView: View {
           Section(L10n.PreferencesCapture.ocrSection) {
             SettingRow(
               icon: "checkmark.circle",
-              title: "Capture Success Notification",
-              description: "Show a toast after a screenshot or recording is saved"
+              title: L10n.PreferencesCapture.captureSuccessNotificationTitle,
+              description: L10n.PreferencesCapture.captureSuccessNotificationDescription
             ) {
               Toggle("", isOn: $screenshotSuccessNotification)
                 .labelsHidden()
@@ -364,11 +363,11 @@ struct CaptureSettingsView: View {
 
             SettingRow(
               icon: "character.book.closed",
-              title: "OCR Language",
-              description: "Language profile used for text recognition"
+              title: L10n.PreferencesCapture.ocrLanguageTitle,
+              description: L10n.PreferencesCapture.ocrLanguageDescription
             ) {
               Picker("", selection: $ocrRecognitionLanguage) {
-                Text("Follow App Language").tag("auto")
+                Text(L10n.PreferencesCapture.followAppLanguage).tag("auto")
                 ForEach(AppLanguageOption.supported) { option in
                   Text(option.displayName).tag(option.identifier)
                 }
@@ -453,8 +452,8 @@ struct CaptureSettingsView: View {
 
             SettingRow(
               icon: "cpu",
-              title: "Video Codec",
-              description: "H.264 prioritizes compatibility; HEVC creates smaller files when supported"
+              title: L10n.PreferencesCapture.videoCodecTitle,
+              description: L10n.PreferencesCapture.videoCodecDescription
             ) {
               Picker("", selection: $recordingVideoCodec) {
                 Text("H.264").tag("h264")
@@ -484,8 +483,8 @@ struct CaptureSettingsView: View {
 
             SettingRow(
               icon: "photo.stack",
-              title: "GIF Frame Rate",
-              description: "Frame rate used when the recording output is GIF"
+              title: L10n.PreferencesCapture.gifFrameRateTitle,
+              description: L10n.PreferencesCapture.gifFrameRateDescription
             ) {
               Picker("", selection: $recordingGIFFPS) {
                 ForEach([10, 15, 20, 30], id: \.self) { option in
@@ -511,8 +510,8 @@ struct CaptureSettingsView: View {
 
             SettingRow(
               icon: "cursorarrow.click.2",
-              title: "Highlight Mouse Clicks",
-              description: "Render configurable left- and right-click ripples in the recording"
+              title: L10n.PreferencesCapture.highlightMouseClicksTitle,
+              description: L10n.PreferencesCapture.highlightMouseClicksDescription
             ) {
               Toggle("", isOn: $recordingHighlightClicks)
                 .labelsHidden()
@@ -520,8 +519,8 @@ struct CaptureSettingsView: View {
 
             SettingRow(
               icon: "keyboard",
-              title: "Show Keystrokes",
-              description: "Render selected key presses in the recording"
+              title: L10n.PreferencesCapture.showKeystrokesTitle,
+              description: L10n.PreferencesCapture.showKeystrokesDescription
             ) {
               Toggle("", isOn: $recordingShowKeystrokes)
                 .labelsHidden()
@@ -612,8 +611,8 @@ struct CaptureSettingsView: View {
 
             SettingRow(
               icon: "paintpalette",
-              title: "Left-Click Color",
-              description: "Color of left-button click rings"
+              title: L10n.PreferencesCapture.leftClickColorTitle,
+              description: L10n.PreferencesCapture.leftClickColorDescription
             ) {
               ColorPicker(
                 "",
@@ -628,8 +627,8 @@ struct CaptureSettingsView: View {
 
             SettingRow(
               icon: "paintpalette.fill",
-              title: "Right-Click Color",
-              description: "Color of right-button click rings"
+              title: L10n.PreferencesCapture.rightClickColorTitle,
+              description: L10n.PreferencesCapture.rightClickColorDescription
             ) {
               ColorPicker(
                 "",
@@ -639,7 +638,7 @@ struct CaptureSettingsView: View {
                 ),
                 supportsOpacity: false
               )
-                .labelsHidden()
+              .labelsHidden()
             }
 
             SettingRow(
@@ -702,8 +701,8 @@ struct CaptureSettingsView: View {
 
             SettingRow(
               icon: "line.3.horizontal.decrease.circle",
-              title: "Visibility Rule",
-              description: "Choose which key presses appear in recordings"
+              title: L10n.PreferencesCapture.visibilityRuleTitle,
+              description: L10n.PreferencesCapture.visibilityRuleDescription
             ) {
               Picker("", selection: $keystrokeVisibility) {
                 ForEach(KeystrokeOverlayVisibility.allCases) { option in
@@ -741,8 +740,8 @@ struct CaptureSettingsView: View {
             if captureAudio {
               SettingRow(
                 icon: "speaker.wave.2",
-                title: "System Audio Volume",
-                description: "Volume applied to captured app audio"
+                title: L10n.PreferencesCapture.systemAudioVolumeTitle,
+                description: L10n.PreferencesCapture.systemAudioVolumeDescription
               ) {
                 Slider(value: $recordingSystemAudioVolume, in: 0 ... 1)
                   .frame(width: 150)
@@ -770,8 +769,8 @@ struct CaptureSettingsView: View {
             if captureMicrophone {
               SettingRow(
                 icon: "mic.and.signal.meter",
-                title: "Microphone Volume",
-                description: "Volume applied to microphone audio"
+                title: L10n.PreferencesCapture.microphoneVolumeTitle,
+                description: L10n.PreferencesCapture.microphoneVolumeDescription
               ) {
                 Slider(value: $recordingMicrophoneVolume, in: 0 ... 1)
                   .frame(width: 150)
@@ -789,11 +788,11 @@ struct CaptureSettingsView: View {
         }
 
         if selectedPane == .recording {
-          Section("Live Annotation") {
+          Section(L10n.PreferencesCapture.liveAnnotationSection) {
             SettingRow(
               icon: "paintbrush.pointed",
-              title: "Default Color",
-              description: "Starting color for new recording annotations"
+              title: L10n.PreferencesCapture.annotationDefaultColorTitle,
+              description: L10n.PreferencesCapture.annotationDefaultColorDescription
             ) {
               ColorPicker(
                 "",
@@ -808,8 +807,8 @@ struct CaptureSettingsView: View {
 
             SettingRow(
               icon: "lineweight",
-              title: "Default Width",
-              description: "Starting stroke width for new annotations"
+              title: L10n.PreferencesCapture.annotationDefaultWidthTitle,
+              description: L10n.PreferencesCapture.annotationDefaultWidthDescription
             ) {
               Slider(value: $recordingAnnotationWidth, in: 1 ... 20, step: 1)
                 .frame(width: 150)
@@ -817,13 +816,13 @@ struct CaptureSettingsView: View {
 
             SettingRow(
               icon: "trash.slash",
-              title: "Default Clear Mode",
-              description: "How new annotations are removed during recording"
+              title: L10n.PreferencesCapture.annotationClearModeTitle,
+              description: L10n.PreferencesCapture.annotationClearModeDescription
             ) {
               Picker("", selection: $recordingAnnotationClearMode) {
-                Text("Manual").tag("manual")
-                Text("After Time").tag("afterSeconds")
-                Text("Maximum Count").tag("maximumCount")
+                Text(L10n.PreferencesCapture.clearModeManual).tag("manual")
+                Text(L10n.PreferencesCapture.clearModeAfterTime).tag("afterSeconds")
+                Text(L10n.PreferencesCapture.clearModeMaximumCount).tag("maximumCount")
               }
               .labelsHidden()
               .pickerStyle(.menu)
@@ -832,8 +831,8 @@ struct CaptureSettingsView: View {
             if recordingAnnotationClearMode == "afterSeconds" {
               SettingRow(
                 icon: "timer",
-                title: "Clear Delay",
-                description: "Seconds before an annotation is removed"
+                title: L10n.PreferencesCapture.clearDelayTitle,
+                description: L10n.PreferencesCapture.clearDelayDescription
               ) {
                 Stepper(value: $recordingAnnotationClearSeconds, in: 1 ... 300, step: 1) {
                   Text("\(Int(recordingAnnotationClearSeconds)) s")
@@ -846,8 +845,8 @@ struct CaptureSettingsView: View {
             if recordingAnnotationClearMode == "maximumCount" {
               SettingRow(
                 icon: "number",
-                title: "Maximum Count",
-                description: "Maximum annotations retained for each tool"
+                title: L10n.PreferencesCapture.annotationMaxCountTitle,
+                description: L10n.PreferencesCapture.annotationMaxCountDescription
               ) {
                 Stepper(value: $recordingAnnotationMaxCount, in: 1 ... 100) {
                   Text("\(recordingAnnotationMaxCount)")
@@ -859,8 +858,8 @@ struct CaptureSettingsView: View {
 
             SettingRow(
               icon: "circle.dotted",
-              title: "Fade Before Clearing",
-              description: "Fade timed annotations before they are removed"
+              title: L10n.PreferencesCapture.fadeBeforeClearingTitle,
+              description: L10n.PreferencesCapture.fadeBeforeClearingDescription
             ) {
               Toggle("", isOn: $recordingAnnotationFadeEnabled)
                 .labelsHidden()
@@ -869,8 +868,8 @@ struct CaptureSettingsView: View {
             if recordingAnnotationFadeEnabled {
               SettingRow(
                 icon: "clock.arrow.circlepath",
-                title: "Fade Duration",
-                description: "Length of the fade animation"
+                title: L10n.PreferencesCapture.fadeDurationTitle,
+                description: L10n.PreferencesCapture.fadeDurationDescription
               ) {
                 Slider(value: $recordingAnnotationFadeDuration, in: 0.05 ... 3, step: 0.05)
                   .frame(width: 150)
@@ -879,8 +878,8 @@ struct CaptureSettingsView: View {
 
             SettingRow(
               icon: "option",
-              title: "Temporary Modifier",
-              description: "Hold this key while drawing to use the temporary clear mode"
+              title: L10n.PreferencesCapture.temporaryModifierTitle,
+              description: L10n.PreferencesCapture.temporaryModifierDescription
             ) {
               Picker("", selection: $recordingAnnotationTemporaryModifier) {
                 ForEach(RecordingAnnotationTemporaryModifier.allCases) { option in
@@ -894,13 +893,13 @@ struct CaptureSettingsView: View {
             if recordingAnnotationTemporaryModifier != RecordingAnnotationTemporaryModifier.none.rawValue {
               SettingRow(
                 icon: "arrow.triangle.2.circlepath",
-                title: "Temporary Clear Mode",
-                description: "Clear mode used only while the modifier is held"
+                title: L10n.PreferencesCapture.temporaryClearModeTitle,
+                description: L10n.PreferencesCapture.temporaryClearModeDescription
               ) {
                 Picker("", selection: $recordingAnnotationTemporaryClearMode) {
-                  Text("Manual").tag("manual")
-                  Text("After Time").tag("afterSeconds")
-                  Text("Maximum Count").tag("maximumCount")
+                  Text(L10n.PreferencesCapture.clearModeManual).tag("manual")
+                  Text(L10n.PreferencesCapture.clearModeAfterTime).tag("afterSeconds")
+                  Text(L10n.PreferencesCapture.clearModeMaximumCount).tag("maximumCount")
                 }
                 .labelsHidden()
                 .pickerStyle(.menu)

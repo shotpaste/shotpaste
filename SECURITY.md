@@ -6,11 +6,38 @@ Do not disclose a suspected vulnerability in a public issue, discussion, or pull
 
 [Report a vulnerability privately](https://github.com/shotpaste/shotpaste/security/advisories/new)
 
-Include the affected platform and version, impact, reproduction steps or proof of concept, and any suggested mitigation. Maintainers will acknowledge a complete report when it has been reviewed; no fixed response-time promise is made while the project is volunteer-maintained.
+Include the affected platform and version, impact, reproduction steps or proof
+of concept, and any suggested mitigation. Do not include real clipboard data,
+captures, credentials, or other personal information; use synthetic examples.
+
+We aim to acknowledge complete reports within three business days, provide an
+initial severity assessment within seven business days, and share progress at
+least every fourteen days until resolution. These are response targets for a
+volunteer-maintained project, not guaranteed service levels.
+
+Please allow a reasonable remediation window before public disclosure. We will
+credit reporters who request it, unless attribution would reveal sensitive
+information.
 
 ## Supported versions
 
-Security fixes target the latest released version and the current `main` branch. Older versions may be asked to upgrade before receiving a fix.
+| Version | Supported |
+| --- | --- |
+| Latest release | Yes |
+| Current `main` branch | Yes |
+| Older releases | No; upgrade to the latest release |
+
+## Scope
+
+Reports are especially useful when they involve arbitrary code execution,
+unsafe URL or file handling, permission-boundary bypasses, unintended capture or
+clipboard disclosure, release artifact tampering, or dependency compromise.
+
+Reports about social engineering, unsupported operating systems, or attacks
+that require the reporter to publish another person's private data are normally
+out of scope. Test only accounts, devices, and data you own or are authorized to
+use. Good-faith research that follows this policy will not be pursued by the
+project merely for bypassing a control to demonstrate the issue.
 
 ## Security model
 
@@ -27,7 +54,7 @@ Windows uses native capture and global-input APIs and stores application data un
 
 ## Release trust
 
-- macOS packages use the project's persistent self-signed certificate and are not Apple-notarized.
+- macOS packages use the project's persistent self-signed certificate.
 - Windows portable packages are currently not Authenticode-signed.
 - Every release includes `SHA256SUMS.txt`; users should verify checksums before opening packages.
 - Release signing material must never be committed to the repository or attached to issues.
@@ -35,3 +62,9 @@ Windows uses native capture and global-input APIs and stores application data un
 ## Dependencies
 
 macOS uses GRDB.swift and Swift-WebP in addition to Apple frameworks. Windows uses ScreenRecorderLib, Microsoft.Data.Sqlite, SQLitePCLRaw, SkiaSharp, and ZXing.Net. Dependency notices are maintained in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and automated dependency updates are reviewed through pull requests.
+
+## Disclosure and release handling
+
+Security fixes are developed privately when practical, tested on the affected
+native platform, and released with concise impact and upgrade guidance. Release
+artifacts and checksums are published only by the repository release workflow.

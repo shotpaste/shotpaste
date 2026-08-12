@@ -199,8 +199,17 @@ enum ShotPasteConfigurationExporter {
     let manager = HistoryFloatingManager.shared
     writer.section("history")
     writer.value("enabled", defaults.boolValue(PreferencesKeys.historyEnabled, default: true))
-    writer.value("retention_days", defaults.integerValue(PreferencesKeys.historyRetentionDays, default: 0))
-    writer.value("max_count", defaults.integerValue(PreferencesKeys.historyMaxCount, default: 0))
+    writer.value(
+      "retention_days",
+      defaults.integerValue(
+        PreferencesKeys.historyRetentionDays,
+        default: PreferencesKeys.defaultHistoryRetentionDays
+      )
+    )
+    writer.value(
+      "max_count",
+      defaults.integerValue(PreferencesKeys.historyMaxCount, default: PreferencesKeys.defaultHistoryMaxCount)
+    )
     writer.value("media_clipboard_enabled", defaults.boolValue(PreferencesKeys.mediaClipboardEnabled, default: true))
     writer.value("background_style", HistoryBackgroundStyle.currentStoredStyle(userDefaults: defaults).rawValue)
 

@@ -44,10 +44,10 @@ final class AppCoordinator {
       defaults.set(true, forKey: PreferencesKeys.historyEnabled)
     }
     if defaults.object(forKey: PreferencesKeys.historyRetentionDays) == nil {
-      defaults.set(0, forKey: PreferencesKeys.historyRetentionDays)
+      defaults.set(PreferencesKeys.defaultHistoryRetentionDays, forKey: PreferencesKeys.historyRetentionDays)
     }
     if defaults.object(forKey: PreferencesKeys.historyMaxCount) == nil {
-      defaults.set(0, forKey: PreferencesKeys.historyMaxCount)
+      defaults.set(PreferencesKeys.defaultHistoryMaxCount, forKey: PreferencesKeys.historyMaxCount)
     }
     if defaults.object(forKey: PreferencesKeys.mediaClipboardEnabled) == nil {
       defaults.set(true, forKey: PreferencesKeys.mediaClipboardEnabled)

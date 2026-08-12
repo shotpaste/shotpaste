@@ -84,6 +84,8 @@ public sealed class SettingsStoreTests
         Assert.Equal(10, store.Current.HistoryPanelMaxItems);
         Assert.Equal("Hud", store.Current.HistoryBackgroundStyle);
         Assert.Equal("Clipboard", store.Current.DefaultHistoryFilter);
+        Assert.Equal(30, store.Current.HistoryRetentionDays);
+        Assert.Equal(1_000, store.Current.HistoryMaxCount);
     }
 
     [Fact]

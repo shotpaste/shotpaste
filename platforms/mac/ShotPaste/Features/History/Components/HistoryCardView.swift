@@ -106,7 +106,7 @@ struct HistoryCardView: View, Equatable {
           VStack(spacing: 6) {
             Image(systemName: "exclamationmark.triangle.fill")
               .font(.system(size: 16))
-            Text("File missing")
+            Text(L10n.Common.fileMissing)
               .font(.caption2.weight(.semibold))
           }
           .foregroundColor(.white)
@@ -256,13 +256,13 @@ struct HistoryCardView: View, Equatable {
   private func checkFileExistence() {
     let url = record.fileURL
     let path = record.filePath
-    Task.detached(priority: .utility) {
-      let exists = SandboxFileAccessManager.shared.withScopedAccess(to: url) {
+    let access = SandboxFileAccessManager.shared.beginAccessingURL(url)
+    Task {
+      let exists = await Task.detached(priority: .utility) {
         FileManager.default.fileExists(atPath: path)
-      }
-      await MainActor.run {
-        fileExists = exists
-      }
+      }.value
+      access.stop()
+      fileExists = exists
     }
   }
 

@@ -13,7 +13,7 @@ struct CaptureContext: Equatable {
   let appName: String?
   let windowTitle: String?
 
-  static let empty = CaptureContext(appName: nil, windowTitle: nil)
+  nonisolated static let empty = CaptureContext(appName: nil, windowTitle: nil)
 
   /// Max characters for windowTitle in filenames to prevent excessively long paths.
   private static let maxTitleLength = 80

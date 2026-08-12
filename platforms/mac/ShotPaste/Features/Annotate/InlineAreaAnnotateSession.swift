@@ -23,12 +23,12 @@ struct InlineAreaAnnotateDisplay: Identifiable {
   }
 }
 
-enum InlineAreaAnnotatePhase {
+nonisolated enum InlineAreaAnnotatePhase {
   case selecting
   case annotating
 }
 
-enum InlineAreaKeyEventSource {
+nonisolated enum InlineAreaKeyEventSource {
   case local
   case global
 }

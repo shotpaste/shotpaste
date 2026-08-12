@@ -103,9 +103,9 @@ nonisolated enum TextPresentation: String, CaseIterable, Identifiable, Equatable
 
   var helpText: String {
     switch self {
-    case .plain: "Transparent text"
-    case .label: "Text label"
-    case .callout: "Callout label"
+    case .plain: L10n.AnnotateUI.transparentText
+    case .label: L10n.AnnotateUI.textLabel
+    case .callout: L10n.AnnotateUI.calloutLabel
     }
   }
 }
@@ -1131,7 +1131,7 @@ nonisolated struct ArrowGeometry: Equatable {
 }
 
 /// Single annotation element on the canvas
-struct AnnotationItem: Identifiable, Equatable {
+nonisolated struct AnnotationItem: Identifiable, Equatable {
   let id: UUID
   var type: AnnotationType
   var bounds: CGRect
@@ -1253,7 +1253,7 @@ extension [AnnotationItem] {
   /// at the bottom, blur effects above them, and markup annotations
   /// (shapes, arrows, text, counters, …) always on top. Stable within each
   /// tier; the model array order itself is unchanged.
-  var renderOrdered: [AnnotationItem] {
+  nonisolated var renderOrdered: [AnnotationItem] {
     var embedded: [AnnotationItem] = []
     var blurs: [AnnotationItem] = []
     var markup: [AnnotationItem] = []

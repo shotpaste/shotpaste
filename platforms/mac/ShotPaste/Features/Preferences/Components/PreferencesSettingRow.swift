@@ -34,11 +34,15 @@ struct SettingRow<Content: View>: View {
           Text(description)
             .font(.caption)
             .foregroundColor(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
         }
       }
+      .multilineTextAlignment(.leading)
+      .layoutPriority(1)
 
       Spacer()
       content()
+        .fixedSize(horizontal: true, vertical: false)
     }
     .padding(.vertical, 4)
   }

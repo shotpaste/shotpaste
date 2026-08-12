@@ -12,6 +12,9 @@ native client, shared localization, documentation, scripts, or release quality.
   macOS and Windows unless an operating-system difference requires otherwise.
 - Never include credentials, signing certificates, captured private content, or
   unsanitized logs and screenshots.
+- You are responsible for reviewing and testing every submitted change,
+  including code, translations, tests, or documentation produced with automated
+  tools.
 
 Security vulnerabilities belong in the private process described in
 [SECURITY.md](SECURITY.md), not in a public issue.
@@ -44,6 +47,7 @@ macOS baseline:
 swift -module-cache-path build/swift-module-cache platforms/mac/Tools/Localization/CatalogTool.swift verify
 ./scripts/run-tests.sh
 ./scripts/build_and_run.sh build
+./scripts/build_and_run.sh build --configuration Release
 ```
 
 Windows PowerShell baseline:
@@ -62,6 +66,15 @@ and concise manual acceptance steps in the pull request.
 2. Add or update tests and user-facing documentation where relevant.
 3. Validate every changed native platform on that operating system.
 4. Complete the pull request template with exact evidence and known limits.
+
+Pull requests are reviewed for correctness, privacy impact, platform parity,
+accessibility, localization, and maintainability. A passing CI run is necessary
+but does not replace native-platform testing for UI, capture, recording,
+permissions, shortcuts, DPI, or signing behavior.
+
+Maintainers may ask for a smaller change, additional evidence, or a platform
+follow-up before merging. Draft pull requests are welcome when early design
+feedback would prevent wasted work.
 
 Do not mix generated artifacts, unrelated formatting, or personal IDE files
 into the change. By contributing, you agree that your contribution is licensed

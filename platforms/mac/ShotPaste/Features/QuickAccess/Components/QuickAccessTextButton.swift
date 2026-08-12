@@ -20,7 +20,10 @@ struct QuickAccessTextButton: View {
       Text(label)
         .font(.system(size: 12, weight: .medium))
         .foregroundColor(.white.opacity(isEnabled ? 1 : 0.75))
-        .padding(.horizontal, 12)
+        .lineLimit(1)
+        .minimumScaleFactor(0.68)
+        .allowsTightening(true)
+        .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(
           RoundedRectangle(cornerRadius: 24)

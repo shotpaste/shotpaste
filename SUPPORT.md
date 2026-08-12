@@ -11,9 +11,10 @@ ShotPaste is a community-maintained open-source project.
    method, exact steps, and sanitized diagnostics.
 
 Use the repository issue forms for reproducible bugs, feature requests, and
-usage questions. Before uploading anything, remove captures, clipboard content,
-credentials, signing material, personal file paths, and other private data from
-screenshots, recordings, and logs.
+usage questions. The forms explain the evidence needed for each request and
+help route platform-specific reports. Before uploading anything, remove
+captures, clipboard content, credentials, signing material, personal file
+paths, and other private data from screenshots, recordings, and logs.
 
 Report suspected vulnerabilities privately according to
 [SECURITY.md](SECURITY.md).

@@ -53,13 +53,13 @@
               <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
             </StackPanel>
           </Grid>
-          <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="9,0,9,9" HorizontalAlignment="Center">
+          <WrapPanel Grid.Row="2" Margin="9,0,9,9" HorizontalAlignment="Center">
             <Button Content="恢复" Style="{StaticResource HistoryCardAction}" Height="27" Padding="7,3" Margin="0,0,4,0" Tag="{Binding}" Click="OnRestoreItem"/>
             <Button Content="复制" Style="{StaticResource HistoryCardAction}" Height="27" Padding="7,3" Margin="0,0,4,0" Tag="{Binding}" Click="OnCopyItem"/>
             <Button Content="打开" AutomationProperties.AutomationId="HistoryOpenItem"
                     Style="{StaticResource HistoryCardAction}" Height="27" Padding="7,3" Margin="0,0,4,0" Tag="{Binding}" Click="OnOpenItem"/>
             <Button Content="删除" Style="{StaticResource HistoryCardAction}" Height="27" Padding="7,3" Foreground="#FFFF6B68" Tag="{Binding}" Click="OnDeleteItem"/>
-          </StackPanel>
+          </WrapPanel>
         </Grid>
       </Border>
       <DataTemplate.Triggers>

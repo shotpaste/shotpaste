@@ -1,0 +1,43 @@
+name: Usage question
+description: Ask for help using or building ShotPaste
+title: "[Question]: "
+labels:
+  - question
+body:
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - macOS
+        - Windows
+        - Website
+        - Development or build setup
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: "For example: 1.12.2 or commit SHA"
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Explain what you are trying to do, what you tried, and where you became blocked.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized context
+      description: Add concise error text or configuration details after removing private data.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy confirmation
+      options:
+        - label: I removed private captures, clipboard content, credentials, signing material, and personal paths.
+          required: true

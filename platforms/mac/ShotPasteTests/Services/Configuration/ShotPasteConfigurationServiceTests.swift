@@ -80,6 +80,20 @@ final class ShotPasteConfigurationServiceTests: XCTestCase {
     XCTAssertEqual(document.value(at: "quick_access", "two_finger_swipe_to_dismiss")?.boolValue, false)
   }
 
+  func testExportUsesBoundedHistoryDefaultsWhenUnset() throws {
+    let source = ShotPasteConfigurationExporter.exportTOML(defaults: UserDefaultsFactory.make())
+    let document = try SimpleTOMLParser.parse(source)
+
+    XCTAssertEqual(
+      document.value(at: "history", "retention_days")?.intValue,
+      PreferencesKeys.defaultHistoryRetentionDays
+    )
+    XCTAssertEqual(
+      document.value(at: "history", "max_count")?.intValue,
+      PreferencesKeys.defaultHistoryMaxCount
+    )
+  }
+
   func testEnsureConfigExistsDoesNotOverwriteExistingFile() throws {
     let homeDirectory = temporaryHomeDirectory()
     defer { try? FileManager.default.removeItem(at: homeDirectory) }

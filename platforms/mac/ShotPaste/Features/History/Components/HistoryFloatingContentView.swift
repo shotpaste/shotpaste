@@ -606,11 +606,11 @@ struct HistoryFloatingContentView: View {
 
   private var compactEmptyTitle: String {
     switch effectiveCompactFilter {
-    case .screenshot: "No screenshots yet"
-    case .scrollingScreenshot: "No scrolling screenshots yet"
-    case .recording: "No recordings yet"
-    case .clipboard: "No clipboard items yet"
-    case nil: "No captures yet"
+    case .screenshot: L10n.PreferencesHistory.noScreenshots
+    case .scrollingScreenshot: L10n.PreferencesHistory.noScrollingScreenshots
+    case .recording: L10n.PreferencesHistory.noRecordings
+    case .clipboard: L10n.PreferencesHistory.noClipboardItems
+    case nil: L10n.PreferencesHistory.noCaptures
     }
   }
 

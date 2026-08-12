@@ -2108,7 +2108,7 @@ private struct InlineAreaMoveHandle: View {
       .font(.system(size: 12, weight: .medium))
 
       if !isToolbarHandle {
-        Text("Space")
+        Text(L10n.ShortcutOverlay.spaceKey)
           .font(.system(size: 11, weight: .semibold))
           .lineLimit(1)
       }

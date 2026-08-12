@@ -218,9 +218,8 @@ final class HistoryWindowController {
       .map(\.fileURL)
 
     if !existingFileURLs.isEmpty {
-      do {
-        try NSWorkspace.shared.recycle(existingFileURLs)
-      } catch {
+      NSWorkspace.shared.recycle(existingFileURLs) { _, error in
+        guard let error else { return }
         DiagnosticLogger.shared.logError(
           .fileAccess,
           error,

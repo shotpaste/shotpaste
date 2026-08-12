@@ -15,8 +15,8 @@ import UniformTypeIdentifiers
 ///
 /// Clipboard file URLs are copied into App Support before they are registered so
 /// moving or deleting the source does not break the history entry. Bitmap data is
-/// normalized to PNG. There is intentionally no item-count, age, or payload-size
-/// limit; users retain explicit control through the history clear action.
+/// normalized to PNG. New installations retain items for at most 30 days and
+/// 1,000 records by default; users can adjust either limit in History settings.
 @MainActor
 final class MediaClipboardMonitor {
   static let shared = MediaClipboardMonitor()
@@ -47,11 +47,13 @@ final class MediaClipboardMonitor {
   func start() {
     guard timer == nil else { return }
     lastChangeCount = pasteboard.changeCount
-    timer = Timer.scheduledTimer(withTimeInterval: pollInterval, repeats: true) { [weak self] _ in
-      Task { @MainActor in
-        self?.poll()
-      }
-    }
+    timer = Timer.scheduledTimer(
+      timeInterval: pollInterval,
+      target: self,
+      selector: #selector(pollTimerFired),
+      userInfo: nil,
+      repeats: true
+    )
     DiagnosticLogger.shared.log(.info, .clipboard, "Media clipboard monitor started")
   }
 
@@ -59,6 +61,10 @@ final class MediaClipboardMonitor {
     timer?.invalidate()
     timer = nil
     DiagnosticLogger.shared.log(.debug, .clipboard, "Media clipboard monitor stopped")
+  }
+
+  @objc private func pollTimerFired() {
+    poll()
   }
 
   private func poll() {

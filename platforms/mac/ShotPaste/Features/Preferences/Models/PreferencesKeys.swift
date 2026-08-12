@@ -8,7 +8,7 @@
 import Foundation
 
 /// Centralized keys for UserDefaults storage
-enum PreferencesKeys {
+nonisolated enum PreferencesKeys {
   // General
   static let playSounds = "playSounds"
   static let urlSchemeEnabled = "urlSchemeEnabled"
@@ -112,7 +112,7 @@ enum PreferencesKeys {
   static let recordingAnnotationTemporaryClearMode = "recording.annotation.temporaryClearMode"
 
   // Diagnostics
-  nonisolated static let diagnosticsEnabled = "diagnostics.enabled"
+  static let diagnosticsEnabled = "diagnostics.enabled"
   static let diagnosticsRetentionDays = "diagnostics.retentionDays"
   static let diagnosticsSessionActive = "diagnostics.sessionActive"
 
@@ -120,6 +120,8 @@ enum PreferencesKeys {
   static let historyEnabled = "history.enabled"
   static let historyRetentionDays = "history.retentionDays"
   static let historyMaxCount = "history.maxCount"
+  static let defaultHistoryRetentionDays = 30
+  static let defaultHistoryMaxCount = 1_000
   static let mediaClipboardEnabled = "history.mediaClipboardEnabled"
   static let historyBackgroundStyle = "history.backgroundStyle"
   static let historyFloatingScale = "history.floating.scale"

@@ -13,7 +13,6 @@ nonisolated enum L10n {
     ("combine.", "Combine"),
     ("menu.", "Menubar"),
     ("common.", "Common"),
-    ("whats-new.", "WhatsNew"),
     ("appearance.", "Common"),
     ("app-identity.", "Common"),
     ("permission-row.", "Permissions"),
@@ -5018,31 +5017,367 @@ nonisolated enum L10n {
       comment: "History background style option"
     )
   }
+}
 
-  enum WhatsNew {
-    static let title = string(
-      "whats-new.title",
-      defaultValue: "What's new in ShotPaste",
-      comment: "Welcome screen title"
-    )
-    static func desc(_ version: String) -> String {
-      format(
-        "whats-new.desc",
-        defaultValue: "Discover the latest features in version %@.",
-        comment: "Welcome screen description",
-        version
-      )
-    }
+// MARK: - Localized surfaces added outside the original generated groups
 
-    static let notarizationTitle = string(
-      "whats-new.notarization.title",
-      defaultValue: "Apple Notarization",
-      comment: "Notarization feature title"
-    )
-    static let notarizationDesc = string(
-      "whats-new.notarization.desc",
-      defaultValue: "ShotPaste is now officially registered with the Apple Developer Program and certified by Apple, bypassing Gatekeeper's protections for a secure launch.",
-      comment: "Notarization feature description"
-    )
-  }
+extension L10n.Common {
+  static let automatic = L10n.string(
+    "common.automatic", defaultValue: "Automatic", comment: "Generic automatic option"
+  )
+  static let fileMissing = L10n.string(
+    "common.file-missing", defaultValue: "File missing", comment: "Placeholder when a file cannot be found"
+  )
+}
+
+extension L10n.PreferencesGeneral {
+  static let automationSection = L10n.string(
+    "preferences-general.automation-section", defaultValue: "Automation", comment: "Automation settings section"
+  )
+}
+
+extension L10n.PreferencesAdvanced {
+  static let legalSection = L10n.string(
+    "preferences-advanced.legal-section", defaultValue: "Legal", comment: "Legal settings section"
+  )
+  static let licensesTitle = L10n.string(
+    "preferences-advanced.licenses-title", defaultValue: "Open Source Licenses", comment: "Open source notices title"
+  )
+  static let licensesDescription = L10n.string(
+    "preferences-advanced.licenses-description",
+    defaultValue: "Copyright, license, disclaimer, and patent notices",
+    comment: "Open source notices description"
+  )
+  static let noticesUnavailable = L10n.string(
+    "preferences-advanced.notices-unavailable",
+    defaultValue: "The bundled third-party notices could not be loaded.",
+    comment: "Fallback shown when bundled notices cannot be read"
+  )
+}
+
+extension L10n.PreferencesHistory {
+  static let mediaClipboardTitle = L10n.string(
+    "preferences-history.media-clipboard-title",
+    defaultValue: "Archive copied text, images, and videos",
+    comment: "Clipboard archive toggle title"
+  )
+  static let mediaClipboardDescription = L10n.string(
+    "preferences-history.media-clipboard-description",
+    defaultValue: "Keep clipboard content even if its original file moves or is deleted.",
+    comment: "Clipboard archive toggle description"
+  )
+  static let capturesFolderButton = L10n.string(
+    "preferences-history.captures-folder-button", defaultValue: "Captures", comment: "Open captures folder button"
+  )
+  static let clipboardFolderButton = L10n.string(
+    "preferences-history.clipboard-folder-button", defaultValue: "Clipboard", comment: "Open clipboard folder button"
+  )
+  static let noMatches = L10n.string(
+    "preferences-history.no-matches", defaultValue: "No matches found", comment: "Empty search result title"
+  )
+  static let noScreenshots = L10n.string(
+    "preferences-history.no-screenshots", defaultValue: "No screenshots yet", comment: "Empty screenshot history title"
+  )
+  static let noScrollingScreenshots = L10n.string(
+    "preferences-history.no-scrolling-screenshots",
+    defaultValue: "No scrolling screenshots yet",
+    comment: "Empty scrolling screenshot history title"
+  )
+  static let noRecordings = L10n.string(
+    "preferences-history.no-recordings", defaultValue: "No recordings yet", comment: "Empty recording history title"
+  )
+  static let noClipboardItems = L10n.string(
+    "preferences-history.no-clipboard-items",
+    defaultValue: "No clipboard items yet",
+    comment: "Empty clipboard history title"
+  )
+  static let noCaptures = L10n.string(
+    "preferences-history.no-captures", defaultValue: "No captures yet", comment: "Empty capture history title"
+  )
+  static let searchSuggestion = L10n.string(
+    "preferences-history.search-suggestion",
+    defaultValue: "Try a different search term.",
+    comment: "Empty search result suggestion"
+  )
+  static let captureSuggestion = L10n.string(
+    "preferences-history.capture-suggestion",
+    defaultValue: "Take a screenshot or record your screen to see it here.",
+    comment: "Empty capture history suggestion"
+  )
+  static let anyTime = L10n.string(
+    "preferences-history.any-time", defaultValue: "Any Time", comment: "History time filter for all dates"
+  )
+}
+
+extension L10n.PreferencesCapture {
+  static let windowTargetingTitle = L10n.string(
+    "preferences-capture.window-targeting-title", defaultValue: "Window Targeting", comment: "Screenshot setting title"
+  )
+  static let windowTargetingDescription = L10n.string(
+    "preferences-capture.window-targeting-description",
+    defaultValue: "Switch from a freeform region to an application window.",
+    comment: "Screenshot setting description"
+  )
+  static let pixelMagnifierTitle = L10n.string(
+    "preferences-capture.pixel-magnifier-title", defaultValue: "Pixel Magnifier", comment: "Screenshot setting title"
+  )
+  static let pixelMagnifierDescription = L10n.string(
+    "preferences-capture.pixel-magnifier-description",
+    defaultValue: "Show magnified pixels and color values while selecting.",
+    comment: "Screenshot setting description"
+  )
+  static let magnifierZoomTitle = L10n.string(
+    "preferences-capture.magnifier-zoom-title", defaultValue: "Initial Magnification", comment: "Magnifier zoom title"
+  )
+  static let magnifierZoomDescription = L10n.string(
+    "preferences-capture.magnifier-zoom-description", defaultValue: "Starting magnifier zoom (1–20×)",
+    comment: "Magnifier zoom description"
+  )
+  static let lossyQualityTitle = L10n.string(
+    "preferences-capture.lossy-quality-title", defaultValue: "Lossy Quality", comment: "Image quality setting title"
+  )
+  static let lossyQualityDescription = L10n.string(
+    "preferences-capture.lossy-quality-description", defaultValue: "JPEG and WebP quality (1–100)",
+    comment: "Image quality setting description"
+  )
+  static let outputScaleTitle = L10n.string(
+    "preferences-capture.output-scale-title", defaultValue: "Output Scale", comment: "Screenshot scale setting title"
+  )
+  static let outputScaleDescription = L10n.string(
+    "preferences-capture.output-scale-description",
+    defaultValue: "Automatic and 1× preserve native pixels; 2× may upscale.",
+    comment: "Screenshot scale setting description"
+  )
+  static let colorSpaceTitle = L10n.string(
+    "preferences-capture.color-space-title", defaultValue: "Color Space", comment: "Screenshot color space title"
+  )
+  static let colorSpaceDescription = L10n.string(
+    "preferences-capture.color-space-description",
+    defaultValue: "Match the display automatically, or use sRGB or Display P3.",
+    comment: "Screenshot color space description"
+  )
+  static let captureSuccessNotificationTitle = L10n.string(
+    "preferences-capture.capture-success-notification-title",
+    defaultValue: "Capture Success Notification",
+    comment: "Capture notification setting title"
+  )
+  static let captureSuccessNotificationDescription = L10n.string(
+    "preferences-capture.capture-success-notification-description",
+    defaultValue: "Show a notification after a screenshot or recording is saved.",
+    comment: "Capture notification setting description"
+  )
+  static let ocrLanguageTitle = L10n.string(
+    "preferences-capture.ocr-language-title", defaultValue: "OCR Language", comment: "OCR language setting title"
+  )
+  static let ocrLanguageDescription = L10n.string(
+    "preferences-capture.ocr-language-description",
+    defaultValue: "Language profile used for text recognition.",
+    comment: "OCR language setting description"
+  )
+  static let followAppLanguage = L10n.string(
+    "preferences-capture.follow-app-language", defaultValue: "Follow App Language", comment: "OCR language option"
+  )
+  static let videoCodecTitle = L10n.string(
+    "preferences-capture.video-codec-title", defaultValue: "Video Codec", comment: "Recording codec setting title"
+  )
+  static let videoCodecDescription = L10n.string(
+    "preferences-capture.video-codec-description",
+    defaultValue: "H.264 favors compatibility; HEVC makes smaller files when supported.",
+    comment: "Recording codec setting description"
+  )
+  static let gifFrameRateTitle = L10n.string(
+    "preferences-capture.gif-frame-rate-title", defaultValue: "GIF Frame Rate", comment: "GIF frame rate setting title"
+  )
+  static let gifFrameRateDescription = L10n.string(
+    "preferences-capture.gif-frame-rate-description",
+    defaultValue: "Frame rate used when recording to GIF.",
+    comment: "GIF frame rate setting description"
+  )
+  static let highlightMouseClicksTitle = L10n.string(
+    "preferences-capture.highlight-mouse-clicks-title",
+    defaultValue: "Highlight Mouse Clicks",
+    comment: "Mouse click overlay setting title"
+  )
+  static let highlightMouseClicksDescription = L10n.string(
+    "preferences-capture.highlight-mouse-clicks-description",
+    defaultValue: "Show configurable ripples for left and right clicks.",
+    comment: "Mouse click overlay setting description"
+  )
+  static let showKeystrokesTitle = L10n.string(
+    "preferences-capture.show-keystrokes-title", defaultValue: "Show Keystrokes",
+    comment: "Keystroke overlay setting title"
+  )
+  static let showKeystrokesDescription = L10n.string(
+    "preferences-capture.show-keystrokes-description",
+    defaultValue: "Show selected key presses in recordings.",
+    comment: "Keystroke overlay setting description"
+  )
+  static let leftClickColorTitle = L10n.string(
+    "preferences-capture.left-click-color-title", defaultValue: "Left-Click Color",
+    comment: "Left click color setting title"
+  )
+  static let leftClickColorDescription = L10n.string(
+    "preferences-capture.left-click-color-description", defaultValue: "Color of left-click rings.",
+    comment: "Left click color description"
+  )
+  static let rightClickColorTitle = L10n.string(
+    "preferences-capture.right-click-color-title", defaultValue: "Right-Click Color",
+    comment: "Right click color setting title"
+  )
+  static let rightClickColorDescription = L10n.string(
+    "preferences-capture.right-click-color-description", defaultValue: "Color of right-click rings.",
+    comment: "Right click color description"
+  )
+  static let visibilityRuleTitle = L10n.string(
+    "preferences-capture.visibility-rule-title", defaultValue: "Visibility Rule",
+    comment: "Keystroke visibility setting title"
+  )
+  static let visibilityRuleDescription = L10n.string(
+    "preferences-capture.visibility-rule-description",
+    defaultValue: "Choose which key presses appear in recordings.",
+    comment: "Keystroke visibility setting description"
+  )
+  static let systemAudioVolumeTitle = L10n.string(
+    "preferences-capture.system-audio-volume-title", defaultValue: "System Audio Volume",
+    comment: "System audio volume title"
+  )
+  static let systemAudioVolumeDescription = L10n.string(
+    "preferences-capture.system-audio-volume-description", defaultValue: "Volume applied to captured app audio.",
+    comment: "System audio volume description"
+  )
+  static let microphoneVolumeTitle = L10n.string(
+    "preferences-capture.microphone-volume-title", defaultValue: "Microphone Volume", comment: "Microphone volume title"
+  )
+  static let microphoneVolumeDescription = L10n.string(
+    "preferences-capture.microphone-volume-description", defaultValue: "Volume applied to microphone audio.",
+    comment: "Microphone volume description"
+  )
+  static let liveAnnotationSection = L10n.string(
+    "preferences-capture.live-annotation-section", defaultValue: "Live Annotation",
+    comment: "Live annotation settings section"
+  )
+  static let annotationDefaultColorTitle = L10n.string(
+    "preferences-capture.annotation-default-color-title", defaultValue: "Default Color",
+    comment: "Annotation default color title"
+  )
+  static let annotationDefaultColorDescription = L10n.string(
+    "preferences-capture.annotation-default-color-description",
+    defaultValue: "Starting color for new recording annotations.",
+    comment: "Annotation default color description"
+  )
+  static let annotationDefaultWidthTitle = L10n.string(
+    "preferences-capture.annotation-default-width-title", defaultValue: "Default Width",
+    comment: "Annotation default width title"
+  )
+  static let annotationDefaultWidthDescription = L10n.string(
+    "preferences-capture.annotation-default-width-description",
+    defaultValue: "Starting stroke width for new annotations.",
+    comment: "Annotation default width description"
+  )
+  static let annotationClearModeTitle = L10n.string(
+    "preferences-capture.annotation-clear-mode-title", defaultValue: "Default Clear Mode",
+    comment: "Annotation clear mode title"
+  )
+  static let annotationClearModeDescription = L10n.string(
+    "preferences-capture.annotation-clear-mode-description",
+    defaultValue: "How new annotations are removed during recording.",
+    comment: "Annotation clear mode description"
+  )
+  static let clearModeManual = L10n.string(
+    "preferences-capture.clear-mode-manual", defaultValue: "Manual", comment: "Manual annotation clear mode"
+  )
+  static let clearModeAfterTime = L10n.string(
+    "preferences-capture.clear-mode-after-time", defaultValue: "After Time", comment: "Timed annotation clear mode"
+  )
+  static let clearModeMaximumCount = L10n.string(
+    "preferences-capture.clear-mode-maximum-count", defaultValue: "Maximum Count",
+    comment: "Count based annotation clear mode"
+  )
+  static let clearDelayTitle = L10n.string(
+    "preferences-capture.clear-delay-title", defaultValue: "Clear Delay", comment: "Annotation clear delay title"
+  )
+  static let clearDelayDescription = L10n.string(
+    "preferences-capture.clear-delay-description", defaultValue: "Seconds before an annotation is removed.",
+    comment: "Annotation clear delay description"
+  )
+  static let annotationMaxCountTitle = L10n.string(
+    "preferences-capture.annotation-max-count-title", defaultValue: "Maximum Count",
+    comment: "Annotation maximum count title"
+  )
+  static let annotationMaxCountDescription = L10n.string(
+    "preferences-capture.annotation-max-count-description",
+    defaultValue: "Maximum annotations kept for each tool.",
+    comment: "Annotation maximum count description"
+  )
+  static let fadeBeforeClearingTitle = L10n.string(
+    "preferences-capture.fade-before-clearing-title", defaultValue: "Fade Before Clearing",
+    comment: "Annotation fade toggle title"
+  )
+  static let fadeBeforeClearingDescription = L10n.string(
+    "preferences-capture.fade-before-clearing-description",
+    defaultValue: "Fade timed annotations before removing them.",
+    comment: "Annotation fade toggle description"
+  )
+  static let fadeDurationTitle = L10n.string(
+    "preferences-capture.fade-duration-title", defaultValue: "Fade Duration", comment: "Annotation fade duration title"
+  )
+  static let fadeDurationDescription = L10n.string(
+    "preferences-capture.fade-duration-description", defaultValue: "Length of the fade animation.",
+    comment: "Annotation fade duration description"
+  )
+  static let temporaryModifierTitle = L10n.string(
+    "preferences-capture.temporary-modifier-title", defaultValue: "Temporary Modifier",
+    comment: "Temporary annotation modifier title"
+  )
+  static let temporaryModifierDescription = L10n.string(
+    "preferences-capture.temporary-modifier-description",
+    defaultValue: "Hold this key while drawing to use a temporary clear mode.",
+    comment: "Temporary annotation modifier description"
+  )
+  static let temporaryClearModeTitle = L10n.string(
+    "preferences-capture.temporary-clear-mode-title", defaultValue: "Temporary Clear Mode",
+    comment: "Temporary clear mode title"
+  )
+  static let temporaryClearModeDescription = L10n.string(
+    "preferences-capture.temporary-clear-mode-description",
+    defaultValue: "Clear mode used only while the modifier is held.",
+    comment: "Temporary clear mode description"
+  )
+}
+
+extension L10n.Recording {
+  nonisolated static let keystrokeVisibilityAll = L10n.string(
+    "recording.keystroke-visibility-all", defaultValue: "All Keys", comment: "Keystroke visibility option"
+  )
+  nonisolated static let keystrokeVisibilitySpecialAndShortcuts = L10n.string(
+    "recording.keystroke-visibility-special-and-shortcuts",
+    defaultValue: "Special Keys and Shortcuts",
+    comment: "Keystroke visibility option"
+  )
+  nonisolated static let keystrokeVisibilityShortcutsOnly = L10n.string(
+    "recording.keystroke-visibility-shortcuts-only", defaultValue: "Shortcuts Only",
+    comment: "Keystroke visibility option"
+  )
+  nonisolated static let keystrokeVisibilitySpecialOnly = L10n.string(
+    "recording.keystroke-visibility-special-only", defaultValue: "Special Keys Only",
+    comment: "Keystroke visibility option"
+  )
+}
+
+extension L10n.AnnotateUI {
+  nonisolated static let transparentText = L10n.string(
+    "annotate.transparent-text", defaultValue: "Transparent Text", comment: "Annotation text style"
+  )
+  nonisolated static let textLabel = L10n.string(
+    "annotate.text-label", defaultValue: "Text Label", comment: "Annotation text style"
+  )
+  nonisolated static let calloutLabel = L10n.string(
+    "annotate.callout-label", defaultValue: "Callout Label", comment: "Annotation text style"
+  )
+}
+
+extension L10n.ShortcutOverlay {
+  static let spaceKey = L10n.string(
+    "shortcut-overlay.space-key", defaultValue: "Space", comment: "Space bar key label"
+  )
 }

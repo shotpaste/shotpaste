@@ -509,13 +509,6 @@ final class AppStatusBarController: ObservableObject {
     viewModel?.requestPermission()
   }
 
-  @objc private func showPendingFeatureIntroAction() {
-    logMenuAction("showPendingFeatureIntro")
-    if let campaign = FeatureIntroManager.shared.getPendingCampaign() {
-      FeatureIntroManager.shared.showCampaign(campaign)
-    }
-  }
-
   @objc private func reportProblemAction() {
     logMenuAction("reportProblem")
     CrashReportService.presentAlert()

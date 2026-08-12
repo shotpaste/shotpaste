@@ -9,7 +9,7 @@ import Combine
 import Foundation
 import Security
 
-enum AppBundleIdentity {
+nonisolated enum AppBundleIdentity {
   #if DEBUG
     static let expected = "com.ahtcfg24.shotpaste.debug"
   #else
@@ -84,10 +84,9 @@ final class AppIdentityManager: ObservableObject {
     // Quarantine flag check: Only flag as an issue if the app is running from
     // outside standard Applications folders. Homebrew Cask upgrades (`brew upgrade`)
     // use command-line `mv`/`cp` which preserves the quarantine xattr even after
-    // the app is placed in /Applications. Since the app is Apple Notarized, macOS
-    // Gatekeeper handles the quarantine-to-clearance flow automatically on first
-    // launch. Flagging quarantine inside /Applications would be a false positive
-    // that blocks permissions after every Cask upgrade (see issue #337).
+    // the app is placed in /Applications. Flagging quarantine inside an Applications
+    // folder would be a false positive that blocks permissions after every package
+    // replacement, including command-line installs and upgrades.
     if quarantined {
       let homePath = NSHomeDirectory()
       let isInsideApplications =

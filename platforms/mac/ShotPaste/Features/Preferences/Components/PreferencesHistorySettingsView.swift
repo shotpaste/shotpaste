@@ -9,8 +9,9 @@ import SwiftUI
 
 struct HistorySettingsView: View {
   @ObservedObject private var manager = HistoryFloatingManager.shared
-  @AppStorage(PreferencesKeys.historyRetentionDays) private var historyRetentionDays = 0
-  @AppStorage(PreferencesKeys.historyMaxCount) private var historyMaxCount = 0
+  @AppStorage(PreferencesKeys.historyRetentionDays) private var historyRetentionDays =
+    PreferencesKeys.defaultHistoryRetentionDays
+  @AppStorage(PreferencesKeys.historyMaxCount) private var historyMaxCount = PreferencesKeys.defaultHistoryMaxCount
   @AppStorage(PreferencesKeys.mediaClipboardEnabled) private var mediaClipboardEnabled = true
   @AppStorage(PreferencesKeys.historyBackgroundStyle) private var historyBackgroundStyle: HistoryBackgroundStyle =
     .defaultStyle
@@ -22,8 +23,8 @@ struct HistorySettingsView: View {
       Section(L10n.Preferences.historyTab) {
         SettingRow(
           icon: "clipboard",
-          title: "Archive copied text, images, and videos",
-          description: "Keep clipboard content from other apps even when an original file moves or is deleted."
+          title: L10n.PreferencesHistory.mediaClipboardTitle,
+          description: L10n.PreferencesHistory.mediaClipboardDescription
         ) {
           Toggle("", isOn: $mediaClipboardEnabled)
             .labelsHidden()
@@ -176,10 +177,10 @@ struct HistorySettingsView: View {
           description: captureStorageSizeText
         ) {
           HStack(spacing: 8) {
-            Button("Captures") {
+            Button(L10n.PreferencesHistory.capturesFolderButton) {
               revealCaptureStorage()
             }
-            Button("Clipboard") {
+            Button(L10n.PreferencesHistory.clipboardFolderButton) {
               revealMediaClipboardStorage()
             }
           }

@@ -252,7 +252,7 @@ final class QuickAccessPanelController {
     transitionToken &+= 1
     let token = transitionToken
 
-    let finish = { [weak self] in
+    let finish: @Sendable () -> Void = { [weak self] in
       MainActor.assumeIsolated {
         guard let self, self.transitionToken == token else { return }
         self.transitionToken &+= 1
@@ -263,7 +263,7 @@ final class QuickAccessPanelController {
 
     NSAnimationContext.runAnimationGroup(animations, completionHandler: finish)
 
-    Task { @MainActor [weak self] in
+    Task { @MainActor in
       let watchdogSlack: TimeInterval = 0.5
       try? await Task.sleep(nanoseconds: UInt64((duration + watchdogSlack) * 1_000_000_000))
       guard !Task.isCancelled else { return }

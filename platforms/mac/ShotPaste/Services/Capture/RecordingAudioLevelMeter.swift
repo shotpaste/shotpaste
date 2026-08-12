@@ -12,34 +12,38 @@ import AVFoundation
 import Combine
 import CoreMedia
 
-enum AudioLevelSource {
+nonisolated enum AudioLevelSource {
   case system
   case microphone
 }
 
 /// Thread-safe audio-level meter. `ingest(_:source:)` is safe to call from the
 /// `nonisolated` capture delegate queues; only the final `level` publish hops to main.
+@MainActor
 final class RecordingAudioLevelMeter: ObservableObject, @unchecked Sendable {
   /// Smoothed, normalized level in `0...1`, published on the main thread ~30Hz.
   @Published private(set) var level: Float = 0
 
-  private let queue = DispatchQueue(label: "com.ahtcfg24.shotpaste.recording.audiolevel", qos: .userInteractive)
+  private nonisolated let queue = DispatchQueue(
+    label: "com.ahtcfg24.shotpaste.recording.audiolevel",
+    qos: .userInteractive
+  )
 
   // Per-source most-recent RMS (guarded by `queue`).
-  private var systemRMS: Float = 0
-  private var micRMS: Float = 0
-  private var smoothed: Float = 0
-  private var isFrozen = false
-  private var lastPublish: CFAbsoluteTime = 0
+  private nonisolated(unsafe) var systemRMS: Float = 0
+  private nonisolated(unsafe) var micRMS: Float = 0
+  private nonisolated(unsafe) var smoothed: Float = 0
+  private nonisolated(unsafe) var isFrozen = false
+  private nonisolated(unsafe) var lastPublish: CFAbsoluteTime = 0
 
   // Tunables — voice-reactive envelope.
-  private let attack: Float = 0.5 // fast rise → snappy response to loud speech
-  private let decay: Float = 0.08 // slow fall → soft, ocean-like settle
-  private let noiseFloorDB: Float = -50 // gate room hiss below this → clean silence
-  private let minDB: Float = -54 // low end of usable window (whisper territory)
-  private let maxDB: Float = -6 // loud speech saturates near here → tall peaks
-  private let silenceKnee: Float = 0.12 // below this normalized level → still 0 (room tone)
-  private var publishInterval: CFAbsoluteTime {
+  private nonisolated let attack: Float = 0.5 // fast rise → snappy response to loud speech
+  private nonisolated let decay: Float = 0.08 // slow fall → soft, ocean-like settle
+  private nonisolated let noiseFloorDB: Float = -50 // gate room hiss below this → clean silence
+  private nonisolated let minDB: Float = -54 // low end of usable window (whisper territory)
+  private nonisolated let maxDB: Float = -6 // loud speech saturates near here → tall peaks
+  private nonisolated let silenceKnee: Float = 0.12 // below this normalized level → still 0 (room tone)
+  private nonisolated var publishInterval: CFAbsoluteTime {
     if NSClassFromString("XCTestCase") != nil {
       return 0
     }
@@ -52,7 +56,7 @@ final class RecordingAudioLevelMeter: ObservableObject, @unchecked Sendable {
   // MARK: - Ingest
 
   /// Compute RMS off the caller's queue (cheap, read-only) then update state serially.
-  func ingest(_ sampleBuffer: CMSampleBuffer, source: AudioLevelSource) {
+  nonisolated func ingest(_ sampleBuffer: CMSampleBuffer, source: AudioLevelSource) {
     guard let rms = Self.rms(from: sampleBuffer) else { return }
     queue.async { [weak self] in
       guard let self, !self.isFrozen else { return }
@@ -67,17 +71,17 @@ final class RecordingAudioLevelMeter: ObservableObject, @unchecked Sendable {
   // MARK: - Lifecycle
 
   /// Hold the current level (called on pause) — stops decaying to 0.
-  func freeze() {
+  nonisolated func freeze() {
     queue.async { [weak self] in self?.isFrozen = true }
   }
 
   /// Resume metering (called on resume).
-  func unfreeze() {
+  nonisolated func unfreeze() {
     queue.async { [weak self] in self?.isFrozen = false }
   }
 
   /// Zero everything (called on stop/cleanup).
-  func reset() {
+  nonisolated func reset() {
     queue.async { [weak self] in
       guard let self else { return }
       systemRMS = 0
@@ -91,7 +95,7 @@ final class RecordingAudioLevelMeter: ObservableObject, @unchecked Sendable {
 
   // MARK: - Private
 
-  private func recompute() {
+  private nonisolated func recompute() {
     let combined = max(systemRMS, micRMS)
     let blend = combined > smoothed ? attack : decay
     smoothed = smoothed * (1 - blend) + combined * blend
@@ -113,14 +117,14 @@ final class RecordingAudioLevelMeter: ObservableObject, @unchecked Sendable {
     publish(norm)
   }
 
-  private func publish(_ value: Float) {
-    DispatchQueue.main.async { [weak self] in self?.level = value }
+  private nonisolated func publish(_ value: Float) {
+    Task { @MainActor [weak self] in self?.level = value }
   }
 
   /// Root-mean-square amplitude across every sample/channel of a PCM audio buffer.
   /// Handles interleaved & deinterleaved Float32 / Int16 / Int32. Returns nil for
   /// non-audio or unsupported formats.
-  private static func rms(from sampleBuffer: CMSampleBuffer) -> Float? {
+  private nonisolated static func rms(from sampleBuffer: CMSampleBuffer) -> Float? {
     guard let formatDesc = CMSampleBufferGetFormatDescription(sampleBuffer) else {
       return nil
     }
@@ -184,7 +188,7 @@ final class RecordingAudioLevelMeter: ObservableObject, @unchecked Sendable {
     return Float((sumSquares / Double(total)).squareRoot())
   }
 
-  func flushQueueForTesting() {
+  nonisolated func flushQueueForTesting() {
     queue.sync {}
   }
 }

@@ -72,13 +72,13 @@ struct AdvancedSettingsView: View {
         }
       }
 
-      Section("Legal") {
+      Section(L10n.PreferencesAdvanced.legalSection) {
         SettingRow(
           icon: "doc.text",
-          title: "Open Source Licenses",
-          description: "Copyright, license, disclaimer, and patent notices"
+          title: L10n.PreferencesAdvanced.licensesTitle,
+          description: L10n.PreferencesAdvanced.licensesDescription
         ) {
-          Button("View") {
+          Button(L10n.Common.open) {
             isLegalNoticesPresented = true
           }
           .buttonStyle(.bordered)

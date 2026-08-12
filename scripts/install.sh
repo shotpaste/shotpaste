@@ -137,6 +137,6 @@ ok "Installed ShotPaste.app to ${INSTALL_DIR}"
 
 printf "\n${GREEN}${BOLD}Installation complete!${RESET}\n\n"
 printf "  Launch ShotPaste from your Applications folder or Spotlight.\n"
-printf "  Current releases are self-signed and not Apple-notarized.\n"
+printf "  Current releases use ShotPaste's persistent self-signed certificate.\n"
 printf "  If Gatekeeper blocks launch, follow START-HERE-macOS.txt from the DMG.\n"
 printf "  On first launch, grant ${BOLD}Screen Recording${RESET} permission when prompted.\n\n"

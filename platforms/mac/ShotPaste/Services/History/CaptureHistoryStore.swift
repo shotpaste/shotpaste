@@ -78,7 +78,9 @@ final class CaptureHistoryStore: ObservableObject {
           DiagnosticLogger.shared.logError(.history, error, "Capture history database observation failed")
         },
         onChange: { [weak self] newRecords in
-          self?.records = newRecords
+          Task { @MainActor [weak self] in
+            self?.records = newRecords
+          }
         }
       )
     }

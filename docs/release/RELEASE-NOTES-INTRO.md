@@ -10,5 +10,5 @@ changes are listed in the automatically generated notes below.
 - Checksums: `SHA256SUMS.txt`
 
 Read the matching `START-HERE` file before first launch. The macOS package is
-self-signed and not Apple-notarized. The Windows package is not currently
+self-signed. The Windows package is not currently
 Authenticode-signed.

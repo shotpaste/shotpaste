@@ -81,11 +81,11 @@ struct GeneralSettingsView: View {
         }
       }
 
-      Section("Automation") {
+      Section(L10n.PreferencesGeneral.automationSection) {
         SettingRow(
           icon: "link",
-          title: "URL Scheme",
-          description: "Allow shotpaste:// links to start One Shot, capture, recording, history, and settings actions."
+          title: L10n.PreferencesAdvanced.urlSchemeTitle,
+          description: L10n.PreferencesAdvanced.urlSchemeDescription
         ) {
           Toggle("", isOn: $urlSchemeEnabled)
             .labelsHidden()

@@ -54,21 +54,21 @@ struct HistoryEmptyStateView: View {
 
   private var title: String {
     if hasSearch {
-      return "No matches found"
+      return L10n.PreferencesHistory.noMatches
     }
     switch filter {
-    case .screenshot: return "No screenshots yet"
-    case .scrollingScreenshot: return "No scrolling screenshots yet"
-    case .recording: return "No recordings yet"
-    case .clipboard: return "No clipboard items yet"
-    case nil: return "No captures yet"
+    case .screenshot: return L10n.PreferencesHistory.noScreenshots
+    case .scrollingScreenshot: return L10n.PreferencesHistory.noScrollingScreenshots
+    case .recording: return L10n.PreferencesHistory.noRecordings
+    case .clipboard: return L10n.PreferencesHistory.noClipboardItems
+    case nil: return L10n.PreferencesHistory.noCaptures
     }
   }
 
   private var subtitle: String {
     if hasSearch {
-      return "Try a different search term."
+      return L10n.PreferencesHistory.searchSuggestion
     }
-    return "Take a screenshot or record your screen to see them here."
+    return L10n.PreferencesHistory.captureSuggestion
   }
 }

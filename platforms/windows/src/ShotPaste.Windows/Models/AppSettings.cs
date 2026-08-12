@@ -68,8 +68,8 @@ public sealed class AppSettings
     public bool ShowRecordingToolbar { get; set; } = true;
     public int RecordingFps { get; set; } = 30;
     public int RecordingGifFps { get; set; } = 15;
-    public int HistoryRetentionDays { get; set; }
-    public int HistoryMaxCount { get; set; }
+    public int HistoryRetentionDays { get; set; } = 30;
+    public int HistoryMaxCount { get; set; } = 1_000;
     public string DefaultHistoryFilter { get; set; } = "Clipboard";
     public string Theme { get; set; } = "System";
     public string ScreenshotFormat { get; set; } = "Png";

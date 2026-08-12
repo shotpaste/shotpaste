@@ -106,7 +106,7 @@ final class CaptureStorageManager {
           errorHandler: nil
         ) else { continue }
 
-        for case let fileURL as URL in enumerator {
+        while let fileURL = enumerator.nextObject() as? URL {
           guard
             let values = try? fileURL.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey]),
             values.isRegularFile == true,

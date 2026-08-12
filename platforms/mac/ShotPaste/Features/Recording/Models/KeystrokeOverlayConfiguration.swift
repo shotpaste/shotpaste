@@ -9,7 +9,7 @@
 import Foundation
 
 /// Position of the keystroke badge relative to the recording area
-enum KeystrokeOverlayPosition: String, CaseIterable, Identifiable {
+nonisolated enum KeystrokeOverlayPosition: String, CaseIterable, Identifiable {
   case bottomCenter
   case bottomLeft
   case bottomRight
@@ -33,25 +33,27 @@ enum KeystrokeOverlayPosition: String, CaseIterable, Identifiable {
   }
 }
 
-enum KeystrokeOverlayVisibility: String, CaseIterable, Identifiable {
+nonisolated enum KeystrokeOverlayVisibility: String, CaseIterable, Identifiable {
   case all
   case specialAndShortcuts
   case shortcutsOnly
   case specialOnly
 
-  var id: String { rawValue }
+  var id: String {
+    rawValue
+  }
 
   var displayName: String {
     switch self {
-    case .all: "All keys"
-    case .specialAndShortcuts: "Special keys and shortcuts"
-    case .shortcutsOnly: "Shortcuts only"
-    case .specialOnly: "Special keys only"
+    case .all: L10n.Recording.keystrokeVisibilityAll
+    case .specialAndShortcuts: L10n.Recording.keystrokeVisibilitySpecialAndShortcuts
+    case .shortcutsOnly: L10n.Recording.keystrokeVisibilityShortcutsOnly
+    case .specialOnly: L10n.Recording.keystrokeVisibilitySpecialOnly
     }
   }
 }
 
-struct KeystrokeOverlayConfiguration {
+nonisolated struct KeystrokeOverlayConfiguration {
   /// Font size for the keystroke text
   let fontSize: CGFloat
 

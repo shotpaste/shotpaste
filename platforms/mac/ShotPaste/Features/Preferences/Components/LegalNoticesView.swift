@@ -15,12 +15,12 @@ struct LegalNoticesView: View {
   var body: some View {
     VStack(spacing: 0) {
       HStack {
-        Text("Open Source Licenses")
+        Text(L10n.PreferencesAdvanced.licensesTitle)
           .font(.headline)
 
         Spacer()
 
-        Button("Done") {
+        Button(L10n.Common.done) {
           dismiss()
         }
         .keyboardShortcut(.defaultAction)
@@ -45,7 +45,7 @@ struct LegalNoticesView: View {
       let url = Bundle.main.url(forResource: "ThirdPartyNotices", withExtension: "md"),
       let contents = try? String(contentsOf: url, encoding: .utf8)
     else {
-      return "The bundled third-party notices could not be loaded."
+      return L10n.PreferencesAdvanced.noticesUnavailable
     }
 
     return contents
