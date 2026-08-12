@@ -1,0 +1,217 @@
+# Stable Windows tags drive the Windows-only release below.
+name: Release ShotPaste for Windows
+
+on:
+  push:
+    tags:
+      - "windows-v*.*.*"
+      - "!windows-v*-*"
+      - '!windows-v*\+*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-windows-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  metadata:
+    name: Validate Windows release tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve stable semantic version
+        id: release
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if ! [[ "$TAG" =~ ^windows-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Official Windows tags must use windows-vMAJOR.MINOR.PATCH"
+            exit 1
+          fi
+
+          git fetch --no-tags origin \
+            "+refs/heads/release:refs/remotes/origin/release"
+          tag_commit="$(git rev-parse "${GITHUB_SHA}^{commit}")"
+          release_commit="$(git rev-parse "refs/remotes/origin/release^{commit}")"
+          if ! git merge-base --is-ancestor "$tag_commit" "$release_commit"; then
+            echo "::error::Windows release tags must point to a commit contained in release"
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#windows-v}" >> "$GITHUB_OUTPUT"
+
+  windows:
+    name: Build Windows x64 portable ZIP
+    needs: metadata
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore, build, and test
+        shell: pwsh
+        run: ./scripts/build-windows.ps1 -Configuration Release
+
+      - name: Publish self-contained application
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.metadata.outputs.version }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $project = "platforms/windows/src/ShotPaste.Windows/ShotPaste.Windows.csproj"
+          $publishDirectory = "build/windows/publish"
+          $releaseDirectory = "build/release"
+          $zip = "$releaseDirectory/ShotPaste-v$env:VERSION-Windows-x64-portable.zip"
+          $fourPartVersion = "$env:VERSION.0"
+
+          New-Item -ItemType Directory -Force -Path $publishDirectory, $releaseDirectory | Out-Null
+          dotnet publish $project `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:Platform=x64 `
+            -p:PublishSingleFile=true `
+            -p:Version=$env:VERSION `
+            -p:AssemblyVersion=$fourPartVersion `
+            -p:FileVersion=$fourPartVersion `
+            -o $publishDirectory
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $executable = Join-Path $publishDirectory "ShotPaste.exe"
+          if (-not (Test-Path -LiteralPath $executable -PathType Leaf)) {
+            throw "ShotPaste.exe was not produced"
+          }
+
+          $debugSymbols = @(Get-ChildItem -LiteralPath $publishDirectory -Recurse -File -Filter "*.pdb")
+          if ($debugSymbols.Count -ne 0) {
+            throw "Release publish unexpectedly contains PDB files: $($debugSymbols.FullName -join ', ')"
+          }
+
+          (Get-Content "docs/release/START-HERE-Windows.txt" -Raw).Replace("@VERSION@", $env:VERSION) |
+            Set-Content (Join-Path $publishDirectory "START-HERE-Windows.txt") -Encoding utf8
+          Copy-Item "LICENSE" (Join-Path $publishDirectory "LICENSE.txt")
+          Copy-Item "THIRD_PARTY_NOTICES.md" (Join-Path $publishDirectory "THIRD_PARTY_NOTICES.md")
+
+          Compress-Archive -Path "$publishDirectory/*" -DestinationPath $zip -CompressionLevel Optimal
+          if (-not (Test-Path -LiteralPath $zip -PathType Leaf)) {
+            throw "Portable ZIP was not produced"
+          }
+
+      - name: Upload Windows release artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-windows
+          path: build/release/ShotPaste-v${{ needs.metadata.outputs.version }}-Windows-x64-portable.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish Windows GitHub Release
+    needs:
+      - metadata
+      - windows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download Windows release artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-windows
+          path: dist
+
+      - name: Create and verify checksums and startup guide
+        shell: bash
+        env:
+          VERSION: ${{ needs.metadata.outputs.version }}
+        run: |
+          set -euo pipefail
+          cd dist
+
+          package="ShotPaste-v${VERSION}-Windows-x64-portable.zip"
+          [[ -f "$package" ]] || {
+            echo "::error::The Windows package is required before publishing"
+            exit 1
+          }
+
+          package_count=$(find . -maxdepth 1 -type f -name '*.zip' | wc -l | tr -d ' ')
+          [[ "$package_count" == "1" ]] || {
+            echo "::error::Expected exactly one Windows package, found $package_count"
+            exit 1
+          }
+
+          sha256sum "$package" > SHA256SUMS.txt
+          sed "s/@VERSION@/$VERSION/g" ../docs/release/START-HERE-Windows.txt \
+            > "ShotPaste-v${VERSION}-START-HERE-Windows.txt"
+          sha256sum --check SHA256SUMS.txt
+
+      - name: Publish non-draft Windows release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.metadata.outputs.tag }}
+          VERSION: ${{ needs.metadata.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release $TAG already exists; refusing to overwrite it"
+            exit 1
+          fi
+
+          previous_tag="$(
+            git tag --list 'windows-v*.*.*' --sort=-version:refname \
+              | grep -Fvx "$TAG" \
+              | head -n 1 || true
+          )"
+          notes=$(sed "s/@VERSION@/$VERSION/g" docs/release/RELEASE-NOTES-INTRO-Windows.md)
+          release_args=(
+            --repo "$GITHUB_REPOSITORY"
+            --verify-tag
+            --title "ShotPaste for Windows v$VERSION"
+            --generate-notes
+            --latest=false
+            --notes "$notes"
+          )
+          if [[ -n "$previous_tag" ]]; then
+            release_args+=(--notes-start-tag "$previous_tag")
+          fi
+
+          gh release create "$TAG" \
+            dist/*.zip \
+            dist/SHA256SUMS.txt \
+            dist/*START-HERE*.txt \
+            "${release_args[@]}"
+
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --json url,tagName,isDraft,isPrerelease,assets

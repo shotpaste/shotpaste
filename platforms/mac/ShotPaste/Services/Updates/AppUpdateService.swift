@@ -2,7 +2,7 @@
 //  AppUpdateService.swift
 //  ShotPaste
 //
-//  Reads the latest stable GitHub Release without downloading or installing it.
+//  Reads the latest stable macOS GitHub Release without downloading or installing it.
 //
 
 import Foundation
@@ -72,9 +72,10 @@ enum AppUpdateCheckError: Error, Equatable {
 }
 
 struct AppUpdateService {
-  static let latestReleaseAPIURL = URL(
-    string: "https://api.github.com/repos/shotpaste/shotpaste/releases/latest"
+  static let releasesAPIURL = URL(
+    string: "https://api.github.com/repos/shotpaste/shotpaste/releases?per_page=100"
   )!
+  static let platformTagPrefix = "macos-v"
 
   private let session: any URLSessionProtocol
   private let currentVersionProvider: @Sendable () -> String?
@@ -99,7 +100,7 @@ struct AppUpdateService {
     }
 
     var request = URLRequest(
-      url: Self.latestReleaseAPIURL,
+      url: Self.releasesAPIURL,
       cachePolicy: .reloadRevalidatingCacheData,
       timeoutInterval: 15
     )
@@ -115,27 +116,40 @@ struct AppUpdateService {
       throw AppUpdateCheckError.unsuccessfulStatusCode(response.statusCode)
     }
 
-    let payload: GitHubReleasePayload
+    let payloads: [GitHubReleasePayload]
     do {
-      payload = try JSONDecoder().decode(GitHubReleasePayload.self, from: data)
+      payloads = try JSONDecoder().decode([GitHubReleasePayload].self, from: data)
     } catch {
       throw AppUpdateCheckError.invalidRelease
     }
 
-    guard
-      !payload.draft,
-      !payload.prerelease,
-      let latestVersion = AppReleaseVersion(payload.tagName),
-      Self.isTrustedReleasePageURL(payload.htmlURL)
-    else {
+    guard let release = payloads.compactMap(Self.macOSRelease).max(by: {
+      $0.version < $1.version
+    }) else {
       throw AppUpdateCheckError.invalidRelease
     }
 
-    let release = AppRelease(version: latestVersion, pageURL: payload.htmlURL)
-    if latestVersion > currentVersion {
+    if release.version > currentVersion {
       return .updateAvailable(currentVersion: currentVersion, latestRelease: release)
     }
     return .upToDate(currentVersion: currentVersion, latestRelease: release)
+  }
+
+  private static func macOSRelease(from payload: GitHubReleasePayload) -> AppRelease? {
+    guard
+      !payload.draft,
+      !payload.prerelease,
+      payload.tagName.hasPrefix(platformTagPrefix),
+      let version = AppReleaseVersion(String(payload.tagName.dropFirst(platformTagPrefix.count))),
+      payload.assets.contains(where: {
+        $0.name == "ShotPaste-v\(version)-macOS-arm64.dmg"
+      }),
+      isTrustedReleasePageURL(payload.htmlURL)
+    else {
+      return nil
+    }
+
+    return AppRelease(version: version, pageURL: payload.htmlURL)
   }
 
   private static func isTrustedReleasePageURL(_ url: URL) -> Bool {
@@ -150,11 +164,17 @@ private struct GitHubReleasePayload: Decodable {
   let htmlURL: URL
   let draft: Bool
   let prerelease: Bool
+  let assets: [GitHubReleaseAssetPayload]
 
   enum CodingKeys: String, CodingKey {
     case tagName = "tag_name"
     case htmlURL = "html_url"
     case draft
     case prerelease
+    case assets
   }
+}
+
+private struct GitHubReleaseAssetPayload: Decodable {
+  let name: String
 }

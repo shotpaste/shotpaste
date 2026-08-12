@@ -26,16 +26,31 @@ final class AppUpdateServiceTests: XCTestCase {
 
   func testCheckForUpdatesReturnsAvailableReleaseAndUsesGitHubHeaders() async throws {
     let releaseURL = try XCTUnwrap(
-      URL(string: "https://github.com/shotpaste/shotpaste/releases/tag/v1.13.0")
+      URL(string: "https://github.com/shotpaste/shotpaste/releases/tag/macos-v1.13.0")
     )
     let session = MockURLSession { request in
-      XCTAssertEqual(request.url, AppUpdateService.latestReleaseAPIURL)
+      XCTAssertEqual(request.url, AppUpdateService.releasesAPIURL)
       XCTAssertEqual(request.value(forHTTPHeaderField: "Accept"), "application/vnd.github+json")
       XCTAssertEqual(request.value(forHTTPHeaderField: "X-GitHub-Api-Version"), "2022-11-28")
       XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), "ShotPaste/1.12.2")
       let data = Data(
         """
-        {"tag_name":"v1.13.0","html_url":"\(releaseURL.absoluteString)","draft":false,"prerelease":false}
+        [
+          {
+            "tag_name":"windows-v9.0.0",
+            "html_url":"https://github.com/shotpaste/shotpaste/releases/tag/windows-v9.0.0",
+            "draft":false,
+            "prerelease":false,
+            "assets":[{"name":"ShotPaste-v9.0.0-Windows-x64-portable.zip"}]
+          },
+          {
+            "tag_name":"macos-v1.13.0",
+            "html_url":"\(releaseURL.absoluteString)",
+            "draft":false,
+            "prerelease":false,
+            "assets":[{"name":"ShotPaste-v1.13.0-macOS-arm64.dmg"}]
+          }
+        ]
         """.utf8
       )
       return MockURLSession.makeResponse(statusCode: 200, data: data, url: request.url!)
@@ -58,12 +73,18 @@ final class AppUpdateServiceTests: XCTestCase {
 
   func testCheckForUpdatesTreatsSameOrOlderReleaseAsUpToDate() async throws {
     let releaseURL = try XCTUnwrap(
-      URL(string: "https://github.com/shotpaste/shotpaste/releases/tag/v1.12.2")
+      URL(string: "https://github.com/shotpaste/shotpaste/releases/tag/macos-v1.12.2")
     )
     let session = MockURLSession { request in
       let data = Data(
         """
-        {"tag_name":"v1.12.2","html_url":"\(releaseURL.absoluteString)","draft":false,"prerelease":false}
+        [{
+          "tag_name":"macos-v1.12.2",
+          "html_url":"\(releaseURL.absoluteString)",
+          "draft":false,
+          "prerelease":false,
+          "assets":[{"name":"ShotPaste-v1.12.2-macOS-arm64.dmg"}]
+        }]
         """.utf8
       )
       return MockURLSession.makeResponse(statusCode: 200, data: data, url: request.url!)
@@ -79,12 +100,18 @@ final class AppUpdateServiceTests: XCTestCase {
 
   func testCheckForUpdatesTreatsNewerInstalledVersionAsUpToDate() async throws {
     let releaseURL = try XCTUnwrap(
-      URL(string: "https://github.com/shotpaste/shotpaste/releases/tag/v1.12.2")
+      URL(string: "https://github.com/shotpaste/shotpaste/releases/tag/macos-v1.12.2")
     )
     let session = MockURLSession { request in
       let data = Data(
         """
-        {"tag_name":"v1.12.2","html_url":"\(releaseURL.absoluteString)","draft":false,"prerelease":false}
+        [{
+          "tag_name":"macos-v1.12.2",
+          "html_url":"\(releaseURL.absoluteString)",
+          "draft":false,
+          "prerelease":false,
+          "assets":[{"name":"ShotPaste-v1.12.2-macOS-arm64.dmg"}]
+        }]
         """.utf8
       )
       return MockURLSession.makeResponse(statusCode: 200, data: data, url: request.url!)
@@ -102,7 +129,38 @@ final class AppUpdateServiceTests: XCTestCase {
     let session = MockURLSession { request in
       let data = Data(
         """
-        {"tag_name":"v9.0.0","html_url":"https://example.com/download","draft":false,"prerelease":false}
+        [{
+          "tag_name":"macos-v9.0.0",
+          "html_url":"https://example.com/download",
+          "draft":false,
+          "prerelease":false,
+          "assets":[{"name":"ShotPaste-v9.0.0-macOS-arm64.dmg"}]
+        }]
+        """.utf8
+      )
+      return MockURLSession.makeResponse(statusCode: 200, data: data, url: request.url!)
+    }
+    let service = AppUpdateService(session: session) { "1.12.2" }
+
+    do {
+      _ = try await service.checkForUpdates()
+      XCTFail("Expected an invalid release error")
+    } catch let error as AppUpdateCheckError {
+      XCTAssertEqual(error, .invalidRelease)
+    }
+  }
+
+  func testCheckForUpdatesRejectsResponseWithoutMacOSPackage() async throws {
+    let session = MockURLSession { request in
+      let data = Data(
+        """
+        [{
+          "tag_name":"windows-v1.13.0",
+          "html_url":"https://github.com/shotpaste/shotpaste/releases/tag/windows-v1.13.0",
+          "draft":false,
+          "prerelease":false,
+          "assets":[{"name":"ShotPaste-v1.13.0-Windows-x64-portable.zip"}]
+        }]
         """.utf8
       )
       return MockURLSession.makeResponse(statusCode: 200, data: data, url: request.url!)
