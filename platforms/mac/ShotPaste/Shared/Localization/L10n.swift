@@ -591,8 +591,8 @@ nonisolated enum L10n {
 
     static let grantPermission = string(
       "menu.grant-permission",
-      defaultValue: "Grant Permission...",
-      comment: "Status bar menu item title to request missing permissions"
+      defaultValue: "Set Up Permissions...",
+      comment: "Status bar menu item title to open the guided permission setup"
     )
     static let preferences = string(
       "menu.preferences",
@@ -1256,6 +1256,16 @@ nonisolated enum L10n {
       defaultValue: "Granted",
       comment: "Status badge shown when a permission is granted"
     )
+    static let notEnabled = string(
+      "permission-row.not-enabled",
+      defaultValue: "Not Enabled",
+      comment: "Neutral status badge shown when an optional permission has not been enabled"
+    )
+    static let restricted = string(
+      "permission-row.restricted",
+      defaultValue: "Restricted",
+      comment: "Status badge shown when macOS policy prevents granting a permission"
+    )
   }
 
   enum Permission {
@@ -1291,8 +1301,18 @@ nonisolated enum L10n {
     )
     static let optionalForGlobalShortcuts = string(
       "permission.optional-global-shortcuts",
-      defaultValue: "Optional for global shortcuts",
+      defaultValue: "Optional for auto-scroll and shortcuts that use the Fn key",
       comment: "Permission description for accessibility access"
+    )
+    static let saveFolderDescription = string(
+      "permission.save-folder-description",
+      defaultValue: "Lets ShotPaste save screenshots and recordings to your chosen folder",
+      comment: "Permission description for access to the selected capture folder"
+    )
+    static let screenRecordingFinishInSettings = string(
+      "permission.screen-recording-finish-in-settings",
+      defaultValue: "Turn on ShotPaste in System Settings, then return here. macOS may ask you to reopen the app.",
+      comment: "Follow-up guidance after requesting screen recording permission"
     )
     static let grantAccess = string(
       "permission.grant-access",
@@ -1683,6 +1703,51 @@ nonisolated enum L10n {
       "preferences-permissions.intro",
       defaultValue: "ShotPaste requires certain permissions to capture your screen and audio.",
       comment: "Introductory text for the permissions preferences tab"
+    )
+    static let setupTitle = string(
+      "preferences-permissions.setup-title",
+      defaultValue: "Finish setting up ShotPaste",
+      comment: "Permission guide title when required access is incomplete"
+    )
+    static let setupDescription = string(
+      "preferences-permissions.setup-description",
+      defaultValue: "Complete the required items below. Optional permissions stay off until you choose to enable them.",
+      comment: "Permission guide description when required access is incomplete"
+    )
+    static let readyTitle = string(
+      "preferences-permissions.ready-title",
+      defaultValue: "ShotPaste is ready to capture",
+      comment: "Permission guide title when all required access is available"
+    )
+    static let readyDescription = string(
+      "preferences-permissions.ready-description",
+      defaultValue: "Required access is complete. Enable optional features whenever you need them.",
+      comment: "Permission guide description when all required access is available"
+    )
+    static func progress(_ completed: Int, _ total: Int) -> String {
+      format(
+        "preferences-permissions.progress",
+        defaultValue: "%d of %d required permissions ready",
+        comment: "Required permission progress. First %d is completed count, second %d is total count.",
+        completed,
+        total
+      )
+    }
+
+    static let requiredSection = string(
+      "preferences-permissions.required-section",
+      defaultValue: "Required to capture",
+      comment: "Section title for required permissions"
+    )
+    static let optionalSection = string(
+      "preferences-permissions.optional-section",
+      defaultValue: "Optional features",
+      comment: "Section title for optional permissions"
+    )
+    static let privacyNote = string(
+      "preferences-permissions.privacy-note",
+      defaultValue: "Permissions are managed by macOS and stay under your control.",
+      comment: "Privacy reassurance shown at the bottom of the permission guide"
     )
   }
 

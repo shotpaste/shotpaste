@@ -506,7 +506,7 @@ final class AppStatusBarController: ObservableObject {
 
   @objc private func grantPermissionAction() {
     logMenuAction("grantPermission")
-    viewModel?.requestPermission()
+    openPreferencesWindow(tab: .permissions)
   }
 
   @objc private func reportProblemAction() {

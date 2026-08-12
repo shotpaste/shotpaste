@@ -6,7 +6,29 @@
 //
 
 import AppKit
+import CoreGraphics
 import Foundation
+
+struct PermissionGuideLaunchPolicy {
+  static let currentVersion = 1
+
+  private let defaults: UserDefaults
+
+  init(defaults: UserDefaults = .standard) {
+    self.defaults = defaults
+  }
+
+  /// Consumes the current guide version exactly once. Existing users who
+  /// already have usable access should not see onboarding later if they revoke
+  /// a permission intentionally.
+  func consumePresentationIfNeeded(hasUsableScreenRecordingPermission: Bool) -> Bool {
+    let presentedVersion = defaults.integer(forKey: PreferencesKeys.permissionGuidePresentedVersion)
+    guard presentedVersion < Self.currentVersion else { return false }
+
+    defaults.set(Self.currentVersion, forKey: PreferencesKeys.permissionGuidePresentedVersion)
+    return !hasUsableScreenRecordingPermission
+  }
+}
 
 @MainActor
 final class AppCoordinator {
@@ -81,6 +103,23 @@ final class AppCoordinator {
       "Status bar controller configured",
       context: ["crashPrompt": (didCrash && DiagnosticLogger.shared.isEnabled) ? "true" : "false"]
     )
+
+    presentPermissionGuideIfNeeded(defaults: defaults)
+  }
+
+  private func presentPermissionGuideIfNeeded(defaults: UserDefaults) {
+    let hasUsableScreenRecordingPermission = CGPreflightScreenCaptureAccess()
+      && AppIdentityManager.shared.health.isHealthy
+    let policy = PermissionGuideLaunchPolicy(defaults: defaults)
+
+    guard policy.consumePresentationIfNeeded(
+      hasUsableScreenRecordingPermission: hasUsableScreenRecordingPermission
+    ) else { return }
+
+    DiagnosticLogger.shared.log(.info, .preferences, "First-run permission guide scheduled")
+    DispatchQueue.main.async {
+      AppStatusBarController.shared.openPreferencesWindow(tab: .permissions)
+    }
   }
 
   func applicationWillTerminate() {

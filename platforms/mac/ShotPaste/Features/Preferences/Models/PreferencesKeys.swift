@@ -18,6 +18,7 @@ nonisolated enum PreferencesKeys {
   static let configurationFileBookmark = "configuration.fileBookmark"
   static let configurationDirectoryBookmark = "configuration.directoryBookmark"
   static let configurationLastAppliedSignature = "configuration.lastAppliedSignature"
+  static let permissionGuidePresentedVersion = "permissions.guide.presentedVersion"
   static let hideDesktopIcons = "hideDesktopIcons"
   static let hideDesktopWidgets = "hideDesktopWidgets"
 

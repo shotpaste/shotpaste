@@ -332,61 +332,61 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Optional für globale Verknüpfungen"
+            "value": "Optional für automatisches Scrollen und Kurzbefehle mit der Fn-Taste"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Optional for global shortcuts"
+            "value": "Optional for auto-scroll and shortcuts that use the Fn key"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opcional para atajos globales"
+            "value": "Opcional para el desplazamiento automático y los atajos que usan la tecla Fn"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Facultatif pour les raccourcis globaux"
+            "value": "Facultatif pour le défilement automatique et les raccourcis utilisant la touche Fn"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "グローバル ショートカットのオプション"
+            "value": "自動スクロールと Fn キーを使うショートカットで任意"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "전역 단축키에 대한 선택 사항"
+            "value": "자동 스크롤 및 Fn 키를 사용하는 단축키에 선택 사항"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Необязательно для глобальных ярлыков"
+            "value": "Необязательно для автопрокрутки и сочетаний с клавишей Fn"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tùy chọn cho phím tắt toàn cục"
+            "value": "Tùy chọn cho cuộn tự động và phím tắt dùng phím Fn"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "全局快捷方式可选"
+            "value": "自动滚动和使用 Fn 键的快捷键可选"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "全局快捷方式可選"
+            "value": "自動捲動和使用 Fn 鍵的快速鍵可選"
           }
         }
       }
@@ -651,6 +651,71 @@
         }
       }
     },
+    "permission.save-folder-description": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ermöglicht ShotPaste, Screenshots und Aufnahmen im ausgewählten Ordner zu speichern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lets ShotPaste save screenshots and recordings to your chosen folder"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permite que ShotPaste guarde capturas y grabaciones en la carpeta elegida"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permet à ShotPaste d’enregistrer les captures et les enregistrements dans le dossier choisi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選択したフォルダーにスクリーンショットと録画を保存します"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "선택한 폴더에 스크린샷과 녹화를 저장합니다"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Позволяет ShotPaste сохранять снимки и записи в выбранную папку"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cho phép ShotPaste lưu ảnh chụp và bản ghi vào thư mục bạn chọn"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许 ShotPaste 将截图和录屏保存到你选择的文件夹"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允許 ShotPaste 將截圖和錄屏儲存到你選擇的檔案夾"
+          }
+        }
+      }
+    },
     "permission.screen-recording": {
       "extractionState": "stale",
       "localizations": {
@@ -712,6 +777,71 @@
           "stringUnit": {
             "state": "translated",
             "value": "螢幕錄製"
+          }
+        }
+      }
+    },
+    "permission.screen-recording-finish-in-settings": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktivieren Sie ShotPaste in den Systemeinstellungen und kehren Sie dann hierher zurück. macOS fordert Sie möglicherweise auf, die App erneut zu öffnen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn on ShotPaste in System Settings, then return here. macOS may ask you to reopen the app."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active ShotPaste en Ajustes del Sistema y vuelva aquí. macOS puede pedirle que abra de nuevo la app."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activez ShotPaste dans Réglages Système, puis revenez ici. macOS peut vous demander de rouvrir l’app."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システム設定で ShotPaste をオンにしてから、ここに戻ってください。macOS からアプリを開き直すよう求められる場合があります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시스템 설정에서 ShotPaste를 켠 다음 여기로 돌아오세요. macOS에서 앱을 다시 열도록 요청할 수 있습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Включите ShotPaste в Системных настройках и вернитесь сюда. macOS может попросить заново открыть приложение."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bật ShotPaste trong Cài đặt hệ thống rồi quay lại đây. macOS có thể yêu cầu bạn mở lại ứng dụng."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在系统设置中开启 ShotPaste，然后返回此处。macOS 可能会要求你重新打开应用。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在系統設定中開啟 ShotPaste，然後返回此處。macOS 可能會要求你重新開啟 App。"
           }
         }
       }
