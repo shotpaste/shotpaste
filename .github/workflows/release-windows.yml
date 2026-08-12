@@ -30,6 +30,18 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Verify repository owner initiated the release
+        shell: bash
+        env:
+          RELEASE_ACTOR: ${{ github.actor }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_ACTOR" == "$REPOSITORY_OWNER" ]] || {
+            echo "::error::Official releases may be initiated only by the repository owner"
+            exit 1
+          }
+
       - name: Resolve stable semantic version
         id: release
         shell: bash
