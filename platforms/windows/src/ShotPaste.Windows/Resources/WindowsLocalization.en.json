@@ -495,5 +495,16 @@
   "截图已保存": "Screenshot saved",
   "已选择 {selectedStyles.Length} 个": "{selectedStyles.Length} selected",
   "大小": "Size",
-  "恢复默认设置？当前快捷键会保留。": "Restore default settings? Current shortcuts will be kept."
+  "恢复默认设置？当前快捷键会保留。": "Restore default settings? Current shortcuts will be kept.",
+  "软件更新": "Software Updates",
+  "启动时检查更新": "Check for updates on startup",
+  "检查更新": "Check for Updates",
+  "正在检查更新...": "Checking for updates...",
+  "当前版本": "Current version",
+  "最新版本": "Latest version",
+  "发现新版本": "Update available",
+  "ShotPaste 已是最新版本。": "ShotPaste is up to date.",
+  "前往 GitHub": "Open GitHub",
+  "是否前往 GitHub Release 页面下载更新？": "Open the GitHub Release page to download the update?",
+  "无法检查更新，请确认网络连接后重试。": "Unable to check for updates. Check your internet connection and try again."
 }

@@ -10601,6 +10601,132 @@
           }
         }
       }
+    },
+    "preferences-general.update-check-button": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Nach Updates suchen" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Check for Updates" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Buscar actualizaciones" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Rechercher les mises à jour" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "アップデートを確認" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "업데이트 확인" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Проверить обновления" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Kiểm tra bản cập nhật" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "检查更新" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "檢查更新" } }
+      }
+    },
+    "preferences-general.update-current-version": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Aktuelle Version" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Current version" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Versión actual" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Version actuelle" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "現在のバージョン" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "현재 버전" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Текущая версия" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Phiên bản hiện tại" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "当前版本" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "目前版本" } }
+      }
+    },
+    "preferences-general.update-latest-version": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Neueste Version" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Latest version" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Última versión" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Dernière version" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "最新バージョン" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "최신 버전" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Последняя версия" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Phiên bản mới nhất" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "最新版本" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "最新版本" } }
+      }
+    },
+    "preferences-general.update-checking": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Updates werden gesucht ..." } },
+        "en": { "stringUnit": { "state": "translated", "value": "Checking for updates..." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Buscando actualizaciones..." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Recherche de mises à jour..." } },
+        "ja": { "stringUnit": { "state": "translated", "value": "アップデートを確認中..." } },
+        "ko": { "stringUnit": { "state": "translated", "value": "업데이트 확인 중..." } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Проверка обновлений..." } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Đang kiểm tra bản cập nhật..." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "正在检查更新..." } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "正在檢查更新..." } }
+      }
+    },
+    "preferences-general.update-up-to-date": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "ShotPaste ist auf dem neuesten Stand." } },
+        "en": { "stringUnit": { "state": "translated", "value": "ShotPaste is up to date." } },
+        "es": { "stringUnit": { "state": "translated", "value": "ShotPaste está actualizado." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "ShotPaste est à jour." } },
+        "ja": { "stringUnit": { "state": "translated", "value": "ShotPaste は最新です。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "ShotPaste가 최신 버전입니다." } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Установлена последняя версия ShotPaste." } },
+        "vi": { "stringUnit": { "state": "translated", "value": "ShotPaste đã được cập nhật." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "ShotPaste 已是最新版本。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "ShotPaste 已是最新版本。" } }
+      }
+    },
+    "preferences-general.update-available": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Update verfügbar" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Update available" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Actualización disponible" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Mise à jour disponible" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "アップデートがあります" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "업데이트 사용 가능" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Доступно обновление" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Có bản cập nhật" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "发现新版本" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "有可用的更新" } }
+      }
+    },
+    "preferences-general.update-check-failed": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Updates konnten nicht gesucht werden. Prüfe deine Internetverbindung und versuche es erneut." } },
+        "en": { "stringUnit": { "state": "translated", "value": "Unable to check for updates. Check your internet connection and try again." } },
+        "es": { "stringUnit": { "state": "translated", "value": "No se pudieron buscar actualizaciones. Comprueba tu conexión a Internet e inténtalo de nuevo." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Impossible de rechercher les mises à jour. Vérifiez votre connexion Internet et réessayez." } },
+        "ja": { "stringUnit": { "state": "translated", "value": "アップデートを確認できません。インターネット接続を確認して、もう一度お試しください。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "업데이트를 확인할 수 없습니다. 인터넷 연결을 확인하고 다시 시도하세요." } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Не удалось проверить обновления. Проверьте подключение к интернету и повторите попытку." } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Không thể kiểm tra bản cập nhật. Hãy kiểm tra kết nối Internet rồi thử lại." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "无法检查更新，请确认网络连接后重试。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "無法檢查更新，請確認網路連線後再試一次。" } }
+      }
+    },
+    "preferences-general.update-open-github-button": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "GitHub öffnen" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Open GitHub" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Abrir GitHub" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Ouvrir GitHub" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "GitHub を開く" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "GitHub 열기" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Открыть GitHub" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Mở GitHub" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "前往 GitHub" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "前往 GitHub" } }
+      }
+    },
+    "preferences-general.update-open-github-prompt": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "GitHub Release-Seite öffnen, um das Update herunterzuladen?" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Open the GitHub Release page to download the update?" } },
+        "es": { "stringUnit": { "state": "translated", "value": "¿Abrir la página de GitHub Release para descargar la actualización?" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Ouvrir la page GitHub Release pour télécharger la mise à jour ?" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "GitHub Release ページを開いてアップデートをダウンロードしますか？" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "업데이트를 다운로드할 GitHub Release 페이지를 열까요?" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Открыть страницу GitHub Release для загрузки обновления?" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Mở trang GitHub Release để tải bản cập nhật?" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "是否前往 GitHub Release 页面下载更新？" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "要前往 GitHub Release 頁面下載更新嗎？" } }
+      }
     }
   },
   "version": "1.0"

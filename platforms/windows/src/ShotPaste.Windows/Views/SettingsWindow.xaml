@@ -145,6 +145,18 @@
             </Border>
             <Border Style="{StaticResource SettingsCard}">
               <StackPanel>
+                <TextBlock Text="软件更新" Style="{StaticResource SectionTitle}"/>
+                <CheckBox Content="启动时检查更新" IsChecked="{Binding CheckForUpdatesAutomatically}"/>
+                <Grid Margin="0,10,0,0">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <TextBlock x:Name="UpdateStatus" VerticalAlignment="Center" Style="{StaticResource SettingHint}" TextWrapping="Wrap"/>
+                  <Button x:Name="CheckForUpdatesButton" Grid.Column="1" Content="检查更新" Click="OnCheckForUpdates" Margin="8,0,0,0"/>
+                  <Button x:Name="OpenUpdatePageButton" Grid.Column="2" Content="前往 GitHub" Click="OnOpenUpdatePage" Margin="8,0,0,0" Visibility="Collapsed"/>
+                </Grid>
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource SettingsCard}">
+              <StackPanel>
                 <TextBlock Text="帮助" Style="{StaticResource SectionTitle}"/>
                 <Button Content="报告问题…" Click="OnOpenReportPage" HorizontalAlignment="Left"/>
               </StackPanel>

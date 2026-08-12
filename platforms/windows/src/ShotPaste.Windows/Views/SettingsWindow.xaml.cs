@@ -10,7 +10,9 @@ namespace ShotPaste.Windows.Views;
 public partial class SettingsWindow : Window
 {
     private readonly SettingsStore _store;
+    private readonly AppUpdateService _updateService = new();
     private AppSettings _draft;
+    private Uri? _availableUpdatePageUri;
 
     public SettingsWindow(SettingsStore store, string? initialTab = null)
     {
@@ -18,6 +20,7 @@ public partial class SettingsWindow : Window
         _store = store;
         _draft = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(store.Current)) ?? new AppSettings();
         DataContext = _draft;
+        UpdateStatus.Text = $"{LocalizedDialogService.Text("当前版本")}: {_updateService.CurrentVersionString}";
         SelectInitialTab(initialTab);
         Loaded += async (_, _) => await RefreshRecordingFormatSupportAsync();
     }
@@ -207,6 +210,74 @@ public partial class SettingsWindow : Window
     }
 
     private void OnCancel(object sender, RoutedEventArgs e) => DialogResult = false;
+
+    private async void OnCheckForUpdates(object sender, RoutedEventArgs e)
+    {
+        CheckForUpdatesButton.IsEnabled = false;
+        CheckForUpdatesButton.Content = LocalizedDialogService.Text("正在检查更新...");
+        UpdateStatus.Text = LocalizedDialogService.Text("正在检查更新...");
+        try
+        {
+            var result = await _updateService.CheckForUpdatesAsync();
+            _draft.LastUpdateCheckUtc = DateTimeOffset.UtcNow;
+            if (result.Availability == AppUpdateAvailability.UpdateAvailable)
+            {
+                _availableUpdatePageUri = result.LatestRelease.PageUri;
+                _draft.LastPromptedUpdateVersion = result.LatestRelease.Version.ToString();
+                UpdateStatus.Text = $"{LocalizedDialogService.Text("发现新版本")} · v{result.LatestRelease.Version}";
+                OpenUpdatePageButton.Content = LocalizedDialogService.Text("前往 GitHub");
+                OpenUpdatePageButton.Visibility = Visibility.Visible;
+                if (ShowUpdateAvailablePrompt(result) == MessageBoxResult.Yes)
+                    OpenTarget(result.LatestRelease.PageUri.AbsoluteUri);
+            }
+            else
+            {
+                _availableUpdatePageUri = null;
+                OpenUpdatePageButton.Visibility = Visibility.Collapsed;
+                UpdateStatus.Text = $"{LocalizedDialogService.Text("ShotPaste 已是最新版本。")} · v{result.CurrentVersion}";
+                LocalizedDialogService.Show(
+                    this,
+                    $"{LocalizedDialogService.Text("ShotPaste 已是最新版本。")}\n\n{LocalizedDialogService.Text("当前版本")}: {result.CurrentVersion}",
+                    LocalizedDialogService.Text("软件更新"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+        }
+        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or JsonException or InvalidDataException)
+        {
+            _availableUpdatePageUri = null;
+            OpenUpdatePageButton.Visibility = Visibility.Collapsed;
+            UpdateStatus.Text = LocalizedDialogService.Text("无法检查更新，请确认网络连接后重试。");
+            App.WriteQuickAccessLog($"GitHub update check failed: {exception.GetType().Name}");
+            LocalizedDialogService.Show(
+                this,
+                "无法检查更新，请确认网络连接后重试。",
+                "软件更新",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+        finally
+        {
+            CheckForUpdatesButton.Content = LocalizedDialogService.Text("检查更新");
+            CheckForUpdatesButton.IsEnabled = true;
+        }
+    }
+
+    private MessageBoxResult ShowUpdateAvailablePrompt(AppUpdateCheckResult result) =>
+        LocalizedDialogService.Show(
+            this,
+            $"{LocalizedDialogService.Text("当前版本")}: {result.CurrentVersion}\n" +
+            $"{LocalizedDialogService.Text("最新版本")}: {result.LatestRelease.Version}\n\n" +
+            LocalizedDialogService.Text("是否前往 GitHub Release 页面下载更新？"),
+            LocalizedDialogService.Text("软件更新"),
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Information);
+
+    private void OnOpenUpdatePage(object sender, RoutedEventArgs e)
+    {
+        if (_availableUpdatePageUri is not null)
+            OpenTarget(_availableUpdatePageUri.AbsoluteUri);
+    }
 
     private void OnOpenReportPage(object sender, RoutedEventArgs e) => OpenTarget("https://github.com/shotpaste/shotpaste/issues");
 

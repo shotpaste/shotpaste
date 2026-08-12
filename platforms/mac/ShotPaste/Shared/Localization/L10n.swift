@@ -1590,6 +1590,51 @@ nonisolated enum L10n {
       defaultValue: "Never",
       comment: "Label shown when an event has never happened"
     )
+    static let updateCheckButton = string(
+      "preferences-general.update-check-button",
+      defaultValue: "Check for Updates",
+      comment: "Button title that starts a software update check"
+    )
+    static let updateCurrentVersion = string(
+      "preferences-general.update-current-version",
+      defaultValue: "Current version",
+      comment: "Label shown before the installed application version"
+    )
+    static let updateLatestVersion = string(
+      "preferences-general.update-latest-version",
+      defaultValue: "Latest version",
+      comment: "Label shown before the latest GitHub Release version"
+    )
+    static let updateChecking = string(
+      "preferences-general.update-checking",
+      defaultValue: "Checking for updates...",
+      comment: "Status shown while checking GitHub Releases"
+    )
+    static let updateUpToDate = string(
+      "preferences-general.update-up-to-date",
+      defaultValue: "ShotPaste is up to date.",
+      comment: "Status shown when no newer stable release exists"
+    )
+    static let updateAvailable = string(
+      "preferences-general.update-available",
+      defaultValue: "Update available",
+      comment: "Status shown when a newer stable release exists"
+    )
+    static let updateCheckFailed = string(
+      "preferences-general.update-check-failed",
+      defaultValue: "Unable to check for updates. Check your internet connection and try again.",
+      comment: "Generic user-facing failure shown after an update check"
+    )
+    static let updateOpenGitHubButton = string(
+      "preferences-general.update-open-github-button",
+      defaultValue: "Open GitHub",
+      comment: "Button title that opens the latest GitHub Release page"
+    )
+    static let updateOpenGitHubPrompt = string(
+      "preferences-general.update-open-github-prompt",
+      defaultValue: "Open the GitHub Release page to download the update?",
+      comment: "Prompt asking whether to open GitHub to download an update"
+    )
     static let diagnosticLoggingTitle = string(
       "preferences-general.crash-logging-title",
       defaultValue: "Diagnostic Logging",
