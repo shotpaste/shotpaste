@@ -1,3 +1,4 @@
+# Stable semantic-version tags drive the dual-platform release below.
 name: Release ShotPaste
 
 on:
