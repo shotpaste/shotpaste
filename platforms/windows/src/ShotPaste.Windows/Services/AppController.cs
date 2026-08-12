@@ -1,5 +1,6 @@
 using System.Collections.Specialized;
 using System.Drawing;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Windows;
 using Drawing = System.Drawing;
