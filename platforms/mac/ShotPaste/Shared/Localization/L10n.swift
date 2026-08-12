@@ -10,6 +10,7 @@ import Foundation
 nonisolated enum L10n {
   private nonisolated static let tableMappings: [(prefix: String, tableName: String)] = [
     ("action.", "Common"),
+    ("agent.", "Agent"),
     ("menu.", "Menubar"),
     ("common.", "Common"),
     ("appearance.", "Common"),
@@ -162,6 +163,291 @@ nonisolated enum L10n {
       "preferences.tab.advanced",
       defaultValue: "Advanced",
       comment: "Preferences tab title"
+    )
+  }
+
+  enum Agent {
+    static let tabTitle = string(
+      "agent.tab-title", defaultValue: "Agent", comment: "Agent preferences tab title"
+    )
+    static let modeTitle = string(
+      "agent.mode-title", defaultValue: "Agent Mode", comment: "Agent Mode title"
+    )
+    static let modeDescription = string(
+      "agent.mode-description",
+      defaultValue: "Understand an intent and operate the Mac with local safety checks",
+      comment: "Agent Mode description"
+    )
+    static let modeEnabledStatus = string(
+      "agent.mode-enabled-status", defaultValue: "Agent Mode is on", comment: "Enabled status"
+    )
+    static let modeDisabledStatus = string(
+      "agent.mode-disabled-status", defaultValue: "Agent Mode is off", comment: "Disabled status"
+    )
+    static let startTask = string(
+      "agent.start-task", defaultValue: "Start Agent Task", comment: "Start Agent task action"
+    )
+    static let stopAgent = string(
+      "agent.stop-agent", defaultValue: "Stop Agent Immediately", comment: "Emergency stop action"
+    )
+    static let resumeAgent = string(
+      "agent.resume-agent", defaultValue: "Resume Agent", comment: "Resume paused Agent action"
+    )
+    static let shortcutTitle = string(
+      "agent.shortcut-title", defaultValue: "Agent intent shortcut", comment: "Agent shortcut title"
+    )
+    static let shortcutDescription = string(
+      "agent.shortcut-description",
+      defaultValue: "Registered only while Agent Mode is on",
+      comment: "Agent shortcut description"
+    )
+    static let readyStatus = string(
+      "agent.status.ready", defaultValue: "Ready", comment: "Agent idle status"
+    )
+    static let capturingStatus = string(
+      "agent.status.capturing", defaultValue: "Freezing displays…", comment: "Agent capture status"
+    )
+    static let annotatingStatus = string(
+      "agent.status.annotating", defaultValue: "Waiting for an intent…", comment: "Agent annotation status"
+    )
+    static let observingStatus = string(
+      "agent.status.observing", defaultValue: "Observing the Mac…", comment: "Agent observation status"
+    )
+    static let planningStatus = string(
+      "agent.status.planning", defaultValue: "Planning the next action…", comment: "Agent planning status"
+    )
+    static let awaitingApprovalStatus = string(
+      "agent.status.awaiting-approval", defaultValue: "Waiting for approval…", comment: "Agent approval status"
+    )
+    static let awaitingUserStatus = string(
+      "agent.status.awaiting-user", defaultValue: "Waiting for your answer…", comment: "Agent question status"
+    )
+    static let executingStatus = string(
+      "agent.status.executing", defaultValue: "Performing an action…", comment: "Agent execution status"
+    )
+    static let pausedStatus = string(
+      "agent.status.paused", defaultValue: "Paused", comment: "Agent paused status"
+    )
+    static let completedStatus = string(
+      "agent.status.completed", defaultValue: "Task completed", comment: "Agent completed status"
+    )
+    static let stoppedStatus = string(
+      "agent.status.stopped", defaultValue: "Task stopped", comment: "Agent stopped status"
+    )
+    static let pausedByUser = string(
+      "agent.paused-by-user",
+      defaultValue: "Agent paused because you used the mouse or keyboard",
+      comment: "Agent automatic pause notification"
+    )
+    static let activityTitle = string(
+      "agent.activity.title", defaultValue: "Agent Activity", comment: "Agent activity HUD title"
+    )
+    static let activityLive = string(
+      "agent.activity.live", defaultValue: "LIVE", comment: "Live Agent activity badge"
+    )
+    static let showActivity = string(
+      "agent.activity.show", defaultValue: "Show Agent Activity", comment: "Show Agent activity HUD action"
+    )
+    static let hideActivity = string(
+      "agent.activity.hide", defaultValue: "Hide Agent Activity", comment: "Hide Agent activity HUD action"
+    )
+    static let activityTask = string(
+      "agent.activity.task", defaultValue: "Task", comment: "Agent activity task label"
+    )
+    static let activityWaitingForTask = string(
+      "agent.activity.waiting-task", defaultValue: "Waiting for a task…", comment: "Agent activity empty task"
+    )
+    static let activityInputPauseHint = string(
+      "agent.activity.input-pause-hint",
+      defaultValue: "Using the mouse or keyboard pauses the Agent",
+      comment: "Agent activity safety hint"
+    )
+    static let activityTimeline = string(
+      "agent.activity.timeline", defaultValue: "Activity timeline", comment: "Agent activity timeline title"
+    )
+    static let activityNoEvents = string(
+      "agent.activity.no-events", defaultValue: "Preparing the first observation…", comment: "Empty Agent timeline"
+    )
+    static let activityAuditNote = string(
+      "agent.activity.audit-note",
+      defaultValue: "Shows auditable actions, not private model reasoning",
+      comment: "Agent activity transparency note"
+    )
+    static let activityStop = string(
+      "agent.activity.stop", defaultValue: "Stop", comment: "Stop Agent from activity HUD"
+    )
+    static let activityEventStarted = string(
+      "agent.activity.event.started", defaultValue: "Task started", comment: "Agent timeline event"
+    )
+    static let activityEventObserved = string(
+      "agent.activity.event.observed", defaultValue: "Screen observed", comment: "Agent timeline event"
+    )
+    static let activityEventPlanned = string(
+      "agent.activity.event.planned", defaultValue: "Next action planned", comment: "Agent timeline event"
+    )
+    static let activityEventApproved = string(
+      "agent.activity.event.approved", defaultValue: "Action approved", comment: "Agent timeline event"
+    )
+    static let activityEventDenied = string(
+      "agent.activity.event.denied", defaultValue: "Action blocked", comment: "Agent timeline event"
+    )
+    static let activityEventActionSucceeded = string(
+      "agent.activity.event.action-succeeded", defaultValue: "Action completed", comment: "Agent timeline event"
+    )
+    static let activityEventActionFailed = string(
+      "agent.activity.event.action-failed", defaultValue: "Action failed", comment: "Agent timeline event"
+    )
+    static let activityEventUserAnswered = string(
+      "agent.activity.event.user-answered", defaultValue: "Answer received", comment: "Agent timeline event"
+    )
+    static let activityEventPaused = string(
+      "agent.activity.event.paused", defaultValue: "Paused for user input", comment: "Agent timeline event"
+    )
+    static let activityEventResumed = string(
+      "agent.activity.event.resumed", defaultValue: "Agent resumed", comment: "Agent timeline event"
+    )
+    static let activityEventCompleted = string(
+      "agent.activity.event.completed", defaultValue: "Task completed", comment: "Agent timeline event"
+    )
+    static let activityEventFailed = string(
+      "agent.activity.event.failed", defaultValue: "Task failed", comment: "Agent timeline event"
+    )
+    static let activityEventStopped = string(
+      "agent.activity.event.stopped", defaultValue: "Task stopped", comment: "Agent timeline event"
+    )
+
+    static func activityObservationDetail(_ accessibilityCount: Int, _ ocrCount: Int) -> String {
+      format(
+        "agent.activity.observation-detail",
+        defaultValue: "%lld accessible elements · %lld OCR lines",
+        comment: "Agent observation counts",
+        Int64(accessibilityCount),
+        Int64(ocrCount)
+      )
+    }
+
+    static let clickAnywherePrompt = string(
+      "agent.click-anywhere-prompt",
+      defaultValue: "Click where you want the Agent to focus",
+      comment: "Anchor overlay instruction"
+    )
+    static let intentPromptTitle = string(
+      "agent.intent-prompt-title", defaultValue: "What should I do?", comment: "Intent prompt title"
+    )
+    static let intentPromptHint = string(
+      "agent.intent-prompt-hint",
+      defaultValue: "Return to run · Shift-Return for a new line · Esc to cancel",
+      comment: "Intent prompt keyboard hint"
+    )
+    static let runAction = string(
+      "agent.run-action", defaultValue: "Run", comment: "Run Agent action"
+    )
+    static let approveOnce = string(
+      "agent.approve-once", defaultValue: "Allow Once", comment: "Approve one Agent action"
+    )
+    static let allowApplicationForSession = string(
+      "agent.allow-application-session",
+      defaultValue: "Allow This App for Session",
+      comment: "Approve an application for an Agent session"
+    )
+    static let denyAction = string(
+      "agent.deny-action", defaultValue: "Deny", comment: "Deny an Agent action"
+    )
+    static let continueAction = string(
+      "agent.continue-action", defaultValue: "Continue", comment: "Continue Agent task action"
+    )
+    static let questionTitle = string(
+      "agent.question-title", defaultValue: "Agent Needs Your Input", comment: "Agent question alert title"
+    )
+    static let answerPlaceholder = string(
+      "agent.answer-placeholder", defaultValue: "Type your answer", comment: "Agent answer placeholder"
+    )
+    static let unavailablePermission = string(
+      "agent.unavailable-permission",
+      defaultValue: "Agent Mode needs Screen Recording and Accessibility permissions",
+      comment: "Agent permission error"
+    )
+    static let missingAPIKey = string(
+      "agent.missing-api-key",
+      defaultValue: "Add an LLM API key in Agent settings first",
+      comment: "Missing Agent API key error"
+    )
+    static let busyMessage = string(
+      "agent.busy-message",
+      defaultValue: "Another capture, recording, or Agent session is active",
+      comment: "Agent interaction lease error"
+    )
+    static let providerSection = string(
+      "agent.provider-section", defaultValue: "LLM Provider", comment: "Agent provider settings section"
+    )
+    static let safetySection = string(
+      "agent.safety-section", defaultValue: "Safety & Privacy", comment: "Agent safety settings section"
+    )
+    static let controlsSection = string(
+      "agent.controls-section", defaultValue: "Controls", comment: "Agent controls settings section"
+    )
+    static let apiKeyTitle = string(
+      "agent.api-key-title", defaultValue: "LLM API key", comment: "Agent API key setting title"
+    )
+    static let apiKeyDescription = string(
+      "agent.api-key-description",
+      defaultValue: "Stored directly in app preferences; shown only in masked form",
+      comment: "Agent API key setting description"
+    )
+    static let saveKey = string(
+      "agent.save-key", defaultValue: "Save", comment: "Save Agent API key"
+    )
+    static let importKey = string(
+      "agent.import-key", defaultValue: "Import from ~/.zshrc", comment: "Import Agent API key from shell"
+    )
+    static let removeKey = string(
+      "agent.remove-key", defaultValue: "Remove", comment: "Remove Agent API key"
+    )
+    static let keyStored = string(
+      "agent.key-stored", defaultValue: "Stored token", comment: "Agent API key status"
+    )
+    static let keyNotStored = string(
+      "agent.key-not-stored", defaultValue: "No key stored", comment: "Agent API key status"
+    )
+    static let endpointTitle = string(
+      "agent.endpoint-title", defaultValue: "API endpoint", comment: "Agent provider endpoint title"
+    )
+    static let modelTitle = string(
+      "agent.model-title", defaultValue: "Model", comment: "Agent provider model title"
+    )
+    static let thinkingTitle = string(
+      "agent.thinking-title", defaultValue: "Thinking mode", comment: "Agent thinking toggle title"
+    )
+    static let sendImagesTitle = string(
+      "agent.send-images-title", defaultValue: "Send clean screenshots", comment: "Agent image sending toggle title"
+    )
+    static let sendImagesDescription = string(
+      "agent.send-images-description",
+      defaultValue: "For vision-capable providers; local OCR and Accessibility context are always sent",
+      comment: "Agent image sending description"
+    )
+    static let retainScreenshotsTitle = string(
+      "agent.retain-screenshots-title", defaultValue: "Retain session screenshots",
+      comment: "Agent screenshot retention title"
+    )
+    static let retainScreenshotsDescription = string(
+      "agent.retain-screenshots-description",
+      defaultValue: "Off by default. Agent screenshots never enter screenshot history",
+      comment: "Agent screenshot retention description"
+    )
+    static let maxActionsTitle = string(
+      "agent.max-actions-title", defaultValue: "Maximum actions", comment: "Agent max actions title"
+    )
+    static let permissionTitle = string(
+      "agent.permission-title", defaultValue: "Computer control permissions", comment: "Agent permission title"
+    )
+    static let permissionDescription = string(
+      "agent.permission-description",
+      defaultValue: "Screen Recording observes the desktop; Accessibility performs semantic actions",
+      comment: "Agent permission description"
+    )
+    static let openPermissions = string(
+      "agent.open-permissions", defaultValue: "Open Permissions", comment: "Open Agent permissions action"
     )
   }
 

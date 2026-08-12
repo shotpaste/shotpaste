@@ -534,6 +534,8 @@ struct ShortcutsSettingsView: View {
       case .oneShot:
         oneShotShortcut = config
         manager.setOneShotShortcut(config)
+      case .agentMode:
+        manager.setAgentModeShortcut(config)
       case .pauseResumeRecording:
         pauseResumeRecordingShortcut = config
         manager.setPauseResumeRecordingShortcut(config)

@@ -35,6 +35,17 @@ nonisolated enum PreferencesKeys {
   static let disabledGlobalShortcuts = "shortcuts.disabledGlobalActions"
   static let clearedGlobalShortcuts = "shortcuts.clearedGlobalActions"
 
+  // Agent Mode
+  static let agentModeEnabled = "agent.mode.enabled"
+  static let agentShortcut = "agent.shortcut"
+  static let agentProviderEndpoint = "agent.provider.endpoint"
+  static let agentProviderModel = "agent.provider.model"
+  static let agentProviderAPIKey = "agent.provider.apiKey"
+  static let agentThinkingEnabled = "agent.provider.thinkingEnabled"
+  static let agentProviderSendsImages = "agent.provider.sendsImages"
+  static let agentMaxActions = "agent.session.maxActions"
+  static let agentScreenshotRetentionEnabled = "agent.session.retainScreenshots"
+
   // Screenshot
   static let screenshotFormat = "screenshot.format"
   static let screenshotFileNameTemplate = "screenshot.fileNameTemplate"

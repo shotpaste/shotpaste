@@ -48,6 +48,12 @@ struct ShortcutConfig: Equatable, Codable {
     modifiers: defaultVariantModifiers
   )
 
+  /// Option + A. This binding is registered only while Agent Mode is enabled.
+  static let defaultAgentMode = ShortcutConfig(
+    keyCode: UInt32(kVK_ANSI_A),
+    modifiers: UInt32(optionKey)
+  )
+
   /// Cmd + Shift + H in Release; Debug also includes Option.
   static let defaultHistory = ShortcutConfig(
     keyCode: UInt32(kVK_ANSI_H),
@@ -451,6 +457,7 @@ extension ShortcutConfig {
 
 enum GlobalShortcutKind: String, CaseIterable, Codable {
   case oneShot
+  case agentMode
   case pauseResumeRecording
   case togglePenRecording
   case restartRecording
@@ -467,6 +474,8 @@ extension GlobalShortcutKind {
     switch self {
     case .oneShot:
       L10n.Actions.oneShot
+    case .agentMode:
+      L10n.Agent.shortcutTitle
     case .pauseResumeRecording:
       L10n.Actions.pauseResumeRecording
     case .togglePenRecording:
@@ -484,6 +493,7 @@ extension GlobalShortcutKind {
 /// Shortcut action types
 enum ShortcutAction {
   case startOneShot
+  case startAgentIntent
   case pauseResumeRecording
   case togglePenRecording
   case restartRecording
@@ -504,6 +514,7 @@ final class KeyboardShortcutManager {
   weak var delegate: KeyboardShortcutDelegate?
 
   private(set) var oneShotShortcut: ShortcutConfig
+  private(set) var agentModeShortcut: ShortcutConfig
   /// Backing value holds the recommended `defaultPauseResumeRecording` combo even while the shortcut
   /// is unbound. The shortcut ships cleared (in `clearedShortcuts`), so always resolve the effective
   /// binding through `shortcut(for: .pauseResumeRecording)` — which returns nil when cleared — never
@@ -514,11 +525,13 @@ final class KeyboardShortcutManager {
   private(set) var restartRecordingShortcut: ShortcutConfig
   private(set) var deleteRecordingShortcut: ShortcutConfig
   private(set) var isEnabled: Bool = false
+  private(set) var isAgentModeRegistrationEnabled = false
   private var disabledShortcuts: Set<GlobalShortcutKind> = []
   private var clearedShortcuts: Set<GlobalShortcutKind> = []
   private var temporarySuspensionCount: Int = 0
 
   private var oneShotHotkeyRef: EventHotKeyRef?
+  private var agentModeHotkeyRef: EventHotKeyRef?
   private var pauseResumeRecordingHotkeyRef: EventHotKeyRef?
   private var historyHotkeyRef: EventHotKeyRef?
   private var togglePenRecordingHotkeyRef: EventHotKeyRef?
@@ -538,11 +551,13 @@ final class KeyboardShortcutManager {
   private let restartRecordingHotkeyID = EventHotKeyID(signature: OSType(0x5A53_464A), id: 19) // "ZSFJ"
   private let deleteRecordingHotkeyID = EventHotKeyID(signature: OSType(0x5A53_464B), id: 20) // "ZSFK"
   private let oneShotHotkeyID = EventHotKeyID(signature: OSType(0x5A53_464C), id: 21) // "ZSFL"
+  private let agentModeHotkeyID = EventHotKeyID(signature: OSType(0x5A53_464D), id: 22) // "ZSFM"
 
   private var eventHandler: EventHandlerRef?
 
   // UserDefaults keys
   private let oneShotShortcutKey = PreferencesKeys.oneShotShortcut
+  private let agentModeShortcutKey = PreferencesKeys.agentShortcut
   private let pauseResumeRecordingShortcutKey = "pauseResumeRecordingShortcut"
   private let historyShortcutKey = "historyShortcut"
   private let togglePenRecordingShortcutKey = "togglePenRecordingShortcut"
@@ -554,6 +569,7 @@ final class KeyboardShortcutManager {
 
   private init() {
     oneShotShortcut = .defaultOneShot
+    agentModeShortcut = .defaultAgentMode
     pauseResumeRecordingShortcut = .defaultPauseResumeRecording
     historyShortcut = .defaultHistory
     togglePenRecordingShortcut = ShortcutConfig(keyCode: 0, modifiers: 0)
@@ -607,6 +623,14 @@ final class KeyboardShortcutManager {
     temporarySuspensionCount > 0
   }
 
+  /// Agent Mode owns the lifecycle of its shortcut. Keeping this false while
+  /// the mode is off prevents Option+A from consuming normal text input.
+  func setAgentModeRegistrationEnabled(_ enabled: Bool) {
+    guard isAgentModeRegistrationEnabled != enabled else { return }
+    isAgentModeRegistrationEnabled = enabled
+    refreshShortcutRegistration()
+  }
+
   private var shouldRegisterShortcuts: Bool {
     isEnabled && !isTemporarilySuspended
   }
@@ -636,6 +660,7 @@ final class KeyboardShortcutManager {
 
     switch kind {
     case .oneShot: return oneShotShortcut
+    case .agentMode: return agentModeShortcut
     case .pauseResumeRecording: return pauseResumeRecordingShortcut
     case .togglePenRecording: return togglePenRecordingShortcut
     case .restartRecording: return restartRecordingShortcut
@@ -665,6 +690,16 @@ final class KeyboardShortcutManager {
     mutateShortcutRegistration {
       setShortcut(config, for: .oneShot) {
         oneShotShortcut = $0
+      }
+      saveShortcuts()
+      saveClearedShortcuts()
+    }
+  }
+
+  func setAgentModeShortcut(_ config: ShortcutConfig?) {
+    mutateShortcutRegistration {
+      setShortcut(config, for: .agentMode) {
+        agentModeShortcut = $0
       }
       saveShortcuts()
       saveClearedShortcuts()
@@ -746,6 +781,9 @@ final class KeyboardShortcutManager {
     if let oneShotData = try? encoder.encode(oneShotShortcut) {
       UserDefaults.standard.set(oneShotData, forKey: oneShotShortcutKey)
     }
+    if let agentModeData = try? encoder.encode(agentModeShortcut) {
+      UserDefaults.standard.set(agentModeData, forKey: agentModeShortcutKey)
+    }
     if clearedShortcuts.contains(.pauseResumeRecording) {
       UserDefaults.standard.removeObject(forKey: pauseResumeRecordingShortcutKey)
     } else if let pauseResumeRecordingData = try? encoder.encode(pauseResumeRecordingShortcut) {
@@ -776,6 +814,10 @@ final class KeyboardShortcutManager {
     if let oneShotData = UserDefaults.standard.data(forKey: oneShotShortcutKey),
        let config = try? decoder.decode(ShortcutConfig.self, from: oneShotData) {
       oneShotShortcut = config
+    }
+    if let agentModeData = UserDefaults.standard.data(forKey: agentModeShortcutKey),
+       let config = try? decoder.decode(ShortcutConfig.self, from: agentModeData) {
+      agentModeShortcut = config
     }
     if let pauseResumeRecordingData = UserDefaults.standard.data(forKey: pauseResumeRecordingShortcutKey),
        let config = try? decoder.decode(ShortcutConfig.self, from: pauseResumeRecordingData) {
@@ -908,6 +950,10 @@ final class KeyboardShortcutManager {
     case oneShotHotkeyID.id:
       actionName = "one-shot"
       action = .startOneShot
+    case agentModeHotkeyID.id:
+      guard isAgentModeRegistrationEnabled else { return }
+      actionName = "agent-mode"
+      action = .startAgentIntent
     case pauseResumeRecordingHotkeyID.id:
       actionName = "pause-resume-recording"
       action = .pauseResumeRecording
@@ -946,6 +992,14 @@ final class KeyboardShortcutManager {
       hotkeyID: oneShotHotkeyID,
       ref: &oneShotHotkeyRef
     )
+    if isAgentModeRegistrationEnabled {
+      registerShortcutIfNeeded(
+        kind: .agentMode,
+        config: shortcut(for: .agentMode),
+        hotkeyID: agentModeHotkeyID,
+        ref: &agentModeHotkeyRef
+      )
+    }
     registerShortcutIfNeeded(
       kind: .pauseResumeRecording,
       config: shortcut(for: .pauseResumeRecording),
@@ -1072,6 +1126,10 @@ final class KeyboardShortcutManager {
     if let ref = oneShotHotkeyRef {
       UnregisterEventHotKey(ref)
       oneShotHotkeyRef = nil
+    }
+    if let ref = agentModeHotkeyRef {
+      UnregisterEventHotKey(ref)
+      agentModeHotkeyRef = nil
     }
     if let ref = pauseResumeRecordingHotkeyRef {
       UnregisterEventHotKey(ref)

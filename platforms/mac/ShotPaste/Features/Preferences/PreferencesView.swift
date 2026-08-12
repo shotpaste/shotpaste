@@ -29,6 +29,10 @@ struct PreferencesView: View {
         .tabItem { Label(L10n.Preferences.historyTab, systemImage: "clock.arrow.circlepath") }
         .tag(PreferencesTab.history)
 
+      LazyView(AgentSettingsView())
+        .tabItem { Label(L10n.Agent.tabTitle, systemImage: "cursorarrow.motionlines") }
+        .tag(PreferencesTab.agent)
+
       LazyView(ShortcutsSettingsView())
         .tabItem { Label(L10n.Preferences.shortcutsTab, systemImage: "keyboard.fill") }
         .tag(PreferencesTab.shortcuts)

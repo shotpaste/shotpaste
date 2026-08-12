@@ -35,6 +35,7 @@ enum DiagnosticLogCategory: String {
   case preferences = "PREFERENCES"
   case history = "HISTORY"
   case fileAccess = "FILE_ACCESS"
+  case agent = "AGENT"
 }
 
 // MARK: - Log Entry

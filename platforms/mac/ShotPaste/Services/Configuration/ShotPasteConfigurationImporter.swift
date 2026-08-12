@@ -51,6 +51,7 @@ enum ShotPasteConfigurationImporter {
     collectRecording(&reader, defaults: defaults, mutations: &mutations)
     collectQuickAccess(&reader, mutations: &mutations)
     collectHistory(&reader, defaults: defaults, mutations: &mutations)
+    collectAgent(&reader, defaults: defaults, mutations: &mutations)
     collectShortcuts(&reader, mutations: &mutations)
 
     return PreparedImport(issues: reader.issues, mutations: mutations)
@@ -550,6 +551,54 @@ enum ShotPasteConfigurationImporter {
       collectBool(&reader, "capture", "after", type.rawValue, key, mutations: &mutations) {
         PreferencesManager.shared.setAction(action, for: type, enabled: $0)
       }
+    }
+  }
+
+  private static func collectAgent(
+    _ reader: inout ShotPasteConfigurationReader,
+    defaults: UserDefaults,
+    mutations: inout [() -> Void]
+  ) {
+    if let enabled = reader.bool("agent", "enabled") {
+      mutations.append {
+        defaults.set(enabled, forKey: PreferencesKeys.agentModeEnabled)
+        if defaults == .standard {
+          AgentModeController.shared.setEnabled(enabled)
+        }
+      }
+    }
+    if let endpoint = reader.string("agent", "endpoint") {
+      let candidate = AgentProviderConfiguration(
+        endpoint: endpoint,
+        model: AgentProviderConfiguration.defaultModel,
+        thinkingEnabled: true,
+        sendsImages: true,
+        maxActions: 30
+      )
+      if candidate.endpointURL == nil {
+        reader.error("agent.endpoint must be HTTPS, or HTTP on localhost")
+      } else {
+        mutations.append { defaults.set(endpoint, forKey: PreferencesKeys.agentProviderEndpoint) }
+      }
+    }
+    if let model = reader.string("agent", "model") {
+      if model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        reader.error("agent.model must not be empty")
+      } else {
+        mutations.append { defaults.set(model, forKey: PreferencesKeys.agentProviderModel) }
+      }
+    }
+    collectBool(&reader, "agent", "thinking_enabled", mutations: &mutations) {
+      defaults.set($0, forKey: PreferencesKeys.agentThinkingEnabled)
+    }
+    collectBool(&reader, "agent", "send_images", mutations: &mutations) {
+      defaults.set($0, forKey: PreferencesKeys.agentProviderSendsImages)
+    }
+    collectInt(&reader, "agent", "max_actions", range: 1 ... 100, mutations: &mutations) {
+      defaults.set($0, forKey: PreferencesKeys.agentMaxActions)
+    }
+    collectBool(&reader, "agent", "retain_screenshots", mutations: &mutations) {
+      defaults.set($0, forKey: PreferencesKeys.agentScreenshotRetentionEnabled)
     }
   }
 

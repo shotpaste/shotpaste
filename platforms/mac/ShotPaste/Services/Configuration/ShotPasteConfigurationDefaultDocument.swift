@@ -23,6 +23,7 @@ enum ShotPasteConfigurationDefaultDocument {
     writeRecording(&writer)
     writeQuickAccess(&writer)
     writeHistory(&writer)
+    writeAgent(&writer)
     writeShortcuts(&writer)
 
     return writer.output
@@ -168,6 +169,17 @@ enum ShotPasteConfigurationDefaultDocument {
     writer.value("scale", HistoryFloatingLayout.defaultScale)
   }
 
+  private static func writeAgent(_ writer: inout SimpleTOMLWriter) {
+    writer.section("agent")
+    writer.value("enabled", false)
+    writer.value("endpoint", AgentProviderConfiguration.defaultEndpoint)
+    writer.value("model", AgentProviderConfiguration.defaultModel)
+    writer.value("thinking_enabled", true)
+    writer.value("send_images", true)
+    writer.value("max_actions", 30)
+    writer.value("retain_screenshots", false)
+  }
+
   private static func writeShortcuts(_ writer: inout SimpleTOMLWriter) {
     writer.section("shortcuts")
     writer.value("enabled", false)
@@ -204,6 +216,7 @@ enum ShotPasteConfigurationDefaultDocument {
   private static func globalShortcut(for kind: GlobalShortcutKind) -> ShortcutConfig? {
     switch kind {
     case .oneShot: .defaultOneShot
+    case .agentMode: .defaultAgentMode
     case .pauseResumeRecording: nil
     case .togglePenRecording: nil
     case .restartRecording: nil
