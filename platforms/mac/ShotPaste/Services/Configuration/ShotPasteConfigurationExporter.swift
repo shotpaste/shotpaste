@@ -68,7 +68,6 @@ enum ShotPasteConfigurationExporter {
     writer.value("format", defaults.string(forKey: PreferencesKeys.screenshotFormat) ?? ImageFormatOption.png.rawValue)
     writer.value("include_shotpaste", defaults.boolValue(PreferencesKeys.screenshotIncludeOwnApp, default: false))
     writer.value("show_cursor", defaults.boolValue(PreferencesKeys.screenshotShowCursor, default: false))
-    writer.value("window_targeting", defaults.boolValue(PreferencesKeys.screenshotWindowTargeting, default: true))
     writer.value("magnifier_enabled", defaults.boolValue(PreferencesKeys.screenshotMagnifierEnabled, default: true))
     writer.value("magnifier_zoom", defaults.integerValue(PreferencesKeys.screenshotMagnifierZoom, default: 1))
     writer.value("output_scale", defaults.integerValue(PreferencesKeys.screenshotScale, default: 0))
@@ -89,9 +88,6 @@ enum ShotPasteConfigurationExporter {
     )
     writer.value("link_detection", defaults.boolValue(PreferencesKeys.ocrLinkDetectionEnabled, default: true))
     writer.value("language", defaults.string(forKey: PreferencesKeys.ocrRecognitionLanguage) ?? "auto")
-
-    writer.section("capture.object_cutout")
-    writer.value("auto_crop", defaults.boolValue(PreferencesKeys.backgroundCutoutAutoCropEnabled, default: true))
 
     writeAfterCapture(&writer, type: .screenshot)
     writeAfterCapture(&writer, type: .recording)
@@ -219,10 +215,8 @@ enum ShotPasteConfigurationExporter {
     writer.value("background_style", HistoryBackgroundStyle.currentStoredStyle(userDefaults: defaults).rawValue)
 
     writer.section("history.floating")
-    writer.value("enabled", manager.isEnabled)
     writer.value("position", manager.position.rawValue)
     writer.value("default_filter", manager.defaultFilter?.rawValue ?? CaptureHistoryCategory.clipboard.rawValue)
-    writer.value("max_displayed_items", manager.maxDisplayedItems)
     writer.value("scale", manager.panelScale)
   }
 

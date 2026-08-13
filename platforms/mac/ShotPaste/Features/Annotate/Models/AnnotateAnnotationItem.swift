@@ -51,39 +51,6 @@ nonisolated enum BlurType: String, CaseIterable, Identifiable, Equatable {
   }
 }
 
-nonisolated enum WatermarkStyle: String, CaseIterable, Identifiable, Equatable {
-  case single
-  case diagonal
-  case tiled
-
-  var id: String {
-    rawValue
-  }
-
-  var displayName: String {
-    switch self {
-    case .single: L10n.AnnotateUI.watermarkSingle
-    case .diagonal: L10n.AnnotateUI.watermarkDiagonal
-    case .tiled: L10n.AnnotateUI.watermarkTiled
-    }
-  }
-
-  var icon: String {
-    switch self {
-    case .single: "text.aligncenter"
-    case .diagonal: "line.diagonal"
-    case .tiled: "square.grid.3x3"
-    }
-  }
-
-  var defaultRotationDegrees: CGFloat {
-    switch self {
-    case .single: 0
-    case .diagonal, .tiled: -24
-    }
-  }
-}
-
 nonisolated enum TextPresentation: String, CaseIterable, Identifiable, Equatable {
   case plain
   case label
@@ -1249,28 +1216,22 @@ extension AnnotationItem {
 // MARK: - Render Ordering
 
 extension [AnnotationItem] {
-  /// Z-order for rendering and hit-testing: embedded images (canvas surfaces)
-  /// at the bottom, blur effects above them, and markup annotations
-  /// (shapes, arrows, text, counters, …) always on top. Stable within each
-  /// tier; the model array order itself is unchanged.
+  /// Z-order for rendering and hit-testing: blur effects stay below markup
+  /// annotations while preserving the model order within each tier.
   nonisolated var renderOrdered: [AnnotationItem] {
-    var embedded: [AnnotationItem] = []
     var blurs: [AnnotationItem] = []
     var markup: [AnnotationItem] = []
-    embedded.reserveCapacity(count)
     blurs.reserveCapacity(count)
     markup.reserveCapacity(count)
     for item in self {
       switch item.type {
-      case .embeddedImage:
-        embedded.append(item)
       case .blur:
         blurs.append(item)
       default:
         markup.append(item)
       }
     }
-    return embedded + blurs + markup
+    return blurs + markup
   }
 }
 
@@ -1286,8 +1247,6 @@ nonisolated enum AnnotationType: Equatable {
   case highlight([CGPoint])
   case blur(BlurType)
   case counter(Int)
-  case watermark(String)
-  case embeddedImage(UUID)
   case spotlight
 
   /// Corresponding toolbar tool type for this annotation
@@ -1303,24 +1262,12 @@ nonisolated enum AnnotationType: Equatable {
     case .highlight: .highlighter
     case .blur: .blur
     case .counter: .counter
-    case .watermark: .watermark
-    case .embeddedImage: .selection
     case .spotlight: .spotlight
     }
   }
 
-  /// Whether this annotation type exposes the standard property sidebar controls.
-  var supportsPropertyEditing: Bool {
-    switch self {
-    case .embeddedImage:
-      false
-    default:
-      true
-    }
-  }
-
   var supportsQuickPropertiesBar: Bool {
-    supportsPropertyEditing && toolType.supportsQuickPropertiesBar
+    toolType.supportsQuickPropertiesBar
   }
 
   var supportsQuickStrokeColor: Bool {
@@ -1346,9 +1293,6 @@ nonisolated struct AnnotationProperties: Equatable {
   var cornerRadius: CGFloat
   var fontSize: CGFloat
   var fontName: String
-  var opacity: CGFloat
-  var rotationDegrees: CGFloat
-  var watermarkStyle: WatermarkStyle
   var spotlightOpacity: CGFloat
   var textPresentation: TextPresentation
   var calloutTailTarget: CGPoint?
@@ -1360,9 +1304,6 @@ nonisolated struct AnnotationProperties: Equatable {
     cornerRadius: CGFloat = 0,
     fontSize: CGFloat = 16,
     fontName: String = "SF Pro",
-    opacity: CGFloat = 1,
-    rotationDegrees: CGFloat = 0,
-    watermarkStyle: WatermarkStyle = .single,
     spotlightOpacity: CGFloat = 0.5,
     textPresentation: TextPresentation = .plain,
     calloutTailTarget: CGPoint? = nil
@@ -1373,9 +1314,6 @@ nonisolated struct AnnotationProperties: Equatable {
     self.cornerRadius = cornerRadius
     self.fontSize = fontSize
     self.fontName = fontName
-    self.opacity = opacity
-    self.rotationDegrees = rotationDegrees
-    self.watermarkStyle = watermarkStyle
     self.spotlightOpacity = spotlightOpacity
     self.textPresentation = textPresentation
     self.calloutTailTarget = calloutTailTarget
@@ -1425,16 +1363,8 @@ nonisolated struct AnnotationProperties: Equatable {
     8 + clampedControlValue(controlValue) * 2
   }
 
-  static func clampedOpacity(_ value: CGFloat) -> CGFloat {
-    min(max(value, 0.05), 0.65)
-  }
-
   static func clampedSpotlightOpacity(_ value: CGFloat) -> CGFloat {
     min(max(value, 0.1), 0.9)
-  }
-
-  static func clampedRotationDegrees(_ value: CGFloat) -> CGFloat {
-    min(max(value, -45), 45)
   }
 }
 
@@ -1510,7 +1440,7 @@ extension AnnotationItem {
     let tolerance = baseTolerance + properties.strokeWidth / 2
 
     switch type {
-    case .rectangle, .filledRectangle, .blur(_), .watermark, .embeddedImage, .spotlight:
+    case .rectangle, .filledRectangle, .blur(_), .spotlight:
       return bounds.contains(point)
 
     case .oval:

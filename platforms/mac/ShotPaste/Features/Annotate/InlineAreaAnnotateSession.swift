@@ -53,6 +53,26 @@ enum InlineAreaKeyAction: Equatable {
   case resetMoveModifierAndPassThrough
 }
 
+nonisolated enum InlineAreaOverlayPrompt: Equatable {
+  case unsavedChanges
+  case saveLocationRecovery(pinToScreen: Bool)
+  case saveFailure(detail: String, pinToScreen: Bool)
+}
+
+nonisolated enum InlineAreaOverlayPromptAction: Equatable {
+  case primary
+  case secondary
+  case tertiary
+  case cancel
+}
+
+nonisolated enum InlineAreaPromptKeyAction: Equatable {
+  case inactive
+  case confirm
+  case dismiss
+  case consume
+}
+
 @MainActor
 final class InlineAreaAnnotateSession: ObservableObject {
   private struct InlineAreaCrop {
@@ -65,6 +85,9 @@ final class InlineAreaAnnotateSession: ObservableObject {
   @Published var isMoveModifierActive = false
   @Published private(set) var isSelectingOneShotOCR = false
   @Published private(set) var oneShotOCRSelectionRect: CGRect?
+  @Published private(set) var isExporting = false
+  @Published private(set) var activePrompt: InlineAreaOverlayPrompt?
+  @Published private(set) var activePromptDisplayID: CGDirectDisplayID?
 
   let state = AnnotateState(appliesDefaultCanvasPresetOnNewImages: false)
   let desktopFrame: CGRect
@@ -210,7 +233,7 @@ final class InlineAreaAnnotateSession: ObservableObject {
           let crop = cropImage(for: clampedRect) else { return }
 
     selectionRect = crop.localRect
-    state.loadImage(crop.image, url: nil)
+    state.loadImage(crop.image)
     state.selectedTool = .selection
     phase = .annotating
   }
@@ -417,6 +440,19 @@ final class InlineAreaAnnotateSession: ObservableObject {
   }
 
   func handleKeyEvent(_ event: NSEvent, source: InlineAreaKeyEventSource = .local) -> Bool {
+    switch Self.promptKeyAction(for: event, isPromptActive: activePrompt != nil) {
+    case .inactive:
+      break
+    case .confirm:
+      resolveActivePrompt(.primary)
+      return true
+    case .dismiss:
+      resolveActivePrompt(.cancel)
+      return true
+    case .consume:
+      return true
+    }
+
     if isSelectingOneShotOCR {
       if Self.matchesCancelShortcut(event) {
         cancel()
@@ -451,11 +487,41 @@ final class InlineAreaAnnotateSession: ObservableObject {
       return false
     }
 
+    if event.type == .keyUp, Self.matchesMoveModifierKey(event), state.isSpacePanning {
+      state.isSpacePanning = false
+      return true
+    }
+
+    let hasTextResponder = windows.allObjects.contains { $0.firstResponder is NSTextView }
+    if phase == .annotating, oneShotState.activeTab == .screenshot, !hasTextResponder {
+      if Self.matchesZoomInShortcut(event) {
+        guard commitOneShotInteraction(.screenshotViewport) else { return false }
+        state.zoomIn()
+        return true
+      }
+      if Self.matchesZoomOutShortcut(event) {
+        guard commitOneShotInteraction(.screenshotViewport) else { return false }
+        state.zoomOut()
+        return true
+      }
+      if Self.matchesFitCanvasShortcut(event) {
+        guard commitOneShotInteraction(.screenshotViewport) else { return false }
+        state.fitCanvasToViewport()
+        return true
+      }
+      if Self.matchesMoveModifierKey(event),
+         state.canPanInteractively || state.isSpacePanning || state.isCanvasPanningMode {
+        state.isSpacePanning = event.type == .keyDown && state.canPanInteractively
+        isMoveModifierActive = false
+        return true
+      }
+    }
+
     let action = Self.keyAction(
       for: event,
       source: source,
       phase: phase,
-      hasTextResponder: windows.allObjects.contains { $0.firstResponder is NSTextView },
+      hasTextResponder: hasTextResponder,
       hasKeyWindow: windows.allObjects.contains { $0.isKeyWindow }
     )
 
@@ -484,8 +550,24 @@ final class InlineAreaAnnotateSession: ObservableObject {
     }
   }
 
-  func cancel() {
+  @discardableResult
+  func cancel(discardChanges: Bool = false) -> Bool {
+    guard !isExporting else { return false }
+    guard activePrompt == nil else {
+      resolveActivePrompt(.cancel)
+      return false
+    }
+
+    if phase == .annotating {
+      state.commitTextEditing()
+    }
+    if !discardChanges, phase == .annotating, state.hasUnsavedChanges {
+      presentOverlayPrompt(.unsavedChanges)
+      return false
+    }
+
     complete(.failure(.cancelled))
+    return true
   }
 
   func windowDidClose() {
@@ -515,10 +597,11 @@ final class InlineAreaAnnotateSession: ObservableObject {
   }
 
   private func finish(pinToScreen: Bool) async {
-    guard phase == .annotating else { return }
+    guard phase == .annotating, !isExporting else { return }
     if !pinToScreen {
       guard commitOneShotInteraction(.screenshotFinish) else { return }
     }
+    state.commitTextEditing()
     if let selectionRect, let crop = cropImage(for: selectionRect) {
       self.selectionRect = crop.localRect
       state.replaceSourceImagePreservingAnnotations(crop.image)
@@ -530,11 +613,10 @@ final class InlineAreaAnnotateSession: ObservableObject {
       return
     }
 
-    guard oneShotState.beginExecuting() else { return }
-    dismissOverlayForOneShotScreenshotExecution()
-
+    isExporting = true
     guard let saveDirectory = resolveSaveDirectory() else {
-      complete(.failure(.saveFailed(L10n.ScreenCapture.saveLocationPermissionRequired)))
+      isExporting = false
+      presentSaveLocationRecovery(pinToScreen: pinToScreen)
       return
     }
 
@@ -547,13 +629,101 @@ final class InlineAreaAnnotateSession: ObservableObject {
       context: context
     )
 
+    isExporting = false
+
     if case .success = result {
+      state.markAsSaved()
+      _ = oneShotState.beginExecuting()
+      dismissOverlayForOneShotScreenshotExecution()
       SoundManager.playScreenshotCapture()
+      complete(result)
+      if pinToScreen, case .success(let url) = result {
+        await PostCaptureActionHandler.shared.handleScreenshotCapture(url: url, pinToScreen: true)
+      }
+    } else {
+      presentSaveFailure(result: result, pinToScreen: pinToScreen)
     }
-    complete(result)
-    if pinToScreen, case .success(let url) = result {
-      await PostCaptureActionHandler.shared.handleScreenshotCapture(url: url, pinToScreen: true)
+  }
+
+  private func presentSaveLocationRecovery(pinToScreen: Bool) {
+    presentOverlayPrompt(.saveLocationRecovery(pinToScreen: pinToScreen))
+  }
+
+  private func presentSaveFailure(result: CaptureResult, pinToScreen: Bool) {
+    let detail: String = if case .failure(let error) = result {
+      error.localizedDescription
+    } else {
+      L10n.AnnotateUI.saveFailedMessage
     }
+
+    presentOverlayPrompt(.saveFailure(detail: detail, pinToScreen: pinToScreen))
+  }
+
+  func resolveActivePrompt(_ action: InlineAreaOverlayPromptAction) {
+    guard let prompt = activePrompt else { return }
+
+    activePrompt = nil
+    activePromptDisplayID = nil
+
+    switch (prompt, action) {
+    case (.unsavedChanges, .primary):
+      Task { await finish() }
+    case (.unsavedChanges, .secondary):
+      complete(.failure(.cancelled))
+    case (.saveLocationRecovery(let pinToScreen), .primary):
+      chooseSaveDirectoryAndRetry(pinToScreen: pinToScreen)
+    case (.saveFailure(_, let pinToScreen), .primary):
+      Task { await finish(pinToScreen: pinToScreen) }
+    case (.saveFailure(_, let pinToScreen), .secondary):
+      chooseSaveDirectoryAndRetry(pinToScreen: pinToScreen)
+    case (.saveFailure, .tertiary):
+      copyCurrentImage()
+    case (_, .cancel), (.unsavedChanges, .tertiary), (.saveLocationRecovery, .secondary),
+         (.saveLocationRecovery, .tertiary):
+      break
+    }
+  }
+
+  private func presentOverlayPrompt(_ prompt: InlineAreaOverlayPrompt) {
+    guard activePrompt == nil else { return }
+    isMoveModifierActive = false
+    state.isSpacePanning = false
+    activePromptDisplayID = selectionRect.map(controlDisplayID(for:)) ?? primaryDisplayID
+    activePrompt = prompt
+    NSCursor.arrow.set()
+
+    for window in windows.allObjects where window.screen?.displayID == activePromptDisplayID {
+      window.orderFrontRegardless()
+      window.makeKey()
+    }
+  }
+
+  private func chooseSaveDirectoryAndRetry(pinToScreen: Bool) {
+    let manager = SandboxFileAccessManager.shared
+    let selectedDirectory = withOverlayWindowsTemporarilyLowered {
+      manager.chooseExportDirectory(
+        message: L10n.Recording.chooseSaveLocationMessage,
+        prompt: L10n.FileAccess.chooseFolderPrompt,
+        directoryURL: manager.resolvedExportDirectoryURL()
+      )
+    }
+    if selectedDirectory != nil {
+      Task { await finish(pinToScreen: pinToScreen) }
+    }
+  }
+
+  private func withOverlayWindowsTemporarilyLowered<T>(_ operation: () -> T) -> T {
+    let windowLevels = windows.allObjects.map { ($0, $0.level) }
+    for (window, _) in windowLevels {
+      window.level = .normal
+    }
+    defer {
+      for (window, level) in windowLevels {
+        window.level = level
+        window.orderFrontRegardless()
+      }
+    }
+    return operation()
   }
 
   func copyCurrentImage() {
@@ -702,6 +872,8 @@ final class InlineAreaAnnotateSession: ObservableObject {
     isSelectingOneShotOCR = false
     oneShotOCRSelectionRect = nil
     oneShotOCRSelectionStartPoint = nil
+    activePrompt = nil
+    activePromptDisplayID = nil
     removeKeyMonitors()
     removeSelectionMonitor()
     frozenSession.invalidate()
@@ -727,6 +899,8 @@ final class InlineAreaAnnotateSession: ObservableObject {
     isSelectingOneShotOCR = false
     oneShotOCRSelectionRect = nil
     oneShotOCRSelectionStartPoint = nil
+    activePrompt = nil
+    activePromptDisplayID = nil
     removeKeyMonitors()
     removeSelectionMonitor()
     frozenSession.invalidate()
@@ -742,6 +916,8 @@ final class InlineAreaAnnotateSession: ObservableObject {
     isDismissingOverlayForScreenshotExecution = true
     displayChangeCancellable = nil
     isMoveModifierActive = false
+    activePrompt = nil
+    activePromptDisplayID = nil
     removeKeyMonitors()
     removeSelectionMonitor()
     frozenSession.invalidate()
@@ -811,6 +987,21 @@ final class InlineAreaAnnotateSession: ObservableObject {
     matchesCommandCopyShortcut(event) && !hasTextResponder && (isLocalEvent || hasKeyWindow)
   }
 
+  nonisolated static func promptKeyAction(
+    for event: NSEvent,
+    isPromptActive: Bool
+  ) -> InlineAreaPromptKeyAction {
+    guard isPromptActive else { return .inactive }
+    guard event.type == .keyDown else { return .consume }
+    if matchesCancelShortcut(event) {
+      return .dismiss
+    }
+    if matchesFinishShortcut(event) {
+      return .confirm
+    }
+    return .consume
+  }
+
   nonisolated static func keyAction(
     for event: NSEvent,
     source: InlineAreaKeyEventSource,
@@ -866,6 +1057,32 @@ final class InlineAreaAnnotateSession: ObservableObject {
 
   nonisolated static func matchesMoveModifierKey(_ event: NSEvent) -> Bool {
     event.keyCode == 49 && (event.type == .keyDown || event.type == .keyUp)
+  }
+
+  nonisolated static func matchesZoomInShortcut(_ event: NSEvent) -> Bool {
+    guard event.type == .keyDown else { return false }
+    let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+    guard flags.contains(.command), !flags.contains(.control), !flags.contains(.option) else {
+      return false
+    }
+    let character = event.charactersIgnoringModifiers?.lowercased()
+    return event.keyCode == 24 || character == "=" || character == "+"
+  }
+
+  nonisolated static func matchesZoomOutShortcut(_ event: NSEvent) -> Bool {
+    guard event.type == .keyDown else { return false }
+    let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+    guard flags.contains(.command), !flags.contains(.control), !flags.contains(.option) else {
+      return false
+    }
+    return event.keyCode == 27 || event.charactersIgnoringModifiers == "-"
+  }
+
+  nonisolated static func matchesFitCanvasShortcut(_ event: NSEvent) -> Bool {
+    guard event.type == .keyDown else { return false }
+    let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+    guard flags == .command else { return false }
+    return event.keyCode == 29 || event.charactersIgnoringModifiers == "0"
   }
 
   nonisolated static func desktopFrame(for screenFrames: [CGRect]) -> CGRect {

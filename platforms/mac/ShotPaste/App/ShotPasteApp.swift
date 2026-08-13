@@ -24,6 +24,24 @@ struct ShotPasteApp: App {
       PreferencesView()
         .preferredColorScheme(themeManager.systemAppearance)
     }
+    .commands {
+      CommandMenu(L10n.Common.preferences) {
+        preferencesCommand(L10n.Preferences.generalTab, tab: .general, key: "1")
+        preferencesCommand(L10n.Preferences.captureTab, tab: .capture, key: "2")
+        preferencesCommand(L10n.Preferences.quickAccessTab, tab: .quickAccess, key: "3")
+        preferencesCommand(L10n.Preferences.historyTab, tab: .history, key: "4")
+        preferencesCommand(L10n.Preferences.shortcutsTab, tab: .shortcuts, key: "5")
+        preferencesCommand(L10n.Preferences.permissionsTab, tab: .permissions, key: "6")
+        preferencesCommand(L10n.Preferences.advancedTab, tab: .advanced, key: "7")
+      }
+    }
+  }
+
+  private func preferencesCommand(_ title: String, tab: PreferencesTab, key: KeyEquivalent) -> some View {
+    Button(title) {
+      AppStatusBarController.shared.openPreferencesWindow(tab: tab)
+    }
+    .keyboardShortcut(key, modifiers: .command)
   }
 }
 
@@ -115,6 +133,66 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       andEventID: AEEventID(kAEGetURL)
     )
     coordinator?.applicationWillTerminate()
+  }
+
+  func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+    guard didFinishLaunching else { return .terminateNow }
+
+    let recordingCoordinator = RecordingCoordinator.shared
+    if recordingCoordinator.requiresTerminationHandling {
+      if recordingCoordinator.hasRecordedContent {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = L10n.Recording.quitConfirmationTitle
+        alert.informativeText = L10n.Recording.quitConfirmationMessage
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: L10n.Common.stopAndQuit)
+        alert.addButton(withTitle: L10n.Common.discardAndQuit)
+        alert.addButton(withTitle: L10n.Common.cancel)
+
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+          recordingCoordinator.stopForApplicationTermination { succeeded in
+            sender.reply(toApplicationShouldTerminate: succeeded)
+          }
+          return .terminateLater
+        case .alertSecondButtonReturn:
+          recordingCoordinator.discardForApplicationTermination { succeeded in
+            sender.reply(toApplicationShouldTerminate: succeeded)
+          }
+          return .terminateLater
+        default:
+          return .terminateCancel
+        }
+      }
+
+      guard confirmDiscardActiveCapture() else { return .terminateCancel }
+      recordingCoordinator.discardForApplicationTermination { succeeded in
+        sender.reply(toApplicationShouldTerminate: succeeded)
+      }
+      return .terminateLater
+    }
+
+    if ScrollingCaptureCoordinator.shared.isActive || OneShotCoordinator.shared.isActive {
+      guard confirmDiscardActiveCapture() else { return .terminateCancel }
+      ScrollingCaptureCoordinator.shared.cancel()
+      guard OneShotCoordinator.shared.cancel(discardChanges: true) else {
+        return .terminateCancel
+      }
+    }
+
+    return .terminateNow
+  }
+
+  private func confirmDiscardActiveCapture() -> Bool {
+    NSApp.activate(ignoringOtherApps: true)
+    let alert = NSAlert()
+    alert.messageText = L10n.Common.activeCaptureTitle
+    alert.informativeText = L10n.Common.activeCaptureMessage
+    alert.alertStyle = .warning
+    alert.addButton(withTitle: L10n.Common.returnToShotPaste)
+    alert.addButton(withTitle: L10n.Common.discardAndQuit)
+    return alert.runModal() == .alertSecondButtonReturn
   }
 
   func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {

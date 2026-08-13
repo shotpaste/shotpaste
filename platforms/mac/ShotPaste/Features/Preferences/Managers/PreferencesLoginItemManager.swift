@@ -7,10 +7,17 @@
 
 import ServiceManagement
 
+enum LoginItemUpdateResult {
+  case applied(isEnabled: Bool)
+  case requiresApproval
+  case failed(String)
+}
+
 /// Manages the app's login item status using SMAppService
 enum LoginItemManager {
   /// Enable or disable launch at login
-  static func setEnabled(_ enabled: Bool) {
+  @discardableResult
+  static func setEnabled(_ enabled: Bool) -> LoginItemUpdateResult {
     do {
       if enabled {
         try SMAppService.mainApp.register()
@@ -24,6 +31,10 @@ enum LoginItemManager {
         context: ["enabled": enabled ? "true" : "false"]
       )
       ShotPasteConfigurationSyncCoordinator.shared.scheduleSync(reason: .explicitChange)
+      if SMAppService.mainApp.status == .requiresApproval {
+        return .requiresApproval
+      }
+      return .applied(isEnabled: isEnabled)
     } catch {
       DiagnosticLogger.shared.logError(
         .preferences,
@@ -31,6 +42,7 @@ enum LoginItemManager {
         "Launch at login preference update failed",
         context: ["enabled": enabled ? "true" : "false"]
       )
+      return .failed(error.localizedDescription)
     }
   }
 

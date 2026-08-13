@@ -5,6 +5,7 @@
 //  General preferences tab with startup, appearance, storage, updates, and help
 //
 
+import AppKit
 import SwiftUI
 
 struct GeneralSettingsView: View {
@@ -20,6 +21,7 @@ struct GeneralSettingsView: View {
   @ObservedObject private var mcpServer = ShotPasteMCPServer.shared
 
   @State private var startAtLogin = LoginItemManager.isEnabled
+  @State private var isSynchronizingLoginItemState = false
   private let fileAccessManager = SandboxFileAccessManager.shared
 
   var body: some View {
@@ -33,7 +35,7 @@ struct GeneralSettingsView: View {
           Toggle("", isOn: $startAtLogin)
             .labelsHidden()
             .onChange(of: startAtLogin) { newValue in
-              LoginItemManager.setEnabled(newValue)
+              updateLoginItem(requestedEnabled: newValue)
             }
         }
 
@@ -153,9 +155,50 @@ struct GeneralSettingsView: View {
     }
     .formStyle(.grouped)
     .onAppear {
-      startAtLogin = LoginItemManager.isEnabled
+      synchronizeLoginItemToggle(to: LoginItemManager.isEnabled)
       initializeExportLocation()
     }
+    .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+      synchronizeLoginItemToggle(to: LoginItemManager.isEnabled)
+    }
+  }
+
+  private func updateLoginItem(requestedEnabled: Bool) {
+    if isSynchronizingLoginItemState {
+      isSynchronizingLoginItemState = false
+      return
+    }
+
+    switch LoginItemManager.setEnabled(requestedEnabled) {
+    case .applied(let isEnabled):
+      synchronizeLoginItemToggle(to: isEnabled)
+    case .requiresApproval:
+      synchronizeLoginItemToggle(to: LoginItemManager.isEnabled)
+      let alert = NSAlert()
+      alert.messageText = L10n.PreferencesGeneral.loginItemRequiresApprovalTitle
+      alert.informativeText = L10n.PreferencesGeneral.loginItemRequiresApprovalMessage
+      alert.alertStyle = .informational
+      alert.addButton(withTitle: L10n.Common.openSystemSettings)
+      alert.addButton(withTitle: L10n.Common.cancel)
+      if alert.runModal() == .alertFirstButtonReturn,
+         let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
+        NSWorkspace.shared.open(url)
+      }
+    case .failed(let message):
+      synchronizeLoginItemToggle(to: LoginItemManager.isEnabled)
+      AppToastManager.shared.show(
+        message: message.isEmpty ? L10n.PreferencesGeneral.loginItemUpdateFailed : message,
+        style: .error,
+        position: .bottomCenter,
+        duration: 4
+      )
+    }
+  }
+
+  private func synchronizeLoginItemToggle(to isEnabled: Bool) {
+    guard startAtLogin != isEnabled else { return }
+    isSynchronizingLoginItemState = true
+    startAtLogin = isEnabled
   }
 
   // MARK: - Helpers

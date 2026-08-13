@@ -14,30 +14,6 @@ import SwiftUI
 final class AnnotateState: ObservableObject {
   private struct AnnotationSnapshot {
     var annotations: [AnnotationItem]
-    var embeddedImageAssets: [UUID: NSImage]
-  }
-
-  /// Snapshot of every piece of state mutated by an image rotation. Used as a dedicated
-  /// undo entry so rotation undo never disturbs the annotation-only undo path.
-  private struct RotationSnapshot {
-    var sourceImage: NSImage?
-    var cutoutImage: NSImage?
-    var isCutoutApplied: Bool
-    var embeddedImageAssets: [UUID: NSImage]
-    var embeddedImageSourceData: [UUID: Data]
-    var embeddedImageSnapshotCacheData: [UUID: Data]
-    var annotations: [AnnotationItem]
-    var cropRect: CGRect?
-    var originalCropRect: CGRect?
-    var cropAspectRatio: CropAspectRatio
-    var isCropPortraitOrientation: Bool
-    var didCutoutAutoApplyCrop: Bool
-    var cutoutAutoAppliedCropRect: CGRect?
-  }
-
-  private enum UndoEntry {
-    case annotations(AnnotationSnapshot)
-    case rotation(RotationSnapshot)
   }
 
   private struct TextEditingUndoTransaction {
@@ -47,20 +23,10 @@ final class AnnotateState: ObservableObject {
     var didRecordUndo: Bool = false
   }
 
-  private struct CropInteractionContext {
-    let selectedTool: AnnotationToolType
-    let selectedAnnotationIds: Set<UUID>
-    let cropRect: CGRect?
-    let didCutoutAutoApplyCrop: Bool
-    let cutoutAutoAppliedCropRect: CGRect?
-  }
-
   private struct SharedAnnotationParameterDefaults: Codable {
     var strokeWidth: CGFloat?
     var cornerRadius: CGFloat?
     var fontSize: CGFloat?
-    var watermarkOpacity: CGFloat?
-    var watermarkRotationDegrees: CGFloat?
     var spotlightCornerRadius: CGFloat?
     var arrowStyle: String?
     var arrowType: String?
@@ -76,9 +42,6 @@ final class AnnotateState: ObservableObject {
     var cornerRadius: CGFloat
     var fontSize: CGFloat
     var fontName: String
-    var opacity: CGFloat
-    var rotationDegrees: CGFloat
-    var watermarkStyle: String
     var spotlightOpacity: CGFloat?
 
     init?(_ properties: AnnotationProperties) {
@@ -93,9 +56,6 @@ final class AnnotateState: ObservableObject {
       cornerRadius = properties.cornerRadius
       fontSize = properties.fontSize
       fontName = properties.fontName
-      opacity = properties.opacity
-      rotationDegrees = properties.rotationDegrees
-      watermarkStyle = properties.watermarkStyle.rawValue
       spotlightOpacity = properties.spotlightOpacity
     }
 
@@ -107,18 +67,11 @@ final class AnnotateState: ObservableObject {
         cornerRadius: cornerRadius,
         fontSize: fontSize,
         fontName: fontName,
-        opacity: opacity,
-        rotationDegrees: rotationDegrees,
-        watermarkStyle: WatermarkStyle(rawValue: watermarkStyle) ?? .single,
         spotlightOpacity: spotlightOpacity ?? 0.5
       )
     }
   }
 
-  private static let importedImageMaxCoverage: CGFloat = 0.7
-  private static let importedImageCascadeStep: CGFloat = 24
-  private static let importedImageCountWarningThreshold: Int = 8
-  private static let importedImagePixelBudgetWarningThreshold: Int64 = 40_000_000
   private static let canvasPresetLimit: Int = 20
   private let canvasPresetStore: AnnotateCanvasPresetStore
   private let defaults: UserDefaults
@@ -128,38 +81,10 @@ final class AnnotateState: ObservableObject {
   // MARK: - Source Image
 
   @Published var sourceImage: NSImage?
-  @Published var sourceURL: URL?
-  @Published private(set) var cutoutImage: NSImage?
-  @Published private(set) var isCutoutApplied: Bool = false
-  @Published private(set) var isCutoutProcessing: Bool = false
-  @Published var cutoutErrorMessage: String?
-  private var activeCutoutOperationID: UUID?
-
-  /// QuickAccess item ID if opened from quick access card (nil for drag-drop workflow)
-  let quickAccessItemId: UUID?
 
   /// Whether an image is loaded
   var hasImage: Bool {
     sourceImage != nil
-  }
-
-  /// Image currently used by preview/export. Cutout is non-destructive and overlays the original source image.
-  var effectiveSourceImage: NSImage? {
-    if isCutoutApplied {
-      return cutoutImage ?? sourceImage
-    }
-    return sourceImage
-  }
-
-  var canUseBackgroundCutout: Bool {
-    if #available(macOS 14.0, *) {
-      return true
-    }
-    return false
-  }
-
-  var isBackgroundCutoutAutoCropEnabled: Bool {
-    UserDefaults.standard.object(forKey: PreferencesKeys.backgroundCutoutAutoCropEnabled) as? Bool ?? true
   }
 
   private var isQuickPropertiesSyncEnabled: Bool {
@@ -169,13 +94,7 @@ final class AnnotateState: ObservableObject {
   // MARK: - Tool State
 
   @Published var selectedTool: AnnotationToolType = .selection {
-    didSet {
-      // If user leaves crop by switching tool, restore sidebar if crop had auto-collapsed it.
-      if oldValue == .crop, selectedTool != .crop {
-        restoreSidebarAfterCropInteractionIfNeeded()
-      }
-      syncActiveToolProperties()
-    }
+    didSet { syncActiveToolProperties() }
   }
 
   @Published var strokeWidth: CGFloat = 3
@@ -188,7 +107,6 @@ final class AnnotateState: ObservableObject {
   @Published var arrowBendDirection: ArrowBendDirection = .primary
   @Published var arrowStartHead: ArrowEndpointStyle = .none
   @Published var arrowEndHead: ArrowEndpointStyle = .arrow
-  @Published var watermarkText: String = "ShotPaste"
   @Published var spotlightOpacity: CGFloat = 0.5
   @Published private var annotationToolProperties: [AnnotationToolType: AnnotationProperties] = [:]
   private var isQuickPropertiesGestureEditing = false
@@ -203,167 +121,20 @@ final class AnnotateState: ObservableObject {
   /// to a fixed width so deliberate wrapping is never overwritten while typing.
   private var autoSizingTextAnnotationIDs: Set<UUID> = []
 
-  // MARK: - Editor Mode
-
-  /// Editor mode determines whether user is annotating or applying mockup transforms
-  nonisolated enum EditorMode: String, CaseIterable {
-    case annotate // Normal annotation editing (flat image)
-    case mockup // 3D perspective transforms with controls
-    case preview // Preview combined result (hides all editing UI)
-  }
-
   enum QuickPropertiesMode: Equatable {
     case hidden
     case toolDefaults
     case selectedItem
   }
 
-  enum DragToAppPreparationState: Equatable {
-    case unavailable
-    case preparing
-    case ready
-
-    var isInteractive: Bool {
-      self == .ready
-    }
-  }
-
-  @Published var editorMode: EditorMode = .annotate
-
   // MARK: - UI State
 
-  @Published var showSidebar: Bool = false
   @Published var zoomLevel: CGFloat = 1.0
-  @Published var isPinned: Bool = false
-  @Published private(set) var dragToAppPreparationState: DragToAppPreparationState
-
-  // MARK: - Combine Images
-
-  static let combineBaseLayerID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
-
-  @Published private(set) var isCombineMode = false
-  @Published private(set) var combineMode: CombineImagesMode = .autoStitch
-  @Published private(set) var combineDirection: CombineImagesDirection = .smart
-  @Published private(set) var combineResolvedDirection: CombineImagesDirection = .horizontal
-  @Published private(set) var combineGap: CGFloat = 0
-  @Published private(set) var combineContentBounds: CGRect = .zero
-  @Published var frozenCombineContentBounds: CGRect?
-  let combineSnapTolerance: CGFloat = 14
-
-  private var freeCombineBoundsByAnnotationID: [UUID: CGRect] = [:]
-
-  var effectiveContentBounds: CGRect {
-    guard isCombineMode else { return sourceImageBounds }
-    return frozenCombineContentBounds ?? combineContentBounds
-  }
-
-  var combineImageCount: Int {
-    1 + annotations.reduce(into: 0) { count, annotation in
-      if case .embeddedImage = annotation.type {
-        count += 1
-      }
-    }
-  }
-
-  func moveCombineImage(at index: Int, by offset: Int) {
-    guard isCombineMode, offset != 0, let sourceImage else { return }
-    let slots = annotations.compactMap { annotation -> UUID? in
-      guard case .embeddedImage(let assetID) = annotation.type else { return nil }
-      return assetID
-    }
-    var orderedImages = [sourceImage] + slots.compactMap { embeddedImageAssets[$0] }
-    guard orderedImages.count == slots.count + 1,
-          orderedImages.indices.contains(index) else { return }
-    let destination = index + offset
-    guard orderedImages.indices.contains(destination) else { return }
-
-    pushRotationUndo(currentRotationSnapshot())
-    let moved = orderedImages.remove(at: index)
-    orderedImages.insert(moved, at: destination)
-    self.sourceImage = orderedImages[0]
-    for (slotIndex, assetID) in slots.enumerated() {
-      embeddedImageAssets[assetID] = orderedImages[slotIndex + 1]
-      embeddedImageSourceData.removeValue(forKey: assetID)
-      embeddedImageSnapshotCacheData.removeValue(forKey: assetID)
-      embeddedImageCGImageCache.removeValue(forKey: assetID)
-    }
-    hasUnsavedChanges = true
-    refreshCombineLayout()
-  }
-
-  func activateCombineMode(preferredMode: CombineImagesMode = .autoStitch) {
-    guard hasImage else { return }
-    if !isCombineMode {
-      isCombineMode = true
-      showSidebar = true
-      selectedTool = .selection
-      captureCurrentFreeCombineBounds()
-    }
-    setCombineMode(preferredMode)
-  }
-
-  func deactivateCombineMode() {
-    guard isCombineMode else { return }
-    isCombineMode = false
-    combineContentBounds = sourceImageBounds
-    frozenCombineContentBounds = nil
-  }
-
-  func setCombineMode(_ mode: CombineImagesMode) {
-    guard isCombineMode else { return }
-    guard combineMode != mode else {
-      refreshCombineLayout()
-      return
-    }
-
-    if combineMode == .freeCanvas {
-      captureCurrentFreeCombineBounds()
-    }
-    combineMode = mode
-    switch mode {
-    case .autoStitch:
-      applyAutomaticCombineLayout()
-    case .freeCanvas:
-      restoreFreeCombineBounds()
-    }
-  }
-
-  func setCombineDirection(_ direction: CombineImagesDirection) {
-    combineDirection = direction
-    if isCombineMode, combineMode == .autoStitch {
-      applyAutomaticCombineLayout()
-    }
-  }
-
-  func setCombineGap(_ gap: CGFloat) {
-    combineGap = max(0, gap)
-    if isCombineMode, combineMode == .autoStitch {
-      applyAutomaticCombineLayout()
-    } else if isCombineMode {
-      updateCombineContentBounds()
-    }
-  }
-
-  func refreshCombineLayout() {
-    guard isCombineMode else { return }
-    if combineMode == .autoStitch {
-      applyAutomaticCombineLayout()
-    } else {
-      updateCombineContentBounds()
-    }
-  }
 
   static let minimumZoomLevel: CGFloat = 0.25
   static let defaultMaximumZoomLevel: CGFloat = 4.0
   static let hardMaximumZoomLevel: CGFloat = 16.0
   static let zoomPresetPercents = [25, 50, 75, 100, 125, 150, 200, 300, 400, 600, 800, 1200, 1600]
-
-  func toggleSidebarVisibility() {
-    guard editorMode != .preview else { return }
-    withAnimation(.easeInOut(duration: 0.2)) {
-      showSidebar.toggle()
-    }
-  }
 
   /// Base fitted canvas size before zoom is applied.
   @Published private(set) var baseCanvasDisplaySize: CGSize = .zero
@@ -414,6 +185,40 @@ final class AnnotateState: ObservableObject {
   /// Clamp a zoom level to the valid range
   func clampedZoom(_ level: CGFloat) -> CGFloat {
     min(max(level, effectiveZoomRange.lowerBound), effectiveZoomRange.upperBound)
+  }
+
+  func setZoomLevel(_ level: CGFloat) {
+    zoomLevel = clampedZoom(level)
+    resetPanIfNeeded()
+  }
+
+  func setDisplayedZoomPercent(_ percent: Int) {
+    setZoomLevel(zoomLevel(forDisplayedPercent: percent))
+  }
+
+  func zoomIn() {
+    let currentPercent = currentDisplayedZoomPercent
+    if let nextPercent = zoomMenuPresetPercents.first(where: { $0 > currentPercent }) {
+      setDisplayedZoomPercent(nextPercent)
+    } else {
+      setZoomLevel(zoomLevel * 1.25)
+    }
+  }
+
+  func zoomOut() {
+    let currentPercent = currentDisplayedZoomPercent
+    if let previousPercent = zoomMenuPresetPercents.last(where: { $0 < currentPercent }) {
+      setDisplayedZoomPercent(previousPercent)
+    } else {
+      setZoomLevel(zoomLevel / 1.25)
+    }
+  }
+
+  func fitCanvasToViewport() {
+    zoomLevel = 1
+    panOffset = .zero
+    isCanvasPanningMode = false
+    isSpacePanning = false
   }
 
   // MARK: - Pan State (for zoomed canvas navigation)
@@ -1004,11 +809,11 @@ final class AnnotateState: ObservableObject {
 
   /// Original image dimensions (points, not pixels)
   var imageWidth: CGFloat {
-    effectiveSourceImage?.size.width ?? Self.defaultCanvasWidth
+    sourceImage?.size.width ?? Self.defaultCanvasWidth
   }
 
   var imageHeight: CGFloat {
-    effectiveSourceImage?.size.height ?? Self.defaultCanvasHeight
+    sourceImage?.size.height ?? Self.defaultCanvasHeight
   }
 
   var imageAspectRatio: CGFloat {
@@ -1020,7 +825,7 @@ final class AnnotateState: ObservableObject {
   }
 
   var activeAnnotationBounds: CGRect {
-    cropRect?.standardized ?? sourceImageBounds
+    sourceImageBounds
   }
 
   /// Calculate display scale for given container size
@@ -1121,18 +926,6 @@ final class AnnotateState: ObservableObject {
     return (pendingPropertyEditRects, pendingFullCanvasInvalidation)
   }
 
-  /// Imported image assets referenced by `.embeddedImage(assetId)` annotations.
-  @Published private(set) var embeddedImageAssets: [UUID: NSImage] = [:]
-  /// Non-blocking warning for large multi-image imports.
-  @Published private(set) var importWarningMessage: String?
-  /// Original bytes for imported assets when available (file drop/paste raw data).
-  /// Reused by render snapshots to avoid expensive re-encoding on save/copy paths.
-  private var embeddedImageSourceData: [UUID: Data] = [:]
-  /// Cached serialized bytes for imported assets that did not have direct source data.
-  private var embeddedImageSnapshotCacheData: [UUID: Data] = [:]
-  /// Cached decoded CGImage for faster repeated canvas/export draws.
-  private var embeddedImageCGImageCache: [UUID: CGImage] = [:]
-  private var lastImportWarningSignature: String?
   private var isSynchronizingSelection = false
   @Published var selectedAnnotationId: UUID? {
     didSet {
@@ -1152,86 +945,6 @@ final class AnnotateState: ObservableObject {
 
   // MARK: - Counter Tool State (derived from annotations, not stored)
 
-  // MARK: - Crop State
-
-  /// Current crop rectangle in image coordinates (nil = no crop, full image)
-  @Published var cropRect: CGRect?
-  /// Original crop rect when crop mode started (used as base for aspect ratio calculations)
-  private var originalCropRect: CGRect?
-  /// Context to restore after leaving crop mode.
-  private var cropInteractionContext: CropInteractionContext?
-  /// Whether crop mode is actively being edited
-  @Published var isCropActive: Bool = false
-  /// Selected aspect ratio for crop
-  @Published var cropAspectRatio: CropAspectRatio = .free
-  /// Whether crop aspect ratio is in portrait orientation
-  @Published var isCropPortraitOrientation: Bool = false
-  /// Whether to show rule of thirds grid
-  @Published var showCropGrid: Bool = true
-  /// Whether currently resizing (for dimension display)
-  @Published var isCropResizing: Bool = false
-  /// Whether Shift is held (for aspect ratio lock)
-  @Published var isCropShiftLocked: Bool = false
-  /// Restore sidebar when leaving crop if it was auto-collapsed on crop entry.
-  private var shouldRestoreSidebarAfterCropInteraction: Bool = false
-  /// True when current crop was auto-applied from the latest background cutout.
-  private var didCutoutAutoApplyCrop: Bool = false
-  /// Tracks the exact crop rect auto-applied by background cutout for safe revert behavior.
-  private var cutoutAutoAppliedCropRect: CGRect?
-
-  // MARK: - Mockup State
-
-  @Published var mockupRotationX: Double = 0
-  @Published var mockupRotationY: Double = 0
-  @Published var mockupRotationZ: Double = 0
-  @Published var mockupPerspective: Double = 0.5
-  @Published var mockupShadowIntensity: Double = 0.3
-  @Published var mockupCornerRadius: Double = 12
-  @Published var mockupPadding: CGFloat = 40
-  @Published var selectedMockupPresetId: UUID?
-
-  /// Computed shadow properties for mockup
-  var mockupShadowOffsetX: CGFloat {
-    CGFloat(mockupRotationY) * 0.8
-  }
-
-  var mockupShadowOffsetY: CGFloat {
-    CGFloat(mockupRotationX) * 0.5 + 8
-  }
-
-  var mockupShadowRadius: CGFloat {
-    CGFloat(20 * (1.1 - mockupPerspective) * mockupShadowIntensity * 2)
-  }
-
-  var isCropInteractionActive: Bool {
-    selectedTool == .crop && isCropActive
-  }
-
-  /// Apply mockup preset
-  func applyMockupPreset(_ preset: MockupPreset) {
-    DiagnosticLogger.shared.log(.info, .annotate, "Mockup preset applied", context: ["id": preset.id.uuidString])
-    mockupRotationX = preset.rotationX
-    mockupRotationY = preset.rotationY
-    mockupRotationZ = preset.rotationZ
-    mockupPerspective = preset.perspective
-    mockupPadding = preset.padding
-    selectedMockupPresetId = preset.id
-    hasUnsavedChanges = true
-  }
-
-  /// Reset mockup to defaults
-  func resetMockup() {
-    DiagnosticLogger.shared.log(.info, .annotate, "Mockup reset")
-    mockupRotationX = 0
-    mockupRotationY = 0
-    mockupRotationZ = 0
-    mockupPerspective = 0.5
-    mockupShadowIntensity = 0.3
-    mockupCornerRadius = 12
-    mockupPadding = 40
-    selectedMockupPresetId = nil
-  }
-
   // MARK: - Unsaved Changes Tracking
 
   /// Whether canvas has modifications not yet saved to disk
@@ -1242,33 +955,10 @@ final class AnnotateState: ObservableObject {
   @Published var canUndo: Bool = false
   @Published var canRedo: Bool = false
 
-  private var undoStack: [UndoEntry] = []
-  private var redoStack: [UndoEntry] = []
+  private var undoStack: [AnnotationSnapshot] = []
+  private var redoStack: [AnnotationSnapshot] = []
   private var textEditingUndoTransaction: TextEditingUndoTransaction?
 
-  init(
-    image: NSImage,
-    url: URL,
-    quickAccessItemId: UUID? = nil,
-    defaults: UserDefaults = .standard,
-    canvasPresetStore: AnnotateCanvasPresetStore? = nil,
-    appliesDefaultCanvasPresetOnNewImages: Bool = true
-  ) {
-    self.defaults = defaults
-    self.canvasPresetStore = canvasPresetStore ?? AnnotateCanvasPresetStore.shared
-    self.appliesDefaultCanvasPresetOnNewImages = appliesDefaultCanvasPresetOnNewImages
-    sourceImage = image
-    sourceURL = url
-    self.quickAccessItemId = quickAccessItemId
-    dragToAppPreparationState = .ready
-    loadSharedAnnotationColor()
-    loadSharedAnnotationParameterDefaults()
-    loadAnnotationToolProperties()
-    loadCanvasPresets()
-    applyDefaultCanvasPresetForNewImageIfNeeded()
-  }
-
-  /// Empty initializer for drag-drop workflow
   init(
     defaults: UserDefaults = .standard,
     canvasPresetStore: AnnotateCanvasPresetStore? = nil,
@@ -1278,9 +968,6 @@ final class AnnotateState: ObservableObject {
     self.canvasPresetStore = canvasPresetStore ?? AnnotateCanvasPresetStore.shared
     self.appliesDefaultCanvasPresetOnNewImages = appliesDefaultCanvasPresetOnNewImages
     sourceImage = nil
-    sourceURL = nil
-    quickAccessItemId = nil
-    dragToAppPreparationState = .unavailable
     loadSharedAnnotationColor()
     loadSharedAnnotationParameterDefaults()
     loadAnnotationToolProperties()
@@ -1289,23 +976,12 @@ final class AnnotateState: ObservableObject {
 
   // MARK: - Image Loading
 
-  /// Load image from URL with Retina scaling
-  func loadImage(from url: URL) {
-    DiagnosticLogger.shared.log(.info, .annotate, "Loading image from URL", context: ["file": url.lastPathComponent])
-    guard let image = Self.loadImageWithCorrectScale(from: url) else {
-      DiagnosticLogger.shared.log(.error, .annotate, "Failed to load image", context: ["file": url.lastPathComponent])
-      return
-    }
-    resetCanvasForNewBaseImage(image: image, url: url)
-  }
-
   /// Load image directly
-  func loadImage(_ image: NSImage, url: URL? = nil) {
+  func loadImage(_ image: NSImage) {
     DiagnosticLogger.shared.log(.info, .annotate, "Loading image directly", context: [
       "size": "\(Int(image.size.width))x\(Int(image.size.height))",
-      "url": url?.lastPathComponent ?? "nil",
     ])
-    resetCanvasForNewBaseImage(image: image, url: url)
+    resetCanvasForNewBaseImage(image: image)
   }
 
   /// Replace the backing screenshot while keeping editable annotations.
@@ -1315,121 +991,16 @@ final class AnnotateState: ObservableObject {
     if annotationOffset != .zero {
       translateAnnotations(dx: annotationOffset.x, dy: annotationOffset.y)
     }
-    cutoutImage = nil
-    isCutoutApplied = false
-    isCutoutProcessing = false
-    cutoutErrorMessage = nil
-    activeCutoutOperationID = nil
-    cropRect = nil
-    originalCropRect = nil
-    cropInteractionContext = nil
-    isCropActive = false
-    selectedTool = selectedTool == .crop ? .selection : selectedTool
-  }
-
-  /// Import an image from a file URL.
-  /// - Returns: true if import succeeded.
-  @discardableResult
-  func importImage(from url: URL) -> Bool {
-    guard let image = Self.loadImageWithCorrectScale(from: url) else { return false }
-    if !hasImage {
-      loadImage(image, url: url)
-      return true
-    }
-
-    addImportedImage(image, sourceData: Self.readImageData(from: url))
-    return true
-  }
-
-  /// Import an image object. If the editor has no base image, this becomes the base image.
-  /// Otherwise it is appended as a movable embedded-image layer.
-  /// - Returns: true if import succeeded.
-  @discardableResult
-  func importImage(_ image: NSImage, sourceURL: URL? = nil, sourceData: Data? = nil) -> Bool {
-    if !hasImage {
-      loadImage(image, url: sourceURL)
-      return true
-    }
-
-    addImportedImage(image, sourceData: sourceData)
-    return true
-  }
-
-  /// Append an additional image layer into the current annotation canvas.
-  func addImportedImage(_ image: NSImage, sourceData: Data? = nil) {
-    guard hasImage else {
-      loadImage(image, url: nil)
-      return
-    }
-
-    let imageSize = normalizedCanvasImageSize(for: image)
-    guard imageSize.width > 0, imageSize.height > 0 else { return }
-
-    activateCombineMode(preferredMode: combineMode)
-
-    let placementBounds = importedImagePlacementBounds(for: imageSize)
-    let assetId = UUID()
-
-    saveState()
-    embeddedImageAssets[assetId] = image
-    if let sourceData {
-      embeddedImageSourceData[assetId] = sourceData
-      embeddedImageSnapshotCacheData[assetId] = sourceData
-    }
-    embeddedImageCGImageCache.removeValue(forKey: assetId)
-    let item = AnnotationItem(
-      type: .embeddedImage(assetId),
-      bounds: placementBounds,
-      properties: AnnotationProperties(strokeColor: .clear, fillColor: .clear, strokeWidth: 1)
-    )
-    annotations.append(item)
-    freeCombineBoundsByAnnotationID[item.id] = placementBounds
-    refreshCombineLayout()
-    selectedAnnotationId = item.id
-    editingTextAnnotationId = nil
-    selectedTool = .selection
-    hasUnsavedChanges = true
-    updateImportWarningIfNeeded()
-  }
-
-  func embeddedImage(for assetId: UUID) -> NSImage? {
-    embeddedImageAssets[assetId]
-  }
-
-  func embeddedCGImage(for assetId: UUID) -> CGImage? {
-    if let cached = embeddedImageCGImageCache[assetId] {
-      return cached
-    }
-    guard let image = embeddedImageAssets[assetId],
-          let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-      return nil
-    }
-    embeddedImageCGImageCache[assetId] = cgImage
-    return cgImage
   }
 
   /// Freeze every render input into a value-type snapshot so final-image rendering can run
-  /// off the main actor. Warms lazy embedded-image caches before copying.
+  /// off the main actor.
   func makeRenderSnapshot() -> AnnotateRenderSnapshot? {
-    guard let sourceImage = effectiveSourceImage else { return nil }
-
-    // Warm the lazy CGImage cache for every embedded asset referenced by annotations,
-    // then freeze plain dictionary copies (off-main render must be read-only).
-    for annotation in annotations {
-      if case .embeddedImage(let assetId) = annotation.type {
-        _ = embeddedCGImage(for: assetId)
-      }
-    }
+    guard let sourceImage else { return nil }
 
     return AnnotateRenderSnapshot(
       sourceImage: sourceImage,
-      editorMode: editorMode,
-      isCombineMode: isCombineMode,
-      effectiveContentBounds: effectiveContentBounds,
-      cropRect: cropRect,
       annotations: annotations,
-      embeddedImages: embeddedImageAssets,
-      embeddedCGImages: embeddedImageCGImageCache,
       backgroundStyle: backgroundStyle,
       isBlurredBackgroundEffectActive: isBlurredBackgroundEffectActive,
       blurredBackgroundEffect: blurredBackgroundEffect,
@@ -1438,108 +1009,15 @@ final class AnnotateState: ObservableObject {
       shadowIntensity: shadowIntensity,
       imageAlignment: imageAlignment,
       aspectRatio: aspectRatio,
-      aspectRatioOrientation: aspectRatioOrientation,
-      mockupRotationX: mockupRotationX,
-      mockupRotationY: mockupRotationY,
-      mockupRotationZ: mockupRotationZ,
-      mockupPerspective: mockupPerspective,
-      mockupShadowRadius: mockupShadowRadius,
-      mockupShadowOffsetX: mockupShadowOffsetX,
-      mockupShadowOffsetY: mockupShadowOffsetY
+      aspectRatioOrientation: aspectRatioOrientation
     )
   }
 
-  func restoreEmbeddedImageAssets(from snapshot: [UUID: Data]) {
-    var restored: [UUID: NSImage] = [:]
-    for (assetId, data) in snapshot {
-      guard let image = NSImage(data: data) else { continue }
-      restored[assetId] = image
-    }
-    embeddedImageAssets = restored
-    embeddedImageSourceData = snapshot
-    embeddedImageSnapshotCacheData = snapshot
-    embeddedImageCGImageCache.removeAll()
-    // Prune only when annotations are already populated. Controllers restore assets BEFORE
-    // assigning annotations, so pruning here would key off an empty annotation list and wipe
-    // every restored asset — collapsing a stitched combine session back to the base image.
-    // The persisted snapshot only ever contains in-use assets, so skipping prune is safe.
-    if !annotations.isEmpty {
-      pruneUnusedEmbeddedAssets()
-    }
-    updateImportWarningIfNeeded()
-  }
-
-  func embeddedImageAssetsSnapshotData() -> [UUID: Data] {
-    let startedAt = CFAbsoluteTimeGetCurrent()
-    pruneUnusedEmbeddedAssets()
-    var result: [UUID: Data] = [:]
-    let usedAssetIds = usedEmbeddedImageAssetIDs()
-    for assetId in usedAssetIds {
-      if let sourceData = embeddedImageSourceData[assetId] {
-        result[assetId] = sourceData
-        continue
-      }
-      if let cachedData = embeddedImageSnapshotCacheData[assetId] {
-        result[assetId] = cachedData
-        continue
-      }
-      guard let image = embeddedImageAssets[assetId] else { continue }
-      if let tiffData = image.tiffRepresentation {
-        embeddedImageSnapshotCacheData[assetId] = tiffData
-        result[assetId] = tiffData
-        continue
-      }
-      guard let pngData = Self.pngData(from: image) else { continue }
-      embeddedImageSnapshotCacheData[assetId] = pngData
-      result[assetId] = pngData
-    }
-
-    let durationMs = Int((CFAbsoluteTimeGetCurrent() - startedAt) * 1_000)
-    let totalBytes = result.values.reduce(0) { $0 + $1.count }
-    DiagnosticLogger.shared.log(.debug, .annotate, "Embedded image snapshot serialized", context: [
-      "assets": "\(result.count)",
-      "bytes": "\(totalBytes)",
-      "durationMs": "\(durationMs)",
-    ])
-    return result
-  }
-
-  func pruneUnusedEmbeddedAssets() {
-    let usedAssetIds = usedEmbeddedImageAssetIDs()
-    embeddedImageAssets = embeddedImageAssets.filter { usedAssetIds.contains($0.key) }
-    embeddedImageSourceData = embeddedImageSourceData.filter { usedAssetIds.contains($0.key) }
-    embeddedImageSnapshotCacheData = embeddedImageSnapshotCacheData.filter { usedAssetIds.contains($0.key) }
-    embeddedImageCGImageCache = embeddedImageCGImageCache.filter { usedAssetIds.contains($0.key) }
-  }
-
-  func consumeImportWarningMessage() {
-    importWarningMessage = nil
-  }
-
-  func setDragToAppPreparationState(_ newState: DragToAppPreparationState) {
-    guard dragToAppPreparationState != newState else { return }
-    dragToAppPreparationState = newState
-  }
-
-  private func resetCanvasForNewBaseImage(image: NSImage, url: URL?) {
+  private func resetCanvasForNewBaseImage(image: NSImage) {
     let shouldApplyDefaultPreset = !hasImage
-    resetBackgroundCutoutState(markUnsaved: false)
     sourceImage = image
-    sourceURL = url
     // Reset annotations for new image
     annotations.removeAll()
-    embeddedImageAssets.removeAll()
-    embeddedImageSourceData.removeAll()
-    embeddedImageSnapshotCacheData.removeAll()
-    embeddedImageCGImageCache.removeAll()
-    isCombineMode = false
-    combineMode = .autoStitch
-    combineDirection = .smart
-    combineResolvedDirection = .horizontal
-    combineGap = 0
-    combineContentBounds = CGRect(origin: .zero, size: image.size)
-    frozenCombineContentBounds = nil
-    freeCombineBoundsByAnnotationID.removeAll()
     selectedAnnotationId = nil
     editingTextAnnotationId = nil
     undoStack.removeAll()
@@ -1547,165 +1025,12 @@ final class AnnotateState: ObservableObject {
     canUndo = false
     canRedo = false
 
-    // Reset crop for new image
-    cropRect = nil
-    originalCropRect = nil
-    cropInteractionContext = nil
-    isCropActive = false
-    editorMode = .annotate
     hasUnsavedChanges = false
     isDefaultCanvasPresetAutoApplied = false
-    importWarningMessage = nil
-    lastImportWarningSignature = nil
-    dragToAppPreparationState = url == nil ? .preparing : .ready
 
     if shouldApplyDefaultPreset {
       applyDefaultCanvasPresetForNewImageIfNeeded()
     }
-  }
-
-  // MARK: - Background Cutout
-
-  func toggleBackgroundCutout() {
-    if isCutoutApplied {
-      resetBackgroundCutoutState(markUnsaved: true)
-    } else {
-      applyBackgroundCutout()
-    }
-  }
-
-  func applyBackgroundCutout() {
-    guard !isCutoutProcessing else { return }
-
-    guard canUseBackgroundCutout else {
-      cutoutErrorMessage = ForegroundCutoutError.unsupportedOS.localizedDescription
-      return
-    }
-
-    guard let sourceImage,
-          let sourceCGImage = sourceImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-      cutoutErrorMessage = "Unable to load image data for background cutout."
-      return
-    }
-
-    let operationID = UUID()
-    activeCutoutOperationID = operationID
-    clearCutoutAutoCropTracking()
-    isCutoutProcessing = true
-    cutoutErrorMessage = nil
-
-    Task {
-      do {
-        let cutoutResult = try await ForegroundCutoutService.shared.extractForegroundResult(from: sourceCGImage)
-
-        guard activeCutoutOperationID == operationID else { return }
-        cutoutImage = NSImage(cgImage: cutoutResult.fullCanvasImage, size: sourceImage.size)
-        isCutoutApplied = true
-        isCutoutProcessing = false
-        applyCutoutSuggestedAutoCropIfNeeded(
-          cutoutResult: cutoutResult,
-          sourceCGImage: sourceCGImage,
-          autoCropEnabled: isBackgroundCutoutAutoCropEnabled
-        )
-        hasUnsavedChanges = true
-      } catch {
-        guard activeCutoutOperationID == operationID else { return }
-        isCutoutProcessing = false
-
-        if let localizedError = error as? LocalizedError, let message = localizedError.errorDescription {
-          cutoutErrorMessage = message
-        } else {
-          cutoutErrorMessage = error.localizedDescription
-        }
-      }
-    }
-  }
-
-  func resetBackgroundCutoutState(markUnsaved: Bool) {
-    activeCutoutOperationID = nil
-    isCutoutProcessing = false
-    revertCutoutAutoCropIfNeeded()
-    clearCutoutAutoCropTracking()
-    cutoutImage = nil
-    isCutoutApplied = false
-    cutoutErrorMessage = nil
-
-    if markUnsaved {
-      hasUnsavedChanges = true
-    }
-  }
-
-  private func applyCutoutSuggestedAutoCropIfNeeded(
-    cutoutResult: ForegroundCutoutResult,
-    sourceCGImage: CGImage,
-    autoCropEnabled: Bool
-  ) {
-    guard autoCropEnabled else { return }
-    guard cropRect == nil, !isCropActive else { return }
-    guard cutoutResult.autoCropDecision == .suggested,
-          let suggestedPixelRect = cutoutResult.suggestedAutoCropRect else { return }
-
-    let convertedRect = Self.convertAutoCropRectToImageCoordinates(
-      pixelRectTopLeft: suggestedPixelRect,
-      sourceImageSize: sourceImage?.size ?? .zero,
-      sourcePixelSize: CGSize(width: sourceCGImage.width, height: sourceCGImage.height)
-    )
-    guard !convertedRect.isEmpty else { return }
-
-    let clampedRect = constrainCropToImageBounds(convertedRect)
-    cropRect = clampedRect
-    didCutoutAutoApplyCrop = true
-    cutoutAutoAppliedCropRect = clampedRect
-  }
-
-  private func revertCutoutAutoCropIfNeeded() {
-    guard didCutoutAutoApplyCrop,
-          let autoCropRect = cutoutAutoAppliedCropRect,
-          let currentCropRect = cropRect else { return }
-    if Self.rectApproximatelyEqual(currentCropRect, autoCropRect) {
-      cropRect = nil
-      isCropActive = false
-    }
-  }
-
-  private func clearCutoutAutoCropTracking() {
-    didCutoutAutoApplyCrop = false
-    cutoutAutoAppliedCropRect = nil
-  }
-
-  private static func rectApproximatelyEqual(_ lhs: CGRect, _ rhs: CGRect, tolerance: CGFloat = 0.5) -> Bool {
-    abs(lhs.origin.x - rhs.origin.x) <= tolerance &&
-      abs(lhs.origin.y - rhs.origin.y) <= tolerance &&
-      abs(lhs.width - rhs.width) <= tolerance &&
-      abs(lhs.height - rhs.height) <= tolerance
-  }
-
-  private static func convertAutoCropRectToImageCoordinates(
-    pixelRectTopLeft: CGRect,
-    sourceImageSize: CGSize,
-    sourcePixelSize: CGSize
-  ) -> CGRect {
-    guard sourceImageSize.width > 0,
-          sourceImageSize.height > 0,
-          sourcePixelSize.width > 0,
-          sourcePixelSize.height > 0 else { return .zero }
-
-    let scaleX = sourceImageSize.width / sourcePixelSize.width
-    let scaleY = sourceImageSize.height / sourcePixelSize.height
-
-    let x = pixelRectTopLeft.origin.x * scaleX
-    let width = pixelRectTopLeft.width * scaleX
-    let height = pixelRectTopLeft.height * scaleY
-    let topY = pixelRectTopLeft.origin.y * scaleY
-    let y = sourceImageSize.height - topY - height
-
-    return CGRect(x: x, y: y, width: width, height: height)
-  }
-
-  private static func pngData(from image: NSImage) -> Data? {
-    guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
-    let bitmap = NSBitmapImageRep(cgImage: cgImage)
-    return bitmap.representation(using: .png, properties: [:])
   }
 
   /// Load image and adjust size for Retina displays
@@ -1752,179 +1077,6 @@ final class AnnotateState: ObservableObject {
     return isUnscaledLogicalSize ? expectedSize : nil
   }
 
-  private static func readImageData(from url: URL) -> Data? {
-    SandboxFileAccessManager.shared.withScopedAccess(to: url) {
-      try? Data(contentsOf: url, options: .mappedIfSafe)
-    }
-  }
-
-  private func usedEmbeddedImageAssetIDs() -> Set<UUID> {
-    Set(annotations.compactMap { annotation -> UUID? in
-      guard case .embeddedImage(let assetId) = annotation.type else { return nil }
-      return assetId
-    })
-  }
-
-  private func totalEmbeddedImagePixelCount(for assetIds: Set<UUID>) -> Int64 {
-    assetIds.reduce(into: Int64(0)) { total, assetId in
-      guard let image = embeddedImageAssets[assetId] else { return }
-      if let rep = image.representations.first {
-        total += Int64(rep.pixelsWide) * Int64(rep.pixelsHigh)
-        return
-      }
-      if let cgImage = embeddedCGImage(for: assetId) {
-        total += Int64(cgImage.width) * Int64(cgImage.height)
-        return
-      }
-      total += Int64(max(image.size.width, 0) * max(image.size.height, 0))
-    }
-  }
-
-  private func updateImportWarningIfNeeded() {
-    let usedAssetIds = usedEmbeddedImageAssetIDs()
-    let layerCount = usedAssetIds.count
-    let totalPixelCount = totalEmbeddedImagePixelCount(for: usedAssetIds)
-
-    let shouldWarnByCount = layerCount > Self.importedImageCountWarningThreshold
-    let shouldWarnByPixels = totalPixelCount > Self.importedImagePixelBudgetWarningThreshold
-    guard shouldWarnByCount || shouldWarnByPixels else {
-      lastImportWarningSignature = nil
-      importWarningMessage = nil
-      return
-    }
-
-    let totalMegaPixels = Double(totalPixelCount) / 1_000_000
-    let warning = "Performance warning: imported layers \(layerCount), total ~\(String(format: "%.1f", totalMegaPixels))MP. Canvas may be less smooth."
-    let signature = "\(layerCount)-\(totalPixelCount)"
-
-    guard signature != lastImportWarningSignature else { return }
-    lastImportWarningSignature = signature
-    importWarningMessage = warning
-    DiagnosticLogger.shared.log(.warning, .annotate, "Imported image budget warning", context: [
-      "layers": "\(layerCount)",
-      "pixels": "\(totalPixelCount)",
-      "thresholdPixels": "\(Self.importedImagePixelBudgetWarningThreshold)",
-    ])
-  }
-
-  private func normalizedCanvasImageSize(for image: NSImage) -> CGSize {
-    if image.size.width > 0, image.size.height > 0 {
-      return image.size
-    }
-
-    guard let rep = image.representations.first else { return .zero }
-    return CGSize(width: rep.pixelsWide, height: rep.pixelsHigh)
-  }
-
-  private func combineLayoutItems() -> [CombineImagesLayoutItem] {
-    var items = [
-      CombineImagesLayoutItem(
-        id: Self.combineBaseLayerID,
-        size: CGSize(width: imageWidth, height: imageHeight)
-      ),
-    ]
-    for annotation in annotations {
-      guard case .embeddedImage(let assetID) = annotation.type,
-            let image = embeddedImageAssets[assetID] else { continue }
-      let size = normalizedCanvasImageSize(for: image)
-      guard size.width > 0, size.height > 0 else { continue }
-      items.append(CombineImagesLayoutItem(id: annotation.id, size: size))
-    }
-    return items
-  }
-
-  private func applyAutomaticCombineLayout() {
-    guard isCombineMode, hasImage else { return }
-    let result = CombineImagesLayout.layout(
-      items: combineLayoutItems(),
-      direction: combineDirection,
-      gap: combineGap
-    )
-    combineResolvedDirection = result.direction
-    for index in annotations.indices {
-      guard case .embeddedImage = annotations[index].type,
-            let bounds = result.boundsByID[annotations[index].id] else { continue }
-      annotations[index].bounds = bounds
-    }
-    combineContentBounds = result.contentBounds.isEmpty ? sourceImageBounds : result.contentBounds
-  }
-
-  private func captureCurrentFreeCombineBounds() {
-    for annotation in annotations {
-      guard case .embeddedImage = annotation.type else { continue }
-      freeCombineBoundsByAnnotationID[annotation.id] = annotation.bounds
-    }
-  }
-
-  private func restoreFreeCombineBounds() {
-    for index in annotations.indices {
-      guard case .embeddedImage = annotations[index].type else { continue }
-      if let bounds = freeCombineBoundsByAnnotationID[annotations[index].id] {
-        annotations[index].bounds = bounds
-      } else {
-        freeCombineBoundsByAnnotationID[annotations[index].id] = annotations[index].bounds
-      }
-    }
-    updateCombineContentBounds()
-  }
-
-  private func updateCombineContentBounds() {
-    guard isCombineMode else {
-      combineContentBounds = sourceImageBounds
-      return
-    }
-    let imageBounds = annotations.compactMap { annotation -> CGRect? in
-      guard case .embeddedImage = annotation.type else { return nil }
-      return annotation.bounds
-    }
-    combineContentBounds = imageBounds.reduce(sourceImageBounds) { $0.union($1) }
-  }
-
-  private func importedImagePlacementBounds(for imageSize: CGSize) -> CGRect {
-    if isCombineMode {
-      let baseHeight = max(imageHeight, 1)
-      let scale = baseHeight / max(imageSize.height, 1)
-      let targetSize = CGSize(width: imageSize.width * scale, height: baseHeight)
-      return CGRect(
-        origin: CGPoint(x: combineContentBounds.maxX + combineGap, y: combineContentBounds.minY),
-        size: targetSize
-      )
-    }
-
-    let drawingBounds: CGRect = if let cropRect, !isCropActive {
-      cropRect
-    } else {
-      CGRect(origin: .zero, size: CGSize(width: imageWidth, height: imageHeight))
-    }
-
-    let maxWidth = max(1, drawingBounds.width * Self.importedImageMaxCoverage)
-    let maxHeight = max(1, drawingBounds.height * Self.importedImageMaxCoverage)
-    let scale = min(maxWidth / imageSize.width, maxHeight / imageSize.height, 1)
-    let targetSize = CGSize(
-      width: max(1, imageSize.width * scale),
-      height: max(1, imageSize.height * scale)
-    )
-
-    let existingEmbeddedCount = annotations.reduce(into: 0) { count, annotation in
-      if case .embeddedImage = annotation.type {
-        count += 1
-      }
-    }
-    let cascade = CGFloat(existingEmbeddedCount) * Self.importedImageCascadeStep
-    let baseX = drawingBounds.midX - targetSize.width / 2 + cascade
-    let baseY = drawingBounds.midY - targetSize.height / 2 - cascade
-
-    let minX = drawingBounds.minX
-    let maxX = drawingBounds.maxX - targetSize.width
-    let minY = drawingBounds.minY
-    let maxY = drawingBounds.maxY - targetSize.height
-
-    let clampedX = min(max(baseX, minX), maxX)
-    let clampedY = min(max(baseY, minY), maxY)
-
-    return CGRect(origin: CGPoint(x: clampedX, y: clampedY), size: targetSize)
-  }
-
   // MARK: - Undo/Redo Methods
 
   /// Bounds undo memory; per-tick slider snapshots previously grew the stack
@@ -1937,17 +1089,7 @@ final class AnnotateState: ObservableObject {
 
   private func pushUndoSnapshot(_ snapshot: AnnotationSnapshot, annotationCount: Int) {
     DiagnosticLogger.shared.log(.debug, .annotate, "Undo checkpoint", context: ["annotations": "\(annotationCount)"])
-    undoStack.append(.annotations(snapshot))
-    capUndoStack()
-    redoStack.removeAll()
-    canUndo = true
-    canRedo = false
-    hasUnsavedChanges = true
-  }
-
-  private func pushRotationUndo(_ snapshot: RotationSnapshot) {
-    DiagnosticLogger.shared.log(.debug, .annotate, "Undo checkpoint", context: ["kind": "rotation"])
-    undoStack.append(.rotation(snapshot))
+    undoStack.append(snapshot)
     capUndoStack()
     redoStack.removeAll()
     canUndo = true
@@ -1967,14 +1109,8 @@ final class AnnotateState: ObservableObject {
     }
     DiagnosticLogger.shared.log(.debug, .annotate, "Undo", context: ["stackDepth": "\(undoStack.count)"])
     guard let previous = undoStack.popLast() else { return }
-    switch previous {
-    case .annotations(let snapshot):
-      redoStack.append(.annotations(currentSnapshot()))
-      applySnapshot(snapshot)
-    case .rotation(let snapshot):
-      redoStack.append(.rotation(currentRotationSnapshot()))
-      applyRotationSnapshot(snapshot)
-    }
+    redoStack.append(currentSnapshot())
+    applySnapshot(previous)
     canUndo = !undoStack.isEmpty
     canRedo = true
   }
@@ -1985,41 +1121,14 @@ final class AnnotateState: ObservableObject {
     }
     DiagnosticLogger.shared.log(.debug, .annotate, "Redo", context: ["stackDepth": "\(redoStack.count)"])
     guard let next = redoStack.popLast() else { return }
-    switch next {
-    case .annotations(let snapshot):
-      undoStack.append(.annotations(currentSnapshot()))
-      applySnapshot(snapshot)
-    case .rotation(let snapshot):
-      undoStack.append(.rotation(currentRotationSnapshot()))
-      applyRotationSnapshot(snapshot)
-    }
+    undoStack.append(currentSnapshot())
+    applySnapshot(next)
     canUndo = true
     canRedo = !redoStack.isEmpty
   }
 
   private func currentSnapshot() -> AnnotationSnapshot {
-    AnnotationSnapshot(
-      annotations: annotations,
-      embeddedImageAssets: embeddedImageAssets
-    )
-  }
-
-  private func currentRotationSnapshot() -> RotationSnapshot {
-    RotationSnapshot(
-      sourceImage: sourceImage,
-      cutoutImage: cutoutImage,
-      isCutoutApplied: isCutoutApplied,
-      embeddedImageAssets: embeddedImageAssets,
-      embeddedImageSourceData: embeddedImageSourceData,
-      embeddedImageSnapshotCacheData: embeddedImageSnapshotCacheData,
-      annotations: annotations,
-      cropRect: cropRect,
-      originalCropRect: originalCropRect,
-      cropAspectRatio: cropAspectRatio,
-      isCropPortraitOrientation: isCropPortraitOrientation,
-      didCutoutAutoApplyCrop: didCutoutAutoApplyCrop,
-      cutoutAutoAppliedCropRect: cutoutAutoAppliedCropRect
-    )
+    AnnotationSnapshot(annotations: annotations)
   }
 
   func beginTextEditing(id: UUID, recordsUndo: Bool = true) {
@@ -2068,9 +1177,6 @@ final class AnnotateState: ObservableObject {
 
   private func applySnapshot(_ snapshot: AnnotationSnapshot) {
     annotations = snapshot.annotations
-    embeddedImageAssets = snapshot.embeddedImageAssets
-    pruneUnusedEmbeddedAssets()
-    updateImportWarningIfNeeded()
 
     let validAnnotationIds = Set(annotations.map(\.id))
     setSelectedAnnotationIds(selectedAnnotationIds.intersection(validAnnotationIds))
@@ -2079,175 +1185,6 @@ final class AnnotateState: ObservableObject {
        !annotations.contains(where: { $0.id == editingTextAnnotationId }) {
       self.editingTextAnnotationId = nil
     }
-    refreshCombineLayout()
-  }
-
-  private func applyRotationSnapshot(_ snapshot: RotationSnapshot) {
-    sourceImage = snapshot.sourceImage
-    cutoutImage = snapshot.cutoutImage
-    isCutoutApplied = snapshot.isCutoutApplied
-    embeddedImageAssets = snapshot.embeddedImageAssets
-    embeddedImageSourceData = snapshot.embeddedImageSourceData
-    embeddedImageSnapshotCacheData = snapshot.embeddedImageSnapshotCacheData
-    embeddedImageCGImageCache.removeAll()
-    annotations = snapshot.annotations
-    cropRect = snapshot.cropRect
-    originalCropRect = snapshot.originalCropRect
-    cropAspectRatio = snapshot.cropAspectRatio
-    isCropPortraitOrientation = snapshot.isCropPortraitOrientation
-    didCutoutAutoApplyCrop = snapshot.didCutoutAutoApplyCrop
-    cutoutAutoAppliedCropRect = snapshot.cutoutAutoAppliedCropRect
-
-    // Rotation is gated on `!isCropActive` (see `canRotateImage`), so any rotation snapshot
-    // by definition represents a non-crop state. If the user enters crop mode and then
-    // undoes the rotation, we must clear the crop interaction so it doesn't keep editing
-    // against the differently-sized restored image with stale bounds.
-    if isCropActive {
-      isCropActive = false
-      isCropResizing = false
-      isCropShiftLocked = false
-      cropInteractionContext = nil
-      shouldRestoreSidebarAfterCropInteraction = false
-      if selectedTool == .crop {
-        selectedTool = .selection
-      }
-    }
-
-    pruneUnusedEmbeddedAssets()
-    updateImportWarningIfNeeded()
-
-    let validAnnotationIds = Set(annotations.map(\.id))
-    setSelectedAnnotationIds(selectedAnnotationIds.intersection(validAnnotationIds))
-
-    if let editingTextAnnotationId,
-       !annotations.contains(where: { $0.id == editingTextAnnotationId }) {
-      self.editingTextAnnotationId = nil
-    }
-  }
-
-  // MARK: - Rotation
-
-  /// True when the user can rotate the source image 90°. Disabled while no image is loaded,
-  /// while crop is being actively edited, or while a background-cutout request is in flight.
-  var canRotateImage: Bool {
-    hasImage && !isCropActive && !isCutoutProcessing
-  }
-
-  /// Rotate the source image 90° clockwise (or counter-clockwise) and bring all annotations,
-  /// crop bounds, embedded image layers, and cutout state along for the ride. Pushes a
-  /// dedicated rotation undo entry so this transform can be reversed without touching the
-  /// annotation-only undo path.
-  func rotateImage(clockwise: Bool) {
-    guard canRotateImage,
-          let source = sourceImage,
-          let rotatedSource = source.rotated90(clockwise: clockwise) else {
-      return
-    }
-
-    if editingTextAnnotationId != nil {
-      commitTextEditing()
-    }
-
-    DiagnosticLogger.shared.log(.info, .annotate, "Image rotated", context: [
-      "direction": clockwise ? "clockwise" : "counterclockwise",
-      "oldSize": "\(Int(imageWidth))x\(Int(imageHeight))",
-    ])
-
-    let oldSize = CGSize(width: imageWidth, height: imageHeight)
-    pushRotationUndo(currentRotationSnapshot())
-
-    sourceImage = rotatedSource
-    if let cutoutImage {
-      self.cutoutImage = cutoutImage.rotated90(clockwise: clockwise)
-    }
-
-    // Rotate each embedded image asset so the rendered bitmap matches the rotated bounds, and
-    // invalidate the serialised data caches so persistence re-encodes from the rotated NSImage.
-    for (assetId, image) in embeddedImageAssets {
-      guard let rotatedAsset = image.rotated90(clockwise: clockwise) else { continue }
-      embeddedImageAssets[assetId] = rotatedAsset
-      embeddedImageSourceData.removeValue(forKey: assetId)
-      embeddedImageSnapshotCacheData.removeValue(forKey: assetId)
-    }
-    embeddedImageCGImageCache.removeAll()
-
-    annotations = annotations.map { rotateAnnotation($0, oldSize: oldSize, clockwise: clockwise) }
-
-    cropRect = cropRect.map { AnnotateImageRotation.rotateRect($0, oldSize: oldSize, clockwise: clockwise) }
-    originalCropRect = originalCropRect.map { AnnotateImageRotation.rotateRect(
-      $0,
-      oldSize: oldSize,
-      clockwise: clockwise
-    ) }
-    cutoutAutoAppliedCropRect = cutoutAutoAppliedCropRect.map {
-      AnnotateImageRotation.rotateRect($0, oldSize: oldSize, clockwise: clockwise)
-    }
-
-    // Aspect-ratio presets such as 16:9 keep their identity but the physical orientation flips.
-    if cropAspectRatio != .free, cropAspectRatio != .square {
-      isCropPortraitOrientation.toggle()
-    }
-
-    hasUnsavedChanges = true
-  }
-
-  private func rotateAnnotation(
-    _ annotation: AnnotationItem,
-    oldSize: CGSize,
-    clockwise: Bool
-  ) -> AnnotationItem {
-    var rotated = annotation
-    rotated.bounds = AnnotateImageRotation.rotateRect(annotation.bounds, oldSize: oldSize, clockwise: clockwise)
-
-    switch annotation.type {
-    case .arrow(let geometry):
-      let newStart = AnnotateImageRotation.rotatePoint(geometry.start, oldSize: oldSize, clockwise: clockwise)
-      let newEnd = AnnotateImageRotation.rotatePoint(geometry.end, oldSize: oldSize, clockwise: clockwise)
-      let newControl = geometry.resolvedControlPoint.map {
-        AnnotateImageRotation.rotatePoint($0, oldSize: oldSize, clockwise: clockwise)
-      }
-      let newGeometry = ArrowGeometry(
-        start: newStart,
-        end: newEnd,
-        style: geometry.style,
-        controlPoint: newControl,
-        arrowType: geometry.arrowType,
-        startHead: geometry.startHead,
-        endHead: geometry.endHead
-      )
-      rotated.type = .arrow(newGeometry)
-      rotated.bounds = newGeometry.bounds()
-
-    case .line(let start, let end):
-      let newStart = AnnotateImageRotation.rotatePoint(start, oldSize: oldSize, clockwise: clockwise)
-      let newEnd = AnnotateImageRotation.rotatePoint(end, oldSize: oldSize, clockwise: clockwise)
-      rotated.type = .line(start: newStart, end: newEnd)
-
-    case .path(let points):
-      rotated.type = .path(points.map {
-        AnnotateImageRotation.rotatePoint($0, oldSize: oldSize, clockwise: clockwise)
-      })
-
-    case .highlight(let points):
-      rotated.type = .highlight(points.map {
-        AnnotateImageRotation.rotatePoint($0, oldSize: oldSize, clockwise: clockwise)
-      })
-
-    case .text:
-      rotated.bounds = AnnotateImageRotation.rotateLayoutRectPreservingSize(
-        annotation.bounds,
-        oldSize: oldSize,
-        clockwise: clockwise
-      )
-
-    case .rectangle, .filledRectangle, .oval, .blur, .counter, .watermark, .embeddedImage, .spotlight:
-      // Bounds-only annotations: the rotated `bounds` above is the full transform we need.
-      // Watermark `rotationDegrees` is user-controlled and clamped to ±45°, so we leave it
-      // unchanged while moving the watermark region with the canvas.
-      break
-    }
-
-    return rotated
   }
 
   // MARK: - Counter
@@ -2264,226 +1201,10 @@ final class AnnotateState: ObservableObject {
     return maxExisting + 1
   }
 
-  // MARK: - Crop Methods
-
-  /// Collapse sidebar when user starts interacting with crop UI.
-  func collapseSidebarForCropInteraction() {
-    guard showSidebar else { return }
-    shouldRestoreSidebarAfterCropInteraction = true
-    withAnimation(.easeInOut(duration: 0.2)) {
-      showSidebar = false
-    }
-  }
-
-  /// Restore sidebar when crop interaction ends.
-  func restoreSidebarAfterCropInteractionIfNeeded() {
-    guard shouldRestoreSidebarAfterCropInteraction else { return }
-    shouldRestoreSidebarAfterCropInteraction = false
-
-    guard !showSidebar else { return }
-    withAnimation(.easeInOut(duration: 0.2)) {
-      showSidebar = true
-    }
-  }
-
-  /// Activate crop tool from direct user interaction (toolbar/shortcut/canvas).
-  func beginCropInteraction() {
-    if editingTextAnnotationId != nil {
-      commitTextEditing()
-    }
-    if cropInteractionContext == nil {
-      cropInteractionContext = CropInteractionContext(
-        selectedTool: selectedTool == .crop ? .selection : selectedTool,
-        selectedAnnotationIds: selectedAnnotationIds,
-        cropRect: cropRect,
-        didCutoutAutoApplyCrop: didCutoutAutoApplyCrop,
-        cutoutAutoAppliedCropRect: cutoutAutoAppliedCropRect
-      )
-    }
-
-    collapseSidebarForCropInteraction()
-    deselectAnnotation()
-    selectedTool = .crop
-
-    guard hasImage else { return }
-
-    if cropRect == nil {
-      initializeCrop()
-    } else if let cropRect {
-      originalCropRect = cropRect
-      isCropActive = true
-    }
-
-    isCropResizing = false
-    isCropShiftLocked = false
-  }
-
-  /// Initialize crop to full image bounds
-  func initializeCrop() {
-    DiagnosticLogger.shared.log(
-      .info,
-      .annotate,
-      "Crop initialized",
-      context: ["imageSize": "\(Int(imageWidth))x\(Int(imageHeight))"]
-    )
-    let fullImageRect = CGRect(origin: .zero, size: CGSize(width: imageWidth, height: imageHeight))
-    cropRect = fullImageRect
-    originalCropRect = fullImageRect // Save original for aspect ratio calculations
-    isCropActive = true
-  }
-
-  /// Apply crop (confirm) - keeps cropRect for export
-  func applyCrop() {
-    DiagnosticLogger.shared.log(.info, .annotate, "Crop applied", context: [
-      "rect": cropRect.map { "\(Int($0.width))x\(Int($0.height))" } ?? "nil",
-    ])
-    if didCutoutAutoApplyCrop,
-       let currentCropRect = cropRect,
-       let autoCropRect = cutoutAutoAppliedCropRect,
-       !Self.rectApproximatelyEqual(currentCropRect, autoCropRect) {
-      clearCutoutAutoCropTracking()
-    }
-    isCropActive = false
-    hasUnsavedChanges = true
-    restoreSidebarAfterCropInteractionIfNeeded()
-  }
-
-  /// Apply crop and return to the context active before crop mode.
-  func confirmCropInteraction() {
-    applyCrop()
-    restoreContextAfterCropInteraction()
-  }
-
   /// Reset unsaved changes flag after successful save
   func markAsSaved() {
     hasUnsavedChanges = false
     isDefaultCanvasPresetAutoApplied = false
-  }
-
-  /// Cancel crop and reset
-  func cancelCrop() {
-    DiagnosticLogger.shared.log(.info, .annotate, "Crop cancelled")
-
-    if let context = cropInteractionContext {
-      cropRect = context.cropRect
-      didCutoutAutoApplyCrop = context.didCutoutAutoApplyCrop
-      cutoutAutoAppliedCropRect = context.cutoutAutoAppliedCropRect
-    } else {
-      cropRect = nil
-      clearCutoutAutoCropTracking()
-    }
-
-    originalCropRect = nil
-    isCropActive = false
-    isCropResizing = false
-    isCropShiftLocked = false
-    restoreSidebarAfterCropInteractionIfNeeded()
-    restoreContextAfterCropInteraction()
-  }
-
-  /// Reset crop to nil
-  func resetCrop() {
-    cropRect = nil
-    originalCropRect = nil
-    cropInteractionContext = nil
-    isCropActive = false
-    clearCutoutAutoCropTracking()
-    cropAspectRatio = .free
-    isCropPortraitOrientation = false
-    isCropResizing = false
-    isCropShiftLocked = false
-  }
-
-  /// Revert the active crop rect to the original image bounds while staying in crop mode.
-  func revertCropToOriginalBounds() {
-    guard hasImage else { return }
-
-    DiagnosticLogger.shared.log(.info, .annotate, "Crop reverted to original bounds")
-    let fullImageRect = sourceImageBounds
-    cropRect = fullImageRect
-    originalCropRect = fullImageRect
-    cropAspectRatio = .free
-    isCropPortraitOrientation = false
-    isCropActive = true
-    isCropResizing = false
-    isCropShiftLocked = false
-    clearCutoutAutoCropTracking()
-  }
-
-  /// Apply aspect ratio to current crop rect
-  func applyCropAspectRatio(_ ratio: CropAspectRatio) {
-    cropAspectRatio = ratio
-
-    // Use original crop rect as base to prevent shrinking
-    guard var rect = originalCropRect ?? cropRect, ratio != .free else { return }
-
-    let targetRatio = ratio.effectiveRatio(isPortrait: isCropPortraitOrientation)
-    let currentRatio = rect.width / rect.height
-
-    if currentRatio > targetRatio {
-      // Too wide, reduce width
-      let newWidth = rect.height * targetRatio
-      rect.origin.x += (rect.width - newWidth) / 2
-      rect.size.width = newWidth
-    } else {
-      // Too tall, reduce height
-      let newHeight = rect.width / targetRatio
-      rect.origin.y += (rect.height - newHeight) / 2
-      rect.size.height = newHeight
-    }
-
-    let constrainedRect = constrainCropToImageBounds(rect)
-    if didCutoutAutoApplyCrop,
-       let autoCropRect = cutoutAutoAppliedCropRect,
-       !Self.rectApproximatelyEqual(constrainedRect, autoCropRect) {
-      clearCutoutAutoCropTracking()
-    }
-    cropRect = constrainedRect
-  }
-
-  /// Toggle crop orientation between landscape and portrait
-  func toggleCropOrientation() {
-    guard cropAspectRatio != .free, cropAspectRatio != .square else { return }
-    isCropPortraitOrientation.toggle()
-    applyCropAspectRatio(cropAspectRatio)
-  }
-
-  private func restoreContextAfterCropInteraction() {
-    let context = cropInteractionContext
-    cropInteractionContext = nil
-    originalCropRect = nil
-
-    let restoredTool = context?.selectedTool == .crop ? AnnotationToolType
-      .selection : (context?.selectedTool ?? .selection)
-    selectedTool = restoredTool
-    setSelectedAnnotationIds(context?.selectedAnnotationIds ?? [])
-  }
-
-  /// Update crop rect with bounds constraint
-  func updateCropRect(_ newRect: CGRect) {
-    let constrainedRect = constrainCropToImageBounds(newRect)
-    if didCutoutAutoApplyCrop,
-       let autoCropRect = cutoutAutoAppliedCropRect,
-       !Self.rectApproximatelyEqual(constrainedRect, autoCropRect) {
-      clearCutoutAutoCropTracking()
-    }
-    cropRect = constrainedRect
-  }
-
-  /// Normalize crop rect with minimum size. Crop expansion outside the source image is allowed.
-  private func constrainCropToImageBounds(_ rect: CGRect) -> CGRect {
-    var constrained = rect.standardized
-
-    // Enforce minimum size
-    let minSize: CGFloat = 20
-    if constrained.width < minSize {
-      constrained.size.width = minSize
-    }
-    if constrained.height < minSize {
-      constrained.size.height = minSize
-    }
-
-    return constrained
   }
 
   // MARK: - Annotation Selection
@@ -2555,12 +1276,6 @@ final class AnnotateState: ObservableObject {
     if case .text = annotations[index].type,
        abs(oldBounds.width - normalizedBounds.width) > 0.5 {
       autoSizingTextAnnotationIDs.remove(id)
-    }
-
-    if isCombineMode, combineMode == .freeCanvas,
-       case .embeddedImage = annotations[index].type {
-      freeCombineBoundsByAnnotationID[id] = annotations[index].bounds
-      updateCombineContentBounds()
     }
   }
 
@@ -2635,13 +1350,6 @@ final class AnnotateState: ObservableObject {
       )
     }
     hasUnsavedChanges = true
-  }
-
-  func updateWatermarkText(id: UUID, text: String) {
-    guard let index = annotations.firstIndex(where: { $0.id == id }),
-          case .watermark = annotations[index].type else { return }
-
-    annotations[index].type = .watermark(text)
   }
 
   func updateArrowStyle(id: UUID, style: ArrowStyle) {
@@ -2720,9 +1428,6 @@ final class AnnotateState: ObservableObject {
     strokeColor: Color? = nil,
     fillColor: Color? = nil,
     cornerRadius: CGFloat? = nil,
-    opacity: CGFloat? = nil,
-    rotationDegrees: CGFloat? = nil,
-    watermarkStyle: WatermarkStyle? = nil,
     spotlightOpacity: CGFloat? = nil,
     recordsUndo: Bool = false
   ) {
@@ -2740,9 +1445,6 @@ final class AnnotateState: ObservableObject {
       strokeColor: colorUpdate.strokeColor,
       fillColor: colorUpdate.fillColor,
       cornerRadius: cornerRadius,
-      opacity: opacity,
-      rotationDegrees: rotationDegrees,
-      watermarkStyle: watermarkStyle,
       spotlightOpacity: spotlightOpacity
     ) else { return }
 
@@ -2789,15 +1491,6 @@ final class AnnotateState: ObservableObject {
     }
     if let cornerRadius {
       annotations[index].properties.cornerRadius = max(0, cornerRadius)
-    }
-    if let opacity {
-      annotations[index].properties.opacity = AnnotationProperties.clampedOpacity(opacity)
-    }
-    if let rotationDegrees {
-      annotations[index].properties.rotationDegrees = AnnotationProperties.clampedRotationDegrees(rotationDegrees)
-    }
-    if let watermarkStyle {
-      annotations[index].properties.watermarkStyle = watermarkStyle
     }
     if let spotlightOpacity {
       annotations[index].properties.spotlightOpacity = AnnotationProperties.clampedSpotlightOpacity(spotlightOpacity)
@@ -2848,9 +1541,6 @@ final class AnnotateState: ObservableObject {
     strokeColor: Color? = nil,
     fillColor: Color? = nil,
     cornerRadius: CGFloat? = nil,
-    opacity: CGFloat? = nil,
-    rotationDegrees: CGFloat? = nil,
-    watermarkStyle: WatermarkStyle? = nil,
     spotlightOpacity: CGFloat? = nil
   ) -> Bool {
     let properties = annotation.properties
@@ -2878,18 +1568,6 @@ final class AnnotateState: ObservableObject {
     }
     if let cornerRadius,
        properties.cornerRadius != max(0, cornerRadius) {
-      return true
-    }
-    if let opacity,
-       properties.opacity != AnnotationProperties.clampedOpacity(opacity) {
-      return true
-    }
-    if let rotationDegrees,
-       properties.rotationDegrees != AnnotationProperties.clampedRotationDegrees(rotationDegrees) {
-      return true
-    }
-    if let watermarkStyle,
-       properties.watermarkStyle != watermarkStyle {
       return true
     }
     if let spotlightOpacity,
@@ -3003,15 +1681,6 @@ final class AnnotateState: ObservableObject {
   private var selectedBlurAnnotations: [AnnotationItem] {
     selectedAnnotations.filter { annotation in
       if case .blur = annotation.type {
-        return true
-      }
-      return false
-    }
-  }
-
-  private var selectedWatermarkAnnotations: [AnnotationItem] {
-    selectedAnnotations.filter { annotation in
-      if case .watermark = annotation.type {
         return true
       }
       return false
@@ -3168,31 +1837,6 @@ final class AnnotateState: ObservableObject {
     }
   }
 
-  var activeWatermarkStyle: WatermarkStyle {
-    selectedWatermarkAnnotations.first?.properties.watermarkStyle
-      ?? defaultAnnotationProperties(for: .watermark).watermarkStyle
-  }
-
-  func setActiveWatermarkStyle(_ style: WatermarkStyle) {
-    let rotationDegrees = style.defaultRotationDegrees
-    let watermarkAnnotations = selectedWatermarkAnnotations
-    if !watermarkAnnotations.isEmpty {
-      for watermarkAnnotation in watermarkAnnotations {
-        updateAnnotationProperties(
-          id: watermarkAnnotation.id,
-          rotationDegrees: rotationDegrees,
-          watermarkStyle: style
-        )
-      }
-    } else {
-      updateDefaultAnnotationProperties(
-        for: .watermark,
-        rotationDegrees: rotationDegrees,
-        watermarkStyle: style
-      )
-    }
-  }
-
   private func loadSharedAnnotationColor() {
     guard let data = defaults.data(forKey: PreferencesKeys.annotatePrimaryColor),
           let rgba = try? JSONDecoder().decode(RGBAColor.self, from: data) else {
@@ -3254,8 +1898,6 @@ final class AnnotateState: ObservableObject {
       strokeWidth: defaults.strokeWidth.map(AnnotationProperties.clampedControlValue(_:)),
       cornerRadius: defaults.cornerRadius.map { max(0, $0) },
       fontSize: defaults.fontSize.map { min(max($0, 12), 72) },
-      watermarkOpacity: defaults.watermarkOpacity.map(AnnotationProperties.clampedOpacity(_:)),
-      watermarkRotationDegrees: defaults.watermarkRotationDegrees.map(AnnotationProperties.clampedRotationDegrees(_:)),
       spotlightCornerRadius: defaults.spotlightCornerRadius.map { max(0, $0) },
       arrowStyle: defaults.arrowStyle,
       arrowType: defaults.arrowType,
@@ -3294,8 +1936,6 @@ final class AnnotateState: ObservableObject {
     sanitized.strokeWidth = AnnotationProperties.clampedControlValue(properties.strokeWidth)
     sanitized.cornerRadius = max(0, properties.cornerRadius)
     sanitized.fontSize = min(max(properties.fontSize, 12), 72)
-    sanitized.opacity = AnnotationProperties.clampedOpacity(properties.opacity)
-    sanitized.rotationDegrees = AnnotationProperties.clampedRotationDegrees(properties.rotationDegrees)
     sanitized.spotlightOpacity = AnnotationProperties.clampedSpotlightOpacity(properties.spotlightOpacity)
     if tool == .filledRectangle {
       sanitized.fillColor = sanitized.strokeColor
@@ -3344,21 +1984,6 @@ final class AnnotateState: ObservableObject {
     persistSharedAnnotationParameterDefaults()
 
     updateDefaultAnnotationProperties(for: .text, fontSize: clampedSize)
-    updateDefaultAnnotationProperties(for: .watermark, fontSize: clampedSize)
-  }
-
-  private func rememberSharedWatermarkOpacity(_ opacity: CGFloat) {
-    let clampedOpacity = AnnotationProperties.clampedOpacity(opacity)
-    sharedAnnotationParameterDefaults.watermarkOpacity = clampedOpacity
-    persistSharedAnnotationParameterDefaults()
-    updateDefaultAnnotationProperties(for: .watermark, opacity: clampedOpacity)
-  }
-
-  private func rememberSharedWatermarkRotation(_ rotationDegrees: CGFloat) {
-    let clampedRotation = AnnotationProperties.clampedRotationDegrees(rotationDegrees)
-    sharedAnnotationParameterDefaults.watermarkRotationDegrees = clampedRotation
-    persistSharedAnnotationParameterDefaults()
-    updateDefaultAnnotationProperties(for: .watermark, rotationDegrees: clampedRotation)
   }
 
   private func rememberAnnotationPrimaryColor(_ color: Color, for tool: AnnotationToolType?) {
@@ -3413,33 +2038,9 @@ final class AnnotateState: ObservableObject {
     }
 
     let clampedSize = min(max(fontSize, 12), 72)
-    if let tool, tool == .text || tool == .watermark {
+    if let tool, tool == .text {
       updateDefaultAnnotationProperties(for: tool, fontSize: clampedSize)
     }
-  }
-
-  private func rememberWatermarkOpacity(_ opacity: CGFloat) {
-    guard !isQuickPropertiesSyncEnabled else {
-      rememberSharedWatermarkOpacity(opacity)
-      return
-    }
-
-    updateDefaultAnnotationProperties(
-      for: .watermark,
-      opacity: AnnotationProperties.clampedOpacity(opacity)
-    )
-  }
-
-  private func rememberWatermarkRotation(_ rotationDegrees: CGFloat) {
-    guard !isQuickPropertiesSyncEnabled else {
-      rememberSharedWatermarkRotation(rotationDegrees)
-      return
-    }
-
-    updateDefaultAnnotationProperties(
-      for: .watermark,
-      rotationDegrees: AnnotationProperties.clampedRotationDegrees(rotationDegrees)
-    )
   }
 
   private func applySharedAnnotationColorToToolDefaults(_ color: Color) {
@@ -3481,37 +2082,19 @@ final class AnnotateState: ObservableObject {
         fillColor: .clear,
         strokeWidth: 3,
         cornerRadius: 14,
-        opacity: 1.0,
         spotlightOpacity: spotlightOpacity
       )
       applySharedParameterDefaults(to: &properties, for: tool)
       return properties
     }
-    if tool != .watermark {
-      var properties = AnnotationProperties(strokeColor: sharedAnnotationColor ?? .red)
-      if tool == .blur {
-        properties.strokeWidth = AnnotationProperties.controlValueRange.lowerBound
-      }
-      applySharedParameterDefaults(to: &properties, for: tool)
-      if tool == .filledRectangle {
-        properties.fillColor = properties.strokeColor
-      }
-      return properties
+    var properties = AnnotationProperties(strokeColor: sharedAnnotationColor ?? .red)
+    if tool == .blur {
+      properties.strokeWidth = AnnotationProperties.controlValueRange.lowerBound
     }
-
-    let strokeColor = sharedAnnotationColor ?? Color.white
-    var properties = AnnotationProperties(
-      strokeColor: strokeColor,
-      fillColor: .clear,
-      strokeWidth: 3,
-      cornerRadius: 0,
-      fontSize: 36,
-      fontName: "SF Pro",
-      opacity: 0.22,
-      rotationDegrees: WatermarkStyle.diagonal.defaultRotationDegrees,
-      watermarkStyle: .diagonal
-    )
     applySharedParameterDefaults(to: &properties, for: tool)
+    if tool == .filledRectangle {
+      properties.fillColor = properties.strokeColor
+    }
     return properties
   }
 
@@ -3536,17 +2119,8 @@ final class AnnotateState: ObservableObject {
       properties.cornerRadius = sharedProperties.cornerRadius
     }
 
-    if tool == .text || tool == .watermark {
+    if tool == .text {
       properties.fontSize = sharedProperties.fontSize
-    }
-
-    if tool == .watermark {
-      if sharedAnnotationParameterDefaults.watermarkOpacity != nil {
-        properties.opacity = sharedProperties.opacity
-      }
-      if sharedAnnotationParameterDefaults.watermarkRotationDegrees != nil {
-        properties.rotationDegrees = sharedProperties.rotationDegrees
-      }
     }
   }
 
@@ -3573,18 +2147,9 @@ final class AnnotateState: ObservableObject {
       }
     }
 
-    if tool == nil || tool == .text || tool == .watermark,
+    if tool == nil || tool == .text,
        let fontSize = defaults.fontSize {
       properties.fontSize = fontSize
-    }
-
-    if tool == nil || tool == .watermark {
-      if let watermarkOpacity = defaults.watermarkOpacity {
-        properties.opacity = watermarkOpacity
-      }
-      if let watermarkRotationDegrees = defaults.watermarkRotationDegrees {
-        properties.rotationDegrees = watermarkRotationDegrees
-      }
     }
   }
 
@@ -3599,10 +2164,10 @@ final class AnnotateState: ObservableObject {
     return properties
   }
 
-  /// Starts new text at a readable size relative to the current image or combined canvas.
+  /// Starts new text at a readable size relative to the current image.
   /// A manually chosen text size is always preserved for subsequent annotations.
   func recommendedTextFontSize() -> CGFloat {
-    let canvasSize = effectiveContentBounds.size
+    let canvasSize = sourceImageBounds.size
     let shortSide = max(min(canvasSize.width, canvasSize.height), 1)
     let suggested = shortSide * 0.026
     let stepped = (suggested / 2).rounded() * 2
@@ -3621,9 +2186,6 @@ final class AnnotateState: ObservableObject {
     cornerRadius: CGFloat? = nil,
     fontSize: CGFloat? = nil,
     fontName: String? = nil,
-    opacity: CGFloat? = nil,
-    rotationDegrees: CGFloat? = nil,
-    watermarkStyle: WatermarkStyle? = nil,
     spotlightOpacity: CGFloat? = nil
   ) {
     var properties = defaultAnnotationProperties(for: tool)
@@ -3651,15 +2213,6 @@ final class AnnotateState: ObservableObject {
     }
     if let fontName {
       properties.fontName = fontName
-    }
-    if let opacity {
-      properties.opacity = AnnotationProperties.clampedOpacity(opacity)
-    }
-    if let rotationDegrees {
-      properties.rotationDegrees = AnnotationProperties.clampedRotationDegrees(rotationDegrees)
-    }
-    if let watermarkStyle {
-      properties.watermarkStyle = watermarkStyle
     }
     if let spotlightOpacity {
       properties.spotlightOpacity = AnnotationProperties.clampedSpotlightOpacity(spotlightOpacity)
@@ -3704,9 +2257,7 @@ final class AnnotateState: ObservableObject {
   }
 
   private var quickPropertiesSelectionAnnotations: [AnnotationItem] {
-    guard editorMode == .annotate,
-          selectedTool != .crop else { return [] }
-    return selectedAnnotations
+    selectedAnnotations
   }
 
   private var quickPropertiesSelectionTargets: [AnnotationItem] {
@@ -3772,9 +2323,6 @@ final class AnnotateState: ObservableObject {
     fillColor: Color? = nil,
     cornerRadius: CGFloat? = nil,
     fontSize: CGFloat? = nil,
-    opacity: CGFloat? = nil,
-    rotationDegrees: CGFloat? = nil,
-    watermarkStyle: WatermarkStyle? = nil,
     spotlightOpacity: CGFloat? = nil,
     recordsUndo: Bool = false,
     matching predicate: ((AnnotationType) -> Bool)? = nil
@@ -3792,9 +2340,6 @@ final class AnnotateState: ObservableObject {
         strokeColor: strokeColor,
         fillColor: fillColor,
         cornerRadius: cornerRadius,
-        opacity: opacity,
-        rotationDegrees: rotationDegrees,
-        watermarkStyle: watermarkStyle,
         spotlightOpacity: spotlightOpacity
       )
     })
@@ -3816,9 +2361,6 @@ final class AnnotateState: ObservableObject {
         strokeColor: strokeColor,
         fillColor: fillColor,
         cornerRadius: cornerRadius,
-        opacity: opacity,
-        rotationDegrees: rotationDegrees,
-        watermarkStyle: watermarkStyle,
         spotlightOpacity: spotlightOpacity
       )
     }
@@ -3826,11 +2368,6 @@ final class AnnotateState: ObservableObject {
   }
 
   var quickPropertiesSupportsArrowStyle: Bool {
-    guard editorMode == .annotate,
-          selectedTool != .crop else {
-      return false
-    }
-
     let selected = quickPropertiesSelectionAnnotations
     if !selected.isEmpty {
       return selected.contains {
@@ -3933,32 +2470,20 @@ final class AnnotateState: ObservableObject {
   }
 
   var quickPropertiesSupportsTextFontSize: Bool {
-    guard editorMode == .annotate,
-          selectedTool != .crop else {
-      return false
-    }
-
     let selected = quickPropertiesSelectionAnnotations
     if !selected.isEmpty {
       return selected.contains {
-        switch $0.type {
-        case .text, .watermark:
-          true
-        default:
-          false
+        if case .text = $0.type {
+          return true
         }
+        return false
       }
     }
 
-    return quickPropertiesTool == .text || quickPropertiesTool == .watermark
+    return quickPropertiesTool == .text
   }
 
   var quickPropertiesSupportsTextBackground: Bool {
-    guard editorMode == .annotate,
-          selectedTool != .crop else {
-      return false
-    }
-
     let selected = quickPropertiesSelectionAnnotations
     if !selected.isEmpty {
       return selected.contains {
@@ -4057,12 +2582,10 @@ final class AnnotateState: ObservableObject {
       get: { [weak self] in
         guard let self else { return 16 }
         return quickSelectionTargets(matching: {
-          switch $0 {
-          case .text, .watermark:
-            true
-          default:
-            false
+          if case .text = $0 {
+            return true
           }
+          return false
         }).first?.properties.fontSize
           ?? defaultAnnotationProperties(for: quickPropertiesTool).fontSize
       },
@@ -4073,12 +2596,10 @@ final class AnnotateState: ObservableObject {
           fontSize: clampedSize,
           recordsUndo: true,
           matching: {
-            switch $0 {
-            case .text, .watermark:
-              true
-            default:
-              false
+            if case .text = $0 {
+              return true
             }
+            return false
           }
         ) {
           rememberAnnotationFontSize(clampedSize, for: quickPropertiesTool)
@@ -4120,11 +2641,6 @@ final class AnnotateState: ObservableObject {
   }
 
   var quickPropertiesSupportsBlurType: Bool {
-    guard editorMode == .annotate,
-          selectedTool != .crop else {
-      return false
-    }
-
     let selected = quickPropertiesSelectionAnnotations
     if !selected.isEmpty {
       return selected.contains {
@@ -4145,130 +2661,6 @@ final class AnnotateState: ObservableObject {
       },
       set: { [weak self] newType in
         self?.setActiveBlurType(newType)
-      }
-    )
-  }
-
-  var quickPropertiesSupportsWatermark: Bool {
-    guard editorMode == .annotate,
-          selectedTool != .crop else {
-      return false
-    }
-
-    let selected = quickPropertiesSelectionAnnotations
-    if !selected.isEmpty {
-      return selected.contains {
-        if case .watermark = $0.type {
-          return true
-        }
-        return false
-      }
-    }
-
-    return quickPropertiesTool == .watermark
-  }
-
-  var quickWatermarkTextBinding: Binding<String> {
-    Binding(
-      get: { [weak self] in
-        guard let self else { return "ShotPaste" }
-        if let annotation = quickSelectionTargets(matching: {
-          if case .watermark = $0 {
-            return true
-          }
-          return false
-        }).first,
-          case .watermark(let text) = annotation.type {
-          return text
-        }
-        return watermarkText
-      },
-      set: { [weak self] newText in
-        guard let self else { return }
-        let selected = quickSelectionTargets(matching: {
-          if case .watermark = $0 {
-            return true
-          }
-          return false
-        })
-        if selected.isEmpty {
-          watermarkText = newText
-        } else {
-          selected.forEach { self.updateWatermarkText(id: $0.id, text: newText) }
-        }
-      }
-    )
-  }
-
-  var quickWatermarkStyleBinding: Binding<WatermarkStyle> {
-    Binding(
-      get: { [weak self] in
-        self?.activeWatermarkStyle ?? .diagonal
-      },
-      set: { [weak self] newStyle in
-        self?.setActiveWatermarkStyle(newStyle)
-      }
-    )
-  }
-
-  var quickWatermarkOpacityBinding: Binding<CGFloat> {
-    Binding(
-      get: { [weak self] in
-        guard let self else { return 0.22 }
-        return quickSelectionTargets(matching: {
-          if case .watermark = $0 {
-            return true
-          }
-          return false
-        }).first?.properties.opacity
-          ?? defaultAnnotationProperties(for: quickPropertiesTool).opacity
-      },
-      set: { [weak self] newOpacity in
-        guard let self else { return }
-        let clampedOpacity = AnnotationProperties.clampedOpacity(newOpacity)
-        if !updateQuickSelectionProperties(
-          opacity: clampedOpacity,
-          recordsUndo: true,
-          matching: {
-            if case .watermark = $0 {
-              return true
-            }
-            return false
-          }
-        ) {
-          rememberWatermarkOpacity(clampedOpacity)
-        }
-      }
-    )
-  }
-
-  var quickWatermarkRotationBinding: Binding<CGFloat> {
-    Binding(
-      get: { [weak self] in
-        guard let self else { return -24 }
-        return quickSelectionTargets(matching: {
-          if case .watermark = $0 {
-            return true
-          }
-          return false
-        }).first?.properties.rotationDegrees
-          ?? defaultAnnotationProperties(for: quickPropertiesTool).rotationDegrees
-      },
-      set: { [weak self] newRotation in
-        guard let self else { return }
-        let clampedRotation = AnnotationProperties.clampedRotationDegrees(newRotation)
-        if !updateQuickSelectionProperties(
-          rotationDegrees: clampedRotation,
-          recordsUndo: true,
-          matching: {
-            if case .watermark = $0 {
-              return true
-            }
-            return false
-          }
-        ) {
-          rememberWatermarkRotation(clampedRotation)
-        }
       }
     )
   }
@@ -4305,9 +2697,7 @@ final class AnnotateState: ObservableObject {
       return quickPropertiesCommonSelectedTool ?? .selection
     }
 
-    guard editorMode == .annotate,
-          selectedTool != .crop,
-          selectedTool.supportsQuickPropertiesBar else {
+    guard selectedTool.supportsQuickPropertiesBar else {
       return nil
     }
     return selectedTool
@@ -4318,11 +2708,6 @@ final class AnnotateState: ObservableObject {
   }
 
   var quickPropertiesShowsSelectionStyle: Bool {
-    guard editorMode == .annotate,
-          selectedTool != .crop else {
-      return false
-    }
-
     if quickPropertiesSelectionAnnotations.isEmpty {
       return selectedTool == .selection
     }
@@ -4595,8 +2980,6 @@ final class AnnotateState: ObservableObject {
       commitTextEditing()
     }
     if tool != .selection {
-      // A selected combined-image layer must not keep its handles or consume
-      // clicks after the user switches back to drawing annotations.
       deselectAnnotation()
     }
     selectedTool = tool
@@ -4611,10 +2994,6 @@ final class AnnotateState: ObservableObject {
     saveState()
     annotations.removeAll { selectedIds.contains($0.id) }
     autoSizingTextAnnotationIDs.subtract(selectedIds)
-    selectedIds.forEach { freeCombineBoundsByAnnotationID.removeValue(forKey: $0) }
-    pruneUnusedEmbeddedAssets()
-    updateImportWarningIfNeeded()
-    refreshCombineLayout()
     deselectAnnotation()
   }
 

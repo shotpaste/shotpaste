@@ -132,15 +132,17 @@ final class CaptureHistoryStore: ObservableObject {
   }
 
   /// Remove a record by ID and delete its thumbnail if present
-  func remove(id: UUID) {
-    remove(ids: [id])
+  @discardableResult
+  func remove(id: UUID) -> Bool {
+    remove(ids: [id]) == 1
   }
 
   /// Remove multiple records by ID and delete their stored thumbnails if present
-  func remove(ids: [UUID]) {
+  @discardableResult
+  func remove(ids: [UUID]) -> Int {
     let uniqueIds = Array(Set(ids))
-    guard !uniqueIds.isEmpty else { return }
-    guard let dbPool = requireDatabase(for: "remove capture history records") else { return }
+    guard !uniqueIds.isEmpty else { return 0 }
+    guard let dbPool = requireDatabase(for: "remove capture history records") else { return 0 }
 
     do {
       var thumbnailPaths: [String] = []
@@ -182,6 +184,7 @@ final class CaptureHistoryStore: ObservableObject {
           context: ["recordCount": "\(removedCount)"]
         )
       }
+      return removedCount
     } catch {
       logger.error("Failed to remove capture history records: \(error.localizedDescription)")
       DiagnosticLogger.shared.logError(
@@ -190,12 +193,14 @@ final class CaptureHistoryStore: ObservableObject {
         "Capture history records remove failed",
         context: ["requestedCount": "\(uniqueIds.count)"]
       )
+      return 0
     }
   }
 
   /// Remove a record by file path (used when file is manually deleted)
-  func removeByFilePath(_ filePath: String) {
-    guard let dbPool = requireDatabase(for: "remove capture history record by file path") else { return }
+  @discardableResult
+  func removeByFilePath(_ filePath: String) -> Int {
+    guard let dbPool = requireDatabase(for: "remove capture history record by file path") else { return 0 }
 
     do {
       let thumbnailPaths = try dbPool.read { db in
@@ -233,6 +238,7 @@ final class CaptureHistoryStore: ObservableObject {
           context: ["fileName": (filePath as NSString).lastPathComponent, "recordCount": "\(count)"]
         )
       }
+      return count
     } catch {
       logger.error("Failed to remove record by path: \(error.localizedDescription)")
       DiagnosticLogger.shared.logError(
@@ -241,6 +247,7 @@ final class CaptureHistoryStore: ObservableObject {
         "Capture history remove by file path failed",
         context: ["fileName": (filePath as NSString).lastPathComponent]
       )
+      return 0
     }
   }
 

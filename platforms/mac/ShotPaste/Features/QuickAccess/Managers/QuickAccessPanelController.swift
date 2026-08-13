@@ -28,6 +28,9 @@ final class QuickAccessPanelController {
   /// Non-nil while an enter/exit animation is running. Cleared by the guarded
   /// transition finish — never trusted to clear on its own (see `runTransition`).
   private var activeTransition: PanelTransition?
+  /// True from the moment a hide begins until its panel is closed. A new item can
+  /// then replace the exiting panel instead of being stranded in an invisible stack.
+  private var isHiding = false
   /// Monotonic token invalidating stale transition finishes (animation completion
   /// handler or watchdog) once a newer transition or close supersedes them.
   private var transitionToken: UInt64 = 0
@@ -48,6 +51,7 @@ final class QuickAccessPanelController {
     if panel != nil || activeTransition != nil {
       forceClosePanel(reason: "show superseded existing panel or transition")
     }
+    isHiding = false
 
     visibleItemCount = itemCount
     overlayScale = scale
@@ -155,6 +159,9 @@ final class QuickAccessPanelController {
       break
     }
 
+    guard !isHiding else { return }
+    isHiding = true
+
     if reduceMotion {
       // Simple fade-out for reduced motion
       NSAnimationContext.runAnimationGroup { context in
@@ -167,6 +174,7 @@ final class QuickAccessPanelController {
           if self?.panel === panel {
             self?.panel = nil
           }
+          self?.isHiding = false
         }
       }
     } else {
@@ -189,6 +197,7 @@ final class QuickAccessPanelController {
           if self?.panel === panel {
             self?.panel = nil
           }
+          self?.isHiding = false
         }
       )
     }
@@ -208,9 +217,20 @@ final class QuickAccessPanelController {
     panel?.reinstallMouseMonitors()
   }
 
+  func setKeyboardFocusActive(_ active: Bool, restorePreviousApplication: Bool = true) {
+    panel?.setKeyboardFocusActive(active, restorePreviousApplication: restorePreviousApplication)
+  }
+
   /// Check if panel is currently visible
   var isVisible: Bool {
     panel != nil
+  }
+
+  /// Whether the current panel can continue presenting the manager's item stack.
+  /// An exiting panel is deliberately treated as unavailable so a new capture
+  /// immediately creates a replacement panel.
+  var isReadyForContent: Bool {
+    panel != nil && !isHiding
   }
 
   private func repositionPanel() {
@@ -276,6 +296,7 @@ final class QuickAccessPanelController {
   private func forceClosePanel(reason: String) {
     transitionToken &+= 1 // invalidate pending animation completion + watchdog
     activeTransition = nil
+    isHiding = false
     if let panel {
       panel.close()
       self.panel = nil

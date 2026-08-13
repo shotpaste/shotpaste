@@ -67,9 +67,10 @@ final class CaptureHistoryStoreTests: XCTestCase {
     CaptureHistoryStore.shared.add(record)
     CaptureHistoryStore.shared.refreshRecords()
 
-    CaptureHistoryStore.shared.remove(id: record.id)
+    XCTAssertTrue(CaptureHistoryStore.shared.remove(id: record.id))
     CaptureHistoryStore.shared.refreshRecords()
     XCTAssertTrue(CaptureHistoryStore.shared.records.isEmpty)
+    XCTAssertFalse(CaptureHistoryStore.shared.remove(id: record.id))
   }
 
   func testRemoveIds_deduplicatesInput() {
@@ -77,7 +78,10 @@ final class CaptureHistoryStoreTests: XCTestCase {
     CaptureHistoryStore.shared.add(record)
     CaptureHistoryStore.shared.refreshRecords()
 
-    CaptureHistoryStore.shared.remove(ids: [record.id, record.id, record.id])
+    XCTAssertEqual(
+      CaptureHistoryStore.shared.remove(ids: [record.id, record.id, record.id]),
+      1
+    )
     CaptureHistoryStore.shared.refreshRecords()
     XCTAssertTrue(CaptureHistoryStore.shared.records.isEmpty)
   }
@@ -87,7 +91,7 @@ final class CaptureHistoryStoreTests: XCTestCase {
     CaptureHistoryStore.shared.add(record)
     CaptureHistoryStore.shared.refreshRecords()
 
-    CaptureHistoryStore.shared.remove(ids: [])
+    XCTAssertEqual(CaptureHistoryStore.shared.remove(ids: []), 0)
     CaptureHistoryStore.shared.refreshRecords()
     XCTAssertEqual(CaptureHistoryStore.shared.records.count, 1)
   }
@@ -100,7 +104,7 @@ final class CaptureHistoryStoreTests: XCTestCase {
     CaptureHistoryStore.shared.add(r2)
     CaptureHistoryStore.shared.refreshRecords()
 
-    CaptureHistoryStore.shared.removeByFilePath(path)
+    XCTAssertEqual(CaptureHistoryStore.shared.removeByFilePath(path), 1)
     CaptureHistoryStore.shared.refreshRecords()
     XCTAssertEqual(CaptureHistoryStore.shared.records.count, 1)
     XCTAssertFalse(CaptureHistoryStore.shared.hasRecord(forFilePath: path))

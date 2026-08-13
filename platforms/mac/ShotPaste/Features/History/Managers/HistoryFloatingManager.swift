@@ -6,7 +6,6 @@
 //
 
 import AppKit
-import Carbon.HIToolbox
 import Combine
 import Foundation
 import SwiftUI
@@ -21,17 +20,7 @@ final class HistoryFloatingManager: ObservableObject {
   @Published var position: HistoryPanelPosition = .topCenter {
     didSet {
       UserDefaults.standard.set(position.rawValue, forKey: Keys.position)
-      guard presentationMode == .compact else { return }
       panelController.updatePosition(position)
-    }
-  }
-
-  @Published var isEnabled: Bool = true {
-    didSet {
-      UserDefaults.standard.set(isEnabled, forKey: Keys.enabled)
-      if !isEnabled {
-        hide()
-      }
     }
   }
 
@@ -42,17 +31,6 @@ final class HistoryFloatingManager: ObservableObject {
       } else {
         UserDefaults.standard.removeObject(forKey: Keys.defaultFilter)
       }
-    }
-  }
-
-  @Published var maxDisplayedItems: Int = 10 {
-    didSet {
-      let clamped = min(max(maxDisplayedItems, 3), 50)
-      guard clamped == maxDisplayedItems else {
-        maxDisplayedItems = clamped
-        return
-      }
-      UserDefaults.standard.set(maxDisplayedItems, forKey: Keys.maxDisplayedItems)
     }
   }
 
@@ -68,24 +46,12 @@ final class HistoryFloatingManager: ObservableObject {
     }
   }
 
-  @Published var toggleModeShortcut: ShortcutConfig? = nil {
+  @Published var keepsOpen: Bool = false {
     didSet {
-      saveToggleModeShortcut()
+      UserDefaults.standard.set(keepsOpen, forKey: Keys.keepsOpen)
     }
   }
 
-  @Published var isToggleModeShortcutEnabled: Bool = true {
-    didSet {
-      UserDefaults.standard.set(isToggleModeShortcutEnabled, forKey: Keys.isToggleModeShortcutEnabled)
-    }
-  }
-
-  static let defaultToggleModeShortcut = ShortcutConfig(
-    keyCode: UInt32(kVK_ANSI_E),
-    modifiers: UInt32(cmdKey)
-  )
-
-  @Published private(set) var presentationMode: HistoryFloatingPresentationMode = .compact
   @Published var expandedFilter: CaptureHistoryCategory? = .clipboard
   @Published var expandedTimeFilter: HistoryFloatingTimeFilter = .all
   @Published var searchText: String = ""
@@ -102,12 +68,9 @@ final class HistoryFloatingManager: ObservableObject {
   }
 
   private enum Keys {
-    static let enabled = "history.floating.enabled"
     static let position = "history.floating.position"
     static let defaultFilter = "history.floating.defaultFilter"
-    static let maxDisplayedItems = "history.floating.maxDisplayedItems"
-    static let toggleModeShortcut = "history.toggleModeShortcut"
-    static let isToggleModeShortcutEnabled = "history.isToggleModeShortcutEnabled"
+    static let keepsOpen = "history.floating.keepsOpen"
   }
 
   // MARK: - Init
@@ -120,8 +83,6 @@ final class HistoryFloatingManager: ObservableObject {
   }
 
   private func loadSettings() {
-    isEnabled = UserDefaults.standard.object(forKey: Keys.enabled) as? Bool ?? true
-
     if let positionRaw = UserDefaults.standard.string(forKey: Keys.position),
        let savedPosition = HistoryPanelPosition(rawValue: positionRaw) {
       position = savedPosition
@@ -132,50 +93,18 @@ final class HistoryFloatingManager: ObservableObject {
       defaultFilter = filter
     }
 
-    maxDisplayedItems = min(
-      max(UserDefaults.standard.object(forKey: Keys.maxDisplayedItems) as? Int ?? 10, 3),
-      50
-    )
     panelScale = HistoryFloatingLayout.storedScale()
+    keepsOpen = UserDefaults.standard.object(forKey: Keys.keepsOpen) as? Bool ?? false
     expandedFilter = defaultFilter
-    loadToggleModeShortcut()
     DiagnosticLogger.shared.log(
       .debug,
       .history,
       "Floating history settings loaded",
       context: [
-        "enabled": isEnabled ? "true" : "false",
         "position": position.rawValue,
-        "maxDisplayedItems": "\(maxDisplayedItems)",
+        "scale": "\(panelScale)",
       ]
     )
-  }
-
-  private func loadToggleModeShortcut() {
-    let enabled = UserDefaults.standard.object(forKey: Keys.isToggleModeShortcutEnabled) as? Bool ?? true
-    _isToggleModeShortcutEnabled = Published(initialValue: enabled)
-
-    if let data = UserDefaults.standard.data(forKey: Keys.toggleModeShortcut),
-       let config = try? JSONDecoder().decode(ShortcutConfig.self, from: data) {
-      _toggleModeShortcut = Published(initialValue: config)
-    } else {
-      _toggleModeShortcut = Published(initialValue: Self.defaultToggleModeShortcut)
-    }
-  }
-
-  private func saveToggleModeShortcut() {
-    if let config = toggleModeShortcut {
-      if let data = try? JSONEncoder().encode(config) {
-        UserDefaults.standard.set(data, forKey: Keys.toggleModeShortcut)
-      }
-    } else {
-      UserDefaults.standard.removeObject(forKey: Keys.toggleModeShortcut)
-    }
-  }
-
-  func resetToggleModeShortcut() {
-    toggleModeShortcut = Self.defaultToggleModeShortcut
-    isToggleModeShortcutEnabled = true
   }
 
   // MARK: - Public Methods
@@ -188,7 +117,6 @@ final class HistoryFloatingManager: ObservableObject {
       "Floating history toggled",
       context: [
         "isPresenting": panelController.isPresenting ? "true" : "false",
-        "enabled": isEnabled ? "true" : "false",
       ]
     )
     if panelController.isPresenting {
@@ -210,67 +138,37 @@ final class HistoryFloatingManager: ObservableObject {
     DiagnosticLogger.shared.log(.debug, .history, "Floating history hidden")
   }
 
-  func showCompact() {
-    guard isEnabled else {
-      DiagnosticLogger.shared.log(.debug, .history, "Floating history compact show skipped; disabled")
-      return
-    }
-    presentationMode = .compact
-    presentCurrentMode()
+  func showHistory(initialFilter: CaptureHistoryCategory? = nil) {
+    presentHistory(initialFilter: initialFilter ?? expandedFilter ?? defaultFilter)
   }
 
-  func showExpanded(initialFilter: CaptureHistoryCategory? = nil) {
-    presentExpanded(initialFilter: initialFilter ?? expandedFilter ?? defaultFilter)
-  }
-
-  /// Open the expanded history surface without a product category filter.
+  /// Open the history surface without a product category filter.
   func showAllHistory() {
-    presentExpanded(initialFilter: nil)
+    presentHistory(initialFilter: nil)
   }
 
-  private func presentExpanded(initialFilter: CaptureHistoryCategory?) {
-    resetExpandedState(initialFilter: initialFilter)
-    presentationMode = .expanded
+  private func presentHistory(initialFilter: CaptureHistoryCategory?) {
+    resetHistoryState(initialFilter: initialFilter)
     DiagnosticLogger.shared.log(
       .info,
       .history,
-      "Floating history expanded",
+      "Floating history presented",
       context: ["filter": initialFilter?.rawValue ?? "all"]
     )
-    presentCurrentMode()
+    presentPanel()
   }
 
   /// Open the complete history surface using the user's configured default filter.
   func showDefaultHistory() {
-    showExpanded(initialFilter: defaultFilter)
+    showHistory(initialFilter: defaultFilter)
     focusPanel()
   }
 
   /// Clipboard-specific entry points always open the complete Clipboard view.
   /// Re-presenting an already-visible panel updates and focuses the same panel.
   func showClipboardHistory() {
-    showExpanded(initialFilter: .clipboard)
+    showHistory(initialFilter: .clipboard)
     focusPanel()
-  }
-
-  func collapse() {
-    guard isEnabled else {
-      DiagnosticLogger.shared.log(.debug, .history, "Floating history collapse routed to hide; disabled")
-      hide()
-      return
-    }
-    presentationMode = .compact
-    DiagnosticLogger.shared.log(.debug, .history, "Floating history collapsed")
-    presentCurrentMode()
-  }
-
-  func togglePresentationMode() {
-    guard isEnabled else { return }
-    if presentationMode == .compact {
-      showExpanded()
-    } else {
-      collapse()
-    }
   }
 
   /// Refresh panel content if visible
@@ -279,10 +177,9 @@ final class HistoryFloatingManager: ObservableObject {
     DiagnosticLogger.shared.log(
       .debug,
       .history,
-      "Floating history refreshed",
-      context: ["mode": "\(presentationMode)"]
+      "Floating history refreshed"
     )
-    presentCurrentMode()
+    presentPanel()
   }
 
   /// Check if panel is currently visible
@@ -327,7 +224,6 @@ final class HistoryFloatingManager: ObservableObject {
   private var preferredPanelSize: CGSize {
     HistoryFloatingLayout.panelSize(
       for: panelScale,
-      mode: presentationMode,
       on: ScreenUtility.activeScreen()
     )
   }
@@ -339,12 +235,11 @@ final class HistoryFloatingManager: ObservableObject {
   private var preferredCornerRadius: CGFloat {
     HistoryFloatingLayout.cornerRadius(
       for: panelScale,
-      mode: presentationMode,
       on: ScreenUtility.activeScreen()
     )
   }
 
-  private func presentCurrentMode() {
+  private func presentPanel() {
     panelController.show(
       panelContentView,
       size: preferredPanelSize,
@@ -357,7 +252,6 @@ final class HistoryFloatingManager: ObservableObject {
       .history,
       "Floating history presented",
       context: [
-        "mode": "\(presentationMode)",
         "position": preferredPosition.rawValue,
       ]
     )
@@ -366,7 +260,8 @@ final class HistoryFloatingManager: ObservableObject {
   private func handlePanelDidResignKey() {
     guard Self.shouldDismissPanelAfterResigningKey(
       isShowing: panelController.isShowing,
-      isModalInteractionActive: isModalInteractionActive
+      isModalInteractionActive: isModalInteractionActive,
+      keepsOpen: keepsOpen
     ) else {
       if panelController.isShowing {
         panelController.refocusAfterPresentation()
@@ -389,12 +284,13 @@ final class HistoryFloatingManager: ObservableObject {
 
   nonisolated static func shouldDismissPanelAfterResigningKey(
     isShowing: Bool,
-    isModalInteractionActive: Bool
+    isModalInteractionActive: Bool,
+    keepsOpen: Bool = false
   ) -> Bool {
-    !isShowing && !isModalInteractionActive
+    !isShowing && !isModalInteractionActive && !keepsOpen
   }
 
-  private func resetExpandedState(initialFilter: CaptureHistoryCategory?) {
+  private func resetHistoryState(initialFilter: CaptureHistoryCategory?) {
     expandedFilter = initialFilter
     expandedTimeFilter = .all
     searchText = ""
@@ -413,6 +309,7 @@ final class HistoryFloatingManager: ObservableObject {
     globalEscapeMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
       guard event.keyCode == 53 else { return }
       Task { @MainActor [weak self] in
+        guard NSApp.isActive else { return }
         guard self?.isModalInteractionActive == false else { return }
         self?.hide()
       }
@@ -432,11 +329,6 @@ final class HistoryFloatingManager: ObservableObject {
   }
 }
 
-enum HistoryFloatingPresentationMode: Equatable {
-  case compact
-  case expanded
-}
-
 enum HistoryFloatingTimeFilter: String, CaseIterable, Identifiable, Equatable {
   case all
   case last24Hours
@@ -450,9 +342,9 @@ enum HistoryFloatingTimeFilter: String, CaseIterable, Identifiable, Equatable {
   var title: String {
     switch self {
     case .all: L10n.PreferencesHistory.anyTime
-    case .last24Hours: "24H"
-    case .last7Days: "7D"
-    case .last30Days: "30D"
+    case .last24Hours: L10n.PreferencesHistory.last24HoursShort
+    case .last7Days: L10n.PreferencesHistory.last7DaysShort
+    case .last30Days: L10n.PreferencesHistory.last30DaysShort
     }
   }
 
@@ -471,30 +363,10 @@ enum HistoryFloatingTimeFilter: String, CaseIterable, Identifiable, Equatable {
 }
 
 enum HistoryFloatingLayout {
-  static let compactBasePanelSize = CGSize(width: 920, height: 316)
-  static let expandedBasePanelSize = CGSize(width: 1_040, height: 680)
-  static let compactBaseCornerRadius: CGFloat = 30
-  static let expandedBaseCornerRadius: CGFloat = 32
+  static let basePanelSize = CGSize(width: 1_040, height: 680)
+  static let baseCornerRadius: CGFloat = 32
   static let defaultScale = 1.0
   static let scaleRange: ClosedRange<Double> = 0.8 ... 1.4
-
-  static func basePanelSize(for mode: HistoryFloatingPresentationMode) -> CGSize {
-    switch mode {
-    case .compact:
-      compactBasePanelSize
-    case .expanded:
-      expandedBasePanelSize
-    }
-  }
-
-  static func baseCornerRadius(for mode: HistoryFloatingPresentationMode) -> CGFloat {
-    switch mode {
-    case .compact:
-      compactBaseCornerRadius
-    case .expanded:
-      expandedBaseCornerRadius
-    }
-  }
 
   static func clampedScale(_ value: Double) -> Double {
     min(max(value, scaleRange.lowerBound), scaleRange.upperBound)
@@ -506,37 +378,29 @@ enum HistoryFloatingLayout {
 
   static func effectiveScale(
     for scale: Double,
-    mode: HistoryFloatingPresentationMode,
     on screen: NSScreen = ScreenUtility.activeScreen()
   ) -> CGFloat {
     let requestedScale = CGFloat(clampedScale(scale))
-    let baseSize = basePanelSize(for: mode)
-    let safeFrame = screen.visibleFrame.insetBy(
-      dx: mode == .expanded ? 42 : 24,
-      dy: mode == .expanded ? 42 : 24
-    )
-    let fittingScale = min(safeFrame.width / baseSize.width, safeFrame.height / baseSize.height)
+    let safeFrame = screen.visibleFrame.insetBy(dx: 42, dy: 42)
+    let fittingScale = min(safeFrame.width / basePanelSize.width, safeFrame.height / basePanelSize.height)
     return max(0.58, min(requestedScale, fittingScale))
   }
 
   static func panelSize(
     for scale: Double,
-    mode: HistoryFloatingPresentationMode,
     on screen: NSScreen = ScreenUtility.activeScreen()
   ) -> CGSize {
-    let resolvedScale = effectiveScale(for: scale, mode: mode, on: screen)
-    let baseSize = basePanelSize(for: mode)
+    let resolvedScale = effectiveScale(for: scale, on: screen)
     return CGSize(
-      width: baseSize.width * resolvedScale,
-      height: baseSize.height * resolvedScale
+      width: basePanelSize.width * resolvedScale,
+      height: basePanelSize.height * resolvedScale
     )
   }
 
   static func cornerRadius(
     for scale: Double,
-    mode: HistoryFloatingPresentationMode,
     on screen: NSScreen = ScreenUtility.activeScreen()
   ) -> CGFloat {
-    baseCornerRadius(for: mode) * effectiveScale(for: scale, mode: mode, on: screen)
+    baseCornerRadius * effectiveScale(for: scale, on: screen)
   }
 }

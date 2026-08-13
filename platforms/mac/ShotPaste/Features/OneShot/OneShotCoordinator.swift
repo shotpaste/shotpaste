@@ -22,6 +22,23 @@ enum OneShotHandoff {
   case clipboard
 }
 
+struct OneShotGuidancePolicy {
+  static let currentVersion = 1
+
+  private let defaults: UserDefaults
+
+  init(defaults: UserDefaults = .standard) {
+    self.defaults = defaults
+  }
+
+  func consumePresentationIfNeeded() -> Bool {
+    let presentedVersion = defaults.integer(forKey: PreferencesKeys.oneShotGuidancePresentedVersion)
+    guard presentedVersion < Self.currentVersion else { return false }
+    defaults.set(Self.currentVersion, forKey: PreferencesKeys.oneShotGuidancePresentedVersion)
+    return true
+  }
+}
+
 @MainActor
 final class OneShotCoordinator: ObservableObject {
   static let shared = OneShotCoordinator()
@@ -91,6 +108,14 @@ final class OneShotCoordinator: ObservableObject {
       "One Shot armed",
       context: ["displayCount": "\(frozenSession.displayIDs.count)"]
     )
+    if OneShotGuidancePolicy().consumePresentationIfNeeded() {
+      AppToastManager.shared.show(
+        message: L10n.OneShot.shortcutDescription,
+        style: .info,
+        position: .topCenter,
+        duration: 5
+      )
+    }
     InlineAreaAnnotateCoordinator.shared.startOneShot(
       screens: screens,
       primaryDisplayID: primaryDisplayID,
@@ -113,12 +138,14 @@ final class OneShotCoordinator: ObservableObject {
     finish(result: .failure(error))
   }
 
-  func cancel() {
-    guard isActive else { return }
+  @discardableResult
+  func cancel(discardChanges: Bool = false) -> Bool {
+    guard isActive else { return true }
     if InlineAreaAnnotateCoordinator.shared.isActive {
-      InlineAreaAnnotateCoordinator.shared.cancelActiveSession()
+      return InlineAreaAnnotateCoordinator.shared.cancelActiveSession(discardChanges: discardChanges)
     } else {
       finish(result: .failure(.cancelled))
+      return true
     }
   }
 
@@ -169,8 +196,18 @@ final class OneShotCoordinator: ObservableObject {
     }
   }
 
-  private func finish(result _: CaptureResult?, afterTeardown: (() -> Void)? = nil) {
+  private func finish(result: CaptureResult?, afterTeardown: (() -> Void)? = nil) {
     guard isActive else { return }
+    let failureMessage: String? = if case .failure(let error) = result {
+      switch error {
+      case .cancelled:
+        nil
+      default:
+        error.localizedDescription
+      }
+    } else {
+      nil
+    }
     let state = sessionState
     state?.beginTerminating()
     guard state?.performTeardown() ?? true else { return }
@@ -185,6 +222,14 @@ final class OneShotCoordinator: ObservableObject {
     DiagnosticLogger.shared.log(.info, .action, "One Shot session cleaned up")
 
     teardown?()
+    if let failureMessage {
+      AppToastManager.shared.show(
+        message: failureMessage,
+        style: .error,
+        position: .bottomCenter,
+        duration: 4
+      )
+    }
     afterTeardown?()
   }
 }

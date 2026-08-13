@@ -1,6 +1,118 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "preferences-general.login-item-requires-approval-message": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Erlaube ShotPaste unter Systemeinstellungen → Allgemein → Anmeldeobjekte und kehre dann hierher zurück." } },
+        "en": { "stringUnit": { "state": "translated", "value": "Allow ShotPaste in System Settings → General → Login Items, then return here." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Permite ShotPaste en Ajustes del Sistema → General → Ítems de inicio y vuelve aquí." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Autorisez ShotPaste dans Réglages Système → Général → Ouverture, puis revenez ici." } },
+        "ja": { "stringUnit": { "state": "translated", "value": "「システム設定」→「一般」→「ログイン項目」で ShotPaste を許可してから、ここに戻ってください。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "시스템 설정 → 일반 → 로그인 항목에서 ShotPaste를 허용한 다음 여기로 돌아오세요." } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Разрешите ShotPaste в меню «Системные настройки» → «Основные» → «Объекты входа», затем вернитесь сюда." } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Cho phép ShotPaste trong Cài đặt hệ thống → Cài đặt chung → Mục đăng nhập, rồi quay lại đây." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "请在“系统设置 → 通用 → 登录项”中允许 ShotPaste，然后返回此处。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "請在「系統設定 → 一般 → 登入項目」中允許 ShotPaste，然後返回此處。" } }
+      }
+    },
+    "preferences-general.login-item-requires-approval-title": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Genehmigung erforderlich" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Approval Required" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Se requiere aprobación" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Autorisation requise" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "承認が必要です" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "승인 필요" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Требуется разрешение" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Cần phê duyệt" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "需要批准" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "需要核准" } }
+      }
+    },
+    "preferences-general.login-item-update-failed": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Die Einstellung für das Anmeldeobjekt konnte nicht aktualisiert werden." } },
+        "en": { "stringUnit": { "state": "translated", "value": "Could not update the login item setting." } },
+        "es": { "stringUnit": { "state": "translated", "value": "No se pudo actualizar el ajuste del ítem de inicio." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Impossible de mettre à jour le réglage d’ouverture de session." } },
+        "ja": { "stringUnit": { "state": "translated", "value": "ログイン項目の設定を更新できませんでした。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "로그인 항목 설정을 업데이트할 수 없습니다." } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Не удалось изменить настройку объекта входа." } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Không thể cập nhật cài đặt mục đăng nhập." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "无法更新登录项设置。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "無法更新登入項目設定。" } }
+      }
+    },
+    "preferences-history.delete-failed": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "%d Aufnahme(n) konnten nicht gelöscht werden" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Could not delete %d capture item(s)" } },
+        "es": { "stringUnit": { "state": "translated", "value": "No se pudieron eliminar %d captura(s)" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Impossible de supprimer %d capture(s)" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "%d 件のキャプチャを削除できませんでした" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "캡처 %d개를 삭제할 수 없습니다" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Не удалось удалить объектов: %d" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Không thể xoá %d mục đã chụp" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "无法删除 %d 个捕获项目" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "無法刪除 %d 個擷取項目" } }
+      }
+    },
+    "preferences-history.last-24-hours-short": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "24 Std." } },
+        "en": { "stringUnit": { "state": "translated", "value": "24H" } },
+        "es": { "stringUnit": { "state": "translated", "value": "24 h" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "24 h" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "24時間" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "24시간" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "24 ч" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "24 giờ" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "24 小时" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "24 小時" } }
+      }
+    },
+    "preferences-history.last-30-days-short": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "30 T" } },
+        "en": { "stringUnit": { "state": "translated", "value": "30D" } },
+        "es": { "stringUnit": { "state": "translated", "value": "30 d" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "30 j" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "30日" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "30일" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "30 д" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "30 ngày" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "30 天" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "30 天" } }
+      }
+    },
+    "preferences-history.last-7-days-short": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "7 T" } },
+        "en": { "stringUnit": { "state": "translated", "value": "7D" } },
+        "es": { "stringUnit": { "state": "translated", "value": "7 d" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "7 j" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "7日" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "7일" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "7 д" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "7 ngày" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "7 天" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "7 天" } }
+      }
+    },
+    "preferences-history.search-captures": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Aufnahmen suchen" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Search captures" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Buscar capturas" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Rechercher des captures" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "キャプチャを検索" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "캡처 검색" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Поиск снимков" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Tìm bản chụp" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "搜索捕获内容" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "搜尋擷取內容" } }
+      }
+    },
     "preferences-advanced.config-sync-confirmation-message": {
       "localizations": {
         "de": {
@@ -5958,327 +6070,132 @@
         }
       }
     },
-    "preferences-history.floating-panel-description": {
-      "extractionState": "stale",
+    "preferences-history.keep-open": {
+      "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show a floating panel for quick access to recent captures"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hiển thị bảng nổi để truy cập nhanh các lần chụp và quay gần đây"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zeigt ein schwebendes Panel für schnellen Zugriff auf aktuelle Aufnahmen"
+            "value": "Verlauf geöffnet lassen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep History Open"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Muestra un panel flotante para acceder rápidamente a las capturas recientes"
+            "value": "Mantener el historial abierto"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Affiche un volet flottant pour un accès rapide aux captures récentes"
+            "value": "Garder l’historique ouvert"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "最近のキャプチャにすばやくアクセスするフローティングパネルを表示します"
+            "value": "履歴を開いたままにする"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "최근 캡처에 빠르게 접근할 수 있는 플로팅 패널을 표시합니다"
+            "value": "기록을 열어 두기"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Показывать плавающую панель для быстрого доступа к недавним записям"
+            "value": "Оставлять историю открытой"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giữ Lịch sử luôn mở"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "显示悬浮面板，以便快速访问最近的截屏和录屏"
+            "value": "保持历史记录打开"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "顯示浮動面板，以便快速存取最近的截圖與錄製"
+            "value": "保持歷史記錄開啟"
           }
         }
       }
     },
-    "preferences-history.toggle-mode-shortcut-title": {
-      "extractionState": "stale",
+    "preferences-history.stop-keeping-open": {
+      "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Erweitern umschalten"
+            "value": "Verlauf nicht mehr geöffnet lassen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Toggle Expand"
+            "value": "Stop Keeping History Open"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alternar expansión"
+            "value": "Dejar de mantener el historial abierto"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Basculer l'extension"
+            "value": "Ne plus garder l’historique ouvert"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "展開の切り替え"
+            "value": "履歴を開いたままにしない"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "확장 모드 전환"
+            "value": "기록을 계속 열어 두지 않기"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Переключение развертывания"
+            "value": "Не оставлять историю открытой"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Chuyển đổi mở rộng"
+            "value": "Không giữ Lịch sử luôn mở"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "切换展开"
+            "value": "不再保持历史记录打开"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "切換展開"
-          }
-        }
-      }
-    },
-    "preferences-history.toggle-mode-shortcut-description": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zwischen schwebendem und erweitertem Modus wechseln"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Toggle between floating and expanded modes"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alternar entre modo flotante y ampliado"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Basculer entre le mode flottant et développé"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フローティングモードと展開モードを切り替えます"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "플로팅 모드와 확장 모드 간을 전환합니다"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Переключение между плавающим и развернутым режимами"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Chuyển đổi giữa chế độ nổi và chế độ mở rộng"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在悬浮和展开模式之间切换"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在浮動和展開模式之間切換"
-          }
-        }
-      }
-    },
-    "preferences-history.floating-panel-section": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Floating Panel"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bảng nổi"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schwebendes Panel"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Panel flotante"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Volet flottant"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フローティングパネル"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "플로팅 패널"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Плавающая панель"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "悬浮面板"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "浮動面板"
-          }
-        }
-      }
-    },
-    "preferences-history.floating-panel-title": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enable Floating Panel"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bật bảng nổi"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schwebendes Panel aktivieren"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Activar panel flotante"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Activer le volet flottant"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フローティングパネルを有効にする"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "플로팅 패널 사용"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Включить плавающую панель"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "启用悬浮面板"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "啟用浮動面板"
+            "value": "不再保持歷史記錄開啟"
           }
         }
       }
@@ -6474,136 +6391,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "剪貼簿記錄最多可儲存的項目數"
-          }
-        }
-      }
-    },
-    "preferences-history.max-items-description": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Maximum number of items shown in the floating panel"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Số mục tối đa hiển thị trong bảng nổi"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Maximale Anzahl der Einträge im schwebenden Panel"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Número máximo de elementos en el panel flotante"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nombre maximal d’éléments dans le volet flottant"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フローティングパネルに表示する項目の最大数"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "플로팅 패널에 표시할 항목의 최대 개수"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Максимальное число элементов на плавающей панели"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "悬浮面板中显示条目的最大数量"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "浮動面板中顯示項目的最大數量"
-          }
-        }
-      }
-    },
-    "preferences-history.max-items-title": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Max Displayed Items"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Số mục hiển thị tối đa"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Max. angezeigte Einträge"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Máx. de elementos mostrados"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Éléments affichés max."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "表示する項目の最大数"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "표시 항목 최대 개수"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Макс. отображаемых элементов"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "面板中最多显示条目数"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "面板中最多顯示的項目數"
           }
         }
       }

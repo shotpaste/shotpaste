@@ -16,6 +16,8 @@ final class QuickAccessPanel: NSPanel {
   private var localMouseMonitor: Any?
   private var globalMouseMonitor: Any?
   private var isMouseInteractionActive = false
+  private var keyboardFocusActive = false
+  private weak var previouslyActiveApplication: NSRunningApplication?
 
   init(contentRect: NSRect) {
     super.init(
@@ -35,7 +37,31 @@ final class QuickAccessPanel: NSPanel {
       removeMouseMonitors()
     }
     isMonitorsSuspended = false
+    keyboardFocusActive = false
     super.close()
+  }
+
+  func setKeyboardFocusActive(_ active: Bool, restorePreviousApplication: Bool = true) {
+    guard keyboardFocusActive != active else { return }
+    keyboardFocusActive = active
+
+    if active {
+      let frontmostApplication = NSWorkspace.shared.frontmostApplication
+      if frontmostApplication?.processIdentifier != ProcessInfo.processInfo.processIdentifier {
+        previouslyActiveApplication = frontmostApplication
+      }
+      ignoresMouseEvents = false
+      makeKeyAndOrderFront(nil)
+    } else {
+      if isKeyWindow {
+        resignKey()
+      }
+      refreshMousePassthrough()
+      if restorePreviousApplication {
+        previouslyActiveApplication?.activate(options: [.activateIgnoringOtherApps])
+      }
+      previouslyActiveApplication = nil
+    }
   }
 
   func suspendMouseMonitors() {
@@ -102,6 +128,7 @@ final class QuickAccessPanel: NSPanel {
     backgroundColor = .clear
     hasShadow = false // Cards have their own shadows
     collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
+    sharingType = .none
     acceptsMouseMovedEvents = true
     ignoresMouseEvents = false
   }
@@ -146,6 +173,11 @@ final class QuickAccessPanel: NSPanel {
   }
 
   private func refreshMousePassthrough() {
+    if keyboardFocusActive {
+      ignoresMouseEvents = false
+      return
+    }
+
     if isMouseInteractionActive, NSEvent.pressedMouseButtons & 1 == 0 {
       isMouseInteractionActive = false
     }
@@ -182,10 +214,66 @@ final class QuickAccessPanel: NSPanel {
   }
 
   override var canBecomeKey: Bool {
-    false
+    keyboardFocusActive
   }
 
   override var canBecomeMain: Bool {
     false
+  }
+
+  override func resignKey() {
+    super.resignKey()
+    guard keyboardFocusActive else { return }
+    keyboardFocusActive = false
+    previouslyActiveApplication = nil
+    Task { @MainActor in
+      QuickAccessManager.shared.keyboardFocusDidResign()
+    }
+  }
+
+  override func keyDown(with event: NSEvent) {
+    guard keyboardFocusActive else {
+      super.keyDown(with: event)
+      return
+    }
+
+    let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+    if flags == .command, event.keyCode == 8 {
+      QuickAccessManager.shared.copyKeyboardFocusedItem()
+      return
+    }
+    if flags == .command, event.keyCode == 1 {
+      QuickAccessManager.shared.saveKeyboardFocusedItem()
+      return
+    }
+
+    guard flags.isEmpty || flags == .shift else {
+      super.keyDown(with: event)
+      return
+    }
+
+    switch event.keyCode {
+    case 53:
+      QuickAccessManager.shared.deactivateKeyboardFocus()
+    case 48:
+      QuickAccessManager.shared.moveKeyboardFocus(by: flags.contains(.shift) ? -1 : 1)
+    case 123, 126:
+      QuickAccessManager.shared.moveKeyboardFocus(by: -1)
+    case 124, 125:
+      QuickAccessManager.shared.moveKeyboardFocus(by: 1)
+    case 36, 76:
+      QuickAccessManager.shared.openKeyboardFocusedItem()
+    case 51, 117:
+      QuickAccessManager.shared.deleteKeyboardFocusedItem()
+    default:
+      super.keyDown(with: event)
+    }
+  }
+}
+
+enum QuickAccessKeyboardNavigation {
+  static func destinationIndex(from currentIndex: Int, delta: Int, itemCount: Int) -> Int? {
+    guard itemCount > 0 else { return nil }
+    return min(max(currentIndex + delta, 0), itemCount - 1)
   }
 }

@@ -31,16 +31,7 @@ struct HistorySettingsView: View {
         }
       }
 
-      Section(L10n.PreferencesHistory.floatingPanelSection) {
-        SettingRow(
-          icon: "rectangle.stack.badge.person.crop",
-          title: L10n.PreferencesHistory.floatingPanelTitle,
-          description: L10n.PreferencesHistory.floatingPanelDescription
-        ) {
-          Toggle("", isOn: $manager.isEnabled)
-            .labelsHidden()
-        }
-
+      Section(L10n.PreferencesHistory.displaySection) {
         SettingRow(
           icon: "arrow.up.and.down",
           title: L10n.PreferencesHistory.panelPositionTitle,
@@ -56,9 +47,7 @@ struct HistorySettingsView: View {
           .fixedSize()
           .frame(width: 140, alignment: .trailing)
         }
-      }
 
-      Section(L10n.PreferencesHistory.displaySection) {
         SettingRow(
           icon: "line.3.horizontal.decrease.circle",
           title: L10n.PreferencesHistory.defaultFilterTitle,
@@ -106,25 +95,6 @@ struct HistorySettingsView: View {
               .frame(width: 44, alignment: .trailing)
               .monospacedDigit()
               .foregroundColor(.secondary)
-          }
-          .frame(width: 220, alignment: .trailing)
-        }
-
-        SettingRow(
-          icon: "number",
-          title: L10n.PreferencesHistory.maxItemsTitle,
-          description: L10n.PreferencesHistory.maxItemsDescription
-        ) {
-          HStack(spacing: 8) {
-            Text("\(manager.maxDisplayedItems)")
-              .frame(width: 28, alignment: .trailing)
-              .monospacedDigit()
-              .foregroundColor(.secondary)
-            Slider(value: Binding(
-              get: { Double(manager.maxDisplayedItems) },
-              set: { manager.maxDisplayedItems = Int($0) }
-            ).stepped(by: 1, in: 3 ... 50), in: 3 ... 50)
-              .frame(width: 120)
           }
           .frame(width: 220, alignment: .trailing)
         }
@@ -216,16 +186,9 @@ struct HistorySettingsView: View {
   }
 
   private func clearHistoryWithConfirmation() {
-    let alert = NSAlert()
-    alert.messageText = L10n.PreferencesHistory.clearHistoryAlertTitle
-    alert.informativeText = L10n.PreferencesHistory.clearHistoryAlertMessage
-    alert.alertStyle = .warning
-    alert.addButton(withTitle: L10n.PreferencesHistory.clearHistoryConfirm)
-    alert.addButton(withTitle: L10n.Common.cancel)
-
-    guard alert.runModal() == .alertFirstButtonReturn else { return }
-    HistoryWindowController.shared.deleteRecords(CaptureHistoryStore.shared.records, asksConfirmation: false)
-    updateCaptureStorageSize()
+    HistoryWindowController.shared.clearAllRecords { _ in
+      updateCaptureStorageSize()
+    }
   }
 
   private func updateCaptureStorageSize() {

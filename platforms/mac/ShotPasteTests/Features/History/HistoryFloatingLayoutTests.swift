@@ -6,7 +6,6 @@
 //
 
 import AppKit
-import Carbon.HIToolbox
 @testable import ShotPaste
 import XCTest
 
@@ -53,24 +52,14 @@ final class HistoryFloatingLayoutTests: XCTestCase {
 
   // MARK: - basePanelSize
 
-  func testBasePanelSize_compact() {
-    let size = HistoryFloatingLayout.basePanelSize(for: .compact)
-    XCTAssertEqual(size, CGSize(width: 920, height: 316))
-  }
-
-  func testBasePanelSize_expanded() {
-    let size = HistoryFloatingLayout.basePanelSize(for: .expanded)
-    XCTAssertEqual(size, CGSize(width: 1040, height: 680))
+  func testBasePanelSizeUsesFullHistorySurface() {
+    XCTAssertEqual(HistoryFloatingLayout.basePanelSize, CGSize(width: 1040, height: 680))
   }
 
   // MARK: - baseCornerRadius
 
-  func testBaseCornerRadius_compact() {
-    XCTAssertEqual(HistoryFloatingLayout.baseCornerRadius(for: .compact), 30)
-  }
-
-  func testBaseCornerRadius_expanded() {
-    XCTAssertEqual(HistoryFloatingLayout.baseCornerRadius(for: .expanded), 32)
+  func testBaseCornerRadiusUsesFullHistorySurface() {
+    XCTAssertEqual(HistoryFloatingLayout.baseCornerRadius, 32)
   }
 
   // MARK: - HistoryFloatingTimeFilter
@@ -104,14 +93,7 @@ final class HistoryFloatingLayoutTests: XCTestCase {
     XCTAssertEqual(Set(all).count, all.count)
   }
 
-  // MARK: - HistoryFloatingPresentationMode
-
-  func testPresentationModeEquality() {
-    XCTAssertEqual(HistoryFloatingPresentationMode.compact, HistoryFloatingPresentationMode.compact)
-    XCTAssertNotEqual(HistoryFloatingPresentationMode.compact, HistoryFloatingPresentationMode.expanded)
-  }
-
-  func testClipboardHistoryEntryOpensExpandedClipboardView() {
+  func testClipboardHistoryEntryOpensClipboardView() {
     let manager = HistoryFloatingManager.shared
     let originalFilter = manager.expandedFilter
     let originalTimeFilter = manager.expandedTimeFilter
@@ -128,7 +110,6 @@ final class HistoryFloatingLayoutTests: XCTestCase {
     manager.searchText = "previous search"
     manager.showClipboardHistory()
 
-    XCTAssertEqual(manager.presentationMode, .expanded)
     XCTAssertEqual(manager.expandedFilter, .clipboard)
     XCTAssertEqual(manager.expandedTimeFilter, .all)
     XCTAssertTrue(manager.searchText.isEmpty)
@@ -141,6 +122,8 @@ final class HistoryFloatingLayoutTests: XCTestCase {
       parsed.value(at: "history", "floating", "default_filter")?.stringValue,
       CaptureHistoryCategory.clipboard.rawValue
     )
+    XCTAssertNil(parsed.value(at: "history", "floating", "enabled"))
+    XCTAssertNil(parsed.value(at: "history", "floating", "max_displayed_items"))
   }
 
   func testPanelResignDuringPresentationDoesNotDismiss() {
@@ -162,44 +145,28 @@ final class HistoryFloatingLayoutTests: XCTestCase {
         isModalInteractionActive: false
       )
     )
+    XCTAssertFalse(
+      HistoryFloatingManager.shouldDismissPanelAfterResigningKey(
+        isShowing: false,
+        isModalInteractionActive: false,
+        keepsOpen: true
+      )
+    )
   }
 
-  // MARK: - Toggle Mode Shortcut
+  @MainActor
+  func testHistoryPanelIsCapturableAndExceptedFromOwnAppExclusion() {
+    let panel = HistoryFloatingPanel(contentRect: NSRect(x: 0, y: 0, width: 100, height: 100))
+    defer { panel.close() }
 
-  func testToggleModeShortcutDefaultAndCustomization() {
-    let manager = HistoryFloatingManager.shared
+    XCTAssertEqual(panel.sharingType, .readOnly)
+    XCTAssertTrue(
+      ScreenshotCaptureWindowPolicy.exceptedOwnWindowIDs(from: [panel])
+        .contains(CGWindowID(panel.windowNumber))
+    )
 
-    // Test default shortcut values
-    XCTAssertEqual(HistoryFloatingManager.defaultToggleModeShortcut.keyCode, UInt32(kVK_ANSI_E))
-    XCTAssertEqual(HistoryFloatingManager.defaultToggleModeShortcut.modifiers, UInt32(cmdKey))
-    XCTAssertTrue(manager.isToggleModeShortcutEnabled)
-
-    // Set custom shortcut
-    let custom = ShortcutConfig(keyCode: UInt32(kVK_ANSI_X), modifiers: UInt32(cmdKey | shiftKey))
-    manager.toggleModeShortcut = custom
-    XCTAssertEqual(manager.toggleModeShortcut, custom)
-
-    // Disable shortcut row (turn off)
-    manager.isToggleModeShortcutEnabled = false
-    XCTAssertFalse(manager.isToggleModeShortcutEnabled)
-    // Custom shortcut config must remain intact when disabled
-    XCTAssertEqual(manager.toggleModeShortcut, custom)
-
-    // Check if it persists and can be loaded
-    let savedData = UserDefaults.standard.data(forKey: "history.toggleModeShortcut")
-    XCTAssertNotNil(savedData)
-    if let savedData {
-      let config = try? JSONDecoder().decode(ShortcutConfig.self, from: savedData)
-      XCTAssertEqual(config, custom)
-    }
-
-    let savedEnabled = UserDefaults.standard.object(forKey: "history.isToggleModeShortcutEnabled") as? Bool
-    XCTAssertEqual(savedEnabled, false)
-
-    // Reset to default
-    manager.resetToggleModeShortcut()
-    XCTAssertEqual(manager.toggleModeShortcut, HistoryFloatingManager.defaultToggleModeShortcut)
-    XCTAssertTrue(manager.isToggleModeShortcutEnabled)
+    panel.sharingType = .none
+    XCTAssertTrue(ScreenshotCaptureWindowPolicy.exceptedOwnWindowIDs(from: [panel]).isEmpty)
   }
 
   func testHistoryFloatingPanelCmdAPostNotification() {
@@ -269,6 +236,44 @@ final class HistoryFloatingLayoutTests: XCTestCase {
 
     let handled = panel.performKeyEquivalent(with: event)
     XCTAssertFalse(handled)
+  }
+
+  func testHistorySelectionNavigationMovesByGridColumnsAndClampsAtEdges() {
+    XCTAssertEqual(
+      HistorySelectionNavigation.destinationIndex(
+        from: 5,
+        move: .up,
+        itemCount: 10,
+        columnCount: 4
+      ),
+      1
+    )
+    XCTAssertEqual(
+      HistorySelectionNavigation.destinationIndex(
+        from: 5,
+        move: .down,
+        itemCount: 10,
+        columnCount: 4
+      ),
+      9
+    )
+    XCTAssertEqual(
+      HistorySelectionNavigation.destinationIndex(
+        from: 0,
+        move: .left,
+        itemCount: 10,
+        columnCount: 4
+      ),
+      0
+    )
+    XCTAssertNil(
+      HistorySelectionNavigation.destinationIndex(
+        from: 0,
+        move: .right,
+        itemCount: 0,
+        columnCount: 4
+      )
+    )
   }
 
   // MARK: - Helpers

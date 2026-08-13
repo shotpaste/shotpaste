@@ -26,7 +26,7 @@ struct HistoryContextMenu: View {
     Divider()
 
     Button(L10n.Common.deleteAction) {
-      HistoryWindowController.shared.deleteRecords([record], asksConfirmation: false)
+      HistoryWindowController.shared.deleteRecords([record], asksConfirmation: true)
     }
   }
 }

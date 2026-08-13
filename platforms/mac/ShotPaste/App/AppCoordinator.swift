@@ -84,15 +84,18 @@ final class AppCoordinator {
     if defaults.object(forKey: PreferencesKeys.mediaClipboardEnabled) == nil {
       defaults.set(true, forKey: PreferencesKeys.mediaClipboardEnabled)
     }
-    // Floating history panel defaults
-    if defaults.object(forKey: "history.floating.enabled") == nil {
-      defaults.set(true, forKey: "history.floating.enabled")
-    }
     if defaults.object(forKey: "history.floating.position") == nil {
       defaults.set("topCenter", forKey: "history.floating.position")
     }
-    if defaults.object(forKey: "history.floating.maxDisplayedItems") == nil {
-      defaults.set(10, forKey: "history.floating.maxDisplayedItems")
+    // Remove preferences that belonged exclusively to the deleted compact
+    // Clipboard History interface.
+    for obsoleteKey in [
+      "history.floating.enabled",
+      "history.floating.maxDisplayedItems",
+      "history.toggleModeShortcut",
+      "history.isToggleModeShortcutEnabled",
+    ] {
+      defaults.removeObject(forKey: obsoleteKey)
     }
     let configurationAutoImportResult = applyUserConfigurationIfNeeded()
     startConfigurationSync(after: configurationAutoImportResult)
