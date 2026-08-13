@@ -2411,39 +2411,47 @@ private struct InlineAreaControlDeck<MoveGesture: Gesture>: View {
               session.state.activateTool(tool)
             }
           }
-
-          InlineAreaDivider()
-
-          InlineAreaIconButton(
-            icon: "arrow.uturn.backward",
-            tooltip: L10n.Common.withShortcut(L10n.Common.undo, "⌘Z"),
-            isEnabled: session.state.canUndo
-          ) {
-            guard session.commitOneShotInteraction(.screenshotUndoRedo) else { return }
-            session.state.undo()
-          }
-
-          InlineAreaIconButton(
-            icon: "arrow.uturn.forward",
-            tooltip: L10n.Common.withShortcut(L10n.Common.redo, "⇧⌘Z"),
-            isEnabled: session.state.canRedo
-          ) {
-            guard session.commitOneShotInteraction(.screenshotUndoRedo) else { return }
-            session.state.redo()
-          }
-
-          InlineAreaDivider()
-
-          InlineAreaIconButton(
-            icon: "viewfinder",
-            tooltip: L10n.Actions.captureTextOCR,
-            customGlyph: .ocr,
-            accessibilityIdentifier: "oneshot-screenshot-ocr"
-          ) {
-            session.activateOneShotOCRSelection()
-          }
         }
         .fixedSize(horizontal: true, vertical: false)
+      }
+      .disabled(session.isExporting)
+      .opacity(session.isExporting ? 0.55 : 1)
+      .frame(minWidth: 0, maxWidth: .infinity)
+
+      InlineAreaDivider()
+
+      HStack(spacing: InlineAreaToolbarMetrics.itemSpacing) {
+        InlineAreaIconButton(
+          icon: "arrow.uturn.backward",
+          tooltip: L10n.Common.withShortcut(L10n.Common.undo, "⌘Z"),
+          isEnabled: session.state.canUndo
+        ) {
+          guard session.commitOneShotInteraction(.screenshotUndoRedo) else { return }
+          session.state.undo()
+        }
+
+        InlineAreaIconButton(
+          icon: "arrow.uturn.forward",
+          tooltip: L10n.Common.withShortcut(L10n.Common.redo, "⇧⌘Z"),
+          isEnabled: session.state.canRedo
+        ) {
+          guard session.commitOneShotInteraction(.screenshotUndoRedo) else { return }
+          session.state.redo()
+        }
+      }
+      .disabled(session.isExporting)
+      .opacity(session.isExporting ? 0.55 : 1)
+      .fixedSize(horizontal: true, vertical: false)
+
+      InlineAreaDivider()
+
+      InlineAreaIconButton(
+        icon: "viewfinder",
+        tooltip: L10n.Actions.captureTextOCR,
+        customGlyph: .ocr,
+        accessibilityIdentifier: "oneshot-screenshot-ocr"
+      ) {
+        session.activateOneShotOCRSelection()
       }
       .disabled(session.isExporting)
       .opacity(session.isExporting ? 0.55 : 1)
@@ -2633,6 +2641,9 @@ private struct InlineAreaToolGlyph: View {
         Text(verbatim: "T")
           .font(.system(size: 11, weight: .bold, design: .rounded))
           .foregroundStyle(color)
+          // The rounded glyph's asymmetric side bearings make a mathematically
+          // centered "T" look slightly left of the surrounding square.
+          .offset(x: 0.5)
       }
     case .blur:
       InlineAreaMosaicGlyph(color: color)
