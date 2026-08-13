@@ -4,7 +4,7 @@
 //
 //  Characterization tests for `AnnotationFactory.createAnnotation` successful
 //  creation paths (shape/line/pencil/blur). Counter, spotlight, highlighter,
-//  watermark and arrow creation are already covered in AnnotateCoreTests, so
+//  and arrow creation are already covered in AnnotateCoreTests, so
 //  this file only fills the remaining tool gaps.
 //
 
@@ -23,9 +23,7 @@ final class AnnotateAnnotationFactoryTests: XCTestCase {
       arrowStyle: .straight,
       arrowBendDirection: .primary,
       blurType: blurType,
-      counterValue: 1,
-      watermarkText: "ShotPaste",
-      activeAnnotationBounds: CGRect(x: 0, y: 0, width: 400, height: 300)
+      counterValue: 1
     )
   }
 

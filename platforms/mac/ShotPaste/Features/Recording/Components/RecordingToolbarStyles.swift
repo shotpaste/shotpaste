@@ -28,11 +28,12 @@ enum ToolbarConstants {
 
 struct NativeToolbarButtonStyle: ButtonStyle {
   var isActive: Bool = false
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
       .opacity(configuration.isPressed ? 0.6 : 1.0)
-      .animation(ToolbarConstants.pressAnimation, value: configuration.isPressed)
+      .animation(reduceMotion ? nil : ToolbarConstants.pressAnimation, value: configuration.isPressed)
   }
 }
 
@@ -40,6 +41,7 @@ struct NativeToolbarButtonStyle: ButtonStyle {
 
 struct RecordButtonStyle: ButtonStyle {
   @State private var isHovered = false
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
@@ -52,13 +54,15 @@ struct RecordButtonStyle: ButtonStyle {
           .fill(Color.primary.opacity(configuration.isPressed ? 0.12 : 0))
       )
       .contentShape(RoundedRectangle(cornerRadius: ToolbarConstants.buttonCornerRadius))
-      .animation(ToolbarConstants.pressAnimation, value: configuration.isPressed)
+      .animation(reduceMotion ? nil : ToolbarConstants.pressAnimation, value: configuration.isPressed)
   }
 }
 
 // MARK: - Options Button Style (text with chevron, native look)
 
 struct OptionsButtonStyle: ButtonStyle {
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
       .font(.system(size: 13, weight: .regular))
@@ -70,7 +74,7 @@ struct OptionsButtonStyle: ButtonStyle {
           .fill(Color.primary.opacity(configuration.isPressed ? 0.12 : 0))
       )
       .contentShape(RoundedRectangle(cornerRadius: ToolbarConstants.buttonCornerRadius))
-      .animation(ToolbarConstants.pressAnimation, value: configuration.isPressed)
+      .animation(reduceMotion ? nil : ToolbarConstants.pressAnimation, value: configuration.isPressed)
   }
 }
 
@@ -89,6 +93,7 @@ struct ToolbarIconButtonLabel: View {
   let systemName: String
   var iconSize: CGFloat = ToolbarConstants.iconSize
   let isHovered: Bool
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
     Image(systemName: systemName)
@@ -103,13 +108,15 @@ struct ToolbarIconButtonLabel: View {
           .fill(Color.primary.opacity(isHovered ? 0.1 : 0))
       )
       .contentShape(RoundedRectangle(cornerRadius: ToolbarConstants.buttonCornerRadius))
-      .animation(ToolbarConstants.hoverAnimation, value: isHovered)
+      .animation(reduceMotion ? nil : ToolbarConstants.hoverAnimation, value: isHovered)
   }
 }
 
 // MARK: - Stop Button Style (native monochrome, no red pill)
 
 struct StopButtonStyle: ButtonStyle {
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
       .font(.system(size: 13, weight: .regular))
@@ -121,7 +128,7 @@ struct StopButtonStyle: ButtonStyle {
           .fill(Color.primary.opacity(configuration.isPressed ? 0.12 : 0))
       )
       .contentShape(RoundedRectangle(cornerRadius: ToolbarConstants.buttonCornerRadius))
-      .animation(ToolbarConstants.pressAnimation, value: configuration.isPressed)
+      .animation(reduceMotion ? nil : ToolbarConstants.pressAnimation, value: configuration.isPressed)
   }
 }
 

@@ -287,6 +287,24 @@ final class RecordingToolbarWindow: NSWindow {
     )
   }
 
+  func showPreparationStatus() {
+    isRecordingStatusBarConfigured = false
+    let view = HStack(spacing: 10) {
+      ProgressView()
+        .controlSize(.small)
+        .accessibilityHidden(true)
+      Text(L10n.RecordingToolbar.preparingRecording)
+        .font(.system(size: 13, weight: .medium))
+    }
+    .padding(.horizontal, 14)
+    .padding(.vertical, 9)
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel(L10n.RecordingToolbar.preparingRecording)
+
+    setContent(AnyView(view))
+    showBelowRect(anchorRect)
+  }
+
   // MARK: - Visibility
 
   @objc private func hoverBarVisibilityPreferenceChanged() {

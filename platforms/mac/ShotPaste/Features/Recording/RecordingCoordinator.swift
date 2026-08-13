@@ -20,6 +20,9 @@ final class RecordingCoordinator: ObservableObject {
   private var selectedRect: CGRect?
   private let recorder = ScreenRecordingManager.shared
   private var isStartingRecording = false
+  private var isStoppingRecording = false
+  private var pendingStopCompletions: [(Bool) -> Void] = []
+  private var discardsOutputWhenStopCompletes = false
   private var localEscapeMonitor: Any?
   private var globalEscapeMonitor: Any?
   private var onSessionEnded: (@MainActor () -> Void)?
@@ -87,6 +90,51 @@ final class RecordingCoordinator: ObservableObject {
   }
 
   // MARK: - Public API
+
+  var requiresTerminationHandling: Bool {
+    isActive || isStoppingRecording
+  }
+
+  var hasRecordedContent: Bool {
+    recorder.state == .recording || recorder.state == .paused || recorder.state == .stopping
+  }
+
+  func stopForApplicationTermination(completion: @escaping (Bool) -> Void) {
+    switch recorder.state {
+    case .recording, .paused, .stopping:
+      stopRecording(completion: completion)
+    case .preparing:
+      Task {
+        _ = await recorder.cancelRecording()
+        cleanup()
+        completion(true)
+      }
+    case .idle:
+      if isStoppingRecording {
+        pendingStopCompletions.append(completion)
+      } else {
+        cleanup()
+        completion(true)
+      }
+    }
+  }
+
+  func discardForApplicationTermination(completion: @escaping (Bool) -> Void) {
+    if isStoppingRecording || recorder.state == .stopping {
+      discardsOutputWhenStopCompletes = true
+      pendingStopCompletions.append(completion)
+      return
+    }
+
+    Task {
+      let outcome = await recorder.cancelRecording(moveOutputToTrash: true)
+      cleanup()
+      if case .preserved(let url) = outcome {
+        presentPreservedRecording(at: url)
+      }
+      completion(outcome.succeeded)
+    }
+  }
 
   func stopFromStatusItem() {
     DiagnosticLogger.shared.log(.debug, .recording, "Stop requested from status item", context: [
@@ -193,7 +241,7 @@ final class RecordingCoordinator: ObservableObject {
       "recorderState": "\(recorder.state)",
     ])
     Task {
-      await recorder.cancelRecording()
+      _ = await recorder.cancelRecording()
       cleanup()
     }
   }
@@ -243,6 +291,21 @@ final class RecordingCoordinator: ObservableObject {
     toolbar.state.dimNonSelectedArea = configuration.dimNonSelectedArea
   }
 
+  private func toolbarConfiguration(from window: RecordingToolbarWindow) -> ToolbarConfiguration {
+    ToolbarConfiguration(
+      format: window.selectedFormat,
+      quality: window.selectedQuality,
+      captureAudio: window.captureAudio,
+      captureMicrophone: window.captureMicrophone,
+      microphoneDeviceID: window.microphoneDeviceID,
+      outputMode: window.outputMode,
+      showCursor: window.state.showCursor,
+      highlightClicks: window.state.highlightClicks,
+      showKeystrokes: window.state.showKeystrokes,
+      dimNonSelectedArea: window.state.dimNonSelectedArea
+    )
+  }
+
   private func closeRecordingUI() {
     for overlay in regionOverlayWindows {
       overlay.close()
@@ -262,9 +325,19 @@ final class RecordingCoordinator: ObservableObject {
     DiagnosticLogger.shared.log(.info, .recording, "Recording delete requested", context: [
       "recorderState": "\(recorder.state)",
     ])
+    guard confirmDestructiveRecordingAction(
+      title: L10n.Recording.deleteConfirmationTitle,
+      message: L10n.Recording.deleteConfirmationMessage,
+      actionTitle: L10n.Common.moveToTrash
+    ) else { return }
+
     Task {
-      await recorder.cancelRecording()
-      SoundManager.play("Funk")
+      let outcome = await recorder.cancelRecording(moveOutputToTrash: true)
+      if outcome.succeeded {
+        SoundManager.play("Funk")
+      } else if case .preserved(let url) = outcome {
+        presentPreservedRecording(at: url)
+      }
       cleanup()
     }
   }
@@ -276,25 +349,55 @@ final class RecordingCoordinator: ObservableObject {
       return
     }
 
-    let savedFormat = window.selectedFormat
-    let savedQuality = window.selectedQuality
-    let savedCaptureAudio = window.captureAudio
-    let savedCaptureMicrophone = window.captureMicrophone
-    let savedMicrophoneDeviceID = window.microphoneDeviceID
-    let savedShowCursor = window.state.showCursor
+    guard confirmDestructiveRecordingAction(
+      title: L10n.Recording.restartConfirmationTitle,
+      message: L10n.Recording.restartConfirmationMessage,
+      actionTitle: L10n.RecordingToolbar.restartRecording
+    ) else { return }
+
+    let configuration = toolbarConfiguration(from: window)
     DiagnosticLogger.shared.log(.info, .recording, "Recording restart requested", context: [
-      "format": savedFormat.rawValue,
-      "quality": savedQuality.rawValue,
-      "systemAudio": "\(savedCaptureAudio)",
-      "microphone": "\(savedCaptureMicrophone)",
-      "microphoneDevice": savedMicrophoneDeviceID,
-      "showCursor": "\(savedShowCursor)",
+      "format": configuration.format.rawValue,
+      "quality": configuration.quality.rawValue,
+      "systemAudio": "\(configuration.captureAudio)",
+      "microphone": "\(configuration.captureMicrophone)",
+      "microphoneDevice": configuration.microphoneDeviceID,
+      "showCursor": "\(configuration.showCursor)",
       "rect": "\(Int(rect.width))x\(Int(rect.height))",
     ])
 
+    guard let saveDirectory = resolveSaveDirectoryForOperation() else {
+      DiagnosticLogger.shared.log(.warning, .recording, "Recording restart blocked: no save directory access")
+      showSaveLocationPermissionAlert()
+      return
+    }
+
+    let savePlan: RecordingSavePlan
+    do {
+      savePlan = try tempCaptureManager.makeRecordingSavePlan(exportDirectory: saveDirectory)
+    } catch {
+      DiagnosticLogger.shared.logError(.recording, error, "Recording restart preflight failed")
+      _ = showErrorAlert(.setupFailed(error.localizedDescription))
+      return
+    }
+
+    window.state.isPreparingToRecord = true
+    window.showPreparationStatus()
+    cleanupAnnotationOverlay()
+    cleanupClickHighlightOverlay()
+    cleanupKeystrokeOverlay()
+
     Task {
       // Cancel current recording
-      await recorder.cancelRecording()
+      let cancellationOutcome = await recorder.cancelRecording(moveOutputToTrash: true)
+      guard cancellationOutcome.succeeded else {
+        self.tempCaptureManager.deleteRecordingProcessingDirectory(savePlan.processingDirectory)
+        if case .preserved(let url) = cancellationOutcome {
+          self.presentPreservedRecording(at: url)
+        }
+        self.cleanup()
+        return
+      }
 
       // Small delay to ensure cleanup completes
       try? await Task.sleep(nanoseconds: 100_000_000) // 0.1s
@@ -306,27 +409,24 @@ final class RecordingCoordinator: ObservableObject {
           fps = 30
         }
 
-        guard let saveDirectory = self.resolveSaveDirectoryForOperation() else {
-          DiagnosticLogger.shared.log(.warning, .recording, "Recording restart blocked: no save directory access")
-          self.showSaveLocationPermissionAlert()
+        guard self.beginRecordingStartAttempt(source: "restart") else {
+          self.tempCaptureManager.deleteRecordingProcessingDirectory(savePlan.processingDirectory)
+          self.cleanup()
           return
         }
+        self.applyToolbarConfiguration(configuration, to: window)
 
         let exclusionConfig = self.recordingCaptureExclusionConfiguration()
 
-        let savePlan = try self.tempCaptureManager.makeRecordingSavePlan(
-          exportDirectory: saveDirectory
-        )
-
         try await recorder.prepareRecording(
           rect: rect,
-          format: savedFormat,
-          quality: savedQuality,
+          format: configuration.format,
+          quality: configuration.quality,
           fps: fps,
-          captureSystemAudio: savedCaptureAudio,
-          captureMicrophone: savedCaptureMicrophone,
-          microphoneDeviceID: savedMicrophoneDeviceID,
-          showCursor: savedShowCursor,
+          captureSystemAudio: configuration.captureAudio,
+          captureMicrophone: configuration.captureMicrophone,
+          microphoneDeviceID: configuration.microphoneDeviceID,
+          showCursor: configuration.showCursor,
           saveDirectory: savePlan.finalDirectory,
           processingDirectory: savePlan.processingDirectory,
           excludeDesktopIcons: DesktopIconManager.shared.isIconHidingEnabled,
@@ -338,6 +438,16 @@ final class RecordingCoordinator: ObservableObject {
 
         try await recorder.startRecording()
         removeEscapeMonitors()
+        for overlay in regionOverlayWindows {
+          overlay.hideBorder()
+          overlay.setInteractionEnabled(false)
+          overlay.setDimEnabled(configuration.dimNonSelectedArea)
+        }
+        setupAnnotationOverlay(for: rect)
+        setupClickHighlightOverlay(for: rect)
+        setupKeystrokeOverlay(for: rect)
+        window.showRecordingStatusBar(recorder: recorder, visible: isHoverBarVisiblePreference)
+        finishRecordingStartAttempt()
         DiagnosticLogger.shared.log(.info, .recording, "Recording restart completed")
 
         // Play sound to indicate restart
@@ -345,16 +455,47 @@ final class RecordingCoordinator: ObservableObject {
 
       } catch let error as RecordingError {
         DiagnosticLogger.shared.logError(.recording, error, "Recording restart failed")
+        finishRecordingStartAttempt()
         if !showErrorAlert(error) {
           cancel()
         }
       } catch {
         DiagnosticLogger.shared.logError(.recording, error, "Recording restart failed (generic)")
+        finishRecordingStartAttempt()
         if !showErrorAlert(.setupFailed(error.localizedDescription)) {
           cancel()
         }
       }
     }
+  }
+
+  private func confirmDestructiveRecordingAction(
+    title: String,
+    message: String,
+    actionTitle: String
+  ) -> Bool {
+    guard recorder.state == .recording || recorder.state == .paused else {
+      return recorder.state == .preparing
+    }
+
+    NSApp.activate(ignoringOtherApps: true)
+    let alert = NSAlert()
+    alert.messageText = title
+    alert.informativeText = message
+    alert.alertStyle = .warning
+    alert.addButton(withTitle: actionTitle)
+    alert.addButton(withTitle: L10n.Common.cancel)
+    return alert.runModal() == .alertFirstButtonReturn
+  }
+
+  private func presentPreservedRecording(at url: URL) {
+    AppToastManager.shared.show(
+      message: L10n.Recording.trashFailedPreserved(url.path),
+      style: .error,
+      position: .bottomCenter,
+      duration: 6
+    )
+    NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
   }
 
   // MARK: - Private
@@ -622,7 +763,17 @@ final class RecordingCoordinator: ObservableObject {
     }
   }
 
-  private func stopRecording() {
+  private func stopRecording(completion: ((Bool) -> Void)? = nil) {
+    if let completion {
+      pendingStopCompletions.append(completion)
+    }
+    guard !isStoppingRecording else { return }
+    guard recorder.state == .recording || recorder.state == .paused else {
+      resolveStopCompletions(succeeded: false)
+      return
+    }
+    isStoppingRecording = true
+
     // Capture output mode before cleanup closes the toolbar
     let outputMode = toolbarWindow?.state.outputMode ?? .video
 
@@ -634,23 +785,73 @@ final class RecordingCoordinator: ObservableObject {
       ])
       if url == nil {
         DiagnosticLogger.shared.log(.warning, .recording, "Recording stop completed without output URL")
+        _ = showErrorAlert(.writeFailed(L10n.Recording.noOutputURL))
       }
 
       // Dismiss recording UI immediately (status bar, area overlay, etc.)
       cleanup()
 
+      var completionSucceeded = url != nil
       if let url {
-        // Play sound
-        SoundManager.play("Glass")
-
-        if outputMode == .gif {
-          // GIF mode: add to QuickAccess immediately with processing state
-          await handleGIFConversion(videoURL: url)
+        if discardsOutputWhenStopCompletes {
+          completionSucceeded = moveCompletedRecordingToTrash(url)
         } else {
-          // Video mode: normal post-capture flow
-          await PostCaptureActionHandler.shared.handleVideoCapture(url: url)
+          // Play sound
+          SoundManager.play("Glass")
+
+          if outputMode == .gif {
+            // GIF mode: add to QuickAccess immediately with processing state
+            await handleGIFConversion(videoURL: url)
+          } else {
+            // Video mode: normal post-capture flow
+            await PostCaptureActionHandler.shared.handleVideoCapture(url: url)
+          }
         }
       }
+
+      discardsOutputWhenStopCompletes = false
+      isStoppingRecording = false
+      resolveStopCompletions(succeeded: completionSucceeded)
+    }
+  }
+
+  private func moveCompletedRecordingToTrash(_ url: URL) -> Bool {
+    let fileAccess = SandboxFileAccessManager.shared.beginAccessingURL(url)
+    let directoryAccess = SandboxFileAccessManager.shared.beginAccessingURL(url.deletingLastPathComponent())
+    defer { fileAccess.stop() }
+    defer { directoryAccess.stop() }
+
+    do {
+      if FileManager.default.fileExists(atPath: url.path) {
+        try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+      }
+      _ = CaptureHistoryStore.shared.removeByFilePath(url.path)
+      try? RecordingMetadataStore.delete(for: url)
+      SoundManager.play("Funk")
+      DiagnosticLogger.shared.log(
+        .info,
+        .recording,
+        "Completed recording moved to Trash during termination",
+        context: ["file": url.lastPathComponent]
+      )
+      return true
+    } catch {
+      DiagnosticLogger.shared.logError(
+        .recording,
+        error,
+        "Completed recording could not be moved to Trash during termination",
+        context: ["file": url.lastPathComponent]
+      )
+      presentPreservedRecording(at: url)
+      return false
+    }
+  }
+
+  private func resolveStopCompletions(succeeded: Bool) {
+    let completions = pendingStopCompletions
+    pendingStopCompletions.removeAll()
+    for completion in completions {
+      completion(succeeded)
     }
   }
 
@@ -788,6 +989,7 @@ final class RecordingCoordinator: ObservableObject {
 
     isStartingRecording = true
     toolbarWindow?.state.isPreparingToRecord = true
+    toolbarWindow?.showPreparationStatus()
     return true
   }
 
@@ -873,7 +1075,8 @@ final class RecordingCoordinator: ObservableObject {
   // MARK: - Click Highlight Overlay
 
   private func setupClickHighlightOverlay(for rect: CGRect) {
-    let isEnabled = UserDefaults.standard.object(forKey: PreferencesKeys.recordingHighlightClicks) as? Bool ?? false
+    let isEnabled = toolbarWindow?.state.highlightClicks
+      ?? (UserDefaults.standard.object(forKey: PreferencesKeys.recordingHighlightClicks) as? Bool ?? false)
     guard isEnabled else {
       DiagnosticLogger.shared.log(.debug, .recording, "Click highlight overlay disabled")
       return
@@ -919,7 +1122,8 @@ final class RecordingCoordinator: ObservableObject {
   // MARK: - Keystroke Overlay
 
   private func setupKeystrokeOverlay(for rect: CGRect) {
-    let isEnabled = UserDefaults.standard.object(forKey: PreferencesKeys.recordingShowKeystrokes) as? Bool ?? false
+    let isEnabled = toolbarWindow?.state.showKeystrokes
+      ?? (UserDefaults.standard.object(forKey: PreferencesKeys.recordingShowKeystrokes) as? Bool ?? false)
     guard isEnabled else {
       DiagnosticLogger.shared.log(.debug, .recording, "Keystroke overlay disabled")
       return

@@ -1,10 +1,12 @@
 using System.Windows;
 using Drawing = System.Drawing;
+using WpfPoint = System.Windows.Point;
 using WpfSize = System.Windows.Size;
 
 namespace ShotPaste.Windows.Services;
 
 public readonly record struct SelectionDimRegions(Rect Top, Rect Left, Rect Right, Rect Bottom);
+public readonly record struct SelectionSizeBadgePlacement(WpfPoint Origin, bool IsInsideSelection);
 
 public static class SelectionOverlayGeometry
 {
@@ -56,6 +58,43 @@ public static class SelectionOverlayGeometry
             new Rect(0, rect.Top, Math.Max(0, rect.Left), rect.Height),
             new Rect(rect.Right, rect.Top, Math.Max(0, full.Width - rect.Right), rect.Height),
             new Rect(0, rect.Bottom, full.Width, Math.Max(0, full.Height - rect.Bottom)));
+    }
+
+    public static SelectionSizeBadgePlacement GetSizeBadgePlacement(
+        Rect selection,
+        WpfSize badgeSize,
+        Rect screenBounds,
+        double screenInset = 8,
+        double outsideGap = 8,
+        double insideInset = 4)
+    {
+        if (selection.Width <= 0 || selection.Height <= 0 ||
+            badgeSize.Width <= 0 || badgeSize.Height <= 0 ||
+            screenBounds.Width <= 0 || screenBounds.Height <= 0)
+            return new SelectionSizeBadgePlacement(screenBounds.TopLeft, false);
+
+        var visibleSelection = Rect.Intersect(selection, screenBounds);
+        if (visibleSelection.IsEmpty) visibleSelection = selection;
+
+        var safeLeft = screenBounds.Left + screenInset;
+        var safeTop = screenBounds.Top + screenInset;
+        var safeRight = Math.Max(safeLeft + badgeSize.Width, screenBounds.Right - screenInset);
+        var safeBottom = Math.Max(safeTop + badgeSize.Height, screenBounds.Bottom - screenInset);
+        var outside = new WpfPoint(
+            visibleSelection.Left,
+            visibleSelection.Top - badgeSize.Height - outsideGap);
+        var outsideFits = outside.X >= safeLeft &&
+                          outside.Y >= safeTop &&
+                          outside.X + badgeSize.Width <= safeRight &&
+                          outside.Y + badgeSize.Height <= safeBottom;
+        if (outsideFits) return new SelectionSizeBadgePlacement(outside, false);
+
+        var inside = new WpfPoint(
+            visibleSelection.Left + insideInset,
+            visibleSelection.Top + insideInset);
+        inside.X = Math.Clamp(inside.X, safeLeft, Math.Max(safeLeft, safeRight - badgeSize.Width));
+        inside.Y = Math.Clamp(inside.Y, safeTop, Math.Max(safeTop, safeBottom - badgeSize.Height));
+        return new SelectionSizeBadgePlacement(inside, true);
     }
 
     private static Rect Clamp(Rect value, WpfSize bounds)

@@ -19,8 +19,6 @@ enum AnnotationFactory {
     var arrowEndHead: ArrowEndpointStyle = .arrow
     var blurType: BlurType
     var counterValue: Int
-    var watermarkText: String
-    var activeAnnotationBounds: CGRect
   }
 
   static func createAnnotation(
@@ -43,9 +41,7 @@ enum AnnotationFactory {
         arrowStartHead: state.arrowStartHead,
         arrowEndHead: state.arrowEndHead,
         blurType: state.blurType,
-        counterValue: state.nextCounterValue(),
-        watermarkText: state.watermarkText,
-        activeAnnotationBounds: state.activeAnnotationBounds
+        counterValue: state.nextCounterValue()
       )
     )
   }
@@ -118,11 +114,7 @@ enum AnnotationFactory {
     case .counter:
       type = .counter(context.counterValue)
 
-    case .watermark:
-      let text = context.watermarkText.trimmingCharacters(in: .whitespacesAndNewlines)
-      type = .watermark(text.isEmpty ? "ShotPaste" : text)
-
-    case .selection, .crop, .text, .mockup:
+    case .selection, .text:
       return nil
     }
 
@@ -138,18 +130,6 @@ enum AnnotationFactory {
         y: start.y - diameter / 2,
         width: diameter,
         height: diameter
-      )
-    case .watermark:
-      let drawnBounds = CGRect(
-        x: min(start.x, end.x),
-        y: min(start.y, end.y),
-        width: abs(end.x - start.x),
-        height: abs(end.y - start.y)
-      )
-      bounds = watermarkBounds(
-        drawnBounds: drawnBounds,
-        center: start,
-        canvasBounds: context.activeAnnotationBounds
       )
     case .highlight(let points):
       bounds = pathBounds(containing: points) ?? normalizedBounds(CGRect(
@@ -167,24 +147,6 @@ enum AnnotationFactory {
       )
     }
     return AnnotationItem(type: annotationType, bounds: bounds, properties: properties)
-  }
-
-  private static func watermarkBounds(
-    drawnBounds: CGRect,
-    center: CGPoint,
-    canvasBounds: CGRect
-  ) -> CGRect {
-    guard drawnBounds.width >= 24, drawnBounds.height >= 24 else {
-      let width = min(max(canvasBounds.width * 0.42, 220), max(canvasBounds.width, 1))
-      let height = min(max(canvasBounds.height * 0.18, 72), max(canvasBounds.height, 1))
-      let origin = CGPoint(
-        x: min(max(center.x - width / 2, canvasBounds.minX), max(canvasBounds.maxX - width, canvasBounds.minX)),
-        y: min(max(center.y - height / 2, canvasBounds.minY), max(canvasBounds.maxY - height, canvasBounds.minY))
-      )
-      return CGRect(origin: origin, size: CGSize(width: width, height: height))
-    }
-
-    return drawnBounds.standardized
   }
 
   private static func normalizedHighlighterPath(_ path: [CGPoint], strokeWidth: CGFloat) -> [CGPoint] {

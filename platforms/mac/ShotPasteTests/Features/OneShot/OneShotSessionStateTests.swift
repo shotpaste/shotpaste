@@ -51,6 +51,22 @@ final class OneShotSessionStateTests: XCTestCase {
     XCTAssertTrue(state.showsTopSwitcher)
   }
 
+  func testOneShotGuidancePolicyPresentsOncePerVersion() throws {
+    let suiteName = "ShotPasteTests.OneShotGuidance.\(UUID().uuidString)"
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+    defaults.removePersistentDomain(forName: suiteName)
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+
+    let policy = OneShotGuidancePolicy(defaults: defaults)
+
+    XCTAssertTrue(policy.consumePresentationIfNeeded())
+    XCTAssertEqual(
+      defaults.integer(forKey: PreferencesKeys.oneShotGuidancePresentedVersion),
+      OneShotGuidancePolicy.currentVersion
+    )
+    XCTAssertFalse(policy.consumePresentationIfNeeded())
+  }
+
   func testAutomationCanPreselectScrollingOrRecordingWhenArming() {
     for initialTab in [OneShotTab.scrolling, .recording] {
       let state = OneShotSessionState(

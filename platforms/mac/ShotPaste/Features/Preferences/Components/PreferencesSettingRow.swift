@@ -20,6 +20,7 @@ struct SettingRow<Content: View>: View {
         .font(.title2)
         .foregroundColor(.secondary)
         .frame(width: 28)
+        .accessibilityHidden(true)
 
       VStack(alignment: .leading, spacing: 2) {
         if let tooltip {
@@ -43,7 +44,10 @@ struct SettingRow<Content: View>: View {
       Spacer()
       content()
         .fixedSize(horizontal: true, vertical: false)
+        .accessibilityLabel(title)
+        .accessibilityHint(description ?? "")
     }
     .padding(.vertical, 4)
+    .accessibilityElement(children: .contain)
   }
 }

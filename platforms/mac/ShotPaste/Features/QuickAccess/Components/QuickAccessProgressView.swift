@@ -25,6 +25,22 @@ struct QuickAccessProgressView: View {
       // Progress indicator
       progressContent
     }
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(L10n.Common.status)
+    .accessibilityValue(accessibilityValue)
+  }
+
+  private var accessibilityValue: String {
+    switch state {
+    case .idle:
+      L10n.Common.done
+    case .processing(let progress):
+      progress.map { "\(Int(min(max($0, 0), 1) * 100))%" } ?? L10n.Common.status
+    case .complete:
+      L10n.Common.done
+    case .failed:
+      L10n.Recording.failedTitle
+    }
   }
 
   @ViewBuilder

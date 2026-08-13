@@ -2081,6 +2081,136 @@
         }
       }
     },
+    "preferences-quick-access.no-items-for-keyboard-focus": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nimm zuerst etwas auf, um den Schnellzugriff zu verwenden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capture something first to use Quick Access."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haz una captura primero para usar Acceso rápido."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effectuez d’abord une capture pour utiliser Accès rapide."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クイックアクセスを使うには、まずキャプチャしてください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "빠른 액세스를 사용하려면 먼저 캡처하세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сначала сделайте снимок, чтобы использовать быстрый доступ."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hãy chụp nội dung trước để dùng Truy cập nhanh."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先截取内容，再使用快速访问。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請先截取內容，再使用快速取用。"
+          }
+        }
+      }
+    },
+    "preferences-quick-access.keyboard-focus-hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit Pfeiltasten oder Tab wechseln, mit Return öffnen, mit ⌘C kopieren, mit ⌘S speichern und mit Esc beenden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use arrow keys or Tab to move, Return to open, ⌘C to copy, ⌘S to save, and Esc to exit."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa las flechas o Tab para moverte, Retorno para abrir, ⌘C para copiar, ⌘S para guardar y Esc para salir."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utilisez les flèches ou Tab pour naviguer, Retour pour ouvrir, ⌘C pour copier, ⌘S pour enregistrer et Échap pour quitter."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "矢印キーまたはTabで移動し、Returnで開く、⌘Cでコピー、⌘Sで保存、Escで終了します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화살표 키 또는 Tab으로 이동하고 Return으로 열기, ⌘C로 복사, ⌘S로 저장, Esc로 종료하세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перемещайтесь стрелками или Tab, открывайте клавишей Return, копируйте ⌘C, сохраняйте ⌘S и выходите Esc."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dùng phím mũi tên hoặc Tab để di chuyển, Return để mở, ⌘C để sao chép, ⌘S để lưu và Esc để thoát."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用方向键或 Tab 移动，Return 打开，⌘C 复制，⌘S 保存，Esc 退出。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用方向鍵或 Tab 移動，Return 開啟，⌘C 複製，⌘S 儲存，Esc 退出。"
+          }
+        }
+      }
+    },
     "preferences-quick-access.section-position": {
       "extractionState": "stale",
       "localizations": {

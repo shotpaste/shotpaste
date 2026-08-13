@@ -10,7 +10,6 @@ import Foundation
 /// Tool types available in annotation editor
 nonisolated enum AnnotationToolType: String, CaseIterable, Identifiable {
   case selection
-  case crop
   case rectangle
   case filledRectangle
   case oval
@@ -21,9 +20,7 @@ nonisolated enum AnnotationToolType: String, CaseIterable, Identifiable {
   case blur
   case spotlight
   case counter
-  case watermark
   case pencil
-  case mockup
 
   var id: String {
     rawValue
@@ -40,7 +37,6 @@ nonisolated enum AnnotationToolType: String, CaseIterable, Identifiable {
   var icon: String {
     switch self {
     case .selection: "cursorarrow"
-    case .crop: "crop"
     case .rectangle: "rectangle"
     case .filledRectangle: "rectangle.fill"
     case .oval: "circle"
@@ -51,9 +47,7 @@ nonisolated enum AnnotationToolType: String, CaseIterable, Identifiable {
     case .blur: "square.grid.3x3.fill"
     case .spotlight: "viewfinder"
     case .counter: "list.number"
-    case .watermark: "seal"
     case .pencil: "pencil"
-    case .mockup: "cube.transparent"
     }
   }
 
@@ -61,7 +55,6 @@ nonisolated enum AnnotationToolType: String, CaseIterable, Identifiable {
   var displayName: String {
     switch self {
     case .selection: L10n.Annotate.selectionTool
-    case .crop: L10n.Annotate.cropTool
     case .rectangle: L10n.Annotate.rectangleTool
     case .filledRectangle: L10n.Annotate.filledRectangleTool
     case .oval: L10n.Annotate.ovalTool
@@ -72,18 +65,16 @@ nonisolated enum AnnotationToolType: String, CaseIterable, Identifiable {
     case .blur: L10n.Annotate.blurTool
     case .spotlight: L10n.Annotate.spotlightTool
     case .counter: L10n.Annotate.counterTool
-    case .watermark: L10n.Annotate.watermarkTool
     case .pencil: L10n.Annotate.pencilTool
-    case .mockup: L10n.Annotate.mockupTool
     }
   }
 
   var supportsQuickPropertiesBar: Bool {
     switch self {
     case .rectangle, .filledRectangle, .oval, .arrow, .line, .text, .highlighter, .blur, .spotlight, .counter,
-         .watermark, .pencil:
+         .pencil:
       true
-    case .selection, .crop, .mockup:
+    case .selection:
       false
     }
   }
@@ -93,18 +84,18 @@ nonisolated enum AnnotationToolType: String, CaseIterable, Identifiable {
   /// flow, and freehand tools keep their existing path-count behavior.
   var requiresDragToCreateAnnotation: Bool {
     switch self {
-    case .rectangle, .filledRectangle, .oval, .arrow, .line, .blur, .spotlight, .watermark:
+    case .rectangle, .filledRectangle, .oval, .arrow, .line, .blur, .spotlight:
       true
-    case .selection, .crop, .text, .highlighter, .counter, .pencil, .mockup:
+    case .selection, .text, .highlighter, .counter, .pencil:
       false
     }
   }
 
   var supportsQuickStrokeColor: Bool {
     switch self {
-    case .rectangle, .filledRectangle, .oval, .arrow, .line, .text, .highlighter, .counter, .watermark, .pencil:
+    case .rectangle, .filledRectangle, .oval, .arrow, .line, .text, .highlighter, .counter, .pencil:
       true
-    case .selection, .crop, .blur, .spotlight, .mockup:
+    case .selection, .blur, .spotlight:
       false
     }
   }
@@ -117,7 +108,7 @@ nonisolated enum AnnotationToolType: String, CaseIterable, Identifiable {
     switch self {
     case .rectangle, .filledRectangle, .oval, .arrow, .line, .highlighter, .blur, .counter, .pencil:
       true
-    case .selection, .crop, .text, .watermark, .spotlight, .mockup:
+    case .selection, .text, .spotlight:
       false
     }
   }
@@ -126,7 +117,7 @@ nonisolated enum AnnotationToolType: String, CaseIterable, Identifiable {
     switch self {
     case .rectangle, .filledRectangle, .text, .spotlight:
       true
-    case .selection, .crop, .oval, .arrow, .line, .highlighter, .blur, .counter, .watermark, .pencil, .mockup:
+    case .selection, .oval, .arrow, .line, .highlighter, .blur, .counter, .pencil:
       false
     }
   }

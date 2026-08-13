@@ -6,13 +6,45 @@
 //
 
 import AppKit
-import Carbon.HIToolbox
 
 extension Notification.Name {
   static let historyCopySelection = Notification.Name("historyCopySelection")
   static let historyActivateSelection = Notification.Name("historyActivateSelection")
   static let historyDeleteSelection = Notification.Name("historyDeleteSelection")
   static let historySelectAll = Notification.Name("historySelectAll")
+  static let historyMoveSelection = Notification.Name("historyMoveSelection")
+}
+
+enum HistorySelectionMove {
+  case left
+  case right
+  case up
+  case down
+}
+
+enum HistorySelectionNavigation {
+  static func destinationIndex(
+    from currentIndex: Int,
+    move: HistorySelectionMove,
+    itemCount: Int,
+    columnCount: Int
+  ) -> Int? {
+    guard itemCount > 0 else { return nil }
+    let safeColumnCount = max(columnCount, 1)
+    let delta: Int = switch move {
+    case .left: -1
+    case .right: 1
+    case .up: -safeColumnCount
+    case .down: safeColumnCount
+    }
+    return min(max(currentIndex + delta, 0), itemCount - 1)
+  }
+}
+
+struct HistoryDeletionResult: Equatable {
+  let requestedCount: Int
+  let deletedCount: Int
+  let failedCount: Int
 }
 
 final class HistoryWindow: NSWindow {
@@ -41,25 +73,13 @@ final class HistoryWindow: NSWindow {
       return true
     }
 
-    if HistoryFloatingManager.shared.isToggleModeShortcutEnabled,
-       let toggleShortcut = HistoryFloatingManager.shared.toggleModeShortcut,
-       let eventShortcut = ShortcutConfig(from: event) {
-      if eventShortcut.keyCode == toggleShortcut.keyCode, eventShortcut.modifiers == toggleShortcut.modifiers {
-        if isTextInputActive {
-          return super.performKeyEquivalent(with: event)
-        }
-        HistoryFloatingManager.shared.togglePresentationMode()
-        return true
-      }
-    }
-
     return super.performKeyEquivalent(with: event)
   }
 
   override func keyDown(with event: NSEvent) {
     let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
 
-    if !isTextInputActive, flags.isEmpty, event.keyCode == 51 || event.keyCode == 117 {
+    if !isTextInputActive, flags.isEmpty, [51, 117].contains(event.keyCode) {
       NotificationCenter.default.post(name: .historyDeleteSelection, object: self)
       return
     }
@@ -187,9 +207,13 @@ final class HistoryWindowController {
   }
 
   @discardableResult
-  func deleteRecords(_ records: [CaptureHistoryRecord], asksConfirmation: Bool) -> Int {
+  func deleteRecords(
+    _ records: [CaptureHistoryRecord],
+    asksConfirmation: Bool,
+    completion: ((HistoryDeletionResult) -> Void)? = nil
+  ) -> Bool {
     let recordsToDelete = uniqueRecords(records)
-    guard !recordsToDelete.isEmpty else { return 0 }
+    guard !recordsToDelete.isEmpty else { return false }
 
     if asksConfirmation {
       let isConfirmed = HistoryFloatingManager.shared.performModalInteraction {
@@ -202,54 +226,109 @@ final class HistoryWindowController {
           "History delete cancelled by user",
           context: ["recordCount": "\(recordsToDelete.count)"]
         )
-        return 0
+        return false
       }
     }
 
-    let scopedAccesses = recordsToDelete.map {
-      SandboxFileAccessManager.shared.beginAccessingURL($0.fileURL)
-    }
-    defer {
-      scopedAccesses.forEach { $0.stop() }
-    }
+    Task { @MainActor in
+      var recyclableRecords: [CaptureHistoryRecord] = []
+      var recordIDsReadyForRemoval: [UUID] = []
 
-    let existingFileURLs = recordsToDelete
-      .filter { FileManager.default.fileExists(atPath: $0.filePath) }
-      .map(\.fileURL)
+      for record in recordsToDelete {
+        guard FileManager.default.fileExists(atPath: record.filePath) else {
+          recordIDsReadyForRemoval.append(record.id)
+          continue
+        }
 
-    if !existingFileURLs.isEmpty {
-      NSWorkspace.shared.recycle(existingFileURLs) { _, error in
-        guard let error else { return }
-        DiagnosticLogger.shared.logError(
-          .fileAccess,
-          error,
-          "History recycle files failed",
-          context: ["fileCount": "\(existingFileURLs.count)"]
+        let fileAccess = SandboxFileAccessManager.shared.beginAccessingURL(record.fileURL)
+        let directoryAccess = SandboxFileAccessManager.shared.beginAccessingURL(
+          record.fileURL.deletingLastPathComponent()
+        )
+        let recycleError = await recycleFile(record.fileURL)
+        fileAccess.stop()
+        directoryAccess.stop()
+
+        if let recycleError {
+          DiagnosticLogger.shared.logError(
+            .fileAccess,
+            recycleError,
+            "History recycle file failed",
+            context: ["fileName": record.fileName]
+          )
+        } else {
+          recyclableRecords.append(record)
+          recordIDsReadyForRemoval.append(record.id)
+        }
+      }
+
+      let removedCount = CaptureHistoryStore.shared.remove(ids: recordIDsReadyForRemoval)
+      let failedCount = recordsToDelete.count - removedCount
+
+      if removedCount > 0 {
+        AppToastManager.shared.show(
+          message: L10n.PreferencesHistory.deletedCaptures(removedCount),
+          style: failedCount == 0 ? .success : .warning,
+          duration: 1.7,
+          variant: .compact
         )
       }
+      if failedCount > 0 {
+        AppToastManager.shared.show(
+          message: L10n.PreferencesHistory.deleteFailed(failedCount),
+          style: .error,
+          duration: 4
+        )
+      }
+
+      DiagnosticLogger.shared.log(
+        failedCount == 0 ? .info : .warning,
+        .history,
+        "History deletion transaction completed",
+        context: [
+          "requestedCount": "\(recordsToDelete.count)",
+          "removedCount": "\(removedCount)",
+          "failedCount": "\(failedCount)",
+          "recycledFileCount": "\(recyclableRecords.count)",
+        ]
+      )
+      completion?(HistoryDeletionResult(
+        requestedCount: recordsToDelete.count,
+        deletedCount: removedCount,
+        failedCount: failedCount
+      ))
+    }
+    return true
+  }
+
+  @discardableResult
+  func clearAllRecords(
+    completion: ((HistoryDeletionResult) -> Void)? = nil
+  ) -> Bool {
+    let records = CaptureHistoryStore.shared.records
+    guard !records.isEmpty else { return false }
+
+    let isConfirmed = HistoryFloatingManager.shared.performModalInteraction {
+      confirmClearAllHistory()
+    }
+    guard isConfirmed else {
+      DiagnosticLogger.shared.log(
+        .debug,
+        .history,
+        "Clear all history cancelled by user",
+        context: ["recordCount": "\(records.count)"]
+      )
+      return false
     }
 
-    let ids = recordsToDelete.map(\.id)
-    CaptureHistoryStore.shared.remove(ids: ids)
-    ids.forEach { HistoryThumbnailGenerator.shared.deleteThumbnail(for: $0) }
+    return deleteRecords(records, asksConfirmation: false, completion: completion)
+  }
 
-    AppToastManager.shared.show(
-      message: L10n.PreferencesHistory.deletedCaptures(recordsToDelete.count),
-      style: .success,
-      duration: 1.7,
-      variant: .compact
-    )
-
-    DiagnosticLogger.shared.log(
-      .info,
-      .history,
-      "History records deleted",
-      context: [
-        "recordCount": "\(recordsToDelete.count)",
-        "fileCount": "\(existingFileURLs.count)",
-      ]
-    )
-    return recordsToDelete.count
+  private func recycleFile(_ url: URL) async -> Error? {
+    await withCheckedContinuation { continuation in
+      NSWorkspace.shared.recycle([url]) { _, error in
+        continuation.resume(returning: error)
+      }
+    }
   }
 
   private func uniqueRecords(_ records: [CaptureHistoryRecord]) -> [CaptureHistoryRecord] {
@@ -264,7 +343,18 @@ final class HistoryWindowController {
     alert.messageText = L10n.PreferencesHistory.deleteSelectedAlertTitle
     alert.informativeText = L10n.PreferencesHistory.deleteSelectedAlertMessage(records.count)
     alert.alertStyle = .warning
-    alert.addButton(withTitle: L10n.Common.deleteAction)
+    alert.addButton(withTitle: L10n.Common.moveToTrash)
+    alert.addButton(withTitle: L10n.Common.cancel)
+
+    return alert.runModal() == .alertFirstButtonReturn
+  }
+
+  private func confirmClearAllHistory() -> Bool {
+    let alert = NSAlert()
+    alert.messageText = L10n.PreferencesHistory.clearHistoryAlertTitle
+    alert.informativeText = L10n.PreferencesHistory.clearHistoryAlertMessage
+    alert.alertStyle = .warning
+    alert.addButton(withTitle: L10n.PreferencesHistory.clearHistoryConfirm)
     alert.addButton(withTitle: L10n.Common.cancel)
 
     return alert.runModal() == .alertFirstButtonReturn

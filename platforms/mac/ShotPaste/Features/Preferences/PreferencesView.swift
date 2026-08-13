@@ -41,7 +41,14 @@ struct PreferencesView: View {
         .tabItem { Label(L10n.Preferences.advancedTab, systemImage: "slider.horizontal.3") }
         .tag(PreferencesTab.advanced)
     }
-    .frame(width: 760, height: 550)
+    .frame(
+      minWidth: 700,
+      idealWidth: 780,
+      maxWidth: 960,
+      minHeight: 520,
+      idealHeight: 600,
+      maxHeight: 760
+    )
   }
 }
 

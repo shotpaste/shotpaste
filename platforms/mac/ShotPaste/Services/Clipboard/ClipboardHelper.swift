@@ -202,7 +202,7 @@ enum ClipboardHelper {
   /// Copy an in-memory NSImage to clipboard by saving to a temp file first,
   /// then writing the file URL. This ensures the pasted result uses the correct format.
   ///
-  /// Used by Annotate / Mockup copy where the image is rendered on-the-fly.
+  /// Used by annotation copy where the image is rendered on-the-fly.
   static func copyImage(_ image: NSImage, format: ImageFormatOption? = nil) {
     DiagnosticLogger.shared.log(
       .info,

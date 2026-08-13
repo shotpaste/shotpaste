@@ -84,6 +84,19 @@ enum ScreenCapturePermissionRequestFlow {
   }
 }
 
+enum ScreenshotCaptureWindowPolicy {
+  @MainActor
+  static func exceptedOwnWindowIDs(from windows: [NSWindow]) -> Set<CGWindowID> {
+    Set(windows.compactMap { window in
+      guard window is HistoryFloatingPanel,
+            window.sharingType != .none,
+            window.windowNumber > 0
+      else { return nil }
+      return CGWindowID(window.windowNumber)
+    })
+  }
+}
+
 /// Manager class handling all screen capture operations
 @MainActor
 final class ScreenCaptureManager: ObservableObject {
@@ -126,6 +139,8 @@ final class ScreenCaptureManager: ObservableObject {
   private var standardShareableContentCache: ShareableContentCacheEntry?
   private var desktopInclusiveShareableContentCache: ShareableContentCacheEntry?
   private var screenParametersObserver: NSObjectProtocol?
+  private var isPermissionResetPending = false
+  private var didObserveResetPermissionRevocation = false
   private nonisolated static let minimumScreenshotOutputScaleFactor: CGFloat = 2.0
 
   private var preferredScreenshotOutputScaleFactor: CGFloat {
@@ -163,7 +178,32 @@ final class ScreenCaptureManager: ObservableObject {
   /// Check if screen recording permission is granted
   func checkPermission() async {
     AppIdentityManager.shared.refresh()
-    updatePermissionStatus(systemGranted: CGPreflightScreenCaptureAccess())
+    let systemGranted = CGPreflightScreenCaptureAccess()
+    if isPermissionResetPending {
+      if !systemGranted {
+        didObserveResetPermissionRevocation = true
+      } else if didObserveResetPermissionRevocation {
+        isPermissionResetPending = false
+        didObserveResetPermissionRevocation = false
+      }
+    }
+    updatePermissionStatus(systemGranted: systemGranted && !isPermissionResetPending)
+  }
+
+  /// Immediately reflect a successful `tccutil reset` in the current process.
+  ///
+  /// Core Graphics can keep returning the pre-reset value until macOS refreshes
+  /// the process' TCC view, so the permission UI must not wait for preflight to
+  /// catch up before showing that access was removed.
+  func markPermissionReset() {
+    isPermissionResetPending = true
+    didObserveResetPermissionRevocation = false
+    updatePermissionStatus(systemGranted: false)
+  }
+
+  func clearPermissionResetOverride() {
+    isPermissionResetPending = false
+    didObserveResetPermissionRevocation = false
   }
 
   /// Request screen recording permission by triggering the system prompt.
@@ -173,6 +213,7 @@ final class ScreenCaptureManager: ObservableObject {
   /// ScreenCaptureKit content or open Settings again from the same action.
   func requestPermission() async -> Bool {
     AppIdentityManager.shared.refresh()
+    clearPermissionResetOverride()
     let systemGranted = ScreenCapturePermissionRequestFlow.requestAccess(
       preflight: { CGPreflightScreenCaptureAccess() },
       request: { CGRequestScreenCaptureAccess() }
@@ -1243,6 +1284,12 @@ final class ScreenCaptureManager: ObservableObject {
 
     if excludeOwnApplication, let bundleID = Bundle.main.bundleIdentifier {
       excludedApps += content.applications.filter { $0.bundleIdentifier == bundleID }
+      let capturableHistoryWindowIDs = ScreenshotCaptureWindowPolicy.exceptedOwnWindowIDs(
+        from: NSApp.windows
+      )
+      exceptedWindows += content.windows.filter {
+        capturableHistoryWindowIDs.contains($0.windowID)
+      }
     }
 
     if excludeDesktopIcons {

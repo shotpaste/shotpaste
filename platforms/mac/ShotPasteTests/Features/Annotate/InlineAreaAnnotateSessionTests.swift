@@ -228,6 +228,29 @@ final class InlineAreaAnnotateSessionTests: XCTestCase {
     )
   }
 
+  func testOverlayPromptKeyboardActionsStayInsideOverlay() throws {
+    let escapeKey = try makeKeyEvent(keyCode: 53, characters: "\u{1b}", flags: [])
+    let returnKey = try makeKeyEvent(keyCode: 36, characters: "\r", flags: [])
+    let copy = try makeKeyEvent(keyCode: 8, characters: "c", flags: .command)
+
+    XCTAssertEqual(
+      InlineAreaAnnotateSession.promptKeyAction(for: escapeKey, isPromptActive: true),
+      .dismiss
+    )
+    XCTAssertEqual(
+      InlineAreaAnnotateSession.promptKeyAction(for: returnKey, isPromptActive: true),
+      .confirm
+    )
+    XCTAssertEqual(
+      InlineAreaAnnotateSession.promptKeyAction(for: copy, isPromptActive: true),
+      .consume
+    )
+    XCTAssertEqual(
+      InlineAreaAnnotateSession.promptKeyAction(for: escapeKey, isPromptActive: false),
+      .inactive
+    )
+  }
+
   func testInlineShortcutMatchersIgnoreKeyUpEvents() throws {
     let saveKeyUp = try makeKeyEvent(type: .keyUp, keyCode: 1, characters: "s", flags: .command)
     let copyKeyUp = try makeKeyEvent(type: .keyUp, keyCode: 8, characters: "c", flags: .command)
@@ -388,6 +411,18 @@ final class InlineAreaAnnotateSessionTests: XCTestCase {
       XCTAssertEqual(committedAnnotation.size, overflowingAnnotation.size)
       XCTAssertTrue(CGRect(origin: .zero, size: expandedSelection.size).contains(committedAnnotation))
     }
+  }
+
+  func testInlineShortcutMatchersRecognizeZoomCommands() throws {
+    let zoomIn = try makeKeyEvent(keyCode: 24, characters: "=", flags: .command)
+    let zoomOut = try makeKeyEvent(keyCode: 27, characters: "-", flags: .command)
+    let fit = try makeKeyEvent(keyCode: 29, characters: "0", flags: .command)
+    let plainPlus = try makeKeyEvent(keyCode: 24, characters: "=", flags: [])
+
+    XCTAssertTrue(InlineAreaAnnotateSession.matchesZoomInShortcut(zoomIn))
+    XCTAssertTrue(InlineAreaAnnotateSession.matchesZoomOutShortcut(zoomOut))
+    XCTAssertTrue(InlineAreaAnnotateSession.matchesFitCanvasShortcut(fit))
+    XCTAssertFalse(InlineAreaAnnotateSession.matchesZoomInShortcut(plainPlus))
   }
 
   private func makeKeyEvent(

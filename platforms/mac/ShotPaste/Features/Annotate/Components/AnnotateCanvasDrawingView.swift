@@ -213,13 +213,7 @@ final class DrawingCanvasNSView: NSView {
     state.$editingTextAnnotationId
       .sink { [weak self] _ in self?.invalidateDrawing() }
       .store(in: &stateObservers)
-    state.$embeddedImageAssets
-      .sink { [weak self] _ in self?.invalidateDrawing() }
-      .store(in: &stateObservers)
     state.$sourceImage
-      .sink { [weak self] _ in self?.invalidateDrawing() }
-      .store(in: &stateObservers)
-    state.$cutoutImage
       .sink { [weak self] _ in self?.invalidateDrawing() }
       .store(in: &stateObservers)
 
@@ -514,9 +508,7 @@ final class DrawingCanvasNSView: NSView {
   /// Clamp a pointer to the active drawing bounds unless the inline editor is
   /// intentionally preserving geometry outside its currently visible crop.
   private func clampToCanvasBounds(_ point: CGPoint) -> CGPoint {
-    let bounds = state.isCombineMode
-      ? state.effectiveContentBounds.standardized
-      : state.activeAnnotationBounds.standardized
+    let bounds = state.sourceImageBounds.standardized
     return CGPoint(
       x: max(bounds.minX, min(point.x, bounds.maxX)),
       y: max(bounds.minY, min(point.y, bounds.maxY))
@@ -531,9 +523,6 @@ final class DrawingCanvasNSView: NSView {
   // MARK: - Mouse Events
 
   override func mouseDown(with event: NSEvent) {
-    if state.isCombineMode {
-      state.frozenCombineContentBounds = state.combineContentBounds
-    }
     let displayPoint = convert(event.locationInWindow, from: nil)
     let imagePoint = interactionPoint(from: displayPoint)
     dragStart = imagePoint // Store in image coords
@@ -564,8 +553,7 @@ final class DrawingCanvasNSView: NSView {
     // Check if clicking on a selected annotation's handle (use display coords for handles)
     if let selectedId = state.selectedAnnotationId,
        let annotation = state.annotations.first(where: { $0.id == selectedId }),
-       annotation.supportsResize,
-       canResizeAnnotation(annotation) {
+       annotation.supportsResize {
       if let handle = hitTestHandle(at: displayPoint, for: annotation, inDisplayCoordinates: true) {
         isResizingAnnotation = true
         resizingAnnotationId = selectedId
@@ -599,11 +587,7 @@ final class DrawingCanvasNSView: NSView {
       }
     }
 
-    // A combined image is a canvas surface while a markup tool is active.
-    // Only the selection tool may claim its clicks for layer manipulation;
-    // otherwise secondary images would block drawing on every image but the base.
-    if let annotation = hitTestAnnotation(at: imagePoint),
-       !Self.shouldPrioritizeCanvasMarkup(over: annotation, selectedTool: state.selectedTool) {
+    if let annotation = hitTestAnnotation(at: imagePoint) {
       // Set local tracking synchronously to avoid race condition with mouseDragged
       beginAnnotationDrag(anchor: annotation, at: imagePoint)
       // Update state asynchronously (for UI reflection)
@@ -638,27 +622,7 @@ final class DrawingCanvasNSView: NSView {
     }
   }
 
-  /// Secondary images are movable layers in selection mode, but behave like
-  /// the base image when the user is adding a markup annotation.
-  static func shouldPrioritizeCanvasMarkup(
-    over annotation: AnnotationItem,
-    selectedTool: AnnotationToolType
-  ) -> Bool {
-    guard selectedTool != .selection else { return false }
-    if case .embeddedImage = annotation.type {
-      return true
-    }
-    return false
-  }
-
   private func beginAnnotationDrag(anchor annotation: AnnotationItem, at imagePoint: CGPoint) {
-    if state.isCombineMode, state.combineMode == .autoStitch,
-       case .embeddedImage = annotation.type {
-      state.setSelectedAnnotationIds([annotation.id])
-      invalidateDrawing()
-      return
-    }
-
     let activeIds: Set<UUID> = if state.isAnnotationSelected(annotation.id), !state.selectedAnnotationIds.isEmpty {
       state.selectedAnnotationIds
     } else {
@@ -685,14 +649,6 @@ final class DrawingCanvasNSView: NSView {
     gestureDidMutate = false
     NSCursor.closedHand.set()
     invalidateDrawing()
-  }
-
-  private func canResizeAnnotation(_ annotation: AnnotationItem) -> Bool {
-    guard state.isCombineMode, state.combineMode == .autoStitch else { return true }
-    if case .embeddedImage = annotation.type {
-      return false
-    }
-    return true
   }
 
   private func beginAreaSelection(at imagePoint: CGPoint) {
@@ -779,27 +735,6 @@ final class DrawingCanvasNSView: NSView {
         gestureDidMutate = true
       }
 
-      // Combine free-canvas snapping resolves against the gesture-local copy
-      // so the gesture stays state-free until mouseUp commits.
-      if state.isCombineMode,
-         state.combineMode == .freeCanvas,
-         activeIds.count == 1,
-         let draggedID = activeIds.first,
-         let dragged = gestureLocalItems[draggedID],
-         case .embeddedImage = dragged.type {
-        let candidates = [state.sourceImageBounds] + state.annotations.compactMap { annotation -> CGRect? in
-          guard annotation.id != draggedID, case .embeddedImage = annotation.type else { return nil }
-          return annotation.bounds
-        }
-        if let snapped = CombineSnapping.resolve(
-          draggedBounds: dragged.bounds,
-          candidateBounds: candidates,
-          gap: state.combineGap,
-          tolerance: state.combineSnapTolerance
-        ) {
-          gestureLocalItems[draggedID] = dragged.applyingResizeBounds(snapped)
-        }
-      }
       invalidateLiveLayers()
       return
     }
@@ -877,14 +812,7 @@ final class DrawingCanvasNSView: NSView {
       gestureLocalItems[resizeId] = item
 
     default:
-      let isEmbeddedImage: Bool = {
-        if case .embeddedImage = original.type {
-          return true
-        }
-        return false
-      }()
       let proportional = event.modifierFlags.contains(.shift)
-        || (state.isCombineMode && isEmbeddedImage)
       let newBounds = calculateResizedBounds(
         handle: handle,
         currentPoint: imagePoint,
@@ -896,9 +824,6 @@ final class DrawingCanvasNSView: NSView {
   }
 
   override func mouseUp(with event: NSEvent) {
-    if state.isCombineMode {
-      state.frozenCombineContentBounds = nil
-    }
     let displayPoint = convert(event.locationInWindow, from: nil)
     let imagePoint = interactionPoint(from: displayPoint)
 
@@ -1228,13 +1153,13 @@ final class DrawingCanvasNSView: NSView {
   /// Resolves shared render inputs for one draw pass and drops the blur cache
   /// when the source image changed.
   private func prepareRenderInputs() -> (sourceImage: NSImage?, sourceCGImage: CGImage?) {
-    let effectiveSourceImage = state.effectiveSourceImage
-    let currentImageIdentifier = effectiveSourceImage.map(ObjectIdentifier.init)
+    let sourceImage = state.sourceImage
+    let currentImageIdentifier = sourceImage.map(ObjectIdentifier.init)
     if currentImageIdentifier != lastSourceImageIdentifier {
       blurCacheManager.clearAll()
       lastSourceImageIdentifier = currentImageIdentifier
     }
-    return (effectiveSourceImage, effectiveSourceImage?.cgImage(forProposedRect: nil, context: nil, hints: nil))
+    return (sourceImage, sourceImage?.cgImage(forProposedRect: nil, context: nil, hints: nil))
   }
 
   private func makeRenderer(sourceImage: NSImage?, sourceCGImage: CGImage?,
@@ -1245,14 +1170,7 @@ final class DrawingCanvasNSView: NSView {
       sourceImage: sourceImage,
       sourceCGImage: sourceCGImage,
       blurCacheManager: blurCacheManager,
-      interactiveBlurAnnotationIds: activeInteractiveBlurAnnotationIds(),
-      interactiveEmbeddedImageAnnotationId: activeInteractiveEmbeddedImageAnnotationId(),
-      embeddedImageProvider: { [state] assetId in
-        state.embeddedImage(for: assetId)
-      },
-      embeddedCGImageProvider: { [state] assetId in
-        state.embeddedCGImage(for: assetId)
-      }
+      interactiveBlurAnnotationIds: activeInteractiveBlurAnnotationIds()
     )
   }
 
@@ -1389,12 +1307,7 @@ final class DrawingCanvasNSView: NSView {
         arrowBendDirection: state.arrowBendDirection,
         arrowStartHead: state.arrowStartHead,
         arrowEndHead: state.arrowEndHead,
-        rectangleCornerRadius: previewProperties.cornerRadius,
-        watermarkText: state.watermarkText,
-        watermarkStyle: previewProperties.watermarkStyle,
-        watermarkOpacity: previewProperties.opacity,
-        watermarkRotationDegrees: previewProperties.rotationDegrees,
-        watermarkFontSize: previewProperties.fontSize
+        rectangleCornerRadius: previewProperties.cornerRadius
       )
     }
   }
@@ -1415,23 +1328,6 @@ final class DrawingCanvasNSView: NSView {
             case .blur = annotation.type else { return false }
       return true
     })
-  }
-
-  private func activeInteractiveEmbeddedImageAnnotationId() -> UUID? {
-    let candidateId: UUID? = if isResizingAnnotation {
-      resizingAnnotationId
-    } else if isDraggingAnnotation {
-      draggingAnnotationId
-    } else {
-      nil
-    }
-
-    guard let id = candidateId,
-          let annotation = state.annotations.first(where: { $0.id == id }),
-          case .embeddedImage = annotation.type else {
-      return nil
-    }
-    return id
   }
 
   private func drawSelectionAffordance(for annotation: AnnotationItem, in context: CGContext, showsHandles: Bool) {

@@ -39,6 +39,9 @@ internal static class Program
                 ("quick_access", ScenarioAction.QuickAccess, false),
                 ("editor_removed", ScenarioAction.EditorRemoved, false),
                 ("copy_recovery", ScenarioAction.CopyRecovery, false),
+                ("selection_size_badge_default", ScenarioAction.SelectionSizeBadgeDefault, false),
+                ("selection_size_badge_edge", ScenarioAction.SelectionSizeBadgeEdge, false),
+                ("toolbar_default_below", ScenarioAction.ToolbarDefaultBelow, false),
                 ("one_shot_selection_move", ScenarioAction.OneShotSelectionMove, false),
                 ("one_shot_toolbar_drag", ScenarioAction.OneShotToolbarDrag, false),
                 ("performance_baseline", ScenarioAction.PerformanceBaseline, false)
@@ -121,16 +124,44 @@ internal static class Program
                     }, "One Shot mode switcher did not move.");
             }
             var screen = Forms.Screen.FromPoint(Forms.Cursor.Position).WorkingArea;
+            var defaultBadgeScenario = action == ScenarioAction.SelectionSizeBadgeDefault;
+            var edgeBadgeScenario = action == ScenarioAction.SelectionSizeBadgeEdge;
             var selectionStart = new Drawing.Point(
                 screen.Left + Math.Max(80, screen.Width / 5),
-                screen.Top + Math.Max(90, screen.Height / 5));
+                edgeBadgeScenario ? screen.Top + 6 : screen.Top + Math.Max(90, screen.Height / 5));
             var selectionEnd = new Drawing.Point(
                 Math.Min(screen.Right - 240, selectionStart.X + Math.Max(420, screen.Width / 3)),
                 Math.Min(screen.Bottom - 220, selectionStart.Y + Math.Max(280, screen.Height / 3)));
+            var selectionBadgeScreenshot = Path.Combine(root, "selection-size-badge-during-drag.png");
             Drag(selectionStart, selectionEnd, () =>
+            {
                 WaitUntil(
                     () => FindVisibleByAutomationId(process.Id, "OneShotSwitcherDragHandle") is null,
-                    "One Shot mode switcher remained visible while drawing the selection."));
+                    "One Shot mode switcher remained visible while drawing the selection.");
+                var badge = FindVisibleByAutomationId(process.Id, "SelectionSizeBadge") ??
+                            throw new InvalidOperationException("The selection size badge was not visible while drawing.");
+                if (!badge.Current.Name.Contains('×'))
+                    throw new InvalidOperationException($"The selection size badge did not expose pixel dimensions: {badge.Current.Name}");
+                var badgeBounds = badge.Current.BoundingRectangle;
+                if (defaultBadgeScenario)
+                {
+                    if (Math.Abs(badgeBounds.Left - selectionStart.X) > 24 ||
+                        badgeBounds.Bottom > selectionStart.Y - 2)
+                        throw new InvalidOperationException(
+                            $"The default size badge was not above the selection's left edge: badge={badgeBounds}, selection={selectionStart}-{selectionEnd}.");
+                    SaveDesktopScreenshot(selectionBadgeScreenshot);
+                }
+                else if (edgeBadgeScenario)
+                {
+                    if (badgeBounds.Left < selectionStart.X - 2 ||
+                        badgeBounds.Top < selectionStart.Y - 2 ||
+                        badgeBounds.Right > selectionEnd.X + 2 ||
+                        badgeBounds.Bottom > selectionEnd.Y + 2)
+                        throw new InvalidOperationException(
+                            $"The edge-aware size badge was not inside the selection: badge={badgeBounds}, selection={selectionStart}-{selectionEnd}.");
+                    SaveDesktopScreenshot(selectionBadgeScreenshot);
+                }
+            });
 
             WaitUntil(
                 () => FindVisibleByAutomationId(process.Id, "OneShotSwitcherDragHandle") is not null,
@@ -286,6 +317,30 @@ internal static class Program
                     WaitUntil(() => FindByAutomationId(process.Id, "OneShotCancel") is null,
                         "Inline overlay did not remain cancellable after clipboard recovery.");
                     detail = "Clipboard lock showed a recoverable error; retry copied without leaving the editor.";
+                    break;
+                case ScenarioAction.SelectionSizeBadgeDefault:
+                    screenshot = selectionBadgeScreenshot;
+                    Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
+                        "One Shot overlay did not close after default selection size badge validation.");
+                    detail = "Selection size badge was positioned above the selection's left edge when screen space was available.";
+                    break;
+                case ScenarioAction.SelectionSizeBadgeEdge:
+                    screenshot = selectionBadgeScreenshot;
+                    Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
+                        "One Shot overlay did not close after selection size badge validation.");
+                    detail = "Selection size badge showed physical pixel dimensions and moved inside the selection at the top screen edge.";
+                    break;
+                case ScenarioAction.ToolbarDefaultBelow:
+                    var moveToolbar = WaitForAutomationId(process.Id, "OneShotMoveToolbar");
+                    if (moveToolbar.Current.BoundingRectangle.Top < selectionBounds.Bottom + 6)
+                        throw new InvalidOperationException(
+                            $"The default toolbar was not below the selection: toolbar={moveToolbar.Current.BoundingRectangle}, selection={selectionBounds}.");
+                    Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
+                        "One Shot overlay did not close after default toolbar placement validation.");
+                    detail = "Screenshot toolbar defaulted below the selection while preserving its automatic edge fallback.";
                     break;
                 case ScenarioAction.OneShotSelectionMove:
                     Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
@@ -800,6 +855,9 @@ internal static class Program
         QuickAccess,
         EditorRemoved,
         CopyRecovery,
+        SelectionSizeBadgeDefault,
+        SelectionSizeBadgeEdge,
+        ToolbarDefaultBelow,
         OneShotSelectionMove,
         OneShotToolbarDrag,
         PerformanceBaseline

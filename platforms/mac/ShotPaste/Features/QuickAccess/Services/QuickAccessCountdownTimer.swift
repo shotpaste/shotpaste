@@ -35,9 +35,12 @@ final class ContinuousQuickAccessCountdownTimerClock: QuickAccessCountdownTimerC
 @MainActor
 final class QuickAccessCountdownTimer {
   private var remainingTime: TimeInterval
+  private var totalDuration: TimeInterval
   private var startedAt: TimeInterval?
   private var task: Task<Void, Never>?
+  private var progressTask: Task<Void, Never>?
   private var onExpire: (() -> Void)?
+  private var onProgress: ((Double) -> Void)?
   private let clock: QuickAccessCountdownTimerClock
 
   private(set) var isPaused: Bool = false
@@ -48,10 +51,13 @@ final class QuickAccessCountdownTimer {
   init(
     duration: TimeInterval,
     clock: QuickAccessCountdownTimerClock? = nil,
+    onProgress: ((Double) -> Void)? = nil,
     onExpire: @escaping () -> Void
   ) {
     remainingTime = duration
+    totalDuration = duration
     self.clock = clock ?? ContinuousQuickAccessCountdownTimerClock()
+    self.onProgress = onProgress
     self.onExpire = onExpire
   }
 
@@ -76,7 +82,10 @@ final class QuickAccessCountdownTimer {
 
     task?.cancel()
     task = nil
+    progressTask?.cancel()
+    progressTask = nil
     startedAt = nil
+    publishProgress()
   }
 
   /// Resume the countdown from where it was paused
@@ -97,6 +106,7 @@ final class QuickAccessCountdownTimer {
   func restart(duration: TimeInterval) {
     isPaused = false
     remainingTime = duration
+    totalDuration = duration
     scheduleTask()
   }
 
@@ -105,14 +115,18 @@ final class QuickAccessCountdownTimer {
     isPaused = false
     task?.cancel()
     task = nil
+    progressTask?.cancel()
+    progressTask = nil
     startedAt = nil
     onExpire = nil
+    onProgress = nil
   }
 
   // MARK: - Private
 
   private func scheduleTask() {
     task?.cancel()
+    progressTask?.cancel()
     let delay = remainingTime
     startedAt = clock.now
     let clock = clock
@@ -120,7 +134,30 @@ final class QuickAccessCountdownTimer {
     task = Task { @MainActor [weak self, clock] in
       await clock.sleep(for: delay)
       guard !Task.isCancelled else { return }
+      self?.remainingTime = 0
+      self?.publishProgress()
       self?.onExpire?()
     }
+
+    publishProgress()
+    guard onProgress != nil else { return }
+    progressTask = Task { @MainActor [weak self] in
+      while !Task.isCancelled {
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        guard !Task.isCancelled, let self, !self.isPaused else { return }
+        publishProgress()
+      }
+    }
+  }
+
+  private func publishProgress() {
+    guard let onProgress else { return }
+    let liveRemaining: TimeInterval = if let startedAt, !isPaused {
+      max(0, remainingTime - (clock.now - startedAt))
+    } else {
+      max(0, remainingTime)
+    }
+    let fraction = totalDuration > 0 ? min(max(liveRemaining / totalDuration, 0), 1) : 0
+    onProgress(fraction)
   }
 }
