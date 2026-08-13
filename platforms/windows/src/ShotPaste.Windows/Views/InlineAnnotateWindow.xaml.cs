@@ -107,7 +107,6 @@ public partial class InlineAnnotateWindow : Window
     private AnnotationStyle? _activeStyle;
     private WpfPoint _drawStart;
     private bool _annotating;
-    private bool _spacePressed;
     private int _counter = 1;
     private UIElement? _selectedElement;
     private readonly HashSet<UIElement> _selectedElements = [];
@@ -205,7 +204,6 @@ public partial class InlineAnnotateWindow : Window
         Canvas.SetTop(InstructionBadge, 24);
         UpdateDimLayer(null);
         _oneShotControlsInitializing = true;
-        OneShotSwitcher.Visibility = Visibility.Visible;
         Canvas.SetTop(InstructionBadge, 80);
         OneShotVideo.IsChecked = _oneShotRecordingOptions.OutputMode != RecordingOutputMode.Gif;
         OneShotGif.IsChecked = _oneShotRecordingOptions.OutputMode == RecordingOutputMode.Gif;
@@ -228,6 +226,7 @@ public partial class InlineAnnotateWindow : Window
         _pointerStart = ClampPoint(e.GetPosition(Root));
         _selectionRect = new Rect(_pointerStart, _pointerStart);
         _interaction = OverlayInteraction.Selecting;
+        UpdateOneShotSwitcherVisibility();
         SelectionHost.Visibility = Visibility.Visible;
         SizeBadge.Visibility = Visibility.Visible;
         CaptureMouse();
@@ -291,6 +290,7 @@ public partial class InlineAnnotateWindow : Window
         if (_interaction == OverlayInteraction.None || e.ChangedButton != MouseButton.Left) return;
         var completedInteraction = _interaction;
         _interaction = OverlayInteraction.None;
+        UpdateOneShotSwitcherVisibility();
         ReleaseMouseCapture();
         if (completedInteraction == OverlayInteraction.Selecting)
         {
@@ -464,6 +464,7 @@ public partial class InlineAnnotateWindow : Window
 
     private void UpdateOneShotModeControls()
     {
+        UpdateOneShotSwitcherVisibility();
         foreach (var button in new[]
                  {
                      OneShotScreenshotButton, OneShotScrollingButton,
@@ -539,7 +540,7 @@ public partial class InlineAnnotateWindow : Window
 
     private void OnOneShotDragMouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ChangedButton != MouseButton.Left) return;
+        if (e.ChangedButton != MouseButton.Left || OneShotSwitcher.Visibility != Visibility.Visible) return;
         _draggingOneShotSwitcher = true;
         _oneShotPointerStart = e.GetPosition(OverlayCanvas);
         _oneShotSwitcherDragStart = Canvas.GetLeft(OneShotSwitcher);
@@ -572,6 +573,19 @@ public partial class InlineAnnotateWindow : Window
         if (!_draggingOneShotSwitcher) return;
         _draggingOneShotSwitcher = false;
         ReleaseMouseCapture();
+    }
+
+    internal static bool ShouldShowOneShotSwitcher(bool isCommitted, bool isDrawingSelection) =>
+        !isCommitted && !isDrawingSelection;
+
+    internal static bool ShouldMoveSelectionOnCanvasDrag(bool isCommitted) => !isCommitted;
+
+    private void UpdateOneShotSwitcherVisibility()
+    {
+        var isDrawingSelection = _interaction == OverlayInteraction.Selecting;
+        OneShotSwitcher.Visibility = ShouldShowOneShotSwitcher(_oneShotCommitted, isDrawingSelection)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private bool CommitOneShotMode()
@@ -635,7 +649,6 @@ public partial class InlineAnnotateWindow : Window
         if (_oneShotMode != OneShotMode.Screenshot || !CommitOneShotMode()) return;
         FindVisualChildren<WpfTextBox>(AnnotationCanvas).ToList().ForEach(EndTextEditing);
         ClearElementSelection();
-        _spacePressed = false;
         _selectingOneShotOcr = true;
         _oneShotOcrRect = Rect.Empty;
         Toolbar.Visibility = Visibility.Collapsed;
@@ -1419,7 +1432,7 @@ public partial class InlineAnnotateWindow : Window
     private void OnCanvasMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (_oneShotMode != OneShotMode.Screenshot) return;
-        if (_spacePressed)
+        if (ShouldMoveSelectionOnCanvasDrag(_oneShotCommitted))
         {
             BeginMoveSelection(e.GetPosition(Root));
             e.Handled = true;
@@ -2370,13 +2383,6 @@ public partial class InlineAnnotateWindow : Window
             return;
         }
         if (e.OriginalSource is WpfTextBox { IsReadOnly: false }) return;
-        if (e.Key == Key.Space)
-        {
-            _spacePressed = true;
-            if (_annotating) Cursor = Cursors.SizeAll;
-            e.Handled = true;
-            return;
-        }
         if (e.Key == Key.Escape && _selectedElements.Count > 0)
         {
             ClearElementSelection();
@@ -2434,20 +2440,6 @@ public partial class InlineAnnotateWindow : Window
             RemoveSelectedElements();
             e.Handled = true;
         }
-    }
-
-    private void OnPreviewKeyUp(object sender, System.Windows.Input.KeyEventArgs e)
-    {
-        if (_selectingOneShotOcr)
-        {
-            e.Handled = true;
-            return;
-        }
-        if (e.OriginalSource is WpfTextBox { IsReadOnly: false }) return;
-        if (e.Key != Key.Space) return;
-        _spacePressed = false;
-        Cursor = _annotating ? Cursors.Arrow : Cursors.Cross;
-        e.Handled = true;
     }
 
     private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject

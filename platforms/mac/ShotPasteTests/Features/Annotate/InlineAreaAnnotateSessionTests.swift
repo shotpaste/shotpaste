@@ -248,6 +248,148 @@ final class InlineAreaAnnotateSessionTests: XCTestCase {
     XCTAssertTrue(InlineAreaAnnotateSession.matchesMoveModifierKey(spaceUp))
   }
 
+  @MainActor
+  func testDiagonalResizeCursorsHaveLightHaloAndDarkCore() throws {
+    for nwse in [true, false] {
+      let cursor = InlineAreaResizeCursor.diagonal(nwse: nwse)
+      let tiff = try XCTUnwrap(cursor.image.tiffRepresentation)
+      let bitmap = try XCTUnwrap(NSBitmapImageRep(data: tiff))
+      var hasLightPixel = false
+      var hasDarkPixel = false
+
+      for y in 0 ..< bitmap.pixelsHigh {
+        for x in 0 ..< bitmap.pixelsWide {
+          guard let color = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB),
+                color.alphaComponent > 0.5 else { continue }
+          let luminance = 0.2126 * color.redComponent
+            + 0.7152 * color.greenComponent
+            + 0.0722 * color.blueComponent
+          hasLightPixel = hasLightPixel || luminance > 0.85
+          hasDarkPixel = hasDarkPixel || luminance < 0.15
+        }
+      }
+
+      XCTAssertTrue(hasLightPixel, "Diagonal resize cursor needs a light halo for dark captures.")
+      XCTAssertTrue(hasDarkPixel, "Diagonal resize cursor needs a dark core for light captures.")
+      XCTAssertFalse(cursor.image.isTemplate)
+    }
+  }
+
+  func testResizePreviewUsesFixedDisplayCanvasWithoutMovingAnnotations() {
+    let displayFrame = CGRect(x: 0, y: 0, width: 1440, height: 900)
+    let stableSelection = CGRect(x: 100, y: 120, width: 400, height: 300)
+    let annotation = CGRect(x: 30, y: 45, width: 80, height: 50)
+    let resizedSelections = [
+      CGRect(x: 40, y: 120, width: 460, height: 300),
+      CGRect(x: 100, y: 120, width: 460, height: 300),
+      CGRect(x: 100, y: 80, width: 400, height: 340),
+      CGRect(x: 100, y: 120, width: 400, height: 340),
+      CGRect(x: 130, y: 120, width: 370, height: 300),
+      CGRect(x: 100, y: 120, width: 370, height: 300),
+      CGRect(x: 100, y: 150, width: 400, height: 270),
+      CGRect(x: 100, y: 120, width: 400, height: 270),
+    ]
+
+    let layout = InlineAreaAnnotationPreviewLayout.resolve(
+      stableSelectionRect: stableSelection,
+      displayFrame: displayFrame,
+      imageSize: stableSelection.size
+    )
+    XCTAssertEqual(layout.displayScale, 1, accuracy: 0.0001)
+    XCTAssertEqual(
+      layout.canvasBounds,
+      CGRect(x: -100, y: -480, width: 1440, height: 900)
+    )
+
+    let previewGlobalBounds = CGRect(
+      x: displayFrame.minX + (annotation.minX - layout.canvasBounds.minX) * layout.displayScale,
+      y: displayFrame.minY + (layout.canvasBounds.maxY - annotation.maxY) * layout.displayScale,
+      width: annotation.width * layout.displayScale,
+      height: annotation.height * layout.displayScale
+    )
+    XCTAssertEqual(previewGlobalBounds.minX, stableSelection.minX + annotation.minX)
+    XCTAssertEqual(previewGlobalBounds.minY, stableSelection.maxY - annotation.maxY)
+    XCTAssertEqual(previewGlobalBounds.size, annotation.size)
+
+    for resizedSelection in resizedSelections {
+      let resizedLayout = InlineAreaAnnotationPreviewLayout.resolve(
+        stableSelectionRect: stableSelection,
+        displayFrame: displayFrame,
+        imageSize: stableSelection.size
+      )
+
+      XCTAssertEqual(resizedLayout, layout)
+
+      let annotationOffset = InlineAreaSelectionAnnotationGeometry.annotationOffset(
+        from: stableSelection,
+        to: resizedSelection
+      )
+      let committedAnnotation = annotation.offsetBy(
+        dx: annotationOffset.x,
+        dy: annotationOffset.y
+      )
+      XCTAssertEqual(
+        resizedSelection.minX + committedAnnotation.minX,
+        stableSelection.minX + annotation.minX
+      )
+      XCTAssertEqual(
+        resizedSelection.maxY - committedAnnotation.maxY,
+        stableSelection.maxY - annotation.maxY
+      )
+      XCTAssertEqual(committedAnnotation.size, annotation.size)
+    }
+  }
+
+  func testExpandedSelectionRevealsRetainedOverflowingAnnotation() {
+    let stableSelection = CGRect(x: 100, y: 120, width: 400, height: 300)
+    let cases = [
+      (
+        annotation: CGRect(x: -80, y: 80, width: 40, height: 40),
+        selection: CGRect(x: 0, y: 120, width: 500, height: 300)
+      ),
+      (
+        annotation: CGRect(x: 440, y: 80, width: 40, height: 40),
+        selection: CGRect(x: 100, y: 120, width: 500, height: 300)
+      ),
+      (
+        annotation: CGRect(x: 80, y: 330, width: 40, height: 40),
+        selection: CGRect(x: 100, y: 40, width: 400, height: 380)
+      ),
+      (
+        annotation: CGRect(x: 80, y: -70, width: 40, height: 40),
+        selection: CGRect(x: 100, y: 120, width: 400, height: 400)
+      ),
+    ]
+
+    for testCase in cases {
+      let overflowingAnnotation = testCase.annotation
+      let expandedSelection = testCase.selection
+      let globalAnnotation = CGRect(
+        x: stableSelection.minX + overflowingAnnotation.minX,
+        y: stableSelection.maxY - overflowingAnnotation.maxY,
+        width: overflowingAnnotation.width,
+        height: overflowingAnnotation.height
+      )
+
+      XCTAssertFalse(stableSelection.intersects(globalAnnotation))
+      XCTAssertTrue(expandedSelection.contains(globalAnnotation))
+
+      let annotationOffset = InlineAreaSelectionAnnotationGeometry.annotationOffset(
+        from: stableSelection,
+        to: expandedSelection
+      )
+      let committedAnnotation = overflowingAnnotation.offsetBy(
+        dx: annotationOffset.x,
+        dy: annotationOffset.y
+      )
+
+      XCTAssertEqual(expandedSelection.minX + committedAnnotation.minX, globalAnnotation.minX)
+      XCTAssertEqual(expandedSelection.maxY - committedAnnotation.maxY, globalAnnotation.minY)
+      XCTAssertEqual(committedAnnotation.size, overflowingAnnotation.size)
+      XCTAssertTrue(CGRect(origin: .zero, size: expandedSelection.size).contains(committedAnnotation))
+    }
+  }
+
   private func makeKeyEvent(
     type: NSEvent.EventType = .keyDown,
     keyCode: UInt16,

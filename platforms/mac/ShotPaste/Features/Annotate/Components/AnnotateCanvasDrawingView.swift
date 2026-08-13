@@ -14,11 +14,13 @@ struct CanvasDrawingView: NSViewRepresentable {
   let state: AnnotateState
   var displayScale: CGFloat = 1.0
   var canvasBounds: CGRect
+  var permitsAnnotationOverflow = false
 
   func makeNSView(context _: Context) -> DrawingCanvasNSView {
     let view = DrawingCanvasNSView(state: state)
     view.displayScale = displayScale
     view.canvasBounds = canvasBounds
+    view.permitsAnnotationOverflow = permitsAnnotationOverflow
     return view
   }
 
@@ -34,6 +36,7 @@ struct CanvasDrawingView: NSViewRepresentable {
       nsView.canvasBounds = canvasBounds
       nsView.invalidateDrawing()
     }
+    nsView.permitsAnnotationOverflow = permitsAnnotationOverflow
   }
 }
 
@@ -90,6 +93,7 @@ final class DrawingCanvasNSView: NSView {
 
   var displayScale: CGFloat = 1.0
   var canvasBounds: CGRect = .zero
+  var permitsAnnotationOverflow = false
   private var currentPath: [CGPoint] = []
   private var isDrawing = false
   private var dragStart: CGPoint?
@@ -507,7 +511,8 @@ final class DrawingCanvasNSView: NSView {
     return canvasBounds.standardized
   }
 
-  /// Clamp a pointer to the active One Shot drawing bounds.
+  /// Clamp a pointer to the active drawing bounds unless the inline editor is
+  /// intentionally preserving geometry outside its currently visible crop.
   private func clampToCanvasBounds(_ point: CGPoint) -> CGPoint {
     let bounds = state.isCombineMode
       ? state.effectiveContentBounds.standardized
@@ -519,7 +524,8 @@ final class DrawingCanvasNSView: NSView {
   }
 
   private func interactionPoint(from displayPoint: CGPoint) -> CGPoint {
-    clampToCanvasBounds(displayToImage(displayPoint))
+    let imagePoint = displayToImage(displayPoint)
+    return permitsAnnotationOverflow ? imagePoint : clampToCanvasBounds(imagePoint)
   }
 
   // MARK: - Mouse Events

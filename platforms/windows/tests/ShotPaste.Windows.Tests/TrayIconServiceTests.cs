@@ -50,7 +50,9 @@ public sealed class TrayIconServiceTests
     private static string FindRepositoryFile(params string[] relativeParts)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, ".git")))
+        while (directory is not null &&
+               !Directory.Exists(Path.Combine(directory.FullName, ".git")) &&
+               !File.Exists(Path.Combine(directory.FullName, ".git")))
             directory = directory.Parent;
         Assert.NotNull(directory);
         return Path.Combine([directory!.FullName, .. relativeParts]);

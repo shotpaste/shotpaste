@@ -23,6 +23,17 @@ struct InlineAreaAnnotateDisplay: Identifiable {
   }
 }
 
+nonisolated enum InlineAreaSelectionAnnotationGeometry {
+  static func annotationOffset(from previousRect: CGRect, to currentRect: CGRect) -> CGPoint {
+    let previous = previousRect.standardized
+    let current = currentRect.standardized
+    return CGPoint(
+      x: previous.minX - current.minX,
+      y: current.maxY - previous.maxY
+    )
+  }
+}
+
 nonisolated enum InlineAreaAnnotatePhase {
   case selecting
   case annotating
@@ -219,25 +230,28 @@ final class InlineAreaAnnotateSession: ObservableObject {
   }
 
   func resizeSelection(to localRect: CGRect, previousRect: CGRect) {
-    guard oneShotState.selectionIsEditable else { return }
+    guard oneShotState.selectionIsResizable else { return }
     let clampedRect = clampedSelectionRect(localRect.standardized)
     guard clampedRect.width > 5,
           clampedRect.height > 5,
           let crop = cropImage(for: clampedRect) else { return }
 
-    let standardizedPreviousRect = previousRect.standardized
-    let annotationOffset = CGPoint(
-      x: standardizedPreviousRect.minX - crop.localRect.minX,
-      y: standardizedPreviousRect.minY - crop.localRect.minY
+    let annotationOffset = InlineAreaSelectionAnnotationGeometry.annotationOffset(
+      from: previousRect,
+      to: crop.localRect
     )
 
     selectionRect = crop.localRect
     state.replaceSourceImagePreservingAnnotations(crop.image, annotationOffset: annotationOffset)
-    syncOneShotSelection(isFinal: false)
+    syncOneShotSelection(isFinal: false, allowsCommittedResize: true)
   }
 
   var isOneShotSelectionEditable: Bool {
     oneShotState.selectionIsEditable
+  }
+
+  var isOneShotSelectionResizable: Bool {
+    oneShotState.selectionIsResizable
   }
 
   func beginOneShotReselection(at localPoint: CGPoint) {
@@ -737,7 +751,10 @@ final class InlineAreaAnnotateSession: ObservableObject {
     }
   }
 
-  private func syncOneShotSelection(isFinal: Bool) {
+  private func syncOneShotSelection(
+    isFinal: Bool,
+    allowsCommittedResize: Bool = false
+  ) {
     guard let selectionRect else { return }
     let globalRect = screenRect(for: selectionRect)
     let displayIDs = Self.displayIDsIntersecting(
@@ -748,6 +765,8 @@ final class InlineAreaAnnotateSession: ObservableObject {
       _ = oneShotState.finishSelection(globalRect, displayIDs: displayIDs)
     } else if oneShotState.phase == .selecting {
       oneShotState.updateSelection(globalRect, displayIDs: displayIDs)
+    } else if allowsCommittedResize {
+      oneShotState.updateResizableSelection(globalRect, displayIDs: displayIDs)
     } else {
       oneShotState.updateEditableSelection(globalRect, displayIDs: displayIDs)
     }
