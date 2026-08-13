@@ -1,6 +1,118 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "recording-toolbar.preparing-recording": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Aufnahme wird vorbereitet …" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Preparing recording…" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Preparando grabación…" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Préparation de l’enregistrement…" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "収録を準備中…" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "녹화 준비 중…" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Подготовка записи…" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Đang chuẩn bị ghi…" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "正在准备录制…" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "正在準備錄製…" } }
+      }
+    },
+    "recording.delete-confirmation-message": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Die aktuelle Aufnahme wird in den Papierkorb verschoben. Dies kann in ShotPaste nicht rückgängig gemacht werden." } },
+        "en": { "stringUnit": { "state": "translated", "value": "The current recording will be moved to Trash. This cannot be undone in ShotPaste." } },
+        "es": { "stringUnit": { "state": "translated", "value": "La grabación actual se moverá a la Papelera. Esto no se puede deshacer en ShotPaste." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "L’enregistrement en cours sera placé dans la corbeille. Cette action est irréversible dans ShotPaste." } },
+        "ja": { "stringUnit": { "state": "translated", "value": "現在の収録をゴミ箱に移動します。この操作は ShotPaste では取り消せません。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "현재 녹화를 휴지통으로 이동합니다. ShotPaste에서는 이 작업을 취소할 수 없습니다." } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Текущая запись будет перемещена в Корзину. Это действие нельзя отменить в ShotPaste." } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Bản ghi hiện tại sẽ được chuyển vào Thùng rác. Không thể hoàn tác trong ShotPaste." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "当前录制将移到废纸篓。此操作无法在 ShotPaste 中撤销。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "目前錄製將移到垃圾桶。此操作無法在 ShotPaste 中還原。" } }
+      }
+    },
+    "recording.delete-confirmation-title": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Aufnahme löschen?" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Delete Recording?" } },
+        "es": { "stringUnit": { "state": "translated", "value": "¿Eliminar grabación?" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Supprimer l’enregistrement ?" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "収録を削除しますか？" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "녹화를 삭제할까요?" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Удалить запись?" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Xoá bản ghi?" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "删除录制？" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "刪除錄製？" } }
+      }
+    },
+    "recording.trash-failed-preserved": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Die Aufnahme konnte nicht in den Papierkorb verschoben werden. Sie wurde unter %@ beibehalten." } },
+        "en": { "stringUnit": { "state": "translated", "value": "The recording couldn’t be moved to Trash. It was kept at %@." } },
+        "es": { "stringUnit": { "state": "translated", "value": "No se pudo mover la grabación a la Papelera. Se conservó en %@." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "L’enregistrement n’a pas pu être placé dans la corbeille. Il a été conservé dans %@." } },
+        "ja": { "stringUnit": { "state": "translated", "value": "収録をゴミ箱に移動できませんでした。%@ に保持されています。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "녹화를 휴지통으로 이동하지 못했습니다. %@에 보관했습니다." } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Не удалось переместить запись в Корзину. Файл сохранён по адресу %@." } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Không thể chuyển bản ghi vào Thùng rác. Tệp được giữ tại %@." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "无法将录制移到废纸篓，文件已保留在 %@。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "無法將錄製移到垃圾桶，檔案已保留在 %@。" } }
+      }
+    },
+    "recording.quit-confirmation-message": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Stoppe und speichere die Aufnahme vor dem Beenden oder verschiebe die aktuelle Aufnahme in den Papierkorb." } },
+        "en": { "stringUnit": { "state": "translated", "value": "Stop and save the recording before quitting, or move the current recording to Trash." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Detén y guarda la grabación antes de salir, o mueve la grabación actual a la Papelera." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Arrêtez et enregistrez la capture avant de quitter, ou placez l’enregistrement en cours dans la corbeille." } },
+        "ja": { "stringUnit": { "state": "translated", "value": "終了前に収録を停止して保存するか、現在の収録をゴミ箱に移動してください。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "종료하기 전에 녹화를 중지하고 저장하거나 현재 녹화를 휴지통으로 이동하세요." } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Перед выходом остановите и сохраните запись либо переместите текущую запись в Корзину." } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Dừng và lưu bản ghi trước khi thoát, hoặc chuyển bản ghi hiện tại vào Thùng rác." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "退出前停止并保存录制，或将当前录制移到废纸篓。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "結束前停止並儲存錄製，或將目前錄製移到垃圾桶。" } }
+      }
+    },
+    "recording.quit-confirmation-title": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Aufnahme läuft" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Recording in Progress" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Grabación en curso" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Enregistrement en cours" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "収録中" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "녹화 진행 중" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Идёт запись" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Đang ghi" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "正在录制" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "正在錄製" } }
+      }
+    },
+    "recording.restart-confirmation-message": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Die aktuelle Aufnahme wird in den Papierkorb verschoben und mit denselben Einstellungen neu gestartet." } },
+        "en": { "stringUnit": { "state": "translated", "value": "The current recording will be moved to Trash and a new recording will start with the same settings." } },
+        "es": { "stringUnit": { "state": "translated", "value": "La grabación actual se moverá a la Papelera y comenzará una nueva con los mismos ajustes." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "L’enregistrement en cours sera placé dans la corbeille et un nouvel enregistrement démarrera avec les mêmes réglages." } },
+        "ja": { "stringUnit": { "state": "translated", "value": "現在の収録をゴミ箱に移動し、同じ設定で新しい収録を開始します。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "현재 녹화를 휴지통으로 이동하고 같은 설정으로 새 녹화를 시작합니다." } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Текущая запись будет перемещена в Корзину, после чего начнётся новая запись с теми же настройками." } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Bản ghi hiện tại sẽ được chuyển vào Thùng rác và bản ghi mới sẽ bắt đầu với cùng cài đặt." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "当前录制将移到废纸篓，并使用相同设置开始新的录制。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "目前錄製將移到垃圾桶，並使用相同設定開始新的錄製。" } }
+      }
+    },
+    "recording.restart-confirmation-title": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Aufnahme neu starten?" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Restart Recording?" } },
+        "es": { "stringUnit": { "state": "translated", "value": "¿Reiniciar grabación?" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Recommencer l’enregistrement ?" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "収録をやり直しますか？" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "녹화를 다시 시작할까요?" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Начать запись заново?" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Ghi lại từ đầu?" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "重新录制？" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "重新錄製？" } }
+      }
+    },
     "gif.cannot-create-output-file": {
       "extractionState": "stale",
       "localizations": {

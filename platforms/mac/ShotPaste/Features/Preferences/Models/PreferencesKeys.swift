@@ -25,6 +25,7 @@ nonisolated enum PreferencesKeys {
   static let configurationDirectoryBookmark = "configuration.directoryBookmark"
   static let configurationLastAppliedSignature = "configuration.lastAppliedSignature"
   static let permissionGuidePresentedVersion = "permissions.guide.presentedVersion"
+  static let oneShotGuidancePresentedVersion = "oneShot.guidance.presentedVersion"
   static let hideDesktopIcons = "hideDesktopIcons"
   static let hideDesktopWidgets = "hideDesktopWidgets"
 
@@ -32,7 +33,6 @@ nonisolated enum PreferencesKeys {
   static let appearanceMode = "appearanceMode"
 
   // Shortcuts
-  static let shortcutsEnabled = "shortcutsEnabled"
   static let oneShotShortcut = "oneShotShortcut"
   static let disabledGlobalShortcuts = "shortcuts.disabledGlobalActions"
   static let clearedGlobalShortcuts = "shortcuts.clearedGlobalActions"
@@ -42,7 +42,6 @@ nonisolated enum PreferencesKeys {
   static let screenshotFileNameTemplate = "screenshot.fileNameTemplate"
   static let screenshotIncludeOwnApp = "screenshot.includeOwnApp"
   static let screenshotShowCursor = "screenshot.showCursor"
-  static let screenshotWindowTargeting = "screenshot.windowTargeting"
   static let screenshotMagnifierEnabled = "screenshot.magnifierEnabled"
   static let screenshotMagnifierZoom = "screenshot.magnifierZoom"
   static let screenshotScale = "screenshot.scale"
@@ -50,7 +49,6 @@ nonisolated enum PreferencesKeys {
   static let screenshotLossyQuality = "screenshot.lossyQuality"
   static let screenshotSuccessNotificationEnabled = "screenshot.successNotificationEnabled"
   static let scrollingCaptureShowHints = "scrollingCapture.showHints"
-  static let backgroundCutoutAutoCropEnabled = "backgroundCutout.autoCropEnabled"
   static let annotateCanvasPresets = "annotate.canvasPresets.v1"
   static let annotateDefaultCanvasPresetId = "annotate.defaultCanvasPresetId.v1"
   static let annotatePrimaryColor = "annotate.primaryColor.v1"
@@ -67,9 +65,6 @@ nonisolated enum PreferencesKeys {
   static let quickAccessActionSlotAssignments = "quickAccess.actions.slots.v1"
   static let quickAccessSwipeLeftAction = "quickAccess.swipe.action.left"
   static let quickAccessSwipeRightAction = "quickAccess.swipe.action.right"
-  static let quickAccessHideCardWhenWindowOpen = "quickAccess.hideCardWhenWindowOpen"
-  static let quickAccessAnimationStyle = "quickAccess.animationStyle"
-
   // Recording
   static let recordingFormat = "recording.format"
   static let recordingFileNameTemplate = "recording.fileNameTemplate"

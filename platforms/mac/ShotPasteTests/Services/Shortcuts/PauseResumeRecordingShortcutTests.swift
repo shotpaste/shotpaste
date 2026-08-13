@@ -25,6 +25,16 @@ final class PauseResumeRecordingShortcutTests: XCTestCase {
     XCTAssertFalse(RecordingState.stopping.isPauseResumeEligible)
   }
 
+  func testRecordingCancellationOutcomeOnlySucceedsWhenOutputIsNotLeftBehind() {
+    XCTAssertTrue(RecordingCancellationOutcome.disposed.succeeded)
+    XCTAssertTrue(RecordingCancellationOutcome.noOutput.succeeded)
+    XCTAssertFalse(
+      RecordingCancellationOutcome.preserved(
+        URL(fileURLWithPath: "/tmp/preserved-recording.mov")
+      ).succeeded
+    )
+  }
+
   // MARK: - ShortcutConfig.defaultPauseResumeRecording
 
   func testDefaultPauseResumeRecordingShortcut_matchesRecommendedCmdShiftSpace() {

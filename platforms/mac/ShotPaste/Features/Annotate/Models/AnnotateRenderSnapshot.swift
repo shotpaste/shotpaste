@@ -15,13 +15,7 @@ import AppKit
 /// (state replaces rather than mutates them post-load).
 struct AnnotateRenderSnapshot {
   var sourceImage: NSImage
-  var editorMode: AnnotateState.EditorMode
-  var isCombineMode: Bool
-  var effectiveContentBounds: CGRect
-  var cropRect: CGRect?
   var annotations: [AnnotationItem]
-  var embeddedImages: [UUID: NSImage]
-  var embeddedCGImages: [UUID: CGImage]
 
   var backgroundStyle: BackgroundStyle
   var isBlurredBackgroundEffectActive: Bool
@@ -33,12 +27,4 @@ struct AnnotateRenderSnapshot {
   var imageAlignment: ImageAlignment
   var aspectRatio: AspectRatioOption
   var aspectRatioOrientation: AspectRatioOrientation
-
-  var mockupRotationX: CGFloat
-  var mockupRotationY: CGFloat
-  var mockupRotationZ: CGFloat
-  var mockupPerspective: CGFloat
-  var mockupShadowRadius: CGFloat
-  var mockupShadowOffsetX: CGFloat
-  var mockupShadowOffsetY: CGFloat
 }

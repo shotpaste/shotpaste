@@ -115,6 +115,7 @@ final class QuickAccessPinWindow: NSPanel {
     hasShadow = true
     isMovableByWindowBackground = true
     collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+    sharingType = .none
     acceptsMouseMovedEvents = true
     ignoresMouseEvents = false
     applyCornerRadius()

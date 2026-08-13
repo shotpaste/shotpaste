@@ -437,6 +437,21 @@ final class AppStatusBarController: ObservableObject {
     historyItem.isEnabled = true
     menu?.addItem(historyItem)
 
+    if !QuickAccessManager.shared.items.isEmpty {
+      let quickAccessItem = NSMenuItem(
+        title: L10n.Actions.focusQuickAccess,
+        action: #selector(focusQuickAccessAction),
+        keyEquivalent: ""
+      )
+      quickAccessItem.target = self
+      quickAccessItem.image = NSImage(
+        systemSymbolName: "rectangle.stack",
+        accessibilityDescription: nil
+      )
+      quickAccessItem.isEnabled = true
+      menu?.addItem(quickAccessItem)
+    }
+
     menu?.addItem(NSMenuItem.separator())
 
     // Permission (if not granted)
@@ -452,6 +467,22 @@ final class AppStatusBarController: ObservableObject {
       )
       permissionItem.isEnabled = true
       menu?.addItem(permissionItem)
+      menu?.addItem(NSMenuItem.separator())
+    }
+
+    if didDetectCrash {
+      let reportItem = NSMenuItem(
+        title: L10n.CrashReport.alertTitle,
+        action: #selector(reportProblemAction),
+        keyEquivalent: ""
+      )
+      reportItem.target = self
+      reportItem.image = NSImage(
+        systemSymbolName: "exclamationmark.bubble",
+        accessibilityDescription: nil
+      )
+      reportItem.isEnabled = true
+      menu?.addItem(reportItem)
       menu?.addItem(NSMenuItem.separator())
     }
 
@@ -502,6 +533,11 @@ final class AppStatusBarController: ObservableObject {
   @objc private func openHistoryAction() {
     logMenuAction("openHistory")
     HistoryWindowController.shared.showWindow()
+  }
+
+  @objc private func focusQuickAccessAction() {
+    logMenuAction("focusQuickAccess")
+    QuickAccessManager.shared.activateKeyboardFocus()
   }
 
   @objc private func grantPermissionAction() {

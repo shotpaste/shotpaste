@@ -1,6 +1,118 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "preferences-permissions.drag-app-title": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "ShotPaste in die Systemeinstellungen ziehen" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Drag ShotPaste into System Settings" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Arrastra ShotPaste a Ajustes del Sistema" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Faites glisser ShotPaste dans Réglages Système" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "ShotPasteをシステム設定にドラッグ" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "ShotPaste를 시스템 설정으로 드래그" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Перетащите ShotPaste в «Системные настройки»" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Kéo ShotPaste vào Cài đặt hệ thống" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "拖动 ShotPaste 到系统设置" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "拖移 ShotPaste 到系統設定" } }
+      }
+    },
+    "preferences-permissions.drag-app-description": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Öffne eine Berechtigungsseite und ziehe dieses Symbol in die App-Liste. Falls macOS das Ablegen nicht akzeptiert, verwende die Taste „+“. Anschließend musst du den Schalter noch aktivieren." } },
+        "en": { "stringUnit": { "state": "translated", "value": "Open a permission page, then drag this icon into its app list. If macOS does not accept the drop, use the + button. You still need to turn the switch on." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Abre una página de permisos y arrastra este icono a su lista de apps. Si macOS no acepta el icono, usa el botón +. Aún tendrás que activar el interruptor." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Ouvrez une page d’autorisation, puis faites glisser cette icône dans la liste des apps. Si macOS refuse le dépôt, utilisez le bouton +. Vous devrez encore activer l’interrupteur." } },
+        "ja": { "stringUnit": { "state": "translated", "value": "権限ページを開き、このアイコンをアプリ一覧にドラッグします。macOSがドロップを受け付けない場合は＋ボタンを使い、最後にスイッチをオンにしてください。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "권한 페이지를 열고 이 아이콘을 앱 목록으로 드래그하세요. macOS가 드롭을 허용하지 않으면 + 버튼을 사용한 뒤 스위치를 켜야 합니다." } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Откройте страницу разрешения и перетащите этот значок в список приложений. Если macOS не принимает его, используйте кнопку «+». Затем включите переключатель." } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Mở trang quyền rồi kéo biểu tượng này vào danh sách ứng dụng. Nếu macOS không nhận thao tác thả, hãy dùng nút +. Bạn vẫn cần bật công tắc." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "打开一个权限页面，再把此图标拖入应用列表。如果 macOS 不接受拖放，请使用“+”按钮，最后仍需打开权限开关。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "開啟一個權限頁面，再將此圖示拖入 App 列表。如果 macOS 不接受拖放，請使用「+」按鈕，最後仍需開啟權限開關。" } }
+      }
+    },
+    "preferences-permissions.request-all-system-permissions": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Alle Berechtigungen anfordern" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Request All Permissions" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Solicitar todos los permisos" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Demander toutes les autorisations" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "すべての権限をリクエスト" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "모든 권한 요청" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Запросить все разрешения" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Yêu cầu tất cả quyền" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "一键申请全部权限" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "一鍵申請全部權限" } }
+      }
+    },
+    "preferences-permissions.reset-system-permissions": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Systemberechtigungen zurücksetzen" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Reset System Permissions" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Restablecer permisos del sistema" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Réinitialiser les autorisations système" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "システム権限をリセット" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "시스템 권한 재설정" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Сбросить системные разрешения" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Đặt lại quyền hệ thống" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "一键重置系统权限" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "一鍵重設系統權限" } }
+      }
+    },
+    "preferences-permissions.reset-confirmation-title": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "ShotPaste-Berechtigungen zurücksetzen?" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Reset ShotPaste permissions?" } },
+        "es": { "stringUnit": { "state": "translated", "value": "¿Restablecer los permisos de ShotPaste?" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Réinitialiser les autorisations de ShotPaste ?" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "ShotPasteの権限をリセットしますか？" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "ShotPaste 권한을 재설정할까요?" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Сбросить разрешения ShotPaste?" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Đặt lại quyền của ShotPaste?" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "重置 ShotPaste 权限？" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "重設 ShotPaste 權限？" } }
+      }
+    },
+    "preferences-permissions.reset-confirmation-message": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Dadurch werden die Entscheidungen für Bildschirmaufnahme, Mikrofon und Bedienungshilfen für ShotPaste zurückgesetzt. Dein Speicherordner bleibt unverändert." } },
+        "en": { "stringUnit": { "state": "translated", "value": "This resets Screen Recording, Microphone, and Accessibility decisions for ShotPaste. Your save folder remains unchanged." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Esto restablece las decisiones de Grabación de pantalla, Micrófono y Accesibilidad para ShotPaste. Tu carpeta de guardado no cambia." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Cette action réinitialise les décisions Enregistrement de l’écran, Microphone et Accessibilité pour ShotPaste. Votre dossier d’enregistrement reste inchangé." } },
+        "ja": { "stringUnit": { "state": "translated", "value": "ShotPasteの画面収録、マイク、アクセシビリティの許可判断をリセットします。保存先フォルダは変更されません。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "ShotPaste의 화면 기록, 마이크 및 손쉬운 사용 권한 결정을 재설정합니다. 저장 폴더는 변경되지 않습니다." } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Будут сброшены решения для записи экрана, микрофона и универсального доступа ShotPaste. Папка сохранения не изменится." } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Thao tác này đặt lại quyết định về Ghi màn hình, Micrô và Trợ năng cho ShotPaste. Thư mục lưu vẫn giữ nguyên." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "这会重置 ShotPaste 的屏幕录制、麦克风和辅助功能授权决定，保存文件夹不会改变。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "這會重設 ShotPaste 的螢幕錄製、麥克風和輔助使用授權決定，儲存資料夾不會改變。" } }
+      }
+    },
+    "preferences-permissions.reset-succeeded": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Die Systemberechtigungen wurden zurückgesetzt. Fordere sie erneut an, wenn du bereit bist." } },
+        "en": { "stringUnit": { "state": "translated", "value": "System permissions were reset. Request access again when you are ready." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Se restablecieron los permisos del sistema. Solicita acceso de nuevo cuando quieras." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Les autorisations système ont été réinitialisées. Redemandez l’accès quand vous le souhaitez." } },
+        "ja": { "stringUnit": { "state": "translated", "value": "システム権限をリセットしました。準備ができたらもう一度アクセスをリクエストしてください。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "시스템 권한을 재설정했습니다. 준비되면 접근 권한을 다시 요청하세요." } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Системные разрешения сброшены. Запросите доступ снова, когда будете готовы." } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Đã đặt lại quyền hệ thống. Hãy yêu cầu lại quyền truy cập khi bạn sẵn sàng." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "系统权限已重置，可在准备好后重新申请授权。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "系統權限已重設，可在準備好後重新申請授權。" } }
+      }
+    },
+    "preferences-permissions.reset-failed": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Einige Berechtigungen konnten nicht zurückgesetzt werden. Versuche es erneut oder verwende die Systemeinstellungen." } },
+        "en": { "stringUnit": { "state": "translated", "value": "Some permissions could not be reset. Try again or use System Settings." } },
+        "es": { "stringUnit": { "state": "translated", "value": "No se pudieron restablecer algunos permisos. Inténtalo de nuevo o usa Ajustes del Sistema." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Certaines autorisations n’ont pas pu être réinitialisées. Réessayez ou utilisez Réglages Système." } },
+        "ja": { "stringUnit": { "state": "translated", "value": "一部の権限をリセットできませんでした。もう一度試すか、システム設定を使用してください。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "일부 권한을 재설정하지 못했습니다. 다시 시도하거나 시스템 설정을 사용하세요." } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Некоторые разрешения не удалось сбросить. Повторите попытку или воспользуйтесь системными настройками." } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Không thể đặt lại một số quyền. Hãy thử lại hoặc dùng Cài đặt hệ thống." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "部分权限重置失败，请重试或前往系统设置操作。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "部分權限重設失敗，請重試或前往系統設定操作。" } }
+      }
+    },
     "file-access.bookmark-save-failed-message" : {
       "extractionState" : "stale",
       "localizations" : {

@@ -84,6 +84,19 @@ enum ScreenCapturePermissionRequestFlow {
   }
 }
 
+enum ScreenshotCaptureWindowPolicy {
+  @MainActor
+  static func exceptedOwnWindowIDs(from windows: [NSWindow]) -> Set<CGWindowID> {
+    Set(windows.compactMap { window in
+      guard window is HistoryFloatingPanel,
+            window.sharingType != .none,
+            window.windowNumber > 0
+      else { return nil }
+      return CGWindowID(window.windowNumber)
+    })
+  }
+}
+
 /// Manager class handling all screen capture operations
 @MainActor
 final class ScreenCaptureManager: ObservableObject {
@@ -1243,6 +1256,12 @@ final class ScreenCaptureManager: ObservableObject {
 
     if excludeOwnApplication, let bundleID = Bundle.main.bundleIdentifier {
       excludedApps += content.applications.filter { $0.bundleIdentifier == bundleID }
+      let capturableHistoryWindowIDs = ScreenshotCaptureWindowPolicy.exceptedOwnWindowIDs(
+        from: NSApp.windows
+      )
+      exceptedWindows += content.windows.filter {
+        capturableHistoryWindowIDs.contains($0.windowID)
+      }
     }
 
     if excludeDesktopIcons {

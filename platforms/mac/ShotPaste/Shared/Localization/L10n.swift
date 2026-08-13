@@ -10,7 +10,6 @@ import Foundation
 nonisolated enum L10n {
   private nonisolated static let tableMappings: [(prefix: String, tableName: String)] = [
     ("action.", "Common"),
-    ("combine.", "Combine"),
     ("menu.", "Menubar"),
     ("common.", "Common"),
     ("appearance.", "Common"),
@@ -32,7 +31,6 @@ nonisolated enum L10n {
     ("capture-kind.", "Capture"),
     ("capture-storage.", "Capture"),
     ("file-access.", "Permissions"),
-    ("foreground-cutout.", "Capture"),
     ("ocr.", "Capture"),
     ("one-shot.", "Capture"),
     ("screen-capture.", "Capture"),
@@ -582,6 +580,11 @@ nonisolated enum L10n {
       defaultValue: "Show Quick Access Overlay",
       comment: "Action title for showing the quick access overlay"
     )
+    static let focusQuickAccess = string(
+      "action.focus-quick-access",
+      defaultValue: "Focus Quick Access",
+      comment: "Menu action that explicitly gives keyboard focus to the Quick Access cards"
+    )
     static let openHistory = string(
       "action.open-history",
       defaultValue: "Open Clipboard History",
@@ -616,86 +619,32 @@ nonisolated enum L10n {
     )
   }
 
-  enum Combine {
-    static let mode = string("combine.mode", defaultValue: "Combine mode", comment: "Label for combine mode picker")
-    static let autoStitch = string(
-      "combine.auto-stitch",
-      defaultValue: "Auto Stitch",
-      comment: "Automatic image stitching mode"
-    )
-    static let freeCanvas = string(
-      "combine.free-canvas",
-      defaultValue: "Free Canvas",
-      comment: "Free image arrangement mode"
-    )
-    static let arrangement = string(
-      "combine.arrangement",
-      defaultValue: "Arrangement",
-      comment: "Combine arrangement section title"
-    )
-    static let spacing = string("combine.spacing", defaultValue: "Spacing", comment: "Combine spacing section title")
-    static let imageGap = string("combine.image-gap", defaultValue: "Image Gap", comment: "Gap between combined images")
-    static let images = string("combine.images", defaultValue: "Images", comment: "Combined image list title")
-    static func image(_ index: Int) -> String {
-      format("combine.image-index", defaultValue: "Image %d", comment: "Combined image list item", index)
-    }
-
-    static let moveEarlier = string(
-      "combine.move-earlier",
-      defaultValue: "Move Earlier",
-      comment: "Move combined image earlier"
-    )
-    static let moveLater = string(
-      "combine.move-later",
-      defaultValue: "Move Later",
-      comment: "Move combined image later"
-    )
-    static let smart = string("combine.smart", defaultValue: "Smart", comment: "Smart combine direction")
-    static let horizontal = string(
-      "combine.horizontal",
-      defaultValue: "Horizontal",
-      comment: "Horizontal combine direction"
-    )
-    static let vertical = string("combine.vertical", defaultValue: "Vertical", comment: "Vertical combine direction")
-    static let open = string("combine.open", defaultValue: "Combine Images", comment: "Open combine images action")
-    static let pickerTitle = string(
-      "combine.picker-title",
-      defaultValue: "Choose Images to Combine",
-      comment: "Combine image picker title"
-    )
-    static let pickerMessage = string(
-      "combine.picker-message",
-      defaultValue: "Select two or more images.",
-      comment: "Combine image picker message"
-    )
-    static let pickerConfirm = string(
-      "combine.picker-confirm",
-      defaultValue: "Combine",
-      comment: "Combine image picker confirmation"
-    )
-    static let saveTitle = string(
-      "combine.save-title",
-      defaultValue: "Save Combined Image",
-      comment: "Combine save dialog title"
-    )
-    static let saveMessage = string(
-      "combine.save-message",
-      defaultValue: "Choose how to export the stitched result.",
-      comment: "Combine save dialog message"
-    )
-    static let saveToFile = string(
-      "combine.save-to-file",
-      defaultValue: "Save to File…",
-      comment: "Save combined image to file"
-    )
-    static let copyToClipboard = string(
-      "combine.copy-to-clipboard",
-      defaultValue: "Copy to Clipboard",
-      comment: "Copy combined image to clipboard"
-    )
-  }
-
   enum Common {
+    static let activeCaptureTitle = string(
+      "common.active-capture-title",
+      defaultValue: "Capture in Progress",
+      comment: "Alert title shown when quitting while a capture workflow is active"
+    )
+    static let activeCaptureMessage = string(
+      "common.active-capture-message",
+      defaultValue: "Return to ShotPaste to finish the current capture, or discard it and quit.",
+      comment: "Alert message shown when quitting while a capture workflow is active"
+    )
+    static let returnToShotPaste = string(
+      "common.return-to-shotpaste",
+      defaultValue: "Return to ShotPaste",
+      comment: "Safe alert action that cancels quitting and returns to the active workflow"
+    )
+    static let discardAndQuit = string(
+      "common.discard-and-quit",
+      defaultValue: "Discard and Quit",
+      comment: "Destructive alert action that discards active work before quitting"
+    )
+    static let stopAndQuit = string(
+      "common.stop-and-quit",
+      defaultValue: "Stop and Quit",
+      comment: "Alert action that saves an active recording before quitting"
+    )
     static let tryItOut = string(
       "common.try-it-out",
       defaultValue: "Try It Out",
@@ -1464,6 +1413,21 @@ nonisolated enum L10n {
   }
 
   enum PreferencesGeneral {
+    static let loginItemRequiresApprovalTitle = string(
+      "preferences-general.login-item-requires-approval-title",
+      defaultValue: "Approval Required",
+      comment: "Alert title when macOS requires approval for the login item"
+    )
+    static let loginItemRequiresApprovalMessage = string(
+      "preferences-general.login-item-requires-approval-message",
+      defaultValue: "Allow ShotPaste in System Settings → General → Login Items, then return here.",
+      comment: "Alert guidance when macOS requires approval for the login item"
+    )
+    static let loginItemUpdateFailed = string(
+      "preferences-general.login-item-update-failed",
+      defaultValue: "Could not update the login item setting.",
+      comment: "Toast shown when changing the login item setting fails"
+    )
     static let startupSection = string(
       "preferences-general.section-startup",
       defaultValue: "Startup",
@@ -1804,9 +1768,59 @@ nonisolated enum L10n {
       defaultValue: "Permissions are managed by macOS and stay under your control.",
       comment: "Privacy reassurance shown at the bottom of the permission guide"
     )
+    static let dragAppTitle = string(
+      "preferences-permissions.drag-app-title",
+      defaultValue: "Drag ShotPaste into System Settings",
+      comment: "Title for the draggable app icon in permission settings"
+    )
+    static let dragAppDescription = string(
+      "preferences-permissions.drag-app-description",
+      defaultValue: "Open a permission page, then drag this icon into its app list. If macOS does not accept the drop, use the + button. You still need to turn the switch on.",
+      comment: "Instructions for dragging the app into a macOS privacy permission list"
+    )
+    static let requestAllSystemPermissions = string(
+      "preferences-permissions.request-all-system-permissions",
+      defaultValue: "Request All Permissions",
+      comment: "Button requesting every system-managed permission used by ShotPaste"
+    )
+    static let resetSystemPermissions = string(
+      "preferences-permissions.reset-system-permissions",
+      defaultValue: "Reset System Permissions",
+      comment: "Button resetting ShotPaste system permission decisions"
+    )
+    static let resetConfirmationTitle = string(
+      "preferences-permissions.reset-confirmation-title",
+      defaultValue: "Reset ShotPaste permissions?",
+      comment: "Permission reset confirmation title"
+    )
+    static let resetConfirmationMessage = string(
+      "preferences-permissions.reset-confirmation-message",
+      defaultValue: "This resets Screen Recording, Microphone, and Accessibility decisions for ShotPaste. Your save folder remains unchanged.",
+      comment: "Permission reset confirmation explanation"
+    )
+    static let resetSucceeded = string(
+      "preferences-permissions.reset-succeeded",
+      defaultValue: "System permissions were reset. Request access again when you are ready.",
+      comment: "Toast shown after system permissions are reset"
+    )
+    static let resetFailed = string(
+      "preferences-permissions.reset-failed",
+      defaultValue: "Some permissions could not be reset. Try again or use System Settings.",
+      comment: "Toast shown when one or more permission reset commands fail"
+    )
   }
 
   enum PreferencesQuickAccess {
+    static let noItemsForKeyboardFocus = string(
+      "preferences-quick-access.no-items-for-keyboard-focus",
+      defaultValue: "Capture something first to use Quick Access.",
+      comment: "Message shown when keyboard focus is requested without any Quick Access cards"
+    )
+    static let keyboardFocusHint = string(
+      "preferences-quick-access.keyboard-focus-hint",
+      defaultValue: "Use arrow keys or Tab to move, Return to open, ⌘C to copy, ⌘S to save, and Esc to exit.",
+      comment: "Short keyboard instructions shown when Quick Access focus mode begins"
+    )
     static let positionSection = string(
       "preferences-quick-access.section-position",
       defaultValue: "Position",
@@ -2779,129 +2793,44 @@ nonisolated enum L10n {
       )
     }
 
-    static let modeAnnotate = string(
-      "annotate.mode-annotate",
-      defaultValue: "Annotate",
-      comment: "Annotate editor mode label"
+    static let zoomIn = string(
+      "annotate.zoom-in",
+      defaultValue: "Zoom In",
+      comment: "Tooltip for increasing the inline annotation canvas zoom"
     )
-    static let modeMockup = string(
-      "annotate.mode-mockup",
-      defaultValue: "Mockup",
-      comment: "Annotate editor mode label"
+    static let zoomOut = string(
+      "annotate.zoom-out",
+      defaultValue: "Zoom Out",
+      comment: "Tooltip for decreasing the inline annotation canvas zoom"
     )
-    static let modePreview = string(
-      "annotate.mode-preview",
-      defaultValue: "Preview",
-      comment: "Annotate editor mode label"
+    static let panCanvas = string(
+      "annotate.pan-canvas",
+      defaultValue: "Pan Canvas (hold Space and drag)",
+      comment: "Tooltip for moving around a zoomed inline annotation canvas"
     )
-    static let dragToApp = string(
-      "annotate.drag-to-app",
-      defaultValue: "Drag to app",
-      comment: "Annotate drag handle label"
-    )
+    static func zoomLevel(_ percent: Int) -> String {
+      format(
+        "annotate.zoom-level",
+        defaultValue: "Zoom: %d%%",
+        comment: "Accessibility label for inline annotation canvas zoom. %d is a percentage.",
+        percent
+      )
+    }
+
     static let dragToAppHelp = string(
       "annotate.drag-to-app-help",
       defaultValue: "Drag this to another app to share the annotated image",
       comment: "Tooltip shown for the annotate drag handle"
-    )
-    static let pinWindow = string(
-      "annotate.pin-window",
-      defaultValue: "Pin window",
-      comment: "Tooltip shown for pinning the annotate window"
-    )
-    static let unpinWindow = string(
-      "annotate.unpin-window",
-      defaultValue: "Unpin window",
-      comment: "Tooltip shown for unpinning the annotate window"
     )
     static let copyToClipboard = string(
       "annotate.copy-to-clipboard",
       defaultValue: "Copy to clipboard",
       comment: "Tooltip shown for copying the annotated image to the clipboard"
     )
-    static let deleteScreenshotTitle = string(
-      "annotate.delete-screenshot-title",
-      defaultValue: "Delete Screenshot",
-      comment: "Alert title shown before deleting the source screenshot from annotate"
-    )
-    static func deleteScreenshotMessage(_ filename: String) -> String {
-      format(
-        "annotate.delete-screenshot-message",
-        defaultValue: "This will move \"%@\" to Trash.",
-        comment: "Alert message shown before deleting the source screenshot from annotate. %@ is the file name.",
-        filename
-      )
-    }
-
-    static let backgroundCutoutTitle = string(
-      "annotate.background-cutout-title",
-      defaultValue: "Background Cutout",
-      comment: "Alert title for annotate background cutout errors"
-    )
-    static let unableToRemoveBackground = string(
-      "annotate.unable-to-remove-background",
-      defaultValue: "Unable to remove background.",
-      comment: "Fallback error shown when background removal fails without a specific localized message"
-    )
-    static let crop = string(
-      "annotate.crop",
-      defaultValue: "Crop",
-      comment: "Tooltip for entering crop mode in annotate"
-    )
-    static let rotateLeft = string(
-      "annotate.rotate-left",
-      defaultValue: "Rotate left 90°",
-      comment: "Tooltip for rotating the source image 90° counter-clockwise"
-    )
-    static let rotateRight = string(
-      "annotate.rotate-right",
-      defaultValue: "Rotate right 90°",
-      comment: "Tooltip for rotating the source image 90° clockwise"
-    )
-    static let toggleSidebar = string(
-      "annotate.toggle-sidebar",
-      defaultValue: "Toggle sidebar",
-      comment: "Tooltip for toggling the annotate sidebar"
-    )
-    static let backgroundRemovedClickToRestore = string(
-      "annotate.background-removed-click-to-restore",
-      defaultValue: "Background Removed (Click to restore)",
-      comment: "Tooltip shown when background cutout is active and can be restored"
-    )
-    static let removeBackgroundAutoCropsWhenSafe = string(
-      "annotate.remove-background-auto-crops-when-safe",
-      defaultValue: "Remove Background (Auto-crops when safe)",
-      comment: "Tooltip shown when background cutout will auto-crop after removing the background"
-    )
-    static let removeBackgroundAutoCropDisabledInSettings = string(
-      "annotate.remove-background-auto-crop-disabled",
-      defaultValue: "Remove Background (Auto-crop disabled in Settings)",
-      comment: "Tooltip shown when background cutout is available but auto-crop is disabled in settings"
-    )
-    static let requiresMacOS14OrLater = string(
-      "annotate.requires-macos-14",
-      defaultValue: "Requires macOS 14+",
-      comment: "Tooltip shown when background cutout is unavailable on older macOS versions"
-    )
-    static let dropImageHere = string(
-      "annotate.drop-image-here",
-      defaultValue: "Drop an image here",
-      comment: "Empty state title for annotate when no image is loaded"
-    )
     static let backgroundRatio = string(
       "annotate.background-ratio",
       defaultValue: "Background Ratio",
       comment: "Section label for choosing the annotation background canvas aspect ratio"
-    )
-    static let toggleRuleOfThirdsGrid = string(
-      "annotate.toggle-rule-of-thirds-grid",
-      defaultValue: "Toggle rule of thirds grid",
-      comment: "Tooltip for showing or hiding the crop grid"
-    )
-    static let toggleCropOrientation = string(
-      "annotate.toggle-crop-orientation",
-      defaultValue: "Switch crop orientation",
-      comment: "Tooltip for switching crop aspect ratio between landscape and portrait"
     )
     static let toggleAspectRatioOrientation = string(
       "annotate.toggle-aspect-ratio-orientation",
@@ -2937,21 +2866,6 @@ nonisolated enum L10n {
       "annotate.default-annotated-file-name",
       defaultValue: "annotated_image",
       comment: "Default file name for a new annotated image without a source URL"
-    )
-    static let jpegRemovesTransparencyTitle = string(
-      "annotate.jpeg-removes-transparency-title",
-      defaultValue: "JPEG Removes Transparency",
-      comment: "Alert title shown before saving a transparent cutout image as JPEG"
-    )
-    static let jpegRemovesTransparencyMessage = string(
-      "annotate.jpeg-removes-transparency-message",
-      defaultValue: "This image uses a transparent background cutout. Saving as JPEG will flatten transparency to an opaque background. Use PNG or WebP to keep transparency.",
-      comment: "Alert message shown before saving a transparent cutout image as JPEG"
-    )
-    static let saveAsJPEG = string(
-      "annotate.save-as-jpeg",
-      defaultValue: "Save as JPEG",
-      comment: "Button title for confirming JPEG export without transparency"
     )
     static let presets = string(
       "annotate.presets",
@@ -3201,26 +3115,6 @@ nonisolated enum L10n {
       defaultValue: "Dim",
       comment: "Label for the dim blurred background preset"
     )
-    static let watermarkSingle = string(
-      "annotate.watermark-single",
-      defaultValue: "Single",
-      comment: "Label for a single watermark style"
-    )
-    static let watermarkDiagonal = string(
-      "annotate.watermark-diagonal",
-      defaultValue: "Diagonal",
-      comment: "Label for a centered diagonal watermark style"
-    )
-    static let watermarkTiled = string(
-      "annotate.watermark-tiled",
-      defaultValue: "Tiled",
-      comment: "Label for a repeated tiled watermark style"
-    )
-    static let watermarkOpacity = string(
-      "annotate.watermark-opacity",
-      defaultValue: "Opacity",
-      comment: "Label for watermark opacity controls"
-    )
     static let spotlightOpacity = string(
       "annotate.spotlight-opacity",
       defaultValue: "Darkness",
@@ -3315,46 +3209,6 @@ nonisolated enum L10n {
       "annotate.arrow-head-circle",
       defaultValue: "Circle",
       comment: "Arrow endpoint style drawn as a filled circle"
-    )
-    static let xAxis = string(
-      "annotate.x-axis",
-      defaultValue: "X Axis",
-      comment: "Label for the X axis rotation slider in mockup controls"
-    )
-    static let yAxis = string(
-      "annotate.y-axis",
-      defaultValue: "Y Axis",
-      comment: "Label for the Y axis rotation slider in mockup controls"
-    )
-    static let zAxis = string(
-      "annotate.z-axis",
-      defaultValue: "Z Axis",
-      comment: "Label for the Z axis rotation slider in mockup controls"
-    )
-    static let depth = string(
-      "annotate.depth",
-      defaultValue: "Depth",
-      comment: "Label for the perspective depth slider in mockup controls"
-    )
-    static let resetMockup = string(
-      "annotate.reset-mockup",
-      defaultValue: "Reset Mockup",
-      comment: "Button title for resetting mockup controls"
-    )
-    static let autoBalance = string(
-      "annotate.auto-balance",
-      defaultValue: "Auto-balance",
-      comment: "Toggle label for automatically balancing canvas effects in annotate"
-    )
-    static let openSidebarForMoreControls = string(
-      "annotate.open-sidebar-for-more-controls",
-      defaultValue: "Open sidebar for more annotate controls",
-      comment: "Tooltip for opening the full annotate sidebar from the quick properties bar"
-    )
-    static let resetToDefaults = string(
-      "annotate.reset-to-defaults",
-      defaultValue: "Reset to Defaults",
-      comment: "Tooltip for resetting mockup values to defaults"
     )
   }
 
@@ -3773,6 +3627,11 @@ nonisolated enum L10n {
   }
 
   enum RecordingToolbar {
+    static let preparingRecording = string(
+      "recording-toolbar.preparing-recording",
+      defaultValue: "Preparing recording…",
+      comment: "Status shown while ShotPaste prepares the recording pipeline"
+    )
     static let options = string(
       "recording-toolbar.options",
       defaultValue: "Options",
@@ -4006,6 +3865,45 @@ nonisolated enum L10n {
   }
 
   enum Recording {
+    static let quitConfirmationTitle = string(
+      "recording.quit-confirmation-title",
+      defaultValue: "Recording in Progress",
+      comment: "Alert title shown when quitting during an active recording"
+    )
+    static let quitConfirmationMessage = string(
+      "recording.quit-confirmation-message",
+      defaultValue: "Stop and save the recording before quitting, or move the current recording to Trash.",
+      comment: "Alert message shown when quitting during an active recording"
+    )
+    static let restartConfirmationTitle = string(
+      "recording.restart-confirmation-title",
+      defaultValue: "Restart Recording?",
+      comment: "Alert title shown before discarding the current recording and starting again"
+    )
+    static let restartConfirmationMessage = string(
+      "recording.restart-confirmation-message",
+      defaultValue: "The current recording will be moved to Trash and a new recording will start with the same settings.",
+      comment: "Alert message shown before restarting an active recording"
+    )
+    static let deleteConfirmationTitle = string(
+      "recording.delete-confirmation-title",
+      defaultValue: "Delete Recording?",
+      comment: "Alert title shown before deleting an active recording"
+    )
+    static let deleteConfirmationMessage = string(
+      "recording.delete-confirmation-message",
+      defaultValue: "The current recording will be moved to Trash. This cannot be undone in ShotPaste.",
+      comment: "Alert message shown before deleting an active recording"
+    )
+    static func trashFailedPreserved(_ path: String) -> String {
+      format(
+        "recording.trash-failed-preserved",
+        defaultValue: "The recording couldn’t be moved to Trash. It was kept at %@.",
+        comment: "Error shown when a recording cannot be moved to Trash; %@ is the preserved file path",
+        path
+      )
+    }
+
     static let failedTitle = string(
       "recording.failed-title",
       defaultValue: "Recording Failed",
@@ -4219,11 +4117,6 @@ nonisolated enum L10n {
       defaultValue: "Selection",
       comment: "Annotation tool display name"
     )
-    static let cropTool = string(
-      "annotate.tool.crop",
-      defaultValue: "Crop",
-      comment: "Annotation tool display name"
-    )
     static let rectangleTool = string(
       "annotate.tool.rectangle",
       defaultValue: "Rectangle",
@@ -4274,19 +4167,9 @@ nonisolated enum L10n {
       defaultValue: "Counter",
       comment: "Annotation tool display name"
     )
-    static let watermarkTool = string(
-      "annotate.tool.watermark",
-      defaultValue: "Watermark",
-      comment: "Annotation tool display name"
-    )
     static let pencilTool = string(
       "annotate.tool.pencil",
       defaultValue: "Pencil",
-      comment: "Annotation tool display name"
-    )
-    static let mockupTool = string(
-      "annotate.tool.mockup",
-      defaultValue: "Mockup",
       comment: "Annotation tool display name"
     )
   }
@@ -4599,48 +4482,6 @@ nonisolated enum L10n {
     )
   }
 
-  enum ForegroundCutout {
-    static let unsupportedOS = string(
-      "foreground-cutout.unsupported-os",
-      defaultValue: "Background cutout requires macOS 14 or newer.",
-      comment: "Error shown when foreground cutout is unavailable on the current macOS version"
-    )
-    static let noSubjectDetected = string(
-      "foreground-cutout.no-subject-detected",
-      defaultValue: "No foreground subject was detected in the selected area.",
-      comment: "Error shown when no foreground subject can be detected for background removal"
-    )
-    static let noSubjectDetectedTryTighterArea = string(
-      "foreground-cutout.no-subject-detected-try-tighter-area",
-      defaultValue: "No subject detected. Try selecting a tighter area around the subject.",
-      comment: "Toast shown when background removal cannot find a subject and the user should tighten the selection"
-    )
-    static func cutoutFailed(_ message: String) -> String {
-      format(
-        "foreground-cutout.cutout-failed",
-        defaultValue: "Background cutout failed: %@",
-        comment: "Error shown when background removal fails. %@ is the lower-level error message.",
-        message
-      )
-    }
-
-    static let imageConversionFailed = string(
-      "foreground-cutout.image-conversion-failed",
-      defaultValue: "Unable to convert cutout result to image.",
-      comment: "Error shown when the cutout result cannot be converted back to an image"
-    )
-    static let unableToProcessImageTryAgain = string(
-      "foreground-cutout.unable-to-process-image-try-again",
-      defaultValue: "Unable to process the cutout image. Please try again.",
-      comment: "Toast shown when background removal fails while processing the cutout image"
-    )
-    static let genericFailure = string(
-      "foreground-cutout.generic-failure",
-      defaultValue: "Background cutout failed. Please try again.",
-      comment: "Generic toast shown when background removal fails for an unknown reason"
-    )
-  }
-
   enum CaptureStorage {
     static let empty = string(
       "capture-storage.empty",
@@ -4865,30 +4706,35 @@ nonisolated enum L10n {
   }
 
   enum PreferencesHistory {
-    static let floatingPanelSection = string(
-      "preferences-history.floating-panel-section",
-      defaultValue: "Floating Panel",
-      comment: "History settings section title for floating panel"
+    static let searchCaptures = string(
+      "preferences-history.search-captures",
+      defaultValue: "Search captures",
+      comment: "Search field placeholder in the expanded history browser"
     )
-    static let floatingPanelTitle = string(
-      "preferences-history.floating-panel-title",
-      defaultValue: "Enable Floating Panel",
-      comment: "History settings toggle for floating panel"
+    static let keepOpen = string(
+      "preferences-history.keep-open",
+      defaultValue: "Keep History Open",
+      comment: "Tooltip for keeping the expanded history browser visible when it loses focus"
     )
-    static let floatingPanelDescription = string(
-      "preferences-history.floating-panel-description",
-      defaultValue: "Show a floating panel for quick access to recent captures",
-      comment: "History settings description for floating panel"
+    static let stopKeepingOpen = string(
+      "preferences-history.stop-keeping-open",
+      defaultValue: "Stop Keeping History Open",
+      comment: "Tooltip for restoring automatic dismissal when the expanded history browser loses focus"
     )
-    static let toggleModeShortcutTitle = string(
-      "preferences-history.toggle-mode-shortcut-title",
-      defaultValue: "Toggle Mode Shortcut",
-      comment: "History settings title for toggle mode shortcut"
+    static let last24HoursShort = string(
+      "preferences-history.last-24-hours-short",
+      defaultValue: "24H",
+      comment: "Compact filter title for history items from the last 24 hours"
     )
-    static let toggleModeShortcutDescription = string(
-      "preferences-history.toggle-mode-shortcut-description",
-      defaultValue: "Toggle between floating and expanded modes when the panel is active",
-      comment: "History settings description for toggle mode shortcut"
+    static let last7DaysShort = string(
+      "preferences-history.last-7-days-short",
+      defaultValue: "7D",
+      comment: "Compact filter title for history items from the last 7 days"
+    )
+    static let last30DaysShort = string(
+      "preferences-history.last-30-days-short",
+      defaultValue: "30D",
+      comment: "Compact filter title for history items from the last 30 days"
     )
     static let panelPositionTitle = string(
       "preferences-history.panel-position-title",
@@ -4945,11 +4791,6 @@ nonisolated enum L10n {
       defaultValue: "GIFs",
       comment: "History settings default filter option for GIFs"
     )
-    static let maxItemsTitle = string(
-      "preferences-history.max-items-title",
-      defaultValue: "Max Displayed Items",
-      comment: "History settings title for max displayed items"
-    )
     static let panelSizeTitle = string(
       "preferences-history.panel-size-title",
       defaultValue: "Panel Size",
@@ -4969,11 +4810,6 @@ nonisolated enum L10n {
       "preferences-history.panel-size-large",
       defaultValue: "L",
       comment: "History settings short label for the large end of the panel size slider"
-    )
-    static let maxItemsDescription = string(
-      "preferences-history.max-items-description",
-      defaultValue: "Maximum number of items shown in the floating panel",
-      comment: "History settings description for max displayed items"
     )
     static let retentionSection = string(
       "preferences-history.retention-section",
@@ -5092,6 +4928,15 @@ nonisolated enum L10n {
         "preferences-history.deleted-captures",
         defaultValue: "Deleted %d capture item(s)",
         comment: "Toast shown after deleting capture history items. %d is the number of deleted captures.",
+        count
+      )
+    }
+
+    static func deleteFailed(_ count: Int) -> String {
+      format(
+        "preferences-history.delete-failed",
+        defaultValue: "Could not delete %d capture item(s)",
+        comment: "Toast shown when one or more capture history items could not be moved to Trash or removed. %d is the failure count.",
         count
       )
     }
@@ -5230,14 +5075,6 @@ extension L10n.PreferencesHistory {
 }
 
 extension L10n.PreferencesCapture {
-  static let windowTargetingTitle = L10n.string(
-    "preferences-capture.window-targeting-title", defaultValue: "Window Targeting", comment: "Screenshot setting title"
-  )
-  static let windowTargetingDescription = L10n.string(
-    "preferences-capture.window-targeting-description",
-    defaultValue: "Switch from a freeform region to an application window.",
-    comment: "Screenshot setting description"
-  )
   static let pixelMagnifierTitle = L10n.string(
     "preferences-capture.pixel-magnifier-title", defaultValue: "Pixel Magnifier", comment: "Screenshot setting title"
   )

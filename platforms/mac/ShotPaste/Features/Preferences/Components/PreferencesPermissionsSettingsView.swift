@@ -26,6 +26,7 @@ struct PermissionGuideProgress: Equatable {
 
 struct PermissionsSettingsView: View {
   private enum PermissionAction: Hashable {
+    case resetSystemPermissions
     case screenRecording
     case saveFolder
     case microphone
@@ -34,6 +35,8 @@ struct PermissionsSettingsView: View {
 
   @ObservedObject private var screenCaptureManager = ScreenCaptureManager.shared
   @ObservedObject private var identityManager = AppIdentityManager.shared
+  @ObservedObject private var authorizationAssistant =
+    PermissionAuthorizationAssistantController.shared
 
   @State private var microphoneStatus = AVCaptureDevice.authorizationStatus(for: .audio)
   @State private var accessibilityGranted = AXIsProcessTrusted()
@@ -43,6 +46,7 @@ struct PermissionsSettingsView: View {
   @State private var hasAppeared = false
   @State private var didRequestScreenRecordingThisSession = false
   @State private var didRequestAccessibilityThisSession = false
+  @State private var isShowingResetConfirmation = false
 
   private let fileAccessManager = SandboxFileAccessManager.shared
 
@@ -57,6 +61,8 @@ struct PermissionsSettingsView: View {
     ScrollView {
       VStack(alignment: .leading, spacing: Spacing.md) {
         overviewCard
+
+        permissionManagementCard
 
         permissionSection(title: L10n.PreferencesPermissions.requiredSection) {
           PermissionGuideRow(
@@ -130,6 +136,22 @@ struct PermissionsSettingsView: View {
       guard hasAppeared else { return }
       checkAllPermissions()
     }
+    .onChange(of: authorizationAssistant.isRequesting) { isRequesting in
+      guard hasAppeared, !isRequesting else { return }
+      checkAllPermissions()
+    }
+    .confirmationDialog(
+      L10n.PreferencesPermissions.resetConfirmationTitle,
+      isPresented: $isShowingResetConfirmation,
+      titleVisibility: .visible
+    ) {
+      Button(L10n.PreferencesPermissions.resetSystemPermissions, role: .destructive) {
+        resetSystemPermissions()
+      }
+      Button(L10n.Common.cancel, role: .cancel) {}
+    } message: {
+      Text(L10n.PreferencesPermissions.resetConfirmationMessage)
+    }
   }
 
   private var progress: PermissionGuideProgress {
@@ -187,6 +209,70 @@ struct PermissionsSettingsView: View {
     .overlay {
       RoundedRectangle(cornerRadius: Size.radiusLg)
         .stroke(Color.primary.opacity(0.09), lineWidth: 1)
+    }
+  }
+
+  private var permissionManagementCard: some View {
+    HStack(alignment: .center, spacing: Spacing.md) {
+      PermissionDraggableAppIcon()
+
+      VStack(alignment: .leading, spacing: Spacing.xs) {
+        Text(L10n.PreferencesPermissions.dragAppTitle)
+          .font(.body.weight(.semibold))
+        Text(L10n.PreferencesPermissions.dragAppDescription)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+
+        HStack(spacing: Spacing.sm) {
+          Button(L10n.Permission.screenRecording) {
+            openSystemSettings(screenRecordingURL)
+          }
+          Button(L10n.Permission.accessibility) {
+            openSystemSettings(accessibilityURL)
+          }
+        }
+        .buttonStyle(.link)
+        .controlSize(.small)
+      }
+
+      Spacer(minLength: Spacing.md)
+
+      VStack(alignment: .trailing, spacing: Spacing.sm) {
+        Button {
+          requestAllSystemPermissions()
+        } label: {
+          HStack(spacing: Spacing.xs) {
+            if authorizationAssistant.isRequesting {
+              ProgressView()
+                .controlSize(.small)
+            } else {
+              Image(systemName: "checkmark.shield")
+            }
+            Text(L10n.PreferencesPermissions.requestAllSystemPermissions)
+          }
+        }
+        .buttonStyle(.borderedProminent)
+        .disabled(activeAction != nil || authorizationAssistant.isRequesting)
+
+        Button(role: .destructive) {
+          isShowingResetConfirmation = true
+        } label: {
+          Label(
+            L10n.PreferencesPermissions.resetSystemPermissions,
+            systemImage: "arrow.counterclockwise"
+          )
+        }
+        .buttonStyle(.bordered)
+        .disabled(activeAction != nil || authorizationAssistant.isRequesting)
+      }
+      .controlSize(.small)
+    }
+    .padding(Spacing.md)
+    .background(Color.accentColor.opacity(0.06), in: RoundedRectangle(cornerRadius: Size.radiusLg))
+    .overlay {
+      RoundedRectangle(cornerRadius: Size.radiusLg)
+        .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
     }
   }
 
@@ -383,6 +469,37 @@ struct PermissionsSettingsView: View {
   }
 
   // MARK: - Permission actions
+
+  private func requestAllSystemPermissions() {
+    guard activeAction == nil, !authorizationAssistant.isRequesting else { return }
+    didRequestScreenRecordingThisSession = true
+    didRequestAccessibilityThisSession = true
+    authorizationAssistant.show(startRequests: true)
+  }
+
+  private func resetSystemPermissions() {
+    guard activeAction == nil,
+          let bundleIdentifier = Bundle.main.bundleIdentifier else { return }
+    activeAction = .resetSystemPermissions
+
+    Task {
+      let report = await PermissionResetService.resetAll(bundleIdentifier: bundleIdentifier)
+      activeAction = nil
+      didRequestScreenRecordingThisSession = false
+      didRequestAccessibilityThisSession = false
+      checkAllPermissions()
+      authorizationAssistant.refreshPermissionStates()
+
+      AppToastManager.shared.show(
+        message: report.succeeded
+          ? L10n.PreferencesPermissions.resetSucceeded
+          : L10n.PreferencesPermissions.resetFailed,
+        style: report.succeeded ? .success : .error,
+        position: .bottomCenter,
+        duration: 4
+      )
+    }
+  }
 
   private func handleScreenRecordingAction() {
     switch screenCaptureManager.permissionStatus {

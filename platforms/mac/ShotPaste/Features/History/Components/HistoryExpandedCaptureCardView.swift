@@ -20,6 +20,7 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
   }
 
   @Environment(\.colorScheme) private var colorScheme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var thumbnailImage: NSImage?
   @State private var isHovering = false
   @State private var fileExists = true
@@ -52,8 +53,8 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
     .shadow(color: cardShadowColor, radius: isSelected ? 14 : 3, x: 0, y: isSelected ? 8 : 2)
     .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     .scaleEffect(isSelected ? 1.01 : (isHovering ? 1.005 : 1))
-    .animation(.spring(response: 0.24, dampingFraction: 0.9), value: isSelected)
-    .animation(.easeOut(duration: 0.16), value: isHovering)
+    .animation(reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.9), value: isSelected)
+    .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: isHovering)
     .onHover { hovering in
       isHovering = hovering
     }
@@ -82,6 +83,27 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
       checkFileExistence()
       thumbnailReloadToken += 1
     }
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(record.displayTitle)
+    .accessibilityValue(accessibilityValue)
+    .accessibilityHint(L10n.Common.open)
+    .accessibilityAddTraits(isSelected ? .isSelected : [])
+    .accessibilityAction(.default) {
+      onTap()
+    }
+    .accessibilityAction(named: Text(L10n.Common.open)) {
+      openItem()
+    }
+  }
+
+  private var accessibilityValue: String {
+    [
+      record.formattedDate,
+      record.formattedDuration,
+      fileExists ? record.formattedFileSize : L10n.Common.fileMissing,
+    ]
+    .compactMap { $0 }
+    .joined(separator: ", ")
   }
 
   private var preview: some View {

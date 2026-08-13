@@ -583,6 +583,21 @@ enum RecordingState: Equatable {
   }
 }
 
+enum RecordingCancellationOutcome: Equatable {
+  case disposed
+  case noOutput
+  case preserved(URL)
+
+  var succeeded: Bool {
+    switch self {
+    case .disposed, .noOutput:
+      true
+    case .preserved:
+      false
+    }
+  }
+}
+
 // MARK: - Recording Error
 
 enum RecordingError: Error, LocalizedError {
@@ -1279,10 +1294,11 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
   }
 
   /// Cancel the recording without saving
-  func cancelRecording() async {
+  @discardableResult
+  func cancelRecording(moveOutputToTrash: Bool = false) async -> RecordingCancellationOutcome {
     guard state != .idle else {
       DiagnosticLogger.shared.log(.debug, .recording, "cancelRecording ignored: recorder idle")
-      return
+      return .noOutput
     }
     DiagnosticLogger.shared.log(.info, .recording, "Recording cancel requested", context: [
       "state": "\(state)",
@@ -1307,21 +1323,33 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
           "file": url.lastPathComponent,
         ])
         cleanup()
-        return
+        return .noOutput
       }
       do {
-        try FileManager.default.removeItem(at: url)
-        DiagnosticLogger.shared.log(.debug, .recording, "Cancelled recording output removed", context: [
+        if moveOutputToTrash {
+          try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+        } else {
+          try FileManager.default.removeItem(at: url)
+        }
+        DiagnosticLogger.shared.log(.debug, .recording, "Cancelled recording output disposed", context: [
           "file": url.lastPathComponent,
+          "destination": moveOutputToTrash ? "trash" : "removed",
         ])
+        cleanup()
+        return .disposed
       } catch {
-        DiagnosticLogger.shared.logError(.recording, error, "Failed to remove cancelled recording output", context: [
+        shouldPreserveProcessingOutputOnCleanup = true
+        DiagnosticLogger.shared.logError(.recording, error, "Failed to dispose cancelled recording output", context: [
           "file": url.lastPathComponent,
+          "destination": moveOutputToTrash ? "trash" : "removed",
         ])
+        cleanup()
+        return .preserved(url)
       }
     }
 
     cleanup()
+    return .noOutput
   }
 
   // MARK: - Private Methods

@@ -162,9 +162,6 @@ enum ShotPasteConfigurationImporter {
     collectBool(&reader, "capture", "screenshot", "show_cursor", mutations: &mutations) {
       defaults.set($0, forKey: PreferencesKeys.screenshotShowCursor)
     }
-    collectBool(&reader, "capture", "screenshot", "window_targeting", mutations: &mutations) {
-      defaults.set($0, forKey: PreferencesKeys.screenshotWindowTargeting)
-    }
     collectBool(&reader, "capture", "screenshot", "magnifier_enabled", mutations: &mutations) {
       defaults.set($0, forKey: PreferencesKeys.screenshotMagnifierEnabled)
     }
@@ -204,9 +201,6 @@ enum ShotPasteConfigurationImporter {
       mutations: &mutations
     ) {
       defaults.set($0, forKey: PreferencesKeys.ocrRecognitionLanguage)
-    }
-    collectBool(&reader, "capture", "object_cutout", "auto_crop", mutations: &mutations) {
-      defaults.set($0, forKey: PreferencesKeys.backgroundCutoutAutoCropEnabled)
     }
     collectAfterCapture(&reader, type: .screenshot, mutations: &mutations)
     collectAfterCapture(&reader, type: .recording, mutations: &mutations)
@@ -519,7 +513,6 @@ enum ShotPasteConfigurationImporter {
       defaults.set($0, forKey: PreferencesKeys.historyBackgroundStyle)
     }
     let manager = HistoryFloatingManager.shared
-    collectBool(&reader, "history", "floating", "enabled", mutations: &mutations) { manager.isEnabled = $0 }
     collectEnumString(
       &reader,
       "history",
@@ -537,9 +530,6 @@ enum ShotPasteConfigurationImporter {
       } else {
         mutations.append { manager.defaultFilter = value }
       }
-    }
-    collectInt(&reader, "history", "floating", "max_displayed_items", range: 3 ... 50, mutations: &mutations) {
-      manager.maxDisplayedItems = $0
     }
     collectDouble(
       &reader,

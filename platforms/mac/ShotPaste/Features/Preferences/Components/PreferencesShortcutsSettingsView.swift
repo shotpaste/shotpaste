@@ -27,7 +27,6 @@ struct ShortcutsSettingsView: View {
 
   private let manager = KeyboardShortcutManager.shared
   private let validator = ShortcutValidationService.shared
-  @ObservedObject private var historyFloatingManager = HistoryFloatingManager.shared
 
   init() {
     _oneShotShortcut = State(initialValue: KeyboardShortcutManager.shared.shortcut(for: .oneShot))
@@ -360,20 +359,6 @@ struct ShortcutsSettingsView: View {
             onShortcutChanged: { handleGlobalShortcutChange($0, for: .history) }
           )
 
-          ShortcutRecorderView(
-            label: L10n.PreferencesHistory.toggleModeShortcutTitle,
-            icon: "arrow.left.and.right",
-            description: L10n.PreferencesHistory.toggleModeShortcutDescription,
-            shortcut: $historyFloatingManager.toggleModeShortcut,
-            defaultShortcut: HistoryFloatingManager.defaultToggleModeShortcut,
-            isEnabled: $historyFloatingManager.isToggleModeShortcutEnabled,
-            onShortcutChanged: { config in
-              historyFloatingManager.toggleModeShortcut = config
-              return true
-            }
-          )
-          .disabled(!historyFloatingManager.isEnabled)
-          .opacity(historyFloatingManager.isEnabled ? 1.0 : 0.6)
         } header: {
           HStack {
             Text(L10n.PreferencesShortcuts.historySection)
@@ -489,8 +474,6 @@ struct ShortcutsSettingsView: View {
     manager.setShortcutEnabled(true, for: .history)
     globalValidationIssues.removeValue(forKey: .history)
     manager.setHistoryShortcut(.defaultHistory)
-
-    HistoryFloatingManager.shared.resetToggleModeShortcut()
 
     if refresh {
       manager.refreshShortcutRegistration()

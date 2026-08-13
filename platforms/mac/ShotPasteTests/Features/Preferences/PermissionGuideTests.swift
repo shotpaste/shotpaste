@@ -32,6 +32,18 @@ final class PermissionGuideTests: XCTestCase {
     XCTAssertEqual(progress.requiredCount, 2)
   }
 
+  func testAuthorizationAssistantExposesDraggablePrivacyTargets() {
+    XCTAssertEqual(
+      PermissionAuthorizationSettingsTarget.dragSupportedTargets,
+      [.screenRecording, .accessibility]
+    )
+
+    for target in PermissionAuthorizationSettingsTarget.allCases {
+      let url = URL(string: target.urlString)
+      XCTAssertEqual(url?.scheme, "x-apple.systempreferences")
+    }
+  }
+
   func testLaunchPolicyPresentsMissingPermissionGuideOnce() {
     let defaults = UserDefaultsFactory.make()
     let policy = PermissionGuideLaunchPolicy(defaults: defaults)

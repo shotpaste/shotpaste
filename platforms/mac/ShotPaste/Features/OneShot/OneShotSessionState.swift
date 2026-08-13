@@ -40,6 +40,7 @@ enum OneShotCommitReason: String, Equatable {
   case screenshotProperty
   case screenshotUndoRedo
   case screenshotToolbarDrag
+  case screenshotViewport
   case screenshotAnnotation
   case screenshotOCR
   case screenshotPin

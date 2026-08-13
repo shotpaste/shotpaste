@@ -3,11 +3,7 @@
 //  ShotPasteTests
 //
 //  Characterization tests for AnnotateState viewport geometry (zoom/pan/viewport
-//  metrics) and UI state (tool activation, sidebar collapse/restore for crop,
-//  drag-to-app preparation state, markAsSaved). The basic sidebar preview-mode
-//  no-op is already covered in AnnotateCoreTests
-//  (testAnnotateStateToggleSidebarVisibilitySkipsPreviewMode) and is not
-//  duplicated here.
+//  metrics) and UI state (tool activation and markAsSaved).
 //
 
 import CoreGraphics
@@ -73,6 +69,30 @@ final class AnnotateViewportUIStateTests: XCTestCase {
 
     // percent/100 / fitScale = 1.0 / 0.5 = 2.0, still within [0.25, max].
     XCTAssertEqual(state.zoomLevel(forDisplayedPercent: 100), 2.0, accuracy: 0.0001)
+  }
+
+  @MainActor
+  func testZoomStepsUseDisplayedPresetsAndFitResetsPanModes() {
+    let state = makeAnnotateState()
+    state.updateViewportMetrics(
+      containerSize: CGSize(width: 400, height: 300),
+      baseCanvasSize: CGSize(width: 400, height: 300),
+      fitScale: 1
+    )
+
+    state.zoomIn()
+    XCTAssertEqual(state.currentDisplayedZoomPercent, 125)
+    XCTAssertTrue(state.canPanInteractively)
+
+    state.isCanvasPanningMode = true
+    state.isSpacePanning = true
+    state.pan(by: CGSize(width: 20, height: -10))
+    state.fitCanvasToViewport()
+
+    XCTAssertEqual(state.currentDisplayedZoomPercent, 100)
+    XCTAssertEqual(state.panOffset, .zero)
+    XCTAssertFalse(state.isCanvasPanningMode)
+    XCTAssertFalse(state.isSpacePanning)
   }
 
   // MARK: - Pan
@@ -241,71 +261,6 @@ final class AnnotateViewportUIStateTests: XCTestCase {
 
     XCTAssertEqual(state.selectedAnnotationId, annotation.id)
     XCTAssertEqual(state.selectedTool, .selection)
-  }
-
-  // MARK: - Sidebar collapse/restore for crop
-
-  @MainActor
-  func testCollapseSidebarForCropInteractionHidesVisibleSidebar() {
-    let state = makeAnnotateState()
-    state.showSidebar = true
-
-    state.collapseSidebarForCropInteraction()
-
-    XCTAssertFalse(state.showSidebar)
-  }
-
-  @MainActor
-  func testCollapseSidebarForCropInteractionIsNoOpWhenAlreadyHidden() {
-    let state = makeAnnotateState()
-    state.showSidebar = false
-
-    state.collapseSidebarForCropInteraction()
-    // No restore flag was set, so a later restore attempt stays hidden.
-    state.restoreSidebarAfterCropInteractionIfNeeded()
-
-    XCTAssertFalse(state.showSidebar)
-  }
-
-  @MainActor
-  func testRestoreSidebarAfterCropInteractionReopensAutoCollapsedSidebar() {
-    let state = makeAnnotateState()
-    state.showSidebar = true
-
-    state.collapseSidebarForCropInteraction()
-    XCTAssertFalse(state.showSidebar)
-
-    state.restoreSidebarAfterCropInteractionIfNeeded()
-
-    XCTAssertTrue(state.showSidebar)
-  }
-
-  @MainActor
-  func testRestoreSidebarAfterCropInteractionIsNoOpWithoutAutoCollapse() {
-    let state = makeAnnotateState()
-    state.showSidebar = false
-
-    state.restoreSidebarAfterCropInteractionIfNeeded()
-
-    XCTAssertFalse(state.showSidebar)
-  }
-
-  // MARK: - Drag-to-app preparation state (pure state transition, ALWAYS-RUN)
-
-  @MainActor
-  func testSetDragToAppPreparationStateTransitionsBetweenStates() {
-    let state = makeAnnotateState()
-
-    state.setDragToAppPreparationState(.preparing)
-    XCTAssertEqual(state.dragToAppPreparationState, .preparing)
-
-    state.setDragToAppPreparationState(.ready)
-    XCTAssertEqual(state.dragToAppPreparationState, .ready)
-    XCTAssertTrue(state.dragToAppPreparationState.isInteractive)
-
-    state.setDragToAppPreparationState(.unavailable)
-    XCTAssertEqual(state.dragToAppPreparationState, .unavailable)
-    XCTAssertFalse(state.dragToAppPreparationState.isInteractive)
   }
 
   // MARK: - Mark saved

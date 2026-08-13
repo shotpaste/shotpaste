@@ -36,16 +36,6 @@ final class AnnotateRenderOrderTests: XCTestCase {
     XCTAssertEqual(ordered.map(\.id), [blur.id, rectangle.id, arrow.id])
   }
 
-  func testRenderOrdered_placesEmbeddedImagesBelowBlur() {
-    let blur = makeItem(.blur(.gaussian))
-    let embedded = makeItem(.embeddedImage(UUID()))
-    let text = makeItem(.text("hello"))
-
-    let ordered = [text, blur, embedded].renderOrdered
-
-    XCTAssertEqual(ordered.map(\.id), [embedded.id, blur.id, text.id])
-  }
-
   func testRenderOrdered_isStableWithinTiers() {
     let blurA = makeItem(.blur(.pixelated))
     let rectA = makeItem(.rectangle)
@@ -62,8 +52,6 @@ final class AnnotateRenderOrderTests: XCTestCase {
       makeItem(.rectangle),
       makeItem(.blur(.pixelated)),
       makeItem(.counter(1)),
-      makeItem(.embeddedImage(UUID())),
-      makeItem(.watermark("wm")),
       makeItem(.spotlight),
     ]
 

@@ -6,7 +6,6 @@
 //
 
 import AppKit
-import Carbon.HIToolbox
 import Foundation
 
 /// Non-activating floating panel for capture history
@@ -31,6 +30,10 @@ final class HistoryFloatingPanel: NSPanel {
     backgroundColor = .clear
     hasShadow = true
     collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
+    // Clipboard History is user content that should remain visible in screenshots.
+    // ScreenCaptureManager keeps this window as an explicit exception when the
+    // rest of ShotPaste is excluded from capture.
+    sharingType = .readOnly
     acceptsMouseMovedEvents = true
     ignoresMouseEvents = false
   }
@@ -81,30 +84,36 @@ final class HistoryFloatingPanel: NSPanel {
       return true
     }
 
-    if HistoryFloatingManager.shared.isToggleModeShortcutEnabled,
-       let toggleShortcut = HistoryFloatingManager.shared.toggleModeShortcut,
-       let eventShortcut = ShortcutConfig(from: event) {
-      if eventShortcut.keyCode == toggleShortcut.keyCode, eventShortcut.modifiers == toggleShortcut.modifiers {
-        if isTextInputActive {
-          return super.performKeyEquivalent(with: event)
-        }
-        HistoryFloatingManager.shared.togglePresentationMode()
-        return true
-      }
-    }
-
     return super.performKeyEquivalent(with: event)
   }
 
   override func keyDown(with event: NSEvent) {
     let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
 
-    if !isTextInputActive, flags.isEmpty, event.keyCode == 51 || event.keyCode == 117 {
+    if !isTextInputActive, flags.isEmpty {
+      let move: HistorySelectionMove? = switch event.keyCode {
+      case 123: .left
+      case 124: .right
+      case 125: .down
+      case 126: .up
+      default: nil
+      }
+      if let move {
+        NotificationCenter.default.post(
+          name: .historyMoveSelection,
+          object: self,
+          userInfo: ["move": move]
+        )
+        return
+      }
+    }
+
+    if !isTextInputActive, flags.isEmpty, [51, 117].contains(event.keyCode) {
       NotificationCenter.default.post(name: .historyDeleteSelection, object: self)
       return
     }
 
-    if !isTextInputActive, flags.isEmpty, event.keyCode == 36 || event.keyCode == 76 {
+    if !isTextInputActive, flags.isEmpty, [36, 76].contains(event.keyCode) {
       NotificationCenter.default.post(name: .historyActivateSelection, object: self)
       return
     }
