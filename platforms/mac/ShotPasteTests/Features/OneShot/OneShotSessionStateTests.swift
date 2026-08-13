@@ -150,22 +150,26 @@ final class OneShotSessionStateTests: XCTestCase {
     XCTAssertTrue(state.showsTopSwitcher)
   }
 
-  func testOS020OS025AndOS026ScreenshotToolCommitsLocksTabsAndSelection() {
+  func testOS020OS025AndOS026ScreenshotToolCommitsLocksTabsAndMovementButAllowsResize() {
     let initialRect = CGRect(x: 120, y: 160, width: 640, height: 360)
     let state = makeSelectedState(rect: initialRect)
+    let movedRect = CGRect(x: 0, y: 0, width: 100, height: 100)
+    let resizedRect = CGRect(x: 120, y: 160, width: 720, height: 420)
 
     XCTAssertTrue(state.commitModeInteraction(.screenshotTool))
-    state.updateEditableSelection(
-      CGRect(x: 0, y: 0, width: 100, height: 100),
-      displayIDs: [displayA]
-    )
+    state.updateEditableSelection(movedRect, displayIDs: [displayA])
+    XCTAssertEqual(state.selectionRectGlobal, initialRect)
+
+    state.updateResizableSelection(resizedRect, displayIDs: [displayB])
     state.beginSelection()
 
     XCTAssertEqual(state.phase, .committed)
     XCTAssertEqual(state.commitReason, .screenshotTool)
     XCTAssertFalse(state.isPristine)
     XCTAssertFalse(state.selectionIsEditable)
-    XCTAssertEqual(state.selectionRectGlobal, initialRect)
+    XCTAssertTrue(state.selectionIsResizable)
+    XCTAssertEqual(state.selectionRectGlobal, resizedRect)
+    XCTAssertEqual(state.selectionDisplayIDs, [displayB])
     XCTAssertEqual(state.requestTab(.scrolling), .rejected)
     XCTAssertEqual(state.activeTab, .screenshot)
     XCTAssertFalse(state.showsTopSwitcher)
@@ -183,7 +187,9 @@ final class OneShotSessionStateTests: XCTestCase {
     XCTAssertEqual(state.selectionRectGlobal, initialRect)
     XCTAssertEqual(state.requestTab(.recording), .rejected)
     XCTAssertEqual(state.activeTab, .screenshot)
+    XCTAssertTrue(state.selectionIsResizable)
     XCTAssertTrue(state.beginExecuting())
+    XCTAssertFalse(state.selectionIsResizable)
     XCTAssertEqual(state.phase, .executing)
   }
 
@@ -206,7 +212,9 @@ final class OneShotSessionStateTests: XCTestCase {
     XCTAssertTrue(state.commitModeInteraction(.scrollingStart))
     XCTAssertEqual(state.phase, .committed)
     XCTAssertEqual(state.commitReason, .scrollingStart)
+    XCTAssertTrue(state.selectionIsResizable)
     XCTAssertTrue(state.beginExecuting())
+    XCTAssertFalse(state.selectionIsResizable)
     XCTAssertEqual(state.phase, .executing)
   }
 
@@ -223,6 +231,7 @@ final class OneShotSessionStateTests: XCTestCase {
     XCTAssertEqual(state.phase, .committed)
     XCTAssertEqual(state.commitReason, .recordingOutputMode)
     XCTAssertEqual(state.recordingOptions.outputMode, .gif)
+    XCTAssertTrue(state.selectionIsResizable)
   }
 
   func testOS040AndOS041ClipboardRequestClearsAnySelection() {

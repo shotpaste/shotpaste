@@ -146,17 +146,14 @@ public sealed class AppControllerFlowTests
     }
 
     [Theory]
-    [InlineData(false, false, true)]
-    [InlineData(false, true, true)]
-    [InlineData(true, false, false)]
-    [InlineData(true, true, true)]
-    public void OneShotSelection_DragsBeforeToolCommitOrWithMoveModifier(
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void OneShotSelection_DragsOnlyBeforeToolCommit(
         bool isCommitted,
-        bool moveModifierPressed,
         bool expected)
     {
         Assert.Equal(expected,
-            InlineAnnotateWindow.ShouldMoveSelectionOnCanvasDrag(isCommitted, moveModifierPressed));
+            InlineAnnotateWindow.ShouldMoveSelectionOnCanvasDrag(isCommitted));
     }
 
     [Fact]

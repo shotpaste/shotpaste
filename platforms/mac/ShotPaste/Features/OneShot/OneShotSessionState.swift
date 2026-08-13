@@ -127,6 +127,10 @@ final class OneShotSessionState: ObservableObject {
     phase == .selected && isPristine
   }
 
+  var selectionIsResizable: Bool {
+    selectionIsEditable || (phase == .committed && activeTab.isCaptureMode)
+  }
+
   var showsTopSwitcher: Bool {
     canSwitchTab
   }
@@ -200,6 +204,12 @@ final class OneShotSessionState: ObservableObject {
 
   func updateEditableSelection(_ rect: CGRect, displayIDs: Set<CGDirectDisplayID>) {
     guard selectionIsEditable else { return }
+    selectionRectGlobal = rect.standardized
+    selectionDisplayIDs = displayIDs
+  }
+
+  func updateResizableSelection(_ rect: CGRect, displayIDs: Set<CGDirectDisplayID>) {
+    guard selectionIsResizable else { return }
     selectionRectGlobal = rect.standardized
     selectionDisplayIDs = displayIDs
   }

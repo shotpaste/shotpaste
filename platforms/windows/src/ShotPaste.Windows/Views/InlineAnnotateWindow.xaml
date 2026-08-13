@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         AutomationProperties.AutomationId="InlineAnnotateWindow" Title="ShotPaste · One Shot" WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" Topmost="True" Cursor="Cross"
-        PreviewKeyDown="OnPreviewKeyDown" PreviewKeyUp="OnPreviewKeyUp"
+        PreviewKeyDown="OnPreviewKeyDown"
         MouseLeftButtonDown="OnWindowMouseDown" MouseMove="OnWindowMouseMove" MouseLeftButtonUp="OnWindowMouseUp">
   <Window.Resources>
     <Style x:Key="OneShotTabButton" TargetType="Button">

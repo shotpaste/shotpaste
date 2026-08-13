@@ -180,6 +180,22 @@ internal static class Program
                     Math.Abs(afterMarquee.Height - committedBounds.Height) >= 3)
                     throw new InvalidOperationException(
                         $"The committed annotation selection tool moved the screenshot region: before={committedBounds}, after={afterMarquee}.");
+
+                var spaceDragStart = new Drawing.Point(
+                    (int)Math.Round(committedBounds.Left + committedBounds.Width * 0.55),
+                    (int)Math.Round(committedBounds.Top + committedBounds.Height * 0.55));
+                DragWhileHoldingKey(
+                    overlay,
+                    0x20,
+                    spaceDragStart,
+                    new Drawing.Point(spaceDragStart.X + 70, spaceDragStart.Y + 45));
+                var afterSpaceDrag = WaitForAutomationId(process.Id, "SelectionImage").Current.BoundingRectangle;
+                if (Math.Abs(afterSpaceDrag.Left - committedBounds.Left) >= 3 ||
+                    Math.Abs(afterSpaceDrag.Top - committedBounds.Top) >= 3 ||
+                    Math.Abs(afterSpaceDrag.Width - committedBounds.Width) >= 3 ||
+                    Math.Abs(afterSpaceDrag.Height - committedBounds.Height) >= 3)
+                    throw new InvalidOperationException(
+                        $"Holding Space moved the committed screenshot region: before={committedBounds}, after={afterSpaceDrag}.");
             }
 
             if (action == ScenarioAction.OneShotToolbarDrag)
@@ -275,7 +291,7 @@ internal static class Program
                     Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
                     WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
                         "One Shot overlay did not close after selection move validation.");
-                    detail = "Dragging inside the uncommitted screenshot selection moved the region without locking the One Shot mode; explicitly selecting the annotation selection tool preserved marquee behavior.";
+                    detail = "Dragging inside the uncommitted screenshot selection moved the region without locking the One Shot mode; after commit, ordinary and Space-modified drags kept the screenshot region locked.";
                     break;
                 case ScenarioAction.OneShotToolbarDrag:
                     Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
@@ -733,6 +749,26 @@ internal static class Program
         Thread.Sleep(80);
         Native.keybd_event(virtualKey, 0, 0, UIntPtr.Zero);
         Native.keybd_event(virtualKey, 0, Native.KeyUp, UIntPtr.Zero);
+    }
+
+    private static void DragWhileHoldingKey(
+        AutomationElement window,
+        byte virtualKey,
+        Drawing.Point start,
+        Drawing.Point end)
+    {
+        Native.SetForegroundWindow(new IntPtr(window.Current.NativeWindowHandle));
+        window.SetFocus();
+        Thread.Sleep(80);
+        Native.keybd_event(virtualKey, 0, 0, UIntPtr.Zero);
+        try
+        {
+            Drag(start, end);
+        }
+        finally
+        {
+            Native.keybd_event(virtualKey, 0, Native.KeyUp, UIntPtr.Zero);
+        }
     }
 
     private static void SaveDesktopScreenshot(string path)
