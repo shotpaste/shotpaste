@@ -1,6 +1,76 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "common.active-capture-message": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Kehre zu ShotPaste zurück, um die aktuelle Aufnahme abzuschließen, oder verwirf sie und beende die App." } },
+        "en": { "stringUnit": { "state": "translated", "value": "Return to ShotPaste to finish the current capture, or discard it and quit." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Vuelve a ShotPaste para finalizar la captura actual, o descártala y sal de la app." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Revenez à ShotPaste pour terminer la capture en cours, ou abandonnez-la et quittez l’app." } },
+        "ja": { "stringUnit": { "state": "translated", "value": "ShotPaste に戻って現在のキャプチャを完了するか、破棄して終了してください。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "ShotPaste로 돌아가 현재 캡처를 완료하거나, 캡처를 버리고 종료하세요." } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Вернитесь в ShotPaste, чтобы завершить текущий захват, либо отмените его и выйдите." } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Quay lại ShotPaste để hoàn tất lần chụp hiện tại, hoặc huỷ bỏ và thoát." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "返回 ShotPaste 完成当前捕获，或放弃并退出。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "返回 ShotPaste 完成目前擷取，或放棄並結束。" } }
+      }
+    },
+    "common.active-capture-title": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Aufnahme läuft" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Capture in Progress" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Captura en curso" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Capture en cours" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "キャプチャ中" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "캡처 진행 중" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Выполняется захват" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Đang chụp" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "正在捕获" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "正在擷取" } }
+      }
+    },
+    "common.discard-and-quit": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Verwerfen und beenden" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Discard and Quit" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Descartar y salir" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Abandonner et quitter" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "破棄して終了" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "버리고 종료" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Отменить и выйти" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Huỷ bỏ và thoát" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "放弃并退出" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "放棄並結束" } }
+      }
+    },
+    "common.return-to-shotpaste": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Zu ShotPaste zurückkehren" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Return to ShotPaste" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Volver a ShotPaste" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Revenir à ShotPaste" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "ShotPaste に戻る" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "ShotPaste로 돌아가기" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Вернуться в ShotPaste" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Quay lại ShotPaste" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "返回 ShotPaste" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "返回 ShotPaste" } }
+      }
+    },
+    "common.stop-and-quit": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Stoppen und beenden" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Stop and Quit" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Detener y salir" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Arrêter et quitter" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "停止して終了" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "중지하고 종료" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Остановить и выйти" } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Dừng và thoát" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "停止并退出" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "停止並結束" } }
+      }
+    },
     "action.capture-text-ocr": {
       "extractionState": "stale",
       "localizations": {
@@ -452,6 +522,71 @@
           "stringUnit": {
             "state": "translated",
             "value": "捲動截圖"
+          }
+        }
+      }
+    },
+    "action.focus-quick-access": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schnellzugriff fokussieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Focus Quick Access"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enfocar Acceso rápido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activer le focus sur Accès rapide"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クイックアクセスにフォーカス"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "빠른 액세스에 포커스"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перейти к быстрому доступу"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đưa tiêu điểm vào Truy cập nhanh"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聚焦快速访问"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聚焦快速取用"
           }
         }
       }

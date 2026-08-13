@@ -74,43 +74,7 @@ final class AnnotateRenderSnapshotTests: XCTestCase {
     XCTAssertEqual(rendered.tiffRepresentation, reference.tiffRepresentation)
   }
 
-  /// Crop bounds must be honored identically by both paths.
-  func testSnapshotRender_withCrop_matchesStateRender() async throws {
-    let state = makeState()
-    state.sourceImage = try makeSourceImage()
-    state.cropRect = CGRect(x: 10, y: 10, width: 50, height: 40)
-
-    let reference = try XCTUnwrap(AnnotateExporter.renderFinalImage(state: state))
-    let snapshot = try XCTUnwrap(state.makeRenderSnapshot())
-    let renderedImage = await AnnotateExporter.renderFinalImage(snapshot: snapshot)
-    let rendered = try XCTUnwrap(renderedImage)
-
-    XCTAssertEqual(rendered.size, reference.size)
-    XCTAssertEqual(rendered.tiffRepresentation, reference.tiffRepresentation)
-  }
-
   // MARK: - Snapshot freezing
-
-  /// The snapshot must pre-warm the lazy embedded CGImage cache so the off-main
-  /// render never mutates state.
-  func testMakeRenderSnapshot_warmsEmbeddedCGImageCache() throws {
-    let state = makeState()
-    state.sourceImage = try makeSourceImage()
-    let assetId = UUID()
-    let embedded = try makeSourceImage(width: 20, height: 20)
-    try state.restoreEmbeddedImageAssets(from: [assetId: XCTUnwrap(embedded.tiffRepresentation)])
-    state.annotations = [
-      AnnotationItem(
-        type: .embeddedImage(assetId),
-        bounds: CGRect(x: 5, y: 5, width: 20, height: 20),
-        properties: AnnotationProperties(strokeColor: .clear, fillColor: .clear, strokeWidth: 1)
-      ),
-    ]
-
-    let snapshot = try XCTUnwrap(state.makeRenderSnapshot())
-    XCTAssertNotNil(snapshot.embeddedImages[assetId])
-    XCTAssertNotNil(snapshot.embeddedCGImages[assetId])
-  }
 
   /// Mutating state after the snapshot is taken must not change the render output
   /// (proves the snapshot is a frozen copy, not a live reference).
@@ -130,7 +94,6 @@ final class AnnotateRenderSnapshotTests: XCTestCase {
 
     // Mutate live state after snapshotting
     state.annotations = []
-    state.cropRect = CGRect(x: 0, y: 0, width: 20, height: 20)
 
     let renderedImage = await AnnotateExporter.renderFinalImage(snapshot: snapshot)
     let rendered = try XCTUnwrap(renderedImage)

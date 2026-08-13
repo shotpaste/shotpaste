@@ -293,7 +293,7 @@ final class ShotPasteAutomationController {
       HistoryFloatingManager.shared.showAllHistory()
       HistoryFloatingManager.shared.focusPanel()
     } else if let filter {
-      HistoryFloatingManager.shared.showExpanded(initialFilter: filter.captureHistoryCategory)
+      HistoryFloatingManager.shared.showHistory(initialFilter: filter.captureHistoryCategory)
       HistoryFloatingManager.shared.focusPanel()
     } else {
       HistoryWindowController.shared.showWindow()

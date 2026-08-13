@@ -12,6 +12,7 @@ struct ToolbarIconButton: View {
   let systemName: String
   let action: () -> Void
   let accessibilityLabel: String
+  var accessibilityHint: String = ""
 
   @State private var isHovered = false
 
@@ -21,7 +22,13 @@ struct ToolbarIconButton: View {
     }
     .buttonStyle(.plain)
     .onHover { isHovered = $0 }
+    .help(
+      accessibilityHint.isEmpty
+        ? accessibilityLabel
+        : "\(accessibilityLabel) — \(accessibilityHint)"
+    )
     .accessibilityLabel(accessibilityLabel)
+    .accessibilityHint(accessibilityHint)
   }
 }
 

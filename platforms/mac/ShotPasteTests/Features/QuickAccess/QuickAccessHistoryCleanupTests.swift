@@ -78,12 +78,13 @@ final class QuickAccessHistoryCleanupTests: XCTestCase {
       "Quick Access item should have been added"
     )
 
-    QuickAccessManager.shared.deleteItem(id: item.id)
+    QuickAccessManager.shared.deleteItem(id: item.id, confirmation: .alreadyConfirmed)
 
-    XCTAssertFalse(
-      CaptureHistoryStore.shared.hasRecord(forFilePath: fileURL.path),
-      "History record should be removed after explicit delete"
-    )
+    let didDelete = await waitUntil {
+      !CaptureHistoryStore.shared.hasRecord(forFilePath: fileURL.path)
+        && !QuickAccessManager.shared.items.contains { $0.id == item.id }
+    }
+    XCTAssertTrue(didDelete, "Explicit delete should remove the file, card, and history record")
   }
 
   func testRemoveItem_preservesHistoryRecordForTempFile() async throws {
@@ -151,11 +152,12 @@ final class QuickAccessHistoryCleanupTests: XCTestCase {
       "Quick Access item should have been added"
     )
 
-    QuickAccessManager.shared.deleteItem(id: item.id)
+    QuickAccessManager.shared.deleteItem(id: item.id, confirmation: .alreadyConfirmed)
 
-    XCTAssertFalse(
-      CaptureHistoryStore.shared.hasRecord(forFilePath: fileURL.path),
-      "History record should be removed after explicit delete of saved file"
-    )
+    let didDelete = await waitUntil {
+      !CaptureHistoryStore.shared.hasRecord(forFilePath: fileURL.path)
+        && !QuickAccessManager.shared.items.contains { $0.id == item.id }
+    }
+    XCTAssertTrue(didDelete, "Explicit delete should remove the saved file, card, and history record")
   }
 }

@@ -244,15 +244,47 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
     hasPermission = captureManager.hasPermission
   }
 
-  func requestPermission() {
+  func requestPermission(showRecoveryIfDenied: Bool = true) {
     Task {
-      _ = await captureManager.requestPermission()
+      let granted = await captureManager.requestPermission()
       await updatePermissionState()
+      if showRecoveryIfDenied, !granted || !hasPermission {
+        if !NSApp.isActive {
+          for await _ in NotificationCenter.default.notifications(
+            named: NSApplication.didBecomeActiveNotification
+          ) {
+            break
+          }
+          await updatePermissionState()
+        }
+        guard !hasPermission else { return }
+        presentScreenPermissionRecovery()
+      }
     }
   }
 
   func openSettings() {
     captureManager.openScreenRecordingPreferences()
+  }
+
+  private func presentScreenPermissionRecovery() {
+    NSApp.activate(ignoringOtherApps: true)
+    let alert = NSAlert()
+    alert.messageText = L10n.Permission.screenRecording
+    alert.informativeText = L10n.Permission.screenRecordingFinishInSettings
+    alert.alertStyle = .warning
+    alert.addButton(withTitle: L10n.Common.openSettings)
+    alert.addButton(withTitle: L10n.Common.openSystemSettings)
+    alert.addButton(withTitle: L10n.Common.cancel)
+
+    switch alert.runModal() {
+    case .alertFirstButtonReturn:
+      AppStatusBarController.shared.openPreferencesWindow(tab: .permissions)
+    case .alertSecondButtonReturn:
+      captureManager.openScreenRecordingPreferences()
+    default:
+      break
+    }
   }
 
   @discardableResult

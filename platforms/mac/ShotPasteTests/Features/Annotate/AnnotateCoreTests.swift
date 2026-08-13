@@ -49,22 +49,6 @@ final class AnnotateCoreTests: XCTestCase {
     XCTAssertEqual(AnnotationCanvasEffects().blurredBackgroundEffect, .soft)
   }
 
-  @MainActor
-  func testAnnotateStateToggleSidebarVisibilitySkipsPreviewMode() {
-    let state = makeAnnotateState()
-
-    state.toggleSidebarVisibility()
-    XCTAssertTrue(state.showSidebar)
-
-    state.editorMode = .preview
-    state.toggleSidebarVisibility()
-    XCTAssertTrue(state.showSidebar)
-
-    state.editorMode = .annotate
-    state.toggleSidebarVisibility()
-    XCTAssertFalse(state.showSidebar)
-  }
-
   func testInlineAreaControls_nearFullscreenSelectionUsesBottomInnerPlacement() {
     let containerSize = CGSize(width: 1512, height: 982)
     let rect = CGRect(origin: .zero, size: containerSize)
@@ -90,6 +74,7 @@ final class AnnotateCoreTests: XCTestCase {
       accuracy: 0.0001
     )
     XCTAssertGreaterThan(placement.toolbarCenter.y, containerSize.height / 2)
+    XCTAssertEqual(placement.toolbarSide, .below)
   }
 
   func testInlineAreaControls_respectsTopInsetWhenClampedAboveSelection() {
@@ -114,11 +99,51 @@ final class AnnotateCoreTests: XCTestCase {
       placement.toolbarCenter.y + InlineAreaLayout.toolbarHeight / 2,
       rect.minY + 0.0001
     )
+    XCTAssertEqual(placement.toolbarSide, .above)
   }
 
-  func testInlineAreaControls_keepsAbovePlacementWhenThereIsEnoughRoom() {
+  func testInlineAreaControls_defaultsBelowSelectionWhenBothSidesHaveEnoughRoom() {
     let containerSize = CGSize(width: 1512, height: 982)
     let rect = CGRect(x: 120, y: 200, width: 900, height: 300)
+
+    let placement = InlineAreaControlGeometry.placement(
+      for: rect,
+      containerSize: containerSize,
+      showsProperties: true,
+      propertiesContentWidth: 0,
+      controlInsets: .zero
+    )
+
+    XCTAssertEqual(
+      placement.toolbarCenter.y,
+      rect.maxY + InlineAreaLayout.selectionGap + InlineAreaLayout.toolbarHeight / 2,
+      accuracy: 0.0001
+    )
+    XCTAssertEqual(placement.toolbarSide, .below)
+
+    let toolbarFrame = CGRect(
+      x: placement.toolbarCenter.x - placement.toolbarWidth / 2,
+      y: placement.toolbarCenter.y - InlineAreaLayout.toolbarHeight / 2,
+      width: placement.toolbarWidth,
+      height: InlineAreaLayout.toolbarHeight
+    )
+    let sizeLabelCenterY = InlineAreaLayout.selectionSizeLabelCenterY(
+      for: rect,
+      controlTopInset: 0,
+      controlSide: placement.toolbarSide
+    )
+    let sizeLabelFrame = CGRect(
+      x: rect.minX,
+      y: sizeLabelCenterY - InlineAreaLayout.selectionSizeLabelHeight / 2,
+      width: 100,
+      height: InlineAreaLayout.selectionSizeLabelHeight
+    )
+    XCTAssertFalse(toolbarFrame.intersects(sizeLabelFrame))
+  }
+
+  func testInlineAreaControls_fallsBackAboveAndMovesSizeLabelInsideSelection() {
+    let containerSize = CGSize(width: 1512, height: 982)
+    let rect = CGRect(x: 120, y: 700, width: 900, height: 250)
 
     let placement = InlineAreaControlGeometry.placement(
       for: rect,
@@ -128,11 +153,48 @@ final class AnnotateCoreTests: XCTestCase {
       controlInsets: .zero
     )
 
+    XCTAssertEqual(placement.toolbarSide, .above)
     XCTAssertEqual(
       placement.toolbarCenter.y,
       rect.minY - InlineAreaLayout.selectionGap - InlineAreaLayout.toolbarHeight / 2,
       accuracy: 0.0001
     )
+
+    let toolbarBottom = placement.toolbarCenter.y + InlineAreaLayout.toolbarHeight / 2
+    let sizeLabelCenterY = InlineAreaLayout.selectionSizeLabelCenterY(
+      for: rect,
+      controlTopInset: 0,
+      controlSide: placement.toolbarSide
+    )
+    let sizeLabelTop = sizeLabelCenterY - InlineAreaLayout.selectionSizeLabelHeight / 2
+    XCTAssertLessThanOrEqual(toolbarBottom, rect.minY - InlineAreaLayout.selectionGap)
+    XCTAssertGreaterThanOrEqual(sizeLabelTop, rect.minY)
+  }
+
+  func testInlineAreaControls_keepsToolbarBelowWhenPropertiesNeedOppositeSide() {
+    let containerSize = CGSize(width: 1512, height: 982)
+    let rect = CGRect(x: 120, y: 420, width: 900, height: 470)
+
+    let placement = InlineAreaControlGeometry.placement(
+      for: rect,
+      containerSize: containerSize,
+      showsProperties: true,
+      propertiesContentWidth: 0,
+      controlInsets: .zero
+    )
+
+    XCTAssertEqual(placement.toolbarSide, .below)
+    XCTAssertEqual(
+      placement.toolbarCenter.y,
+      rect.maxY + InlineAreaLayout.selectionGap + InlineAreaLayout.toolbarHeight / 2,
+      accuracy: 0.0001
+    )
+    XCTAssertEqual(
+      placement.propertiesCenter.y,
+      rect.minY - InlineAreaLayout.selectionGap - InlineAreaLayout.propertiesHeight / 2,
+      accuracy: 0.0001
+    )
+    XCTAssertEqual(placement.propertiesPopoverEdge, .bottom)
   }
 
   func testInlineAreaControlInsetsPreferVisibleFrameAndSafeArea() {
@@ -443,9 +505,7 @@ final class AnnotateCoreTests: XCTestCase {
       path: [],
       context: context
     ))
-    XCTAssertNil(AnnotationFactory.createAnnotation(tool: .crop, from: start, to: start, path: [], context: context))
     XCTAssertNil(AnnotationFactory.createAnnotation(tool: .text, from: start, to: start, path: [], context: context))
-    XCTAssertNil(AnnotationFactory.createAnnotation(tool: .mockup, from: start, to: start, path: [], context: context))
     XCTAssertNil(AnnotationFactory.createAnnotation(
       tool: .pencil,
       from: start,
@@ -463,11 +523,11 @@ final class AnnotateCoreTests: XCTestCase {
   }
 
   func testAnnotationToolCreationPolicy_requiresDragExceptClickPlacementTools() {
-    for tool in [AnnotationToolType.rectangle, .filledRectangle, .oval, .arrow, .line, .blur, .watermark] {
+    for tool in [AnnotationToolType.rectangle, .filledRectangle, .oval, .arrow, .line, .blur, .spotlight] {
       XCTAssertTrue(tool.requiresDragToCreateAnnotation, "\(tool) should not create a new item from an empty click.")
     }
 
-    for tool in [AnnotationToolType.selection, .crop, .text, .highlighter, .counter, .pencil, .mockup] {
+    for tool in [AnnotationToolType.selection, .text, .highlighter, .counter, .pencil] {
       XCTAssertFalse(tool.requiresDragToCreateAnnotation, "\(tool) keeps its existing non-drag behavior.")
     }
   }
@@ -548,22 +608,6 @@ final class AnnotateCoreTests: XCTestCase {
     XCTAssertEqual(points[0].y, 100.5, accuracy: 0.0001)
     XCTAssertEqual(points[1].y, 100.5, accuracy: 0.0001)
     XCTAssertEqual(annotation.bounds, CGRect(x: 10, y: 100, width: 80, height: 1))
-  }
-
-  func testAnnotationFactory_smallWatermarkDragUsesCanvasSizedDefaultBounds() throws {
-    let annotation = try XCTUnwrap(AnnotationFactory.createAnnotation(
-      tool: .watermark,
-      from: CGPoint(x: 500, y: 250),
-      to: CGPoint(x: 504, y: 254),
-      path: [],
-      context: makeContext(watermarkText: "   ", bounds: CGRect(x: 0, y: 0, width: 1000, height: 500))
-    ))
-
-    guard case .watermark(let text) = annotation.type else {
-      return XCTFail("Expected watermark annotation, got \(annotation.type)")
-    }
-    XCTAssertEqual(text, "ShotPaste")
-    XCTAssertEqual(annotation.bounds, CGRect(x: 290, y: 205, width: 420, height: 90))
   }
 
   func testAnnotationFactory_usesArrowStyleAndBoundsFromGeometry() throws {
@@ -728,46 +772,6 @@ final class AnnotateCoreTests: XCTestCase {
       }
     }
     XCTAssertEqual(softenedStripePixels, 0)
-  }
-
-  @MainActor
-  func testAnnotateExporter_renderFinalImageCropsRetinaSourceInImageCoordinates() throws {
-    let scale: CGFloat = 2
-    let state = makeAnnotateState()
-    let sourceImage = try makeRetinaPixelPatternImage(pixelWidth: 96, pixelHeight: 48, scale: scale)
-    let cropRect = CGRect(x: 4, y: 3, width: 20, height: 8)
-    state.loadImage(sourceImage)
-    state.cropRect = cropRect
-
-    let renderedImage = try XCTUnwrap(AnnotateExporter.renderFinalImage(state: state))
-    let sourceCGImage = try XCTUnwrap(sourceImage.cgImage(forProposedRect: nil, context: nil, hints: nil))
-    let renderedCGImage = try XCTUnwrap(AnnotateExporter.bestCGImage(from: renderedImage))
-
-    XCTAssertEqual(renderedCGImage.width, Int(cropRect.width * scale))
-    XCTAssertEqual(renderedCGImage.height, Int(cropRect.height * scale))
-    guard renderedCGImage.width == Int(cropRect.width * scale),
-          renderedCGImage.height == Int(cropRect.height * scale) else {
-      return
-    }
-
-    let sourceBytes = try rgbaBytes(from: sourceCGImage)
-    let renderedBytes = try rgbaBytes(from: renderedCGImage)
-    let sourceStartX = Int(cropRect.minX * scale)
-    let sourceStartY = Int((sourceImage.size.height - cropRect.maxY) * scale)
-    var mismatchedPixels = 0
-    for y in 0 ..< renderedCGImage.height {
-      for x in 0 ..< renderedCGImage.width {
-        let sourceIndex = rgbaIndex(x: sourceStartX + x, y: sourceStartY + y, width: sourceCGImage.width)
-        let renderedIndex = rgbaIndex(x: x, y: y, width: renderedCGImage.width)
-        let pixelMatches = (0 ..< 4).allSatisfy { channel in
-          abs(Int(sourceBytes[sourceIndex + channel]) - Int(renderedBytes[renderedIndex + channel])) <= 2
-        }
-        if !pixelMatches {
-          mismatchedPixels += 1
-        }
-      }
-    }
-    XCTAssertEqual(mismatchedPixels, 0)
   }
 
   func testAspectRatioOptionOriginalKeepsForegroundRatioWithMinimumPadding() {
@@ -1061,11 +1065,8 @@ final class AnnotateCoreTests: XCTestCase {
     store.savePresets([preset])
     store.saveDefaultPresetId(preset.id)
 
-    let state = AnnotateState(
-      image: NSImage(size: NSSize(width: 20, height: 20)),
-      url: URL(fileURLWithPath: "/tmp/shotpaste-default-preset.png"),
-      canvasPresetStore: store
-    )
+    let state = AnnotateState(canvasPresetStore: store)
+    state.loadImage(NSImage(size: NSSize(width: 20, height: 20)))
     Self.retainedAnnotateStates.append(state)
 
     XCTAssertEqual(state.defaultCanvasPresetId, preset.id)
@@ -1101,11 +1102,10 @@ final class AnnotateCoreTests: XCTestCase {
     store.saveDefaultPresetId(preset.id)
 
     let state = AnnotateState(
-      image: NSImage(size: NSSize(width: 20, height: 20)),
-      url: URL(fileURLWithPath: "/tmp/shotpaste-default-preset.png"),
       canvasPresetStore: store,
       appliesDefaultCanvasPresetOnNewImages: false
     )
+    state.loadImage(NSImage(size: NSSize(width: 20, height: 20)))
     Self.retainedAnnotateStates.append(state)
 
     XCTAssertEqual(state.defaultCanvasPresetId, preset.id)
@@ -1115,20 +1115,9 @@ final class AnnotateCoreTests: XCTestCase {
     XCTAssertFalse(state.requiresRenderedOutputForSharing)
   }
 
-  func testCropAspectRatioNumericValues() {
-    XCTAssertEqual(CropAspectRatio.free.ratio, 0)
-    XCTAssertEqual(CropAspectRatio.square.ratio, 1)
-    XCTAssertEqual(CropAspectRatio.ratio4x3.ratio, 4.0 / 3.0, accuracy: 0.0001)
-    XCTAssertEqual(CropAspectRatio.ratio16x9.ratio, 16.0 / 9.0, accuracy: 0.0001)
-    XCTAssertEqual(CropAspectRatio.ratio21x9.ratio, 21.0 / 9.0, accuracy: 0.0001)
-  }
-
   func testAnnotationToolTypeQuickPropertiesAreScoped() {
     XCTAssertFalse(AnnotationToolType.selection.supportsQuickPropertiesBar)
-    XCTAssertFalse(AnnotationToolType.crop.supportsQuickPropertiesBar)
-    XCTAssertFalse(AnnotationToolType.mockup.supportsQuickPropertiesBar)
     XCTAssertTrue(AnnotationToolType.rectangle.supportsQuickPropertiesBar)
-    XCTAssertTrue(AnnotationToolType.watermark.supportsQuickPropertiesBar)
     XCTAssertTrue(AnnotationToolType.filledRectangle.supportsQuickStrokeColor)
     XCTAssertFalse(AnnotationToolType.filledRectangle.supportsQuickFillColor)
     XCTAssertFalse(AnnotationToolType.rectangle.supportsQuickFillColor)
@@ -1254,16 +1243,13 @@ final class AnnotateCoreTests: XCTestCase {
   }
 
   @MainActor
-  func testFontSizeDefaultAppliesAcrossTextAndWatermarkTools() {
+  func testFontSizeDefaultAppliesToTextTool() {
     let state = makeAnnotateState(defaults: UserDefaultsFactory.make())
     state.activateTool(.text)
 
     state.quickTextFontSizeBinding.wrappedValue = 30
 
     XCTAssertEqual(state.annotationCreationProperties(for: .text).fontSize, 30)
-    XCTAssertEqual(state.annotationCreationProperties(for: .watermark).fontSize, 30)
-
-    state.activateTool(.watermark)
     XCTAssertEqual(state.quickTextFontSizeBinding.wrappedValue, 30)
   }
 
@@ -1387,9 +1373,6 @@ final class AnnotateCoreTests: XCTestCase {
     firstState.quickCornerRadiusBinding.wrappedValue = 7
     firstState.activateTool(.text)
     firstState.quickTextFontSizeBinding.wrappedValue = 32
-    firstState.activateTool(.watermark)
-    firstState.quickWatermarkOpacityBinding.wrappedValue = 0.4
-    firstState.quickWatermarkRotationBinding.wrappedValue = -12
 
     let reloadedState = makeAnnotateState(defaults: defaults)
 
@@ -1397,9 +1380,6 @@ final class AnnotateCoreTests: XCTestCase {
     XCTAssertEqual(reloadedState.annotationCreationProperties(for: .blur).strokeWidth, 11)
     XCTAssertEqual(reloadedState.annotationCreationProperties(for: .filledRectangle).cornerRadius, 7)
     XCTAssertEqual(reloadedState.annotationCreationProperties(for: .text).fontSize, 32)
-    XCTAssertEqual(reloadedState.annotationCreationProperties(for: .watermark).fontSize, 32)
-    XCTAssertEqual(reloadedState.annotationCreationProperties(for: .watermark).opacity, 0.4)
-    XCTAssertEqual(reloadedState.annotationCreationProperties(for: .watermark).rotationDegrees, -12)
   }
 
   @MainActor
@@ -1419,33 +1399,19 @@ final class AnnotateCoreTests: XCTestCase {
     XCTAssertEqual(reloadedState.arrowBendDirection, .alternate)
   }
 
-  func testMockupPresetCatalogContainsUniqueBuiltInPresets() {
-    let presets = MockupPreset.allPresets
-
-    XCTAssertEqual(presets.count, 8)
-    XCTAssertEqual(Set(presets.map(\.id)).count, presets.count)
-    XCTAssertEqual(DefaultPresets.all, presets)
-    XCTAssertEqual(DefaultPresets.preset(named: "Hero Shot"), .heroShot)
-    XCTAssertNil(DefaultPresets.preset(named: "Missing"))
-  }
-
   private func makeContext(
     properties: AnnotationProperties = AnnotationProperties(),
     arrowStyle: ArrowStyle = .straight,
     arrowBendDirection: ArrowBendDirection = .primary,
     blurType: BlurType = .pixelated,
-    counterValue: Int = 1,
-    watermarkText: String = "ShotPaste",
-    bounds: CGRect = CGRect(x: 0, y: 0, width: 400, height: 300)
+    counterValue: Int = 1
   ) -> AnnotationFactory.CreationContext {
     AnnotationFactory.CreationContext(
       properties: properties,
       arrowStyle: arrowStyle,
       arrowBendDirection: arrowBendDirection,
       blurType: blurType,
-      counterValue: counterValue,
-      watermarkText: watermarkText,
-      activeAnnotationBounds: bounds
+      counterValue: counterValue
     )
   }
 

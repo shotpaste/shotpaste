@@ -62,7 +62,6 @@ enum ShotPasteConfigurationDefaultDocument {
     writer.value("format", ImageFormatOption.png.rawValue)
     writer.value("include_shotpaste", false)
     writer.value("show_cursor", false)
-    writer.value("window_targeting", true)
     writer.value("magnifier_enabled", true)
     writer.value("magnifier_zoom", 1)
     writer.value("output_scale", 0)
@@ -77,9 +76,6 @@ enum ShotPasteConfigurationDefaultDocument {
     writer.value("success_notification", false)
     writer.value("link_detection", true)
     writer.value("language", "auto")
-
-    writer.section("capture.object_cutout")
-    writer.value("auto_crop", true)
 
     writeAfterCapture(&writer, type: .screenshot)
     writeAfterCapture(&writer, type: .recording)
@@ -168,10 +164,8 @@ enum ShotPasteConfigurationDefaultDocument {
     writer.value("background_style", HistoryBackgroundStyle.defaultStyle.rawValue)
 
     writer.section("history.floating")
-    writer.value("enabled", true)
     writer.value("position", HistoryPanelPosition.topCenter.rawValue)
     writer.value("default_filter", CaptureHistoryCategory.clipboard.rawValue)
-    writer.value("max_displayed_items", 10)
     writer.value("scale", HistoryFloatingLayout.defaultScale)
   }
 

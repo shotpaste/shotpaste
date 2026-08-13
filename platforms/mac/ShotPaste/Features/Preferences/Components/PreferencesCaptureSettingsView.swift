@@ -35,7 +35,6 @@ struct CaptureSettingsView: View {
   @AppStorage(PreferencesKeys.hideDesktopWidgets) private var hideDesktopWidgets = false
   @AppStorage(PreferencesKeys.screenshotIncludeOwnApp) private var includeOwnAppInScreenshots = false
   @AppStorage(PreferencesKeys.screenshotShowCursor) private var screenshotShowCursor = false
-  @AppStorage(PreferencesKeys.screenshotWindowTargeting) private var screenshotWindowTargeting = true
   @AppStorage(PreferencesKeys.screenshotMagnifierEnabled) private var screenshotMagnifierEnabled = true
   @AppStorage(PreferencesKeys.screenshotMagnifierZoom) private var screenshotMagnifierZoom = 1
   @AppStorage(PreferencesKeys.screenshotScale) private var screenshotScale = 0
@@ -178,15 +177,6 @@ struct CaptureSettingsView: View {
               description: L10n.PreferencesCapture.showCursorDescription
             ) {
               Toggle("", isOn: $screenshotShowCursor)
-                .labelsHidden()
-            }
-
-            SettingRow(
-              icon: "macwindow.on.rectangle",
-              title: L10n.PreferencesCapture.windowTargetingTitle,
-              description: L10n.PreferencesCapture.windowTargetingDescription
-            ) {
-              Toggle("", isOn: $screenshotWindowTargeting)
                 .labelsHidden()
             }
 

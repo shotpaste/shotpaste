@@ -29,6 +29,11 @@ enum QuickAccessAnimationStyle: String, CaseIterable, Identifiable {
   }
 }
 
+enum QuickAccessDeleteConfirmation {
+  case promptUser
+  case alreadyConfirmed
+}
+
 /// Manages the quick access screenshot preview stack
 @MainActor
 final class QuickAccessManager: ObservableObject {
@@ -39,8 +44,13 @@ final class QuickAccessManager: ObservableObject {
   @Published private(set) var items: [QuickAccessItem] = [] {
     didSet {
       refreshPanelInteractionMetrics()
+      synchronizeKeyboardFocus()
     }
   }
+
+  @Published private(set) var countdownProgress: [UUID: Double] = [:]
+  @Published private(set) var isKeyboardFocusActive = false
+  @Published private(set) var keyboardFocusedItemID: UUID?
 
   @Published var position: QuickAccessPosition = .bottomRight {
     didSet {
@@ -61,6 +71,7 @@ final class QuickAccessManager: ObservableObject {
   @Published var autoDismissEnabled: Bool = true {
     didSet {
       UserDefaults.standard.set(autoDismissEnabled, forKey: Keys.autoDismissEnabled)
+      applyAutoDismissSetting()
     }
   }
 
@@ -68,6 +79,7 @@ final class QuickAccessManager: ObservableObject {
     didSet {
       UserDefaults.standard.set(hideCardWhenWindowOpen, forKey: Keys.hideCardWhenWindowOpen)
       refreshPanelInteractionMetrics()
+      synchronizeKeyboardFocus()
     }
   }
 
@@ -80,6 +92,7 @@ final class QuickAccessManager: ObservableObject {
   @Published var autoDismissDelay: TimeInterval = 10 {
     didSet {
       UserDefaults.standard.set(autoDismissDelay, forKey: Keys.autoDismissDelay)
+      restartActiveDismissTimers()
     }
   }
 
@@ -115,6 +128,9 @@ final class QuickAccessManager: ObservableObject {
   @Published var pauseCountdownOnHover: Bool = true {
     didSet {
       UserDefaults.standard.set(pauseCountdownOnHover, forKey: Keys.pauseCountdownOnHover)
+      if !pauseCountdownOnHover {
+        releaseHoverCountdownHolds()
+      }
     }
   }
 
@@ -134,6 +150,7 @@ final class QuickAccessManager: ObservableObject {
   private var thumbnailSaveGenerations: [UUID: UInt64] = [:]
   /// Tracks items doing async work, such as GIF conversion.
   private var activityHoldItemIds: Set<UUID> = []
+  private var hoverHoldItemIds: Set<UUID> = []
 
   // MARK: - UserDefaults Keys
 
@@ -453,6 +470,7 @@ final class QuickAccessManager: ObservableObject {
     guard let item = items.first(where: { $0.id == id }) else {
       cancelDismissTimer(for: id)
       activityHoldItemIds.remove(id)
+      hoverHoldItemIds.remove(id)
       DiagnosticLogger.shared.log(
         .debug,
         .action,
@@ -468,6 +486,7 @@ final class QuickAccessManager: ObservableObject {
     cancelDismissTimer(for: id)
     pinWindowManager.close(id: id)
     activityHoldItemIds.remove(id)
+    hoverHoldItemIds.remove(id)
     // Fast animation (0.15s) for immediate perceived response
     withAnimation(.spring(response: 0.15, dampingFraction: 0.8)) {
       items.removeAll { $0.id == id }
@@ -533,6 +552,7 @@ final class QuickAccessManager: ObservableObject {
     cancelDismissTimer(for: id)
     pinWindowManager.close(id: id)
     activityHoldItemIds.remove(id)
+    hoverHoldItemIds.remove(id)
     withAnimation(.spring(response: 0.15, dampingFraction: 0.8)) {
       items.removeAll { $0.id == id }
     }
@@ -926,8 +946,98 @@ final class QuickAccessManager: ObservableObject {
     pinWindowManager.resumeAllMouseMonitors()
   }
 
+  @discardableResult
+  func activateKeyboardFocus() -> Bool {
+    let focusableItems = keyboardFocusableItems
+    guard !focusableItems.isEmpty else {
+      AppToastManager.shared.show(
+        message: L10n.PreferencesQuickAccess.noItemsForKeyboardFocus,
+        style: .info,
+        position: .bottomCenter
+      )
+      return false
+    }
+
+    showPanelIfNeeded()
+    isKeyboardFocusActive = true
+    if keyboardFocusedItemID.map({ focusedID in
+      focusableItems.contains(where: { $0.id == focusedID })
+    }) != true {
+      keyboardFocusedItemID = focusableItems.first?.id
+    }
+    for item in focusableItems {
+      dismissTimers[item.id]?.pause()
+    }
+    panelController.setKeyboardFocusActive(true)
+    AppToastManager.shared.show(
+      message: L10n.PreferencesQuickAccess.keyboardFocusHint,
+      style: .info,
+      position: .bottomCenter,
+      duration: 4
+    )
+    DiagnosticLogger.shared.log(.info, .ui, "Quick access keyboard focus activated")
+    return true
+  }
+
+  func deactivateKeyboardFocus(restorePreviousApplication: Bool = true) {
+    guard isKeyboardFocusActive else { return }
+    isKeyboardFocusActive = false
+    keyboardFocusedItemID = nil
+    panelController.setKeyboardFocusActive(
+      false,
+      restorePreviousApplication: restorePreviousApplication
+    )
+    for item in keyboardFocusableItems where !isItemCountdownHeld(item.id) {
+      dismissTimers[item.id]?.resume()
+    }
+    DiagnosticLogger.shared.log(.debug, .ui, "Quick access keyboard focus deactivated")
+  }
+
+  func keyboardFocusDidResign() {
+    deactivateKeyboardFocus(restorePreviousApplication: false)
+  }
+
+  func moveKeyboardFocus(by delta: Int) {
+    guard isKeyboardFocusActive else { return }
+    let focusableItems = keyboardFocusableItems
+    let currentIndex = keyboardFocusedItemID.flatMap { focusedID in
+      focusableItems.firstIndex(where: { $0.id == focusedID })
+    } ?? 0
+    guard let destinationIndex = QuickAccessKeyboardNavigation.destinationIndex(
+      from: currentIndex,
+      delta: delta,
+      itemCount: focusableItems.count
+    ) else { return }
+    keyboardFocusedItemID = focusableItems[destinationIndex].id
+  }
+
+  func openKeyboardFocusedItem() {
+    guard let item = keyboardFocusedItem else { return }
+    NSWorkspace.shared.open(item.url)
+  }
+
+  func copyKeyboardFocusedItem() {
+    guard let id = keyboardFocusedItem?.id else { return }
+    copyToClipboard(id: id)
+  }
+
+  func saveKeyboardFocusedItem() {
+    guard let item = keyboardFocusedItem else { return }
+    if tempCaptureManager.isTempFile(item.url) {
+      saveItem(id: item.id)
+    } else {
+      openInFinder(id: item.id)
+    }
+  }
+
+  func deleteKeyboardFocusedItem() {
+    guard let id = keyboardFocusedItem?.id else { return }
+    deleteItem(id: id)
+  }
+
   /// Dismiss all screenshots
   func dismissAll() {
+    deactivateKeyboardFocus()
     let count = items.count
     for item in items {
       cancelDismissTimer(for: item.id)
@@ -935,6 +1045,8 @@ final class QuickAccessManager: ObservableObject {
     pinWindowManager.closeAll()
     items.removeAll()
     activityHoldItemIds.removeAll()
+    hoverHoldItemIds.removeAll()
+    countdownProgress.removeAll()
     hidePanel()
     DiagnosticLogger.shared.log(
       .info,
@@ -990,7 +1102,10 @@ final class QuickAccessManager: ObservableObject {
   }
 
   /// Delete item from disk and remove from stack
-  func deleteItem(id: UUID) {
+  func deleteItem(
+    id: UUID,
+    confirmation: QuickAccessDeleteConfirmation = .promptUser
+  ) {
     guard let item = items.first(where: { $0.id == id }) else {
       DiagnosticLogger.shared.log(
         .warning,
@@ -999,6 +1114,19 @@ final class QuickAccessManager: ObservableObject {
         context: ["itemId": id.uuidString]
       )
       return
+    }
+
+    guard item.processingState == .idle else { return }
+
+    if confirmation == .promptUser {
+      NSApp.activate(ignoringOtherApps: true)
+      let alert = NSAlert()
+      alert.messageText = L10n.PreferencesHistory.deleteSelectedAlertTitle
+      alert.informativeText = L10n.PreferencesHistory.deleteSelectedAlertMessage(1)
+      alert.alertStyle = .warning
+      alert.addButton(withTitle: L10n.Common.moveToTrash)
+      alert.addButton(withTitle: L10n.Common.cancel)
+      guard alert.runModal() == .alertFirstButtonReturn else { return }
     }
 
     let url = item.url
@@ -1010,37 +1138,48 @@ final class QuickAccessManager: ObservableObject {
       context: ["fileName": url.lastPathComponent, "temp": isTempFile ? "true" : "false"]
     )
 
-    // Remove matching history record up-front so:
-    //  - Temp files: removeItem's history-preservation check now sees no record,
-    //    so the temp file is actually deleted (matches the user's explicit intent).
-    //  - Saved files: history is cleared before the file is trashed, avoiding a
-    //    "file missing" ghost entry in the history panel.
-    CaptureHistoryStore.shared.removeByFilePath(url.path)
-    removeItem(id: id)
+    updateProcessingState(id: id, state: .processing(progress: nil))
+    Task { @MainActor in
+      let fileAccess = fileAccessManager.beginAccessingURL(url)
+      let directoryAccess = fileAccessManager.beginAccessingURL(url.deletingLastPathComponent())
+      defer { fileAccess.stop() }
+      defer { directoryAccess.stop() }
 
-    // removeItem already handles temp file deletion,
-    // for non-temp files we need to trash them
-    if !isTempFile {
-      Task { @MainActor in
-        let fileAccess = fileAccessManager.beginAccessingURL(url)
-        let directoryAccess = fileAccessManager.beginAccessingURL(url.deletingLastPathComponent())
-        defer { fileAccess.stop() }
-        defer { directoryAccess.stop() }
-
-        do {
+      do {
+        if FileManager.default.fileExists(atPath: url.path) {
           try FileManager.default.trashItem(at: url, resultingItemURL: nil)
-          if item.isVideo {
-            try? RecordingMetadataStore.delete(for: url)
-          }
-        } catch {
-          logger.error("Failed to delete item \(url.lastPathComponent): \(error.localizedDescription)")
-          DiagnosticLogger.shared.logError(
-            .fileAccess,
-            error,
-            "Quick access delete failed",
-            context: ["fileName": url.lastPathComponent]
-          )
         }
+        CaptureHistoryStore.shared.removeByFilePath(url.path)
+        if item.isVideo {
+          try? RecordingMetadataStore.delete(for: url)
+        }
+        dismissCard(id: id)
+        SoundManager.play("Funk")
+        DiagnosticLogger.shared.log(
+          .info,
+          .fileAccess,
+          "Quick access item moved to Trash",
+          context: [
+            "fileName": url.lastPathComponent,
+            "temp": isTempFile ? "true" : "false",
+          ]
+        )
+      } catch {
+        logger.error("Failed to delete item \(url.lastPathComponent): \(error.localizedDescription)")
+        DiagnosticLogger.shared.logError(
+          .fileAccess,
+          error,
+          "Quick access delete failed",
+          context: ["fileName": url.lastPathComponent]
+        )
+        updateProcessingState(id: id, state: .failed)
+        AppToastManager.shared.show(
+          message: error.localizedDescription,
+          style: .error,
+          position: .bottomCenter,
+          duration: 4
+        )
+        clearFailedStateAfterDelay(id: id)
       }
     }
   }
@@ -1087,6 +1226,7 @@ final class QuickAccessManager: ObservableObject {
       )
       return
     }
+    guard item.processingState == .idle else { return }
     let tempURL = item.url
     DiagnosticLogger.shared.log(
       .info,
@@ -1095,19 +1235,10 @@ final class QuickAccessManager: ObservableObject {
       context: ["fileName": tempURL.lastPathComponent]
     )
 
-    // Remove card immediately (don't trigger temp file deletion since we're saving)
-    cancelDismissTimer(for: id)
-    pinWindowManager.close(id: id)
-    activityHoldItemIds.remove(id)
-    withAnimation(.spring(response: 0.15, dampingFraction: 0.8)) {
-      items.removeAll { $0.id == id }
-    }
-    if items.isEmpty {
-      hidePanel()
-    }
-
     // Move file from temp to export location
+    updateProcessingState(id: id, state: .processing(progress: nil))
     Task { @MainActor in
+      await Task.yield()
       if let savedURL = tempCaptureManager.saveToExportLocation(tempURL: tempURL) {
         // Update history records by original file path. QuickAccess item IDs are
         // independent from persisted history record IDs.
@@ -1130,6 +1261,7 @@ final class QuickAccessManager: ObservableObject {
           "Quick access manual save completed",
           context: ["fileName": savedURL.lastPathComponent]
         )
+        dismissCard(id: id)
       } else {
         DiagnosticLogger.shared.log(
           .error,
@@ -1137,7 +1269,25 @@ final class QuickAccessManager: ObservableObject {
           "Quick access manual save failed",
           context: ["fileName": tempURL.lastPathComponent]
         )
+        updateProcessingState(id: id, state: .failed)
+        AppToastManager.shared.show(
+          message: L10n.AnnotateUI.saveFailedMessage,
+          style: .error,
+          position: .bottomCenter,
+          duration: 4
+        )
+        clearFailedStateAfterDelay(id: id)
       }
+    }
+  }
+
+  private func clearFailedStateAfterDelay(id: UUID) {
+    Task { @MainActor [weak self] in
+      try? await Task.sleep(nanoseconds: 2_000_000_000)
+      guard let self,
+            let item = items.first(where: { $0.id == id }),
+            item.processingState == .failed else { return }
+      updateProcessingState(id: id, state: .idle)
     }
   }
 
@@ -1172,12 +1322,36 @@ final class QuickAccessManager: ObservableObject {
   }
 
   private func showPanelIfNeeded() {
-    guard !panelController.isVisible else { return }
+    guard !panelController.isReadyForContent else { return }
     showPanel()
   }
 
   private func hidePanel() {
+    deactivateKeyboardFocus()
     panelController.hide()
+  }
+
+  private var keyboardFocusableItems: [QuickAccessItem] {
+    items.filter { !(hideCardWhenWindowOpen && $0.isWindowOpen) }
+  }
+
+  private var keyboardFocusedItem: QuickAccessItem? {
+    guard isKeyboardFocusActive, let keyboardFocusedItemID else { return nil }
+    return keyboardFocusableItems.first(where: { $0.id == keyboardFocusedItemID })
+  }
+
+  private func synchronizeKeyboardFocus() {
+    guard isKeyboardFocusActive else { return }
+    let focusableItems = keyboardFocusableItems
+    guard !focusableItems.isEmpty else {
+      deactivateKeyboardFocus()
+      return
+    }
+    if let keyboardFocusedItemID,
+       focusableItems.contains(where: { $0.id == keyboardFocusedItemID }) {
+      return
+    }
+    keyboardFocusedItemID = focusableItems.first?.id
   }
 
   private var visiblePanelItemCount: Int {
@@ -1244,10 +1418,17 @@ final class QuickAccessManager: ObservableObject {
 
   private func startDismissTimer(for id: UUID) {
     guard let index = items.firstIndex(where: { $0.id == id }), !items[index].isPinned else { return }
+    cancelDismissTimer(for: id)
     let delay = autoDismissDelay
-    let timer = QuickAccessCountdownTimer(duration: delay) { [weak self] in
-      self?.removeItem(id: id)
-    }
+    let timer = QuickAccessCountdownTimer(
+      duration: delay,
+      onProgress: { [weak self] fraction in
+        self?.countdownProgress[id] = fraction
+      },
+      onExpire: { [weak self] in
+        self?.removeItem(id: id)
+      }
+    )
     dismissTimers[id] = timer
     timer.start()
 
@@ -1259,17 +1440,24 @@ final class QuickAccessManager: ObservableObject {
   private func cancelDismissTimer(for id: UUID) {
     dismissTimers[id]?.cancel()
     dismissTimers.removeValue(forKey: id)
+    countdownProgress.removeValue(forKey: id)
+  }
+
+  func countdownProgress(for id: UUID) -> Double? {
+    countdownProgress[id]
   }
 
   // MARK: - Pause / Resume Countdown
 
   /// Pause countdown for a single item (used by hover)
   func pauseCountdown(for id: UUID) {
+    hoverHoldItemIds.insert(id)
     dismissTimers[id]?.pause()
   }
 
   /// Resume countdown for a single item (used by hover un-hover)
   func resumeCountdown(for id: UUID) {
+    hoverHoldItemIds.remove(id)
     // Don't resume if an upload or conversion still owns the countdown.
     guard !isItemCountdownHeld(id) else { return }
     dismissTimers[id]?.resume()
@@ -1289,7 +1477,34 @@ final class QuickAccessManager: ObservableObject {
   }
 
   private func isItemCountdownHeld(_ id: UUID) -> Bool {
-    activityHoldItemIds.contains(id)
+    activityHoldItemIds.contains(id) || hoverHoldItemIds.contains(id) || isKeyboardFocusActive
+  }
+
+  private func applyAutoDismissSetting() {
+    if autoDismissEnabled {
+      for item in items where !item.isPinned && dismissTimers[item.id] == nil {
+        startDismissTimer(for: item.id)
+      }
+    } else {
+      for id in Array(dismissTimers.keys) {
+        cancelDismissTimer(for: id)
+      }
+    }
+  }
+
+  private func restartActiveDismissTimers() {
+    guard autoDismissEnabled else { return }
+    for item in items where !item.isPinned {
+      startDismissTimer(for: item.id)
+    }
+  }
+
+  private func releaseHoverCountdownHolds() {
+    let heldIDs = hoverHoldItemIds
+    hoverHoldItemIds.removeAll()
+    for id in heldIDs where !isItemCountdownHeld(id) {
+      dismissTimers[id]?.resume()
+    }
   }
 
   /// Retry thumbnail generation in background and update item if successful

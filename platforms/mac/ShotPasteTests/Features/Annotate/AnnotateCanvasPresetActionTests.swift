@@ -33,12 +33,8 @@ final class AnnotateCanvasPresetActionTests: XCTestCase {
     store: AnnotateCanvasPresetStore,
     defaults: UserDefaults
   ) -> AnnotateState {
-    let state = AnnotateState(
-      image: NSImage(size: NSSize(width: 40, height: 40)),
-      url: URL(fileURLWithPath: "/tmp/shotpaste-canvas-preset-tests.png"),
-      defaults: defaults,
-      canvasPresetStore: store
-    )
+    let state = AnnotateState(defaults: defaults, canvasPresetStore: store)
+    state.loadImage(NSImage(size: NSSize(width: 40, height: 40)))
     Self.retainedAnnotateStates.append(state)
     return state
   }

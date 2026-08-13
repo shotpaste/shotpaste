@@ -16,7 +16,6 @@
         "after-capture.",
         "capture-kind.",
         "capture-storage.",
-        "foreground-cutout.",
         "ocr.",
         "one-shot.",
         "preferences-capture.",
@@ -103,12 +102,6 @@
       "file": "Shared/PermissionLabels.xcstrings",
       "prefixes": [
         "permission."
-      ]
-    },
-    {
-      "file": "Features/Combine.xcstrings",
-      "prefixes": [
-        "combine."
       ]
     }
   ]

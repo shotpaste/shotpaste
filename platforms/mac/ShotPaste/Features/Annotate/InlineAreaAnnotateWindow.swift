@@ -45,8 +45,9 @@ final class InlineAreaAnnotateCoordinator {
     )
   }
 
-  func cancelActiveSession() {
-    activeSession?.cancel()
+  @discardableResult
+  func cancelActiveSession(discardChanges: Bool = false) -> Bool {
+    activeSession?.cancel(discardChanges: discardChanges) ?? true
   }
 
   private func startSession(
@@ -187,6 +188,7 @@ final class InlineAreaAnnotatePanel: NSPanel {
     hasShadow = false
     hidesOnDeactivate = false
     collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+    sharingType = .none
     animationBehavior = .none
     becomesKeyOnlyIfNeeded = true
 
@@ -292,6 +294,10 @@ private struct InlineAreaAnnotateRootView: View {
   @State private var oneShotMagnifierSample: OneShotMagnifierSample?
   @State private var isOneShotReselecting = false
   @State private var oneShotToolbarDragStart: CGPoint?
+  @State private var magnificationStartZoom: CGFloat?
+  @State private var canvasPanLastTranslation: CGSize = .zero
+  @AppStorage(PreferencesKeys.screenshotMagnifierEnabled) private var screenshotMagnifierEnabled = true
+  @AppStorage(PreferencesKeys.screenshotMagnifierZoom) private var screenshotMagnifierZoom = 1
 
   var body: some View {
     GeometryReader { geometry in
@@ -299,6 +305,15 @@ private struct InlineAreaAnnotateRootView: View {
       let viewportRect = desktopRect.map(rectInViewport)
       let isSelectionPreviewing = resizePreviewRect != nil || movingPreviewRect != nil
       let showsCursorIndicator = movingPreviewRect != nil || session.isSelectingOneShotOCR
+      let selectionLabelControlSide = viewportRect.flatMap { viewportRect in
+        desktopRect.flatMap { desktopRect in
+          oneShotSelectionLabelControlSide(
+            for: viewportRect,
+            desktopRect: desktopRect,
+            containerSize: geometry.size
+          )
+        }
+      }
 
       ZStack(alignment: .topLeading) {
         ForEach(session.displays) { backdropDisplay in
@@ -331,11 +346,17 @@ private struct InlineAreaAnnotateRootView: View {
               selectionBorder(rect: viewportRect)
             }
             if !session.isSelectingOneShotOCR,
-               session.isOneShotSelectionEditable {
+               session.state.canPanInteractively,
+               session.state.isCanvasPanningMode || session.state.isSpacePanning {
+              canvasPanHitArea(rect: viewportRect)
+            } else if !session.isSelectingOneShotOCR,
+                      session.isOneShotSelectionEditable {
               selectionMoveHitArea(rect: viewportRect, desktopRect: desktopRect)
             }
             if !session.isSelectingOneShotOCR,
-               session.isOneShotSelectionResizable {
+               session.isOneShotSelectionResizable,
+               !session.state.isCanvasPanningMode,
+               !session.state.isSpacePanning {
               resizeHandles(rect: viewportRect, desktopRect: desktopRect)
             }
             if !session.isSelectingOneShotOCR,
@@ -360,7 +381,7 @@ private struct InlineAreaAnnotateRootView: View {
           oneShotSwitcher(state: session.oneShotState, containerSize: geometry.size)
         }
 
-        if session.oneShotState.phase == .armed,
+        if shouldShowOneShotMagnifier,
            let oneShotMagnifierSample,
            let cursorIndicatorPoint {
           OneShotMagnifierView(
@@ -376,7 +397,15 @@ private struct InlineAreaAnnotateRootView: View {
         }
 
         if let viewportRect {
-          oneShotSelectionSizeLabel(rect: viewportRect, containerSize: geometry.size)
+          oneShotSelectionSizeLabel(
+            rect: viewportRect,
+            containerSize: geometry.size,
+            controlSide: selectionLabelControlSide
+          )
+        }
+
+        if let prompt = session.activePrompt {
+          overlayPrompt(prompt, containerSize: geometry.size)
         }
       }
       .coordinateSpace(name: InlineAreaCoordinateSpace.root)
@@ -393,7 +422,10 @@ private struct InlineAreaAnnotateRootView: View {
           InlineAreaNativeCursor.restoreArrow()
         }
       }
-      .inlineAreaSelectionGesture(selectionGesture, isEnabled: session.phase == .selecting)
+      .inlineAreaSelectionGesture(
+        selectionGesture,
+        isEnabled: session.phase == .selecting && session.activePrompt == nil
+      )
     }
     .ignoresSafeArea()
     .onAppear {
@@ -409,6 +441,28 @@ private struct InlineAreaAnnotateRootView: View {
     }
   }
 
+  private func overlayPrompt(
+    _ prompt: InlineAreaOverlayPrompt,
+    containerSize: CGSize
+  ) -> some View {
+    ZStack {
+      Color.black.opacity(0.48)
+        .contentShape(Rectangle())
+        .onTapGesture {}
+
+      if session.activePromptDisplayID == display.displayID {
+        InlineAreaOverlayPromptCard(prompt: prompt) { action in
+          session.resolveActivePrompt(action)
+        }
+        .frame(width: min(440, max(300, containerSize.width - 40)))
+        .position(x: containerSize.width / 2, y: containerSize.height / 2)
+      }
+    }
+    .frame(width: containerSize.width, height: containerSize.height)
+    .zIndex(10_000)
+    .accessibilityIdentifier("oneshot-overlay-prompt")
+  }
+
   private var selectionGesture: some Gesture {
     DragGesture(minimumDistance: 0, coordinateSpace: .named(InlineAreaCoordinateSpace.root))
       .onChanged { value in
@@ -418,6 +472,7 @@ private struct InlineAreaAnnotateRootView: View {
         }
         let currentLocation = desktopPoint(for: value.location)
         cursorIndicatorPoint = value.location
+        updateOneShotMagnifier(at: value.location, containerSize: display.localFrame.size)
         updateNativeCursorForIndicator(true)
         session.beginSelection(at: desktopPoint(for: value.startLocation))
         session.updateSelection(to: currentLocation)
@@ -440,12 +495,16 @@ private struct InlineAreaAnnotateRootView: View {
           isOneShotReselecting = true
           session.beginOneShotReselection(at: start)
         }
+        cursorIndicatorPoint = value.location
+        updateOneShotMagnifier(at: value.location, containerSize: display.localFrame.size)
         session.updateSelection(to: desktopPoint(for: value.location))
       }
       .onEnded { value in
         guard isOneShotReselecting else { return }
         session.endSelection(at: desktopPoint(for: value.location))
         isOneShotReselecting = false
+        cursorIndicatorPoint = nil
+        oneShotMagnifierSample = nil
       }
   }
 
@@ -528,7 +587,6 @@ private struct InlineAreaAnnotateRootView: View {
   ) -> some View {
     let imageSize = session.state.sourceImage?.size ?? rect.size
     let stableDesktopRect = session.selectionRect ?? desktopRect
-    let displayScale = max(stableDesktopRect.width / max(imageSize.width, 1), 0.0001)
     let previewLayout = InlineAreaAnnotationPreviewLayout.resolve(
       stableSelectionRect: stableDesktopRect,
       displayFrame: display.localFrame,
@@ -536,13 +594,6 @@ private struct InlineAreaAnnotateRootView: View {
     )
 
     return ZStack(alignment: .topLeading) {
-      if !usesBackdropPreview, let image = session.state.effectiveSourceImage {
-        Image(nsImage: image)
-          .resizable()
-          .frame(width: rect.width, height: rect.height)
-          .position(x: rect.midX, y: rect.midY)
-      }
-
       if usesBackdropPreview {
         // Keep the annotation layer at a fixed display-sized frame while the
         // selection changes. The selection acts only as a mask, so annotations
@@ -559,12 +610,7 @@ private struct InlineAreaAnnotateRootView: View {
         )
         .allowsHitTesting(false)
       } else {
-        annotationCanvasSurface(
-          size: rect.size,
-          displayScale: displayScale,
-          canvasBounds: CGRect(origin: .zero, size: imageSize)
-        )
-        .position(x: rect.midX, y: rect.midY)
+        interactiveAnnotationCanvasSurface(rect: rect, imageSize: imageSize)
       }
 
       selectionBorder(rect: rect)
@@ -575,6 +621,58 @@ private struct InlineAreaAnnotateRootView: View {
       height: display.localFrame.height,
       alignment: .topLeading
     )
+  }
+
+  private func interactiveAnnotationCanvasSurface(
+    rect: CGRect,
+    imageSize: CGSize
+  ) -> some View {
+    let fitScale = max(rect.width / max(imageSize.width, 1), 0.0001)
+    let zoomLevel = session.state.zoomLevel
+    let displayScale = fitScale * zoomLevel
+    let renderedSize = CGSize(
+      width: rect.width * zoomLevel,
+      height: rect.height * zoomLevel
+    )
+
+    return ZStack {
+      if zoomLevel < 0.999 {
+        Color(nsColor: .windowBackgroundColor)
+      }
+
+      ZStack {
+        if let image = session.state.sourceImage {
+          Image(nsImage: image)
+            .resizable()
+            .frame(width: renderedSize.width, height: renderedSize.height)
+        }
+
+        annotationCanvasSurface(
+          size: renderedSize,
+          displayScale: displayScale,
+          canvasBounds: CGRect(origin: .zero, size: imageSize)
+        )
+      }
+      .frame(width: renderedSize.width, height: renderedSize.height)
+      .offset(
+        x: session.state.panOffset.width,
+        y: session.state.panOffset.height
+      )
+    }
+    .frame(width: rect.width, height: rect.height)
+    .clipped()
+    .contentShape(Rectangle())
+    .simultaneousGesture(canvasMagnificationGesture)
+    .onAppear {
+      updateCanvasViewportMetrics(rect: rect, fitScale: fitScale)
+    }
+    .onChange(of: rect.size) { _ in
+      updateCanvasViewportMetrics(rect: rect, fitScale: fitScale)
+    }
+    .onChange(of: imageSize) { _ in
+      updateCanvasViewportMetrics(rect: rect, fitScale: fitScale)
+    }
+    .position(x: rect.midX, y: rect.midY)
   }
 
   private func annotationCanvasSurface(
@@ -604,6 +702,32 @@ private struct InlineAreaAnnotateRootView: View {
     .frame(width: size.width, height: size.height)
   }
 
+  private var canvasMagnificationGesture: some Gesture {
+    MagnificationGesture()
+      .onChanged { magnification in
+        guard session.commitOneShotInteraction(.screenshotViewport) else { return }
+        if magnificationStartZoom == nil {
+          magnificationStartZoom = session.state.zoomLevel
+        }
+        let startZoom = magnificationStartZoom ?? session.state.zoomLevel
+        session.state.setZoomLevel(startZoom * magnification)
+      }
+      .onEnded { _ in
+        magnificationStartZoom = nil
+      }
+  }
+
+  private func updateCanvasViewportMetrics(
+    rect: CGRect,
+    fitScale: CGFloat
+  ) {
+    session.state.updateViewportMetrics(
+      containerSize: rect.size,
+      baseCanvasSize: rect.size,
+      fitScale: fitScale
+    )
+  }
+
   private func selectionMoveHitArea(rect: CGRect, desktopRect: CGRect) -> some View {
     Color.clear
       .contentShape(Rectangle())
@@ -616,6 +740,39 @@ private struct InlineAreaAnnotateRootView: View {
         } else {
           NSCursor.arrow.set()
         }
+      }
+  }
+
+  private func canvasPanHitArea(rect: CGRect) -> some View {
+    Color.clear
+      .contentShape(Rectangle())
+      .frame(width: rect.width, height: rect.height)
+      .position(x: rect.midX, y: rect.midY)
+      .gesture(canvasPanGesture)
+      .onHover { hovering in
+        if hovering {
+          NSCursor.openHand.set()
+        } else {
+          NSCursor.arrow.set()
+        }
+      }
+      .accessibilityLabel(L10n.AnnotateUI.panCanvas)
+  }
+
+  private var canvasPanGesture: some Gesture {
+    DragGesture(minimumDistance: 1, coordinateSpace: .named(InlineAreaCoordinateSpace.root))
+      .onChanged { value in
+        let delta = CGSize(
+          width: value.translation.width - canvasPanLastTranslation.width,
+          height: value.translation.height - canvasPanLastTranslation.height
+        )
+        canvasPanLastTranslation = value.translation
+        session.state.pan(by: delta)
+        NSCursor.closedHand.set()
+      }
+      .onEnded { _ in
+        canvasPanLastTranslation = .zero
+        NSCursor.openHand.set()
       }
   }
 
@@ -732,8 +889,28 @@ private struct InlineAreaAnnotateRootView: View {
       propertiesWidth: min(standard.propertiesWidth, availableWidth),
       toolbarCenter: CGPoint(x: centerX, y: standard.toolbarCenter.y),
       propertiesCenter: standard.propertiesCenter,
-      propertiesPopoverEdge: standard.propertiesPopoverEdge
+      propertiesPopoverEdge: standard.propertiesPopoverEdge,
+      toolbarSide: standard.toolbarSide
     )
+  }
+
+  private func oneShotSelectionLabelControlSide(
+    for rect: CGRect,
+    desktopRect: CGRect,
+    containerSize: CGSize
+  ) -> InlineAreaVerticalSide? {
+    guard session.phase == .annotating,
+          session.oneShotState.activeTab == .screenshot,
+          session.controlDisplayID(for: desktopRect) == display.displayID
+    else {
+      return nil
+    }
+
+    return oneShotScreenshotPlacement(
+      for: rect,
+      containerSize: containerSize,
+      showsProperties: session.state.showsQuickPropertiesBar
+    ).toolbarSide
   }
 
   private func oneShotToolbarCenter(
@@ -880,8 +1057,9 @@ private struct InlineAreaAnnotateRootView: View {
   }
 
   private func updateOneShotMagnifier(at location: CGPoint, containerSize: CGSize) {
-    guard session.oneShotState.phase == .armed else {
+    guard shouldShowOneShotMagnifier else {
       oneShotMagnifierSample = nil
+      session.oneShotState.updateCurrentColor(hex: nil, rgb: nil)
       return
     }
     let globalPoint = CGPoint(
@@ -892,10 +1070,28 @@ private struct InlineAreaAnnotateRootView: View {
       image: display.backdropCGImage,
       localPoint: location,
       displaySize: containerSize,
-      globalPoint: globalPoint
+      globalPoint: globalPoint,
+      sampleRadius: magnifierSampleRadius
     )
     oneShotMagnifierSample = sample
     session.oneShotState.updateCurrentColor(hex: sample?.hex, rgb: sample?.rgb)
+  }
+
+  private var shouldShowOneShotMagnifier: Bool {
+    guard screenshotMagnifierEnabled, session.activePrompt == nil else { return false }
+    switch session.oneShotState.phase {
+    case .armed, .selecting:
+      return true
+    case .selected, .committed:
+      return isOneShotReselecting || movingPreviewRect != nil || resizePreviewRect != nil
+    case .idle, .preparing, .executing, .terminating:
+      return false
+    }
+  }
+
+  private var magnifierSampleRadius: Int {
+    // A higher requested zoom shows a smaller source region in the fixed-size loupe.
+    max(2, 8 - min(max(screenshotMagnifierZoom, 1), 20) / 3)
   }
 
   private func oneShotMagnifierPosition(cursor: CGPoint, containerSize: CGSize) -> CGPoint {
@@ -915,14 +1111,21 @@ private struct InlineAreaAnnotateRootView: View {
     )
   }
 
-  private func oneShotSelectionSizeLabel(rect: CGRect, containerSize: CGSize) -> some View {
+  private func oneShotSelectionSizeLabel(
+    rect: CGRect,
+    containerSize: CGSize,
+    controlSide: InlineAreaVerticalSide?
+  ) -> some View {
     let text = "\(Int(rect.width.rounded())) × \(Int(rect.height.rounded()))"
-    let labelSize = CGSize(width: max(82, CGFloat(text.count) * 8 + 20), height: 28)
-    let preferredY = rect.minY - 8 - labelSize.height / 2
-    let y =
-      preferredY >= display.controlInsets.top + 4
-        ? preferredY
-        : min(rect.maxY - labelSize.height / 2 - 8, rect.minY + labelSize.height / 2 + 8)
+    let labelSize = CGSize(
+      width: max(82, CGFloat(text.count) * 8 + 20),
+      height: InlineAreaLayout.selectionSizeLabelHeight
+    )
+    let y = InlineAreaLayout.selectionSizeLabelCenterY(
+      for: rect,
+      controlTopInset: display.controlInsets.top,
+      controlSide: controlSide
+    )
     let x = min(
       max(rect.minX + labelSize.width / 2, labelSize.width / 2 + 8),
       containerSize.width - labelSize.width / 2 - 8
@@ -954,6 +1157,7 @@ private struct InlineAreaAnnotateRootView: View {
           cursorIndicatorPoint = value.location
           movingPreviewRect = previewRect
         }
+        updateOneShotMagnifier(at: value.location, containerSize: display.localFrame.size)
         updateNativeCursorForIndicator(true)
       }
       .onEnded { value in
@@ -1006,7 +1210,7 @@ private struct InlineAreaAnnotateRootView: View {
     desktopRect: CGRect,
     containerSize: CGSize
   ) -> some Gesture {
-    DragGesture(minimumDistance: 1, coordinateSpace: .global)
+    DragGesture(minimumDistance: 1, coordinateSpace: .named(InlineAreaCoordinateSpace.root))
       .onChanged { value in
         if resizingStartRect == nil {
           resizingStartRect = desktopRect
@@ -1024,8 +1228,10 @@ private struct InlineAreaAnnotateRootView: View {
           activeResizeHandle = handle
           movingPreviewRect = nil
           resizePreviewRect = previewRect
+          cursorIndicatorPoint = value.location
         }
         handle.cursor.set()
+        updateOneShotMagnifier(at: value.location, containerSize: display.localFrame.size)
       }
       .onEnded { value in
         let start = resizingStartRect ?? desktopRect
@@ -1042,6 +1248,8 @@ private struct InlineAreaAnnotateRootView: View {
           resizePreviewRect = nil
           resizingStartRect = nil
           activeResizeHandle = nil
+          cursorIndicatorPoint = nil
+          oneShotMagnifierSample = nil
         }
         updateNativeCursorForIndicator(false)
       }
@@ -1106,7 +1314,9 @@ private struct InlineAreaAnnotateRootView: View {
   }
 
   private func updateNativeCursorForIndicator(_ isIndicatorVisible: Bool) {
-    if !session.isSelectingOneShotOCR,
+    if session.activePrompt != nil {
+      InlineAreaNativeCursor.restoreArrow()
+    } else if !session.isSelectingOneShotOCR,
        let resizeHandle = activeResizeHandle ?? hoveredResizeHandle {
       resizeHandle.cursor.set()
     } else if session.phase == .selecting {
@@ -1115,6 +1325,179 @@ private struct InlineAreaAnnotateRootView: View {
       InlineAreaNativeCursor.hide()
     } else {
       InlineAreaNativeCursor.restoreArrow()
+    }
+  }
+}
+
+private struct InlineAreaOverlayPromptCard: View {
+  @Environment(\.colorScheme) private var colorScheme
+
+  let prompt: InlineAreaOverlayPrompt
+  let action: (InlineAreaOverlayPromptAction) -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 18) {
+      HStack(alignment: .top, spacing: 14) {
+        Image(systemName: icon)
+          .font(.system(size: 22, weight: .semibold))
+          .foregroundStyle(palette.iconForeground)
+          .frame(width: 44, height: 44)
+          .background(
+            palette.iconBackground,
+            in: RoundedRectangle(cornerRadius: Size.radiusLg, style: .continuous)
+          )
+
+        VStack(alignment: .leading, spacing: 6) {
+          Text(title)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(palette.primaryText)
+          Text(message)
+            .font(.system(size: 13, weight: .regular))
+            .foregroundStyle(palette.secondaryText)
+            .lineSpacing(2)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+      }
+
+      Rectangle()
+        .fill(palette.divider)
+        .frame(height: 1)
+
+      buttons
+    }
+    .padding(20)
+    .background {
+      RoundedRectangle(cornerRadius: 14, style: .continuous)
+        .fill(palette.surface)
+    }
+    .overlay {
+      RoundedRectangle(cornerRadius: 14, style: .continuous)
+        .strokeBorder(palette.border, lineWidth: 1)
+    }
+    .shadow(color: .black.opacity(colorScheme == .dark ? 0.56 : 0.34), radius: 28, x: 0, y: 12)
+  }
+
+  private var buttons: some View {
+    HStack(spacing: Spacing.sm) {
+      Button(L10n.Common.cancel) {
+        action(.cancel)
+      }
+      .buttonStyle(.bordered)
+      .tint(palette.neutralButtonTint)
+
+      Spacer()
+
+      switch prompt {
+      case .unsavedChanges:
+        Button(L10n.AnnotateUI.dontSave, role: .destructive) {
+          action(.secondary)
+        }
+        .buttonStyle(.bordered)
+        .tint(.red)
+
+        Button(L10n.Common.save) {
+          action(.primary)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(.accentColor)
+
+      case .saveLocationRecovery:
+        Button(L10n.FileAccess.chooseFolderPrompt) {
+          action(.primary)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(.accentColor)
+
+      case .saveFailure:
+        Button(L10n.Common.copy) {
+          action(.tertiary)
+        }
+        .buttonStyle(.bordered)
+        .tint(palette.neutralButtonTint)
+
+        Button(L10n.FileAccess.chooseFolderPrompt) {
+          action(.secondary)
+        }
+        .buttonStyle(.bordered)
+        .tint(palette.neutralButtonTint)
+
+        Button(L10n.Common.save) {
+          action(.primary)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(.accentColor)
+      }
+    }
+    .controlSize(.regular)
+  }
+
+  private var title: String {
+    switch prompt {
+    case .unsavedChanges:
+      L10n.AnnotateUI.unsavedChangesTitle
+    case .saveLocationRecovery:
+      L10n.Recording.saveLocationAccessRequiredTitle
+    case .saveFailure:
+      L10n.AnnotateUI.saveFailedTitle
+    }
+  }
+
+  private var message: String {
+    switch prompt {
+    case .unsavedChanges:
+      L10n.AnnotateUI.unsavedChangesMessage
+    case .saveLocationRecovery:
+      L10n.Recording.saveLocationAccessRequiredMessage
+    case .saveFailure(let detail, _):
+      detail
+    }
+  }
+
+  private var icon: String {
+    switch prompt {
+    case .unsavedChanges:
+      "exclamationmark.triangle.fill"
+    case .saveLocationRecovery:
+      "folder.badge.questionmark"
+    case .saveFailure:
+      "externaldrive.badge.exclamationmark"
+    }
+  }
+
+  private var palette: InlineAreaOverlayPromptPalette {
+    InlineAreaOverlayPromptPalette(colorScheme: colorScheme)
+  }
+}
+
+private struct InlineAreaOverlayPromptPalette {
+  let surface: Color
+  let primaryText: Color
+  let secondaryText: Color
+  let border: Color
+  let divider: Color
+  let iconForeground: Color
+  let iconBackground: Color
+  let neutralButtonTint: Color
+
+  init(colorScheme: ColorScheme) {
+    if colorScheme == .dark {
+      surface = Color(red: 0.12, green: 0.125, blue: 0.14)
+      primaryText = Color.white.opacity(0.96)
+      secondaryText = Color.white.opacity(0.72)
+      border = Color.white.opacity(0.18)
+      divider = Color.white.opacity(0.12)
+      iconForeground = Color(red: 1, green: 0.66, blue: 0.24)
+      iconBackground = Color(red: 1, green: 0.58, blue: 0.12).opacity(0.16)
+      neutralButtonTint = Color.white.opacity(0.76)
+    } else {
+      surface = Color(red: 0.975, green: 0.978, blue: 0.985)
+      primaryText = Color.black.opacity(0.90)
+      secondaryText = Color.black.opacity(0.62)
+      border = Color.black.opacity(0.16)
+      divider = Color.black.opacity(0.10)
+      iconForeground = Color(red: 0.76, green: 0.32, blue: 0.02)
+      iconBackground = Color(red: 0.90, green: 0.42, blue: 0.04).opacity(0.13)
+      neutralButtonTint = Color.black.opacity(0.66)
     }
   }
 }
@@ -1302,7 +1685,7 @@ struct InlineAreaControlInsets: Equatable {
   }
 }
 
-enum InlineAreaVerticalSide {
+enum InlineAreaVerticalSide: Equatable {
   case above
   case below
 }
@@ -1556,6 +1939,7 @@ struct InlineAreaControlPlacement {
   let toolbarCenter: CGPoint
   let propertiesCenter: CGPoint
   let propertiesPopoverEdge: Edge
+  let toolbarSide: InlineAreaVerticalSide
 }
 
 private enum InlineAreaToolbarMetrics {
@@ -1577,6 +1961,8 @@ enum InlineAreaLayout {
   static let propertiesHeight: CGFloat = 38
   static let controlStackSpacing: CGFloat = 6
   static let selectionGap: CGFloat = 12
+  static let selectionSizeLabelHeight: CGFloat = 28
+  static let selectionSizeLabelGap: CGFloat = 8
   static let screenPadding: CGFloat = 16
   static let controlPanelOuterHorizontalInset: CGFloat = 12
   static let minimumSelectionSize: CGFloat = 24
@@ -1585,6 +1971,23 @@ enum InlineAreaLayout {
       return toolbarHeight + controlStackSpacing + propertiesHeight
     }
     return toolbarHeight
+  }
+
+  static func selectionSizeLabelCenterY(
+    for rect: CGRect,
+    controlTopInset: CGFloat,
+    controlSide: InlineAreaVerticalSide?
+  ) -> CGFloat {
+    let halfHeight = selectionSizeLabelHeight / 2
+    let preferredY = rect.minY - selectionSizeLabelGap - halfHeight
+    let insideY = min(
+      rect.maxY - halfHeight - selectionSizeLabelGap,
+      rect.minY + halfHeight + selectionSizeLabelGap
+    )
+    if controlSide != .above, preferredY >= controlTopInset + 4 {
+      return preferredY
+    }
+    return insideY
   }
 }
 
@@ -1622,7 +2025,6 @@ enum InlineAreaControlGeometry {
     let verticalSide = preferredVerticalSide(
       for: rect,
       containerSize: containerSize,
-      showsProperties: showsProperties,
       controlInsets: controlInsets
     )
     let centers = controlCenters(
@@ -1666,7 +2068,8 @@ enum InlineAreaControlGeometry {
       propertiesWidth: propertiesWidth,
       toolbarCenter: CGPoint(x: toolbarX, y: toolbarCenterY),
       propertiesCenter: CGPoint(x: propertiesX, y: propertiesCenterY),
-      propertiesPopoverEdge: propertiesSide == .above ? .bottom : .top
+      propertiesPopoverEdge: propertiesSide == .above ? .bottom : .top,
+      toolbarSide: splitSides?.toolbar ?? verticalSide
     )
   }
 
@@ -1722,18 +2125,16 @@ enum InlineAreaControlGeometry {
   private static func preferredVerticalSide(
     for rect: CGRect,
     containerSize: CGSize,
-    showsProperties: Bool,
     controlInsets: InlineAreaControlInsets
   ) -> InlineAreaVerticalSide {
-    let reservedHeight = InlineAreaLayout.reservedControlHeight(showsProperties: showsProperties)
     let aboveSpace = spaceAbove(rect, controlInsets: controlInsets)
     let belowSpace = spaceBelow(rect, containerSize: containerSize, controlInsets: controlInsets)
 
-    if aboveSpace >= reservedHeight {
-      return .above
-    }
-    if belowSpace >= reservedHeight {
+    if belowSpace >= InlineAreaLayout.toolbarHeight {
       return .below
+    }
+    if aboveSpace >= InlineAreaLayout.toolbarHeight {
+      return .above
     }
     if rect.minY <= controlInsets.controlTopPadding + InlineAreaLayout.selectionGap {
       return .below
@@ -1753,8 +2154,8 @@ enum InlineAreaControlGeometry {
     let aboveSpace = spaceAbove(rect, controlInsets: controlInsets)
     let belowSpace = spaceBelow(rect, containerSize: containerSize, controlInsets: controlInsets)
 
-    if aboveSpace >= InlineAreaLayout.reservedControlHeight(showsProperties: true)
-      || belowSpace >= InlineAreaLayout.reservedControlHeight(showsProperties: true) {
+    let preferredSpace = preferredSide == .above ? aboveSpace : belowSpace
+    if preferredSpace >= InlineAreaLayout.reservedControlHeight(showsProperties: true) {
       return nil
     }
 
@@ -1993,28 +2394,36 @@ private struct InlineAreaControlDeck<MoveGesture: Gesture>: View {
   let moveGesture: MoveGesture
 
   var body: some View {
-    ScrollView(.horizontal, showsIndicators: false) {
-      HStack(spacing: InlineAreaToolbarMetrics.itemSpacing) {
-        InlineAreaMoveHandle(isToolbarHandle: true)
-          .gesture(moveGesture)
+    HStack(spacing: InlineAreaToolbarMetrics.itemSpacing) {
+      ScrollView(.horizontal, showsIndicators: false) {
+        HStack(spacing: InlineAreaToolbarMetrics.itemSpacing) {
+          InlineAreaMoveHandle(isToolbarHandle: true)
+            .gesture(moveGesture)
 
-        InlineAreaDivider()
+          InlineAreaDivider()
 
-        ForEach(Array(AnnotationToolType.oneShotToolGroups.enumerated()), id: \.offset) { index, tools in
-          if index > 0 {
-            InlineAreaDivider()
-          }
-          InlineAreaToolGroup(tools: tools, selectedTool: session.state.selectedTool) { tool in
-            guard session.commitOneShotInteraction(.screenshotTool) else { return }
-            session.state.activateTool(tool)
+          ForEach(Array(AnnotationToolType.oneShotToolGroups.enumerated()), id: \.offset) { index, tools in
+            if index > 0 {
+              InlineAreaDivider()
+            }
+            InlineAreaToolGroup(tools: tools, selectedTool: session.state.selectedTool) { tool in
+              guard session.commitOneShotInteraction(.screenshotTool) else { return }
+              session.state.activateTool(tool)
+            }
           }
         }
+        .fixedSize(horizontal: true, vertical: false)
+      }
+      .disabled(session.isExporting)
+      .opacity(session.isExporting ? 0.55 : 1)
+      .frame(minWidth: 0, maxWidth: .infinity)
 
-        InlineAreaDivider()
+      InlineAreaDivider()
 
+      HStack(spacing: InlineAreaToolbarMetrics.itemSpacing) {
         InlineAreaIconButton(
           icon: "arrow.uturn.backward",
-          tooltip: L10n.Common.undo,
+          tooltip: L10n.Common.withShortcut(L10n.Common.undo, "⌘Z"),
           isEnabled: session.state.canUndo
         ) {
           guard session.commitOneShotInteraction(.screenshotUndoRedo) else { return }
@@ -2023,29 +2432,44 @@ private struct InlineAreaControlDeck<MoveGesture: Gesture>: View {
 
         InlineAreaIconButton(
           icon: "arrow.uturn.forward",
-          tooltip: L10n.Common.redo,
+          tooltip: L10n.Common.withShortcut(L10n.Common.redo, "⇧⌘Z"),
           isEnabled: session.state.canRedo
         ) {
           guard session.commitOneShotInteraction(.screenshotUndoRedo) else { return }
           session.state.redo()
         }
+      }
+      .disabled(session.isExporting)
+      .opacity(session.isExporting ? 0.55 : 1)
+      .fixedSize(horizontal: true, vertical: false)
 
-        InlineAreaDivider()
+      InlineAreaDivider()
 
-        InlineAreaIconButton(
-          icon: "viewfinder",
-          tooltip: L10n.Actions.captureTextOCR,
-          customGlyph: .ocr,
-          accessibilityIdentifier: "oneshot-screenshot-ocr"
-        ) {
-          session.activateOneShotOCRSelection()
-        }
+      InlineAreaIconButton(
+        icon: "viewfinder",
+        tooltip: L10n.Actions.captureTextOCR,
+        customGlyph: .ocr,
+        accessibilityIdentifier: "oneshot-screenshot-ocr"
+      ) {
+        session.activateOneShotOCRSelection()
+      }
+      .disabled(session.isExporting)
+      .opacity(session.isExporting ? 0.55 : 1)
 
-        InlineAreaDivider()
+      InlineAreaDivider()
 
+      InlineAreaZoomControls(session: session)
+        .disabled(session.isExporting)
+        .opacity(session.isExporting ? 0.55 : 1)
+        .fixedSize(horizontal: true, vertical: false)
+
+      InlineAreaDivider()
+
+      HStack(spacing: InlineAreaToolbarMetrics.itemSpacing) {
         InlineAreaIconButton(
           icon: "pin",
           tooltip: L10n.PreferencesQuickAccess.pinToScreenAction,
+          isEnabled: !session.isExporting,
           accessibilityIdentifier: "oneshot-screenshot-pin"
         ) {
           Task { await session.finishAndPin() }
@@ -2053,7 +2477,8 @@ private struct InlineAreaControlDeck<MoveGesture: Gesture>: View {
 
         InlineAreaIconButton(
           icon: "doc.on.doc",
-          tooltip: L10n.AnnotateUI.copyToClipboard,
+          tooltip: L10n.Common.withShortcut(L10n.AnnotateUI.copyToClipboard, "⌘C"),
+          isEnabled: !session.isExporting,
           accessibilityIdentifier: "oneshot-screenshot-copy"
         ) {
           session.copyCurrentImage()
@@ -2061,7 +2486,8 @@ private struct InlineAreaControlDeck<MoveGesture: Gesture>: View {
 
         InlineAreaIconButton(
           icon: "xmark",
-          tooltip: L10n.Common.cancel,
+          tooltip: L10n.Common.withShortcut(L10n.Common.cancel, "Esc"),
+          isEnabled: !session.isExporting,
           accessibilityIdentifier: "oneshot-screenshot-cancel"
         ) {
           session.cancel()
@@ -2069,8 +2495,10 @@ private struct InlineAreaControlDeck<MoveGesture: Gesture>: View {
 
         InlineAreaIconButton(
           icon: "checkmark",
-          tooltip: L10n.Common.done,
+          tooltip: L10n.Common.withShortcut(L10n.Common.done, "↩"),
+          isEnabled: !session.isExporting,
           isProminent: true,
+          isLoading: session.isExporting,
           accessibilityIdentifier: "oneshot-screenshot-finish"
         ) {
           Task { await session.finish() }
@@ -2084,6 +2512,62 @@ private struct InlineAreaControlDeck<MoveGesture: Gesture>: View {
     .inlineAreaPanelChrome()
     .animation(.easeOut(duration: 0.16), value: session.state.selectedTool)
     .accessibilityIdentifier("oneshot-screenshot-toolbar")
+  }
+}
+
+private struct InlineAreaZoomControls: View {
+  @ObservedObject var session: InlineAreaAnnotateSession
+
+  var body: some View {
+    HStack(spacing: InlineAreaToolbarMetrics.groupSpacing) {
+      InlineAreaIconButton(
+        icon: "hand.draw",
+        tooltip: L10n.AnnotateUI.panCanvas,
+        isEnabled: session.state.canPanInteractively,
+        isSelected: session.state.isCanvasPanningMode
+      ) {
+        guard session.commitOneShotInteraction(.screenshotViewport) else { return }
+        session.state.isCanvasPanningMode.toggle()
+      }
+
+      InlineAreaIconButton(
+        icon: "minus.magnifyingglass",
+        tooltip: L10n.Common.withShortcut(L10n.AnnotateUI.zoomOut, "⌘−")
+      ) {
+        guard session.commitOneShotInteraction(.screenshotViewport) else { return }
+        session.state.zoomOut()
+      }
+
+      Menu {
+        Button(L10n.AnnotateUI.fitWithShortcut("⌘0")) {
+          guard session.commitOneShotInteraction(.screenshotViewport) else { return }
+          session.state.fitCanvasToViewport()
+        }
+        Divider()
+        ForEach(session.state.zoomMenuPresetPercents, id: \.self) { percent in
+          Button("\(percent)%") {
+            guard session.commitOneShotInteraction(.screenshotViewport) else { return }
+            session.state.setDisplayedZoomPercent(percent)
+          }
+        }
+      } label: {
+        Text("\(session.state.currentDisplayedZoomPercent)%")
+          .font(.system(size: 11, weight: .semibold, design: .monospaced))
+          .frame(minWidth: 42)
+      }
+      .menuStyle(.borderlessButton)
+      .fixedSize()
+      .help(L10n.AnnotateUI.zoomLevel(session.state.currentDisplayedZoomPercent))
+      .accessibilityLabel(L10n.AnnotateUI.zoomLevel(session.state.currentDisplayedZoomPercent))
+
+      InlineAreaIconButton(
+        icon: "plus.magnifyingglass",
+        tooltip: L10n.Common.withShortcut(L10n.AnnotateUI.zoomIn, "⌘+")
+      ) {
+        guard session.commitOneShotInteraction(.screenshotViewport) else { return }
+        session.state.zoomIn()
+      }
+    }
   }
 }
 
@@ -2126,6 +2610,7 @@ private struct InlineAreaToolButton: View {
     .help(tool.displayName)
     .onHover { isHovering = $0 }
     .animation(InlineAreaToolbarMetrics.hoverAnimation, value: isHovering)
+    .accessibilityLabel(tool.displayName)
     .accessibilityAddTraits(isSelected ? .isSelected : [])
   }
 
@@ -2156,6 +2641,9 @@ private struct InlineAreaToolGlyph: View {
         Text(verbatim: "T")
           .font(.system(size: 11, weight: .bold, design: .rounded))
           .foregroundStyle(color)
+          // The rounded glyph's asymmetric side bearings make a mathematically
+          // centered "T" look slightly left of the surrounding square.
+          .offset(x: 0.5)
       }
     case .blur:
       InlineAreaMosaicGlyph(color: color)
@@ -2218,6 +2706,7 @@ private struct InlineAreaMoveHandle: View {
       RoundedRectangle(cornerRadius: InlineAreaChrome.controlCornerRadius, style: .continuous)
     )
     .help(isToolbarHandle ? L10n.OneShot.dragToolbarHint : L10n.AnnotateUI.moveSelection)
+    .accessibilityLabel(isToolbarHandle ? L10n.OneShot.dragToolbarHint : L10n.AnnotateUI.moveSelection)
     .onHover { isHovering = $0 }
     .animation(InlineAreaToolbarMetrics.hoverAnimation, value: isHovering)
   }
@@ -2232,6 +2721,8 @@ private struct InlineAreaIconButton: View {
   let tooltip: String
   var isEnabled: Bool = true
   var isProminent: Bool = false
+  var isSelected: Bool = false
+  var isLoading: Bool = false
   var customGlyph: InlineAreaCustomGlyph?
   var accessibilityIdentifier: String?
   let action: () -> Void
@@ -2250,10 +2741,11 @@ private struct InlineAreaIconButton: View {
         )
     }
     .buttonStyle(.plain)
-    .disabled(!isEnabled)
+    .disabled(!isEnabled || isLoading)
     .opacity(isEnabled ? 1 : 0.42)
     .help(tooltip)
     .accessibilityLabel(tooltip)
+    .accessibilityAddTraits(isSelected ? .isSelected : [])
     .accessibilityIdentifier(accessibilityIdentifier ?? "")
     .onHover { isHovering = $0 }
     .animation(InlineAreaToolbarMetrics.hoverAnimation, value: isHovering)
@@ -2261,7 +2753,11 @@ private struct InlineAreaIconButton: View {
 
   @ViewBuilder
   private var glyph: some View {
-    if customGlyph == .ocr {
+    if isLoading {
+      ProgressView()
+        .controlSize(.small)
+        .accessibilityHidden(true)
+    } else if customGlyph == .ocr {
       ZStack {
         Image(systemName: "viewfinder")
         Text(verbatim: "T")
@@ -2273,12 +2769,19 @@ private struct InlineAreaIconButton: View {
   }
 
   private var foregroundColor: Color {
-    .primary.opacity(isHovering || isProminent ? 1.0 : 0.85)
+    if isSelected {
+      return .accentColor
+    }
+    return .primary.opacity(isHovering || isProminent ? 1.0 : 0.85)
   }
 
   private var background: some View {
     RoundedRectangle(cornerRadius: InlineAreaChrome.controlCornerRadius, style: .continuous)
-      .fill(isHovering ? Color.primary.opacity(0.10) : Color.clear)
+      .fill(
+        isSelected
+          ? Color.accentColor.opacity(0.16)
+          : (isHovering ? Color.primary.opacity(0.10) : Color.clear)
+      )
   }
 }
 
@@ -2386,20 +2889,6 @@ private struct InlineAreaPropertiesBar: View {
             }
           }
 
-          if state.quickPropertiesSupportsWatermark {
-            InlineAreaTextFieldControl(
-              title: L10n.Common.text, text: state.quickWatermarkTextBinding
-            )
-
-            InlineAreaSegmentedPicker(
-              title: L10n.Common.style,
-              items: WatermarkStyle.allCases,
-              selection: state.quickWatermarkStyleBinding,
-              icon: { $0.icon },
-              tooltip: \.displayName
-            )
-          }
-
           if state.quickPropertiesSupportsStrokeWidth {
             InlineAreaSliderControl(
               title: state.quickStrokeWidthLabel,
@@ -2432,29 +2921,6 @@ private struct InlineAreaPropertiesBar: View {
               range: 0 ... 60,
               step: 1,
               displayText: "\(Int(state.quickCornerRadiusBinding.wrappedValue.rounded()))",
-              onEditingChanged: state.setQuickPropertiesControlEditing
-            )
-          }
-
-          if state.quickPropertiesSupportsWatermark {
-            InlineAreaSliderControl(
-              title: L10n.AnnotateUI.watermarkOpacity,
-              icon: "circle.lefthalf.filled",
-              value: state.quickWatermarkOpacityBinding,
-              range: 0.05 ... 0.65,
-              step: 0.01,
-              displayText:
-              "\(Int((state.quickWatermarkOpacityBinding.wrappedValue * 100).rounded()))%",
-              onEditingChanged: state.setQuickPropertiesControlEditing
-            )
-
-            InlineAreaSliderControl(
-              title: L10n.Common.rotation,
-              icon: "rotate.right",
-              value: state.quickWatermarkRotationBinding,
-              range: -45 ... 45,
-              step: 1,
-              displayText: "\(Int(state.quickWatermarkRotationBinding.wrappedValue.rounded()))deg",
               onEditingChanged: state.setQuickPropertiesControlEditing
             )
           }
@@ -2706,27 +3172,6 @@ private struct InlineAreaSliderControl: View {
           .monospacedDigit()
           .frame(width: 34, alignment: .trailing)
       }
-    }
-  }
-}
-
-private struct InlineAreaTextFieldControl: View {
-  let title: String
-  @Binding var text: String
-
-  var body: some View {
-    InlineAreaPropertyGroup(title: title) {
-      TextField("", text: $text)
-        .textFieldStyle(.plain)
-        .font(.system(size: 11, weight: .medium))
-        .foregroundColor(InlineAreaChrome.primaryText)
-        .lineLimit(1)
-        .padding(.horizontal, 8)
-        .frame(width: 112, height: InlineAreaChrome.propertyControlHeight)
-        .background(
-          RoundedRectangle(cornerRadius: InlineAreaChrome.controlCornerRadius, style: .continuous)
-            .fill(InlineAreaChrome.itemBackground)
-        )
     }
   }
 }

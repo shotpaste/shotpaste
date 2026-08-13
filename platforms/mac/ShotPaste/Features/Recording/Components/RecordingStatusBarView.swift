@@ -32,6 +32,7 @@ struct RecordingStatusBarView: View {
   var onAnnotateButtonLayout: ((CGFloat) -> Void)?
 
   @State private var indicatorOpacity: Double = 1.0
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   /// Show the audio waveform only when it accurately describes the recording:
   /// microphone is being captured and the output supports audio (GIF has none).
@@ -56,21 +57,28 @@ struct RecordingStatusBarView: View {
           .frame(width: 8, height: 8)
           .opacity(recorder.isPaused ? 0.4 : indicatorOpacity)
           .animation(
-            .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
+            reduceMotion ? nil : .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
             value: indicatorOpacity
           )
-          .onAppear { indicatorOpacity = 0.3 }
-          .accessibilityLabel(
-            recorder.isPaused
-              ? L10n.RecordingToolbar.recordingPaused
-              : L10n.RecordingToolbar.recordingInProgress
-          )
+          .onAppear { indicatorOpacity = reduceMotion ? 1 : 0.3 }
+          .onChange(of: reduceMotion) { isReduced in
+            indicatorOpacity = isReduced ? 1 : 0.3
+          }
+          .accessibilityHidden(true)
 
         Text(recorder.formattedDuration)
           .font(.system(size: 13, weight: .medium, design: .monospaced))
           .foregroundColor(recorder.isPaused ? .primary.opacity(0.5) : .primary)
+          .accessibilityHidden(true)
       }
       .padding(.horizontal, 8)
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(
+        recorder.isPaused
+          ? L10n.RecordingToolbar.recordingPaused
+          : L10n.RecordingToolbar.recordingInProgress
+      )
+      .accessibilityValue(recorder.formattedDuration)
 
       RecordingToolbarDivider()
 
@@ -79,6 +87,9 @@ struct RecordingStatusBarView: View {
         systemName: recorder.isPaused ? "play.fill" : "pause.fill",
         action: { recorder.togglePause() },
         accessibilityLabel: recorder.isPaused
+          ? L10n.RecordingToolbar.resumeRecording
+          : L10n.RecordingToolbar.pauseRecording,
+        accessibilityHint: recorder.isPaused
           ? L10n.RecordingToolbar.resumeRecording
           : L10n.RecordingToolbar.pauseRecording
       )
@@ -90,6 +101,9 @@ struct RecordingStatusBarView: View {
           : "pencil.tip.crop.circle",
         action: { annotationState.isAnnotationEnabled.toggle() },
         accessibilityLabel: annotationState.isAnnotationEnabled
+          ? L10n.RecordingToolbar.disableAnnotations
+          : L10n.RecordingToolbar.enableAnnotations,
+        accessibilityHint: annotationState.isAnnotationEnabled
           ? L10n.RecordingToolbar.disableAnnotations
           : L10n.RecordingToolbar.enableAnnotations
       )
@@ -108,14 +122,16 @@ struct RecordingStatusBarView: View {
       ToolbarIconButton(
         systemName: "arrow.counterclockwise",
         action: onRestart,
-        accessibilityLabel: L10n.RecordingToolbar.restartRecording
+        accessibilityLabel: L10n.RecordingToolbar.restartRecording,
+        accessibilityHint: L10n.Recording.restartConfirmationMessage
       )
 
       // Delete button
       ToolbarIconButton(
         systemName: "trash",
         action: onDelete,
-        accessibilityLabel: L10n.RecordingToolbar.deleteRecording
+        accessibilityLabel: L10n.RecordingToolbar.deleteRecording,
+        accessibilityHint: L10n.Recording.deleteConfirmationMessage
       )
 
       RecordingToolbarDivider()

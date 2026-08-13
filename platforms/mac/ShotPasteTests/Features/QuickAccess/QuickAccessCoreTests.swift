@@ -789,6 +789,45 @@ final class QuickAccessCoreTests: XCTestCase {
     XCTAssertFalse(timer.isPaused)
   }
 
+  func testQuickAccessCountdownTimer_reportsAccurateProgressWhenPaused() async throws {
+    try skipIfRunningInCI()
+    let clock = ManualQuickAccessCountdownTimerClock()
+    var progressValues: [Double] = []
+    let timer = QuickAccessCountdownTimer(
+      duration: 0.08,
+      clock: clock,
+      onProgress: { progressValues.append($0) },
+      onExpire: {}
+    )
+
+    timer.start()
+    await clock.waitForSleepCallCount(1)
+    clock.advance(by: 0.03)
+    timer.pause()
+
+    XCTAssertEqual(try XCTUnwrap(progressValues.first), 1, accuracy: 0.0001)
+    XCTAssertEqual(try XCTUnwrap(progressValues.last), 0.625, accuracy: 0.0001)
+    timer.cancel()
+  }
+
+  func testQuickAccessKeyboardNavigationClampsAndHandlesEmptyStacks() {
+    XCTAssertEqual(
+      QuickAccessKeyboardNavigation.destinationIndex(from: 1, delta: 1, itemCount: 4),
+      2
+    )
+    XCTAssertEqual(
+      QuickAccessKeyboardNavigation.destinationIndex(from: 0, delta: -1, itemCount: 4),
+      0
+    )
+    XCTAssertEqual(
+      QuickAccessKeyboardNavigation.destinationIndex(from: 3, delta: 1, itemCount: 4),
+      3
+    )
+    XCTAssertNil(
+      QuickAccessKeyboardNavigation.destinationIndex(from: 0, delta: 1, itemCount: 0)
+    )
+  }
+
   private func makeIsolatedDefaults() -> UserDefaults {
     let suiteName = "ShotPasteTests.QuickAccess.\(UUID().uuidString)"
     let defaults = UserDefaults(suiteName: suiteName)!

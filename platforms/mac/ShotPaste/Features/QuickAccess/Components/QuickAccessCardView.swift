@@ -45,6 +45,10 @@ struct QuickAccessCardView: View {
   }
 
   var body: some View {
+    accessibleCard
+  }
+
+  private var cardContent: some View {
     ZStack(alignment: .center) {
       thumbnailLayer
 
@@ -64,6 +68,13 @@ struct QuickAccessCardView: View {
           .transition(.opacity)
       }
 
+      if let countdownProgress = manager.countdownProgress(for: item.id),
+         manager.autoDismissEnabled,
+         item.processingState == .idle,
+         !item.isPinned {
+        countdownIndicator(progress: countdownProgress)
+      }
+
       // Hover overlay with staggered buttons (hidden while swiping so it does not
       // visually fight the swipe gesture).
       if isHovering, !isSwiping, canPerformCardActions, hasVisibleOverlayActions {
@@ -76,69 +87,134 @@ struct QuickAccessCardView: View {
         cornerButtons
       }
     }
-    .frame(width: scaledWidth, height: scaledHeight)
-    .clipShape(cardShape)
-    .contentShape(cardShape)
-    .background(
-      cardShape
-        .fill(Color.black.opacity(0.1))
-    )
-    // GPU-cached drop shadow (furthest back). Replaces per-frame SwiftUI `.shadow()`
-    // blur that lagged when many stacked cards recomposited during capture-area mode.
-    .background(QuickAccessCardShadowView(cornerRadius: cornerRadius))
-    .overlay(
-      cardShape
-        .stroke(Color.white.opacity(0.2), lineWidth: 1)
-    )
-    .opacity(cardOpacity)
-    .offset(x: reduceMotion ? 0 : swipeOffset)
-    .rotationEffect(.degrees(reduceMotion ? 0 : Double(swipeOffset) * 0.03))
-    .onHover { hovering in
-      withAnimation(QuickAccessAnimations.hoverOverlay) {
-        isHovering = hovering
-      }
-      onHover?(hovering)
+  }
 
-      // Pause/resume countdown on hover if enabled
-      if manager.pauseCountdownOnHover {
-        if hovering {
-          manager.pauseCountdown(for: item.id)
-        } else {
-          manager.resumeCountdown(for: item.id)
+  private var styledCard: some View {
+    cardContent
+      .frame(width: scaledWidth, height: scaledHeight)
+      .clipShape(cardShape)
+      .contentShape(cardShape)
+      .background(
+        cardShape
+          .fill(Color.black.opacity(0.1))
+      )
+      // GPU-cached drop shadow (furthest back). Replaces per-frame SwiftUI `.shadow()`
+      // blur that lagged when many stacked cards recomposited during capture-area mode.
+      .background(QuickAccessCardShadowView(cornerRadius: cornerRadius))
+      .overlay(
+        cardShape
+          .stroke(Color.white.opacity(0.2), lineWidth: 1)
+      )
+      .overlay(
+        cardShape
+          .stroke(
+            manager.isKeyboardFocusActive && manager.keyboardFocusedItemID == item.id
+              ? Color.accentColor : Color.clear,
+            lineWidth: 3
+          )
+          .padding(2)
+      )
+      .opacity(cardOpacity)
+      .offset(x: reduceMotion ? 0 : swipeOffset)
+      .rotationEffect(.degrees(reduceMotion ? 0 : Double(swipeOffset) * 0.03))
+  }
+
+  private var interactiveCard: some View {
+    styledCard
+      .onHover { hovering in
+        withAnimation(QuickAccessAnimations.hoverOverlay) {
+          isHovering = hovering
+        }
+        onHover?(hovering)
+
+        // Pause/resume countdown on hover if enabled
+        if manager.pauseCountdownOnHover {
+          if hovering {
+            manager.pauseCountdown(for: item.id)
+          } else {
+            manager.resumeCountdown(for: item.id)
+          }
         }
       }
-    }
-    .onTapGesture(count: 2) {
-      handleDoubleClick()
-    }
-    .background(
-      QuickAccessContextMenuPresenter(entries: quickAccessContextMenuEntries)
-        .frame(width: scaledWidth, height: scaledHeight)
-    )
-    .overlay(dragInteractionBridge.frame(width: scaledWidth, height: scaledHeight))
-    .onDisappear {
-      isDragging = false
-      isHovering = false
-    }
-    .onAppear {
-      isDismissing = false
-      swipeOffset = 0
-      isSwiping = false
-      isDragging = false
-      isHovering = false
-    }
-    .onReceive(manager.$items) { updatedItems in
-      guard let currentItem = updatedItems.first(where: { $0.id == item.id }) else { return }
-      if !currentItem.isWindowOpen, swipeOffset != 0, !isSwiping, !isDismissing {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-          swipeOffset = 0
+      .onTapGesture(count: 2) {
+        handleDoubleClick()
+      }
+      .background(
+        QuickAccessContextMenuPresenter(entries: quickAccessContextMenuEntries)
+          .frame(width: scaledWidth, height: scaledHeight)
+      )
+      .overlay(dragInteractionBridge.frame(width: scaledWidth, height: scaledHeight))
+      .onDisappear {
+        isDragging = false
+        isHovering = false
+      }
+      .onAppear {
+        isDismissing = false
+        swipeOffset = 0
+        isSwiping = false
+        isDragging = false
+        isHovering = false
+      }
+      .onReceive(manager.$items) { updatedItems in
+        guard let currentItem = updatedItems.first(where: { $0.id == item.id }) else { return }
+        if !currentItem.isWindowOpen, swipeOffset != 0, !isSwiping, !isDismissing {
+          withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            swipeOffset = 0
+          }
         }
       }
-    }
-    .animation(QuickAccessAnimations.hoverOverlay, value: isHovering)
+      .animation(reduceMotion ? nil : QuickAccessAnimations.hoverOverlay, value: isHovering)
+  }
+
+  private var accessibleCard: some View {
+    interactiveCard
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(item.url.lastPathComponent)
+      .accessibilityValue(accessibilityValue)
+      .accessibilityHint(saveOrOpenActionTitle)
+      .accessibilityAddTraits(
+        manager.isKeyboardFocusActive && manager.keyboardFocusedItemID == item.id
+          ? .isSelected : []
+      )
+      .accessibilityAction(.default) {
+        handleDoubleClick()
+      }
+      .accessibilityAction(named: Text(L10n.Common.copy)) {
+        performAction(.copy)
+      }
+      .accessibilityAction(named: Text(saveOrOpenActionTitle)) {
+        performAction(.saveOrOpen)
+      }
+      .accessibilityAction(named: Text(L10n.Common.close)) {
+        performAction(.dismiss)
+      }
+      .accessibilityAction(named: Text(deleteActionTitle)) {
+        performAction(.delete)
+      }
+      .accessibilityAction(named: Text(
+        item.isPinned ? L10n.PreferencesQuickAccess.unpinAction : L10n.PreferencesQuickAccess.pinToScreenAction
+      )) {
+        performAction(.pinToScreen)
+      }
   }
 
   // MARK: - Computed Properties
+
+  private func countdownIndicator(progress: Double) -> some View {
+    let delay = Int(manager.autoDismissDelay.rounded())
+    let progressPercentage = Int(progress * 100)
+
+    return VStack(spacing: 0) {
+      Spacer()
+      ProgressView(value: progress)
+        .progressViewStyle(.linear)
+        .tint(.white.opacity(0.88))
+        .frame(height: 2)
+        .accessibilityLabel(L10n.PreferencesQuickAccess.closesAfter(delay))
+        .accessibilityValue("\(progressPercentage)%")
+    }
+    .allowsHitTesting(false)
+  }
 
   private var cardOpacity: Double {
     if isDragging {
@@ -176,6 +252,12 @@ struct QuickAccessCardView: View {
 
   private var cardShape: RoundedRectangle {
     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+  }
+
+  private var accessibilityValue: String {
+    [captureType.displayName, item.formattedDuration]
+      .compactMap { $0 }
+      .joined(separator: ", ")
   }
 
   private var orderedEnabledActions: [QuickAccessActionKind] {
@@ -280,14 +362,14 @@ struct QuickAccessCardView: View {
       return
     }
 
-    let willHideCard = configuredAction == .dismiss || configuredAction == .delete ||
+    let willHideCard = configuredAction == .dismiss ||
       (manager.hideCardWhenWindowOpen && configuredAction == .pinToScreen)
 
     if willHideCard {
       let offScreenOffset: CGFloat = translation > 0 ? scaledWidth + 200 : -(scaledWidth + 200)
       withAnimation(.easeOut(duration: 0.2)) {
         swipeOffset = offScreenOffset
-        if configuredAction == .dismiss || configuredAction == .delete {
+        if configuredAction == .dismiss {
           isDismissing = true
         }
       }
@@ -355,7 +437,7 @@ struct QuickAccessCardView: View {
   }
 
   private func performAction(_ action: QuickAccessActionKind) {
-    guard isActionEnabled(action) else { return }
+    guard canPerformCardActions, isActionEnabled(action) else { return }
 
     switch action {
     case .copy:
@@ -373,6 +455,7 @@ struct QuickAccessCardView: View {
   }
 
   private func handleDoubleClick() {
+    guard canPerformCardActions else { return }
     NSWorkspace.shared.open(item.url)
   }
 
@@ -397,7 +480,6 @@ struct QuickAccessCardView: View {
   }
 
   private func deleteItem() {
-    isDismissing = true
     manager.deleteItem(id: item.id)
   }
 
