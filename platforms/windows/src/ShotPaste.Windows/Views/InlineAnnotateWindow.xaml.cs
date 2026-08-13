@@ -579,6 +579,9 @@ public partial class InlineAnnotateWindow : Window
     internal static bool ShouldShowOneShotSwitcher(bool isCommitted, bool isDrawingSelection) =>
         !isCommitted && !isDrawingSelection;
 
+    internal static bool ShouldMoveSelectionOnCanvasDrag(bool isCommitted, bool moveModifierPressed) =>
+        !isCommitted || moveModifierPressed;
+
     private void UpdateOneShotSwitcherVisibility()
     {
         var isDrawingSelection = _interaction == OverlayInteraction.Selecting;
@@ -1432,7 +1435,7 @@ public partial class InlineAnnotateWindow : Window
     private void OnCanvasMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (_oneShotMode != OneShotMode.Screenshot) return;
-        if (_spacePressed)
+        if (ShouldMoveSelectionOnCanvasDrag(_oneShotCommitted, _spacePressed))
         {
             BeginMoveSelection(e.GetPosition(Root));
             e.Handled = true;

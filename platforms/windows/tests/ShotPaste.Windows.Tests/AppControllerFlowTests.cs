@@ -145,6 +145,20 @@ public sealed class AppControllerFlowTests
             InlineAnnotateWindow.ShouldShowOneShotSwitcher(isCommitted, isDrawingSelection));
     }
 
+    [Theory]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, true)]
+    public void OneShotSelection_DragsBeforeToolCommitOrWithMoveModifier(
+        bool isCommitted,
+        bool moveModifierPressed,
+        bool expected)
+    {
+        Assert.Equal(expected,
+            InlineAnnotateWindow.ShouldMoveSelectionOnCanvasDrag(isCommitted, moveModifierPressed));
+    }
+
     [Fact]
     public void OneShotToolbarDragDoesNotCommitTheSelectedMode()
     {

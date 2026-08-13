@@ -39,6 +39,7 @@ internal static class Program
                 ("quick_access", ScenarioAction.QuickAccess, false),
                 ("editor_removed", ScenarioAction.EditorRemoved, false),
                 ("copy_recovery", ScenarioAction.CopyRecovery, false),
+                ("one_shot_selection_move", ScenarioAction.OneShotSelectionMove, false),
                 ("one_shot_toolbar_drag", ScenarioAction.OneShotToolbarDrag, false),
                 ("performance_baseline", ScenarioAction.PerformanceBaseline, false)
             };
@@ -140,6 +141,47 @@ internal static class Program
             if (selectionBounds.Width < 40 || selectionBounds.Height < 40)
                 throw new InvalidOperationException($"Inline selection did not enter annotate mode: {selectionBounds}.");
 
+            if (action == ScenarioAction.OneShotSelectionMove)
+            {
+                var before = selectionBounds;
+                var start = new Drawing.Point(
+                    (int)Math.Round(before.Left + before.Width / 2),
+                    (int)Math.Round(before.Top + before.Height / 2));
+                Drag(start, new Drawing.Point(start.X + 90, start.Y + 60));
+                WaitUntil(() =>
+                {
+                    var moved = FindByAutomationId(process.Id, "SelectionImage");
+                    if (moved is null) return false;
+                    var bounds = moved.Current.BoundingRectangle;
+                    return bounds.Left > before.Left + 45 &&
+                           bounds.Top > before.Top + 30 &&
+                           Math.Abs(bounds.Width - before.Width) < 3 &&
+                           Math.Abs(bounds.Height - before.Height) < 3;
+                }, "Dragging the uncommitted One Shot selection did not move the selected region.");
+                WaitUntil(
+                    () => FindVisibleByAutomationId(process.Id, "OneShotSwitcherDragHandle") is not null,
+                    "Moving the uncommitted selection unexpectedly committed the One Shot mode.");
+                selectionImage = WaitForAutomationId(process.Id, "SelectionImage");
+                selectionBounds = selectionImage.Current.BoundingRectangle;
+
+                Invoke(WaitForAutomationId(process.Id, "InlineToolSelection"));
+                WaitUntil(
+                    () => FindVisibleByAutomationId(process.Id, "OneShotSwitcherDragHandle") is null,
+                    "Explicitly selecting the annotation selection tool did not commit the One Shot mode.");
+                var committedBounds = selectionBounds;
+                var marqueeStart = new Drawing.Point(
+                    (int)Math.Round(committedBounds.Left + committedBounds.Width * 0.35),
+                    (int)Math.Round(committedBounds.Top + committedBounds.Height * 0.35));
+                Drag(marqueeStart, new Drawing.Point(marqueeStart.X + 80, marqueeStart.Y + 55));
+                var afterMarquee = WaitForAutomationId(process.Id, "SelectionImage").Current.BoundingRectangle;
+                if (Math.Abs(afterMarquee.Left - committedBounds.Left) >= 3 ||
+                    Math.Abs(afterMarquee.Top - committedBounds.Top) >= 3 ||
+                    Math.Abs(afterMarquee.Width - committedBounds.Width) >= 3 ||
+                    Math.Abs(afterMarquee.Height - committedBounds.Height) >= 3)
+                    throw new InvalidOperationException(
+                        $"The committed annotation selection tool moved the screenshot region: before={committedBounds}, after={afterMarquee}.");
+            }
+
             if (action == ScenarioAction.OneShotToolbarDrag)
             {
                 var moveButton = WaitForAutomationId(process.Id, "OneShotMoveToolbar");
@@ -228,6 +270,12 @@ internal static class Program
                     WaitUntil(() => FindByAutomationId(process.Id, "OneShotCancel") is null,
                         "Inline overlay did not remain cancellable after clipboard recovery.");
                     detail = "Clipboard lock showed a recoverable error; retry copied without leaving the editor.";
+                    break;
+                case ScenarioAction.OneShotSelectionMove:
+                    Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
+                        "One Shot overlay did not close after selection move validation.");
+                    detail = "Dragging inside the uncommitted screenshot selection moved the region without locking the One Shot mode; explicitly selecting the annotation selection tool preserved marquee behavior.";
                     break;
                 case ScenarioAction.OneShotToolbarDrag:
                     Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
@@ -716,6 +764,7 @@ internal static class Program
         QuickAccess,
         EditorRemoved,
         CopyRecovery,
+        OneShotSelectionMove,
         OneShotToolbarDrag,
         PerformanceBaseline
     }
