@@ -383,8 +383,10 @@
       <Border x:Name="InstructionBadge" CornerRadius="{DynamicResource Radius.Lg}" Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="14,8">
         <TextBlock x:Name="InstructionText" Foreground="{DynamicResource HudTextBrush}" Text="拖动选择区域  ·  Esc 取消" FontSize="12" FontWeight="SemiBold"/>
       </Border>
-      <Border x:Name="SizeBadge" Visibility="Collapsed" CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource HudBrush}" Padding="9,5">
-        <TextBlock x:Name="SizeText" Foreground="{DynamicResource Annotation.WhiteBrush}" FontSize="11" FontWeight="SemiBold"/>
+      <Border x:Name="SizeBadge" Visibility="Collapsed" IsHitTestVisible="False" CornerRadius="{DynamicResource Radius.Md}"
+              Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="9,5">
+        <TextBlock x:Name="SizeText" AutomationProperties.AutomationId="SelectionSizeBadge"
+                   Foreground="{DynamicResource Annotation.WhiteBrush}" FontSize="11" FontWeight="SemiBold"/>
       </Border>
       <Border x:Name="StatusBadge" Visibility="Collapsed" CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource HudBrush}"
               BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="11,7">

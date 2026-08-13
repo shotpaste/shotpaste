@@ -308,6 +308,7 @@ public partial class InlineAnnotateWindow : Window
             OffsetAnnotationsForSelectionChange(_selectionEditStartPixels, SelectionPixelRect());
             RefreshSelectionImage();
             SetSelectionEditingVisuals(true);
+            SizeBadge.Visibility = Visibility.Collapsed;
             UpdateOverlayLayout();
         }
         e.Handled = true;
@@ -376,8 +377,17 @@ public partial class InlineAnnotateWindow : Window
 
         var pixelRect = SelectionPixelRect();
         SizeText.Text = $"{pixelRect.Width} × {pixelRect.Height}";
-        Canvas.SetLeft(SizeBadge, Math.Clamp(rect.Left, 8, Math.Max(8, ActualWidth - SizeBadge.ActualWidth - 8)));
-        Canvas.SetTop(SizeBadge, Math.Max(8, rect.Top - 34));
+        if (SizeBadge.Visibility == Visibility.Visible)
+        {
+            SizeBadge.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            var screenBounds = GetSelectionScreenBounds(pixelRect);
+            var placement = SelectionOverlayGeometry.GetSizeBadgePlacement(
+                rect,
+                SizeBadge.DesiredSize,
+                screenBounds);
+            Canvas.SetLeft(SizeBadge, placement.Origin.X);
+            Canvas.SetTop(SizeBadge, placement.Origin.Y);
+        }
         if (!_annotating) return;
 
         PositionHandle(HandleTopLeft, rect.Left, rect.Top);
@@ -411,8 +421,8 @@ public partial class InlineAnnotateWindow : Window
         PropertiesBar.Width = propertiesWidth;
         var propertiesVisible = PropertiesBar.Visibility == Visibility.Visible;
         var stackedHeight = Toolbar.Height + (propertiesVisible ? 6 + PropertiesBar.Height : 0);
-        var placeAbove = rect.Top >= stackedHeight + gap + 16;
-        var toolbarTop = placeAbove ? rect.Top - stackedHeight - gap : rect.Bottom + gap;
+        var placeBelow = rect.Bottom + gap + stackedHeight <= ActualHeight - 16;
+        var toolbarTop = placeBelow ? rect.Bottom + gap : rect.Top - stackedHeight - gap;
         toolbarTop = Math.Clamp(toolbarTop, 16, Math.Max(16, ActualHeight - stackedHeight - 16));
         var center = Math.Clamp(rect.Left + rect.Width / 2, toolbarWidth / 2 + 16, ActualWidth - toolbarWidth / 2 - 16);
         var toolbarLeft = center - toolbarWidth / 2;
@@ -787,6 +797,8 @@ public partial class InlineAnnotateWindow : Window
         _selectionEditStartPixels = SelectionPixelRect();
         _pointerStart = e.GetPosition(Root);
         SetSelectionEditingVisuals(false);
+        SizeBadge.Visibility = Visibility.Visible;
+        UpdateOverlayLayout();
         CaptureMouse();
         e.Handled = true;
     }
@@ -843,7 +855,29 @@ public partial class InlineAnnotateWindow : Window
         _selectionEditStartPixels = SelectionPixelRect();
         _pointerStart = point;
         SetSelectionEditingVisuals(false);
+        SizeBadge.Visibility = Visibility.Visible;
+        UpdateOverlayLayout();
         CaptureMouse();
+    }
+
+    private Rect GetSelectionScreenBounds(Drawing.Rectangle relativePixelRect)
+    {
+        var physicalSelection = new Drawing.Rectangle(
+            _physicalBounds.Left + relativePixelRect.Left,
+            _physicalBounds.Top + relativePixelRect.Top,
+            relativePixelRect.Width,
+            relativePixelRect.Height);
+        var physicalScreen = System.Windows.Forms.Screen.FromRectangle(physicalSelection).Bounds;
+        var relativeScreen = new Drawing.Rectangle(
+            physicalScreen.Left - _physicalBounds.Left,
+            physicalScreen.Top - _physicalBounds.Top,
+            physicalScreen.Width,
+            physicalScreen.Height);
+        var logicalScreen = SelectionOverlayGeometry.ToLogical(
+            relativeScreen,
+            new Size(ActualWidth, ActualHeight),
+            new Drawing.Rectangle(0, 0, _backdropSource.PixelWidth, _backdropSource.PixelHeight));
+        return logicalScreen.IsEmpty ? new Rect(0, 0, ActualWidth, ActualHeight) : logicalScreen;
     }
 
     private void SetSelectionEditingVisuals(bool visible)

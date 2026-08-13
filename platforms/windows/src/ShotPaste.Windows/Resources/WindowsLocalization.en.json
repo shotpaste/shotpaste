@@ -198,6 +198,7 @@
   "按键显示不可用": "Keystroke display is unavailable",
   "请检查快捷键格式，或确认组合键未被其他程序占用。": "Check the shortcut format or whether another app is using the key combination.",
   "保存文本": "Save Text",
+  "PNG 图片|*.png": "PNG Image|*.png",
   "文本文件|*.txt|所有文件|*.*": "Text Files|*.txt|All Files|*.*",
   "|所有文件|*.*": "|All Files|*.*",
   "所有文件": "All Files",

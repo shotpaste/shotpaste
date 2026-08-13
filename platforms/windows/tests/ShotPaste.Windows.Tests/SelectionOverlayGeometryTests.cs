@@ -83,4 +83,40 @@ public sealed class SelectionOverlayGeometryTests
         Assert.True(regions.Right.IsEmpty);
         Assert.True(regions.Bottom.IsEmpty);
     }
+
+    [Fact]
+    public void SizeBadgeUsesMacStylePlacementAboveTheSelectionLeftEdgeWhenThereIsRoom()
+    {
+        var placement = SelectionOverlayGeometry.GetSizeBadgePlacement(
+            new Rect(100, 120, 400, 260),
+            new WpfSize(90, 26),
+            new Rect(0, 0, 1920, 1080));
+
+        Assert.Equal(new System.Windows.Point(100, 86), placement.Origin);
+        Assert.False(placement.IsInsideSelection);
+    }
+
+    [Fact]
+    public void SizeBadgeMovesInsideSelectionNearTopScreenEdge()
+    {
+        var placement = SelectionOverlayGeometry.GetSizeBadgePlacement(
+            new Rect(100, 6, 400, 260),
+            new WpfSize(90, 26),
+            new Rect(0, 0, 1920, 1080));
+
+        Assert.Equal(new System.Windows.Point(104, 10), placement.Origin);
+        Assert.True(placement.IsInsideSelection);
+    }
+
+    [Fact]
+    public void SizeBadgeMovesInsideAndRespectsSafeInsetNearLeftScreenEdge()
+    {
+        var placement = SelectionOverlayGeometry.GetSizeBadgePlacement(
+            new Rect(4, 120, 320, 260),
+            new WpfSize(90, 26),
+            new Rect(0, 0, 1920, 1080));
+
+        Assert.Equal(new System.Windows.Point(8, 124), placement.Origin);
+        Assert.True(placement.IsInsideSelection);
+    }
 }
