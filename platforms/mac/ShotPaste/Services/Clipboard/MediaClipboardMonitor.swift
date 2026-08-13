@@ -260,9 +260,10 @@ final class MediaClipboardMonitor {
 
   private nonisolated static func mediaDirectory() throws -> URL {
     let fileManager = FileManager.default
-    let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-    let directory = appSupport
-      .appendingPathComponent("ShotPaste", isDirectory: true)
+    guard let appSupportRoot = AppDataLocations.applicationSupportRoot else {
+      throw CocoaError(.fileNoSuchFile)
+    }
+    let directory = appSupportRoot
       .appendingPathComponent("MediaClipboard", isDirectory: true)
     try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
     return directory

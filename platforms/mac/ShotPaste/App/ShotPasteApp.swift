@@ -111,6 +111,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       return
     }
 
+    DebugDataIsolationMigration.applyIfNeeded()
     AppIdentityManager.shared.refresh()
 
     guard ensureDatabaseReadyForLaunch() else {

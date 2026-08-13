@@ -16,7 +16,7 @@ final class ShotPasteConfigurationPathsTests: XCTestCase {
 
     let url = ShotPasteConfigurationPaths.suggestedConfigURL(homeDirectory: home)
 
-    XCTAssertEqual(url.path, "/Users/example/.config/shotpaste/config.toml")
+    XCTAssertEqual(url.path, "/Users/example/.config/shotpaste-debug/config.toml")
   }
 
   func testSuggestedConfigDirectoryURLUsesProvidedHomeDirectory() {
@@ -24,7 +24,19 @@ final class ShotPasteConfigurationPathsTests: XCTestCase {
 
     let url = ShotPasteConfigurationPaths.suggestedConfigDirectoryURL(homeDirectory: home)
 
-    XCTAssertEqual(url.path, "/Users/example/.config/shotpaste")
+    XCTAssertEqual(url.path, "/Users/example/.config/shotpaste-debug")
+  }
+
+  func testReleaseSuggestedConfigPathRemainsUnchanged() {
+    let home = URL(fileURLWithPath: "/Users/example", isDirectory: true)
+
+    XCTAssertEqual(
+      ShotPasteConfigurationPaths.suggestedConfigURL(
+        homeDirectory: home,
+        variant: .release
+      ).path,
+      "/Users/example/.config/shotpaste/config.toml"
+    )
   }
 
   func testCollapsingHomePathConvertsAbsolutePathToTilde() {

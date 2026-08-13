@@ -28,7 +28,10 @@ enum ShotPasteMCPServerState: Equatable {
 final class ShotPasteMCPServer: ObservableObject {
   static let shared = ShotPasteMCPServer()
 
-  static let defaultPort = 48_123
+  static var defaultPort: Int {
+    AppVariant.current.defaultMCPPort
+  }
+
   static let allowedPortRange = 1_024 ... 65_535
 
   @Published private(set) var state: ShotPasteMCPServerState = .stopped
@@ -117,13 +120,25 @@ final class ShotPasteMCPServer: ObservableObject {
   }
 
   func connectionConfigurationJSON() -> String {
+    Self.connectionConfigurationJSON(
+      clientName: AppVariant.current.mcpClientName,
+      endpointURLString: endpointURLString,
+      authorizationToken: authorizationToken()
+    )
+  }
+
+  nonisolated static func connectionConfigurationJSON(
+    clientName: String,
+    endpointURLString: String,
+    authorizationToken: String
+  ) -> String {
     let object: [String: Any] = [
       "mcpServers": [
-        "shotpaste": [
+        clientName: [
           "type": "http",
           "url": endpointURLString,
           "headers": [
-            "Authorization": "Bearer \(authorizationToken())",
+            "Authorization": "Bearer \(authorizationToken)",
           ],
         ],
       ],

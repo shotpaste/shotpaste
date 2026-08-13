@@ -50,9 +50,13 @@ default.
    client that supports Streamable HTTP.
 4. Keep ShotPaste running while the client is connected.
 
-The default endpoint is `http://127.0.0.1:48123/mcp`. The copied configuration
-also contains the generated bearer token. Do not publish or commit that token.
-The port can be changed in ShotPaste's local TOML configuration:
+The Release default endpoint is `http://127.0.0.1:48123/mcp`; Debug defaults to
+`http://127.0.0.1:48124/mcp` so both apps can run their servers concurrently.
+Each app has its own generated bearer token. The copied configuration contains
+the applicable token and uses `shotpaste` or `shotpaste-debug` as its client key;
+do not publish or commit the token. The port can be changed in that app's local
+TOML configuration (`~/.config/shotpaste/config.toml` for Release and
+`~/.config/shotpaste-debug/config.toml` for Debug):
 
 ```toml
 [general]

@@ -255,8 +255,8 @@ final class TempCaptureManagerTests: XCTestCase {
   func testTempCaptureDirectory_isInAppSupport() {
     let path = manager.tempCaptureDirectory.path
     XCTAssertTrue(
-      path.contains("Application Support/ShotPaste/Captures")
-        || path.contains("ShotPaste_Captures"),
+      path.contains("Application Support/ShotPaste Debug/Captures")
+        || path.contains("ShotPaste_Debug_Captures"),
       "Temp directory should be in App Support or fallback: \(path)"
     )
   }

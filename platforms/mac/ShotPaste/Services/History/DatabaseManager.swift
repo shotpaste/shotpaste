@@ -162,10 +162,7 @@ final class DatabaseManager: @unchecked Sendable {
       }
     #endif
 
-    let appSupport = FileManager.default.urls(
-      for: .applicationSupportDirectory, in: .userDomainMask
-    ).first!
-    return appSupport.appendingPathComponent("ShotPaste", isDirectory: true)
+    return AppDataLocations.applicationSupportRoot!
   }
 
   static var isRunningUnderXCTest: Bool {

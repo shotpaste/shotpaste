@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="ShotPaste"
 RELEASE_BUNDLE_NAME="ShotPaste"
 DEBUG_BUNDLE_NAME="ShotPaste Debug"
+RELEASE_PROCESS_NAME="ShotPaste"
+DEBUG_PROCESS_NAME="ShotPasteDebug"
 SCHEME="ShotPaste"
 PROJECT="platforms/mac/ShotPaste.xcodeproj"
 LOG_SUBSYSTEM="${LOG_SUBSYSTEM:-ShotPaste}"
@@ -49,7 +50,7 @@ ${BOLD}Usage:${NC} $0 [build|run|--logs|--telemetry|--debug|--verify] [options]
 ${BOLD}Modes:${NC}
   build               Build and sign the canonical app without launching it
   run                 Kill, build, and launch ShotPaste (default)
-  --logs, logs        Launch then stream unified logs for process == "ShotPaste"
+  --logs, logs        Launch then stream unified logs for the selected app variant
   --telemetry         Launch then stream unified logs for subsystem == "$LOG_SUBSYSTEM"
   --debug, debug      Build then launch the app binary under lldb
   --verify, verify    Launch and confirm the ShotPaste process is running
@@ -198,13 +199,29 @@ message_type_predicate() {
 }
 
 process_log_predicate() {
-  printf "process == \"%s\"" "$APP_NAME"
+  printf "process == \"%s\"" "$(app_process_name)"
   message_type_predicate "$LOG_LEVEL"
 }
 
 telemetry_log_predicate() {
-  printf "subsystem == \"%s\"" "$LOG_SUBSYSTEM"
+  printf "subsystem == \"%s\" AND process == \"%s\"" "$LOG_SUBSYSTEM" "$(app_process_name)"
   message_type_predicate "$LOG_LEVEL"
+}
+
+app_display_name() {
+  if [[ "$CONFIGURATION" == "Debug" ]]; then
+    printf "%s" "$DEBUG_BUNDLE_NAME"
+  else
+    printf "%s" "$RELEASE_BUNDLE_NAME"
+  fi
+}
+
+app_process_name() {
+  if [[ "$CONFIGURATION" == "Debug" ]]; then
+    printf "%s" "$DEBUG_PROCESS_NAME"
+  else
+    printf "%s" "$RELEASE_PROCESS_NAME"
+  fi
 }
 
 build_products_dir() {
@@ -221,13 +238,15 @@ app_bundle_path() {
 }
 
 app_binary_path() {
-  printf "%s/Contents/MacOS/%s" "$(app_bundle_path)" "$APP_NAME"
+  printf "%s/Contents/MacOS/%s" "$(app_bundle_path)" "$(app_process_name)"
 }
 
 stop_app() {
-  if pgrep -x "$APP_NAME" >/dev/null 2>&1; then
-    info "Stopping existing $APP_NAME process..."
-    pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+  local process_name
+  process_name="$(app_process_name)"
+  if pgrep -x "$process_name" >/dev/null 2>&1; then
+    info "Stopping existing $(app_display_name) process..."
+    pkill -x "$process_name" >/dev/null 2>&1 || true
     sleep 0.5
   fi
 }
@@ -319,19 +338,19 @@ build_app() {
 open_app() {
   local app_bundle
   app_bundle="$(app_bundle_path)"
-  info "Launching $APP_NAME..."
+  info "Launching $(app_display_name)..."
   /usr/bin/open -n "$app_bundle"
-  success "Launched $APP_NAME"
+  success "Launched $(app_display_name)"
 }
 
 verify_app() {
   open_app
   sleep 2
 
-  if pgrep -x "$APP_NAME" >/dev/null 2>&1; then
-    success "$APP_NAME is running."
+  if pgrep -x "$(app_process_name)" >/dev/null 2>&1; then
+    success "$(app_display_name) is running."
   else
-    fail "$APP_NAME did not stay running after launch."
+    fail "$(app_display_name) did not stay running after launch."
   fi
 }
 
@@ -342,8 +361,8 @@ stream_logs() {
 
   cleanup_stream() {
     printf "\n"
-    info "Stopping $APP_NAME..."
-    pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+    info "Stopping $(app_display_name)..."
+    pkill -x "$(app_process_name)" >/dev/null 2>&1 || true
     success "App stopped."
   }
   trap cleanup_stream INT TERM

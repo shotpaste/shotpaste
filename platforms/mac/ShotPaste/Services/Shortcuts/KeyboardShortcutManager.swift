@@ -17,28 +17,41 @@ struct ShortcutConfig: Equatable, Codable {
   /// Carbon does not provide a native Fn constant, so we use an otherwise-unused bit internally.
   static let functionCarbonModifier: UInt32 = 0x2000
 
+  /// Debug adds Option so its first-launch global shortcuts do not contend with
+  /// the simultaneously running Release app. Release keeps its existing bindings.
+  static func defaultModifiers(for variant: AppVariant) -> UInt32 {
+    let releaseModifiers = UInt32(cmdKey | shiftKey)
+    return variant == .debug
+      ? releaseModifiers | UInt32(optionKey)
+      : releaseModifiers
+  }
+
+  private static var defaultVariantModifiers: UInt32 {
+    defaultModifiers(for: .current)
+  }
+
   /// Memberwise initializer
   init(keyCode: UInt32, modifiers: UInt32) {
     self.keyCode = keyCode
     self.modifiers = modifiers
   }
 
-  /// Cmd + Shift + Space — suggested value only; the shortcut ships unbound (cleared) by default.
+  /// Suggested value only; the shortcut ships unbound (cleared) by default.
   static let defaultPauseResumeRecording = ShortcutConfig(
     keyCode: UInt32(kVK_Space),
-    modifiers: UInt32(cmdKey | shiftKey)
+    modifiers: defaultVariantModifiers
   )
 
-  /// Cmd + Shift + 1
+  /// Cmd + Shift + 1 in Release; Debug also includes Option.
   static let defaultOneShot = ShortcutConfig(
     keyCode: UInt32(kVK_ANSI_1),
-    modifiers: UInt32(cmdKey | shiftKey)
+    modifiers: defaultVariantModifiers
   )
 
-  /// Cmd + Shift + H
+  /// Cmd + Shift + H in Release; Debug also includes Option.
   static let defaultHistory = ShortcutConfig(
     keyCode: UInt32(kVK_ANSI_H),
-    modifiers: UInt32(cmdKey | shiftKey)
+    modifiers: defaultVariantModifiers
   )
 
   var displayString: String {

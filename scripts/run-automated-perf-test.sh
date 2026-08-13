@@ -4,7 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-PROCESS_NAME="ShotPaste"
+PROCESS_NAME="ShotPasteDebug"
 APP_BUNDLE="$ROOT_DIR/.build/macos/Debug/ShotPaste Debug.app"
 
 cd "$ROOT_DIR"
@@ -74,15 +74,15 @@ printf "|------------------------|-------------|-------------|-------------|----
 measure "1. Idle Baseline" 5
 
 # Phase 2: One Shot screenshot selection
-open "shotpaste://capture/screenshot" 2>/dev/null || true
+open "shotpaste-debug://capture/screenshot" 2>/dev/null || true
 measure "2. One Shot Capture" 4
 
 # Phase 3: History Browser
-open "shotpaste://open/history" 2>/dev/null || true
+open "shotpaste-debug://open/history" 2>/dev/null || true
 measure "3. Capture History" 4
 
 # Phase 4: Settings Window
-open "shotpaste://settings" 2>/dev/null || true
+open "shotpaste-debug://settings" 2>/dev/null || true
 measure "4. Preferences View" 4
 
 # Phase 5: Post-test Idle

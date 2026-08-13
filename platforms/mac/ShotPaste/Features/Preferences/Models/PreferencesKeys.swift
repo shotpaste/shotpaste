@@ -118,6 +118,9 @@ nonisolated enum PreferencesKeys {
   static let diagnosticsRetentionDays = "diagnostics.retentionDays"
   static let diagnosticsSessionActive = "diagnostics.sessionActive"
 
+  /// Debug-only migration marker. The Release app never reads or writes this key.
+  static let debugDataIsolationMigrationVersion = "debug.dataIsolationMigrationVersion"
+
   // History
   static let historyEnabled = "history.enabled"
   static let historyRetentionDays = "history.retentionDays"

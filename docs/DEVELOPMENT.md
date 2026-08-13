@@ -64,6 +64,36 @@ Products:
 - Debug: `.build/macos/Debug/ShotPaste Debug.app`
 - Release: `.build/macos/Release/ShotPaste.app`
 
+### Debug and Release isolation
+
+The two macOS configurations are independent applications and can run at the
+same time. Release keeps its existing identity and paths; Debug uses dedicated
+values:
+
+| Surface | Release | Debug |
+| --- | --- | --- |
+| Bundle ID | `com.ahtcfg24.shotpaste` | `com.ahtcfg24.shotpaste.debug` |
+| Executable | `ShotPaste` | `ShotPasteDebug` |
+| Application Support | `~/Library/Application Support/ShotPaste` | `~/Library/Application Support/ShotPaste Debug` |
+| Diagnostic logs | `~/Library/Logs/ShotPaste` | `~/Library/Logs/ShotPaste Debug` |
+| Managed TOML | `~/.config/shotpaste/config.toml` | `~/.config/shotpaste-debug/config.toml` |
+| Default export folder | `~/Desktop/ShotPaste` | `~/Desktop/ShotPaste Debug` |
+| URL Scheme | `shotpaste://` | `shotpaste-debug://` |
+| Default MCP port | `48123` | `48124` |
+| Copied MCP client key | `shotpaste` | `shotpaste-debug` |
+
+Their UserDefaults, privacy permissions, login items, history database,
+thumbnails, clipboard archive, temporary captures, recording metadata, logs,
+problem-report archives, and default output folders therefore do not overlap.
+Debug also has a badged icon and adds Option to its first-launch global
+shortcuts so those bindings do not contend with Release defaults.
+
+On the first build containing this split, Debug updates only legacy default
+values that would otherwise still point at Release's default export folder or
+MCP port. It does not copy or move Release history or files. A directory that a
+developer explicitly selects in both apps is intentionally shared by that
+choice.
+
 ### Release signing identity
 
 Until an Apple Developer ID certificate is available, official release builds use

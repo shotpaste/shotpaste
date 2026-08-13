@@ -22,8 +22,6 @@ CANONICAL_RELEASE="$ROOT_DIR/.build/macos/Release/ShotPaste.app"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 REMOVED=0
 
-pgrep -x ShotPaste >/dev/null 2>&1 && pkill -x ShotPaste >/dev/null 2>&1 || true
-
 remove_candidate() {
   local candidate="$1"
   local base_name

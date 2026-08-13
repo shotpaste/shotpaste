@@ -8,7 +8,10 @@
 import Foundation
 
 enum ProblemReportLogArchive {
-  private static let filePrefix = "shotpaste-problem-report-"
+  private static var filePrefix: String {
+    AppVariant.current.problemReportFilePrefix
+  }
+
   private static let fileExtension = "zip"
 
   static func makeArchive(from logDirectoryURL: URL, reportURL: URL) throws -> URL {
@@ -72,7 +75,7 @@ enum ProblemReportLogArchive {
 
   private static func nextArchiveURL() throws -> URL {
     let fm = FileManager.default
-    let directory = fm.temporaryDirectory.appendingPathComponent("ShotPasteProblemReports", isDirectory: true)
+    let directory = AppDataLocations.problemReportsDirectory
     try fm.createDirectory(at: directory, withIntermediateDirectories: true)
     cleanupOldArchives(in: directory)
 

@@ -15,9 +15,18 @@ final class ShortcutCoreTests: XCTestCase {
     XCTAssertEqual(ShortcutConfig.defaultOneShot.keyCode, UInt32(kVK_ANSI_1))
     XCTAssertEqual(ShortcutConfig.defaultHistory.keyCode, UInt32(kVK_ANSI_H))
 
-    let expectedModifiers = UInt32(cmdKey | shiftKey)
+    let expectedModifiers = ShortcutConfig.defaultModifiers(for: .current)
     XCTAssertEqual(ShortcutConfig.defaultOneShot.modifiers, expectedModifiers)
     XCTAssertEqual(ShortcutConfig.defaultHistory.modifiers, expectedModifiers)
+
+    XCTAssertEqual(
+      ShortcutConfig.defaultModifiers(for: .release),
+      UInt32(cmdKey | shiftKey)
+    )
+    XCTAssertEqual(
+      ShortcutConfig.defaultModifiers(for: .debug),
+      UInt32(cmdKey | shiftKey | optionKey)
+    )
   }
 
   func testShortcutConfigKeyCodeToString_mapsPrintableAndSpecialKeys() {
