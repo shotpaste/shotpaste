@@ -26,4 +26,14 @@ final class PermissionResetServiceTests: XCTestCase {
       .init(service: "ScreenCapture", terminationStatus: 1),
     ]).succeeded)
   }
+
+  func testReportTracksSuccessfulServicesIndependently() {
+    let report = PermissionResetReport(failures: [
+      .init(service: "Microphone", terminationStatus: 1),
+    ])
+
+    XCTAssertTrue(report.succeeded(for: "ScreenCapture"))
+    XCTAssertFalse(report.succeeded(for: "Microphone"))
+    XCTAssertTrue(report.succeeded(for: "Accessibility"))
+  }
 }

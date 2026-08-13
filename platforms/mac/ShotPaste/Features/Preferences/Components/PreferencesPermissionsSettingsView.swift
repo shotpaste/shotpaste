@@ -38,8 +38,6 @@ struct PermissionsSettingsView: View {
   @ObservedObject private var authorizationAssistant =
     PermissionAuthorizationAssistantController.shared
 
-  @State private var microphoneStatus = AVCaptureDevice.authorizationStatus(for: .audio)
-  @State private var accessibilityGranted = AXIsProcessTrusted()
   @State private var saveFolderGranted = false
   @State private var isChecking = false
   @State private var activeAction: PermissionAction?
@@ -136,8 +134,8 @@ struct PermissionsSettingsView: View {
       guard hasAppeared else { return }
       checkAllPermissions()
     }
-    .onChange(of: authorizationAssistant.isRequesting) { isRequesting in
-      guard hasAppeared, !isRequesting else { return }
+    .onChange(of: authorizationAssistant.isGuiding) { isGuiding in
+      guard hasAppeared, !isGuiding else { return }
       checkAllPermissions()
     }
     .confirmationDialog(
@@ -156,7 +154,7 @@ struct PermissionsSettingsView: View {
 
   private var progress: PermissionGuideProgress {
     PermissionGuideProgress(
-      screenRecordingGranted: screenCaptureManager.hasPermission,
+      screenRecordingGranted: authorizationAssistant.screenRecordingGranted,
       saveFolderGranted: saveFolderGranted
     )
   }
@@ -214,26 +212,22 @@ struct PermissionsSettingsView: View {
 
   private var permissionManagementCard: some View {
     HStack(alignment: .center, spacing: Spacing.md) {
-      PermissionDraggableAppIcon()
+      Image(systemName: "checkmark.shield.fill")
+        .font(.system(size: 22, weight: .semibold))
+        .foregroundStyle(Color.accentColor)
+        .frame(width: 44, height: 44)
+        .background(
+          Color.accentColor.opacity(0.1),
+          in: RoundedRectangle(cornerRadius: Size.radiusLg)
+        )
 
       VStack(alignment: .leading, spacing: Spacing.xs) {
-        Text(L10n.PreferencesPermissions.dragAppTitle)
+        Text(L10n.PreferencesPermissions.authorizationGuideTitle)
           .font(.body.weight(.semibold))
-        Text(L10n.PreferencesPermissions.dragAppDescription)
+        Text(L10n.PreferencesPermissions.authorizationGuideDescription)
           .font(.caption)
           .foregroundStyle(.secondary)
           .fixedSize(horizontal: false, vertical: true)
-
-        HStack(spacing: Spacing.sm) {
-          Button(L10n.Permission.screenRecording) {
-            openSystemSettings(screenRecordingURL)
-          }
-          Button(L10n.Permission.accessibility) {
-            openSystemSettings(accessibilityURL)
-          }
-        }
-        .buttonStyle(.link)
-        .controlSize(.small)
       }
 
       Spacer(minLength: Spacing.md)
@@ -243,7 +237,7 @@ struct PermissionsSettingsView: View {
           requestAllSystemPermissions()
         } label: {
           HStack(spacing: Spacing.xs) {
-            if authorizationAssistant.isRequesting {
+            if authorizationAssistant.isGuiding {
               ProgressView()
                 .controlSize(.small)
             } else {
@@ -253,7 +247,7 @@ struct PermissionsSettingsView: View {
           }
         }
         .buttonStyle(.borderedProminent)
-        .disabled(activeAction != nil || authorizationAssistant.isRequesting)
+        .disabled(activeAction != nil || authorizationAssistant.isGuiding)
 
         Button(role: .destructive) {
           isShowingResetConfirmation = true
@@ -264,7 +258,7 @@ struct PermissionsSettingsView: View {
           )
         }
         .buttonStyle(.bordered)
-        .disabled(activeAction != nil || authorizationAssistant.isRequesting)
+        .disabled(activeAction != nil || authorizationAssistant.isGuiding)
       }
       .controlSize(.small)
     }
@@ -353,7 +347,7 @@ struct PermissionsSettingsView: View {
   // MARK: - Permission state
 
   private var screenRecordingDescription: String {
-    switch screenCaptureManager.permissionStatus {
+    switch effectiveScreenRecordingStatus {
     case .granted:
       L10n.Permission.requiredForCaptures
     case .notGranted:
@@ -366,7 +360,7 @@ struct PermissionsSettingsView: View {
   }
 
   private var screenRecordingVisualState: PermissionGuideRow.VisualState {
-    switch screenCaptureManager.permissionStatus {
+    switch effectiveScreenRecordingStatus {
     case .granted:
       grantedVisualState
     case .notGranted:
@@ -385,22 +379,26 @@ struct PermissionsSettingsView: View {
   }
 
   private var microphoneVisualState: PermissionGuideRow.VisualState {
-    switch microphoneStatus {
+    if authorizationAssistant.microphoneGranted {
+      return grantedVisualState
+    }
+
+    switch authorizationAssistant.microphoneStatus {
     case .authorized:
-      grantedVisualState
+      return grantedVisualState
     case .notDetermined:
-      notEnabledVisualState
+      return notEnabledVisualState
     case .denied:
-      notGrantedVisualState
+      return notGrantedVisualState
     case .restricted:
-      restrictedVisualState
+      return restrictedVisualState
     @unknown default:
-      restrictedVisualState
+      return restrictedVisualState
     }
   }
 
   private var accessibilityVisualState: PermissionGuideRow.VisualState {
-    accessibilityGranted ? grantedVisualState : notEnabledVisualState
+    authorizationAssistant.accessibilityGranted ? grantedVisualState : notEnabledVisualState
   }
 
   private var grantedVisualState: PermissionGuideRow.VisualState {
@@ -436,7 +434,7 @@ struct PermissionsSettingsView: View {
   }
 
   private var screenRecordingActionTitle: String? {
-    switch screenCaptureManager.permissionStatus {
+    switch effectiveScreenRecordingStatus {
     case .granted:
       nil
     case .notGranted:
@@ -449,20 +447,24 @@ struct PermissionsSettingsView: View {
   }
 
   private var microphoneActionTitle: String? {
-    switch microphoneStatus {
+    if authorizationAssistant.microphoneGranted {
+      return nil
+    }
+
+    switch authorizationAssistant.microphoneStatus {
     case .authorized, .restricted:
-      nil
+      return nil
     case .notDetermined:
-      L10n.Permission.grantAccess
+      return L10n.Permission.grantAccess
     case .denied:
-      L10n.Common.openSystemSettings
+      return L10n.Common.openSystemSettings
     @unknown default:
-      nil
+      return nil
     }
   }
 
   private var accessibilityActionTitle: String? {
-    guard !accessibilityGranted else { return nil }
+    guard !authorizationAssistant.accessibilityGranted else { return nil }
     return didRequestAccessibilityThisSession
       ? L10n.Common.openSystemSettings
       : L10n.Permission.grantAccess
@@ -471,10 +473,8 @@ struct PermissionsSettingsView: View {
   // MARK: - Permission actions
 
   private func requestAllSystemPermissions() {
-    guard activeAction == nil, !authorizationAssistant.isRequesting else { return }
-    didRequestScreenRecordingThisSession = true
-    didRequestAccessibilityThisSession = true
-    authorizationAssistant.show(startRequests: true)
+    guard activeAction == nil, !authorizationAssistant.isGuiding else { return }
+    authorizationAssistant.startGuidedAuthorization()
   }
 
   private func resetSystemPermissions() {
@@ -487,8 +487,8 @@ struct PermissionsSettingsView: View {
       activeAction = nil
       didRequestScreenRecordingThisSession = false
       didRequestAccessibilityThisSession = false
-      checkAllPermissions()
-      authorizationAssistant.refreshPermissionStates()
+      authorizationAssistant.markPermissionsReset(report: report)
+      checkSaveFolderPermission()
 
       AppToastManager.shared.show(
         message: report.succeeded
@@ -502,7 +502,7 @@ struct PermissionsSettingsView: View {
   }
 
   private func handleScreenRecordingAction() {
-    switch screenCaptureManager.permissionStatus {
+    switch effectiveScreenRecordingStatus {
     case .granted:
       return
     case .notGranted where didRequestScreenRecordingThisSession:
@@ -510,10 +510,11 @@ struct PermissionsSettingsView: View {
     case .notGranted:
       activeAction = .screenRecording
       didRequestScreenRecordingThisSession = true
+      authorizationAssistant.clearResetOverride(for: .screenRecording)
       Task {
         _ = await screenCaptureManager.requestPermission()
         activeAction = nil
-        checkAllPermissions()
+        authorizationAssistant.refreshPermissionStates()
       }
     case .grantedButUnavailableDueToAppIdentity:
       checkAllPermissions()
@@ -533,17 +534,22 @@ struct PermissionsSettingsView: View {
   }
 
   private func handleMicrophoneAction() {
-    switch microphoneStatus {
+    if authorizationAssistant.microphoneGranted {
+      return
+    }
+
+    switch authorizationAssistant.microphoneStatus {
     case .authorized, .restricted:
       return
     case .denied:
       openSystemSettings(microphoneURL)
     case .notDetermined:
       activeAction = .microphone
+      authorizationAssistant.clearResetOverride(for: .microphone)
       Task {
         _ = await AVCaptureDevice.requestAccess(for: .audio)
-        microphoneStatus = AVCaptureDevice.authorizationStatus(for: .audio)
         activeAction = nil
+        authorizationAssistant.refreshPermissionStates()
       }
     @unknown default:
       return
@@ -551,7 +557,7 @@ struct PermissionsSettingsView: View {
   }
 
   private func handleAccessibilityAction() {
-    guard !accessibilityGranted else { return }
+    guard !authorizationAssistant.accessibilityGranted else { return }
 
     if didRequestAccessibilityThisSession {
       openSystemSettings(accessibilityURL)
@@ -560,9 +566,11 @@ struct PermissionsSettingsView: View {
 
     activeAction = .accessibility
     didRequestAccessibilityThisSession = true
+    authorizationAssistant.clearResetOverride(for: .accessibility)
     let promptKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
-    accessibilityGranted = AXIsProcessTrustedWithOptions([promptKey: true] as CFDictionary)
+    _ = AXIsProcessTrustedWithOptions([promptKey: true] as CFDictionary)
     activeAction = nil
+    authorizationAssistant.refreshPermissionStates()
   }
 
   // MARK: - Refresh
@@ -571,15 +579,19 @@ struct PermissionsSettingsView: View {
     guard !isChecking else { return }
     isChecking = true
 
-    microphoneStatus = AVCaptureDevice.authorizationStatus(for: .audio)
-    accessibilityGranted = AXIsProcessTrusted()
     checkSaveFolderPermission()
+    authorizationAssistant.refreshPermissionStates()
 
     Task {
       AppIdentityManager.shared.refresh()
       await screenCaptureManager.checkPermission()
       isChecking = false
     }
+  }
+
+  private var effectiveScreenRecordingStatus: ScreenRecordingPermissionStatus {
+    guard authorizationAssistant.screenRecordingGranted else { return .notGranted }
+    return screenCaptureManager.permissionStatus
   }
 
   private func checkSaveFolderPermission() {

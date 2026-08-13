@@ -54,3 +54,9 @@ nonisolated enum PermissionResetService {
     }.value
   }
 }
+
+extension PermissionResetReport {
+  func succeeded(for service: String) -> Bool {
+    !failures.contains { $0.service == service }
+  }
+}

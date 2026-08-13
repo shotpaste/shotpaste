@@ -1783,6 +1783,77 @@ nonisolated enum L10n {
       defaultValue: "Request All Permissions",
       comment: "Button requesting every system-managed permission used by ShotPaste"
     )
+    static let authorizationGuideTitle = string(
+      "preferences-permissions.authorization-guide-title",
+      defaultValue: "Complete permissions step by step",
+      comment: "Title for the guided macOS permission assistant"
+    )
+    static let authorizationGuideDescription = string(
+      "preferences-permissions.authorization-guide-description",
+      defaultValue: "ShotPaste opens each missing permission page and skips access you already granted.",
+      comment: "Description for the guided macOS permission assistant"
+    )
+    static let authorizationAllGranted = string(
+      "preferences-permissions.authorization-all-granted",
+      defaultValue: "All permissions are already granted. No action is needed.",
+      comment: "Toast shown when permission guidance is unnecessary"
+    )
+    static let authorizationComplete = string(
+      "preferences-permissions.authorization-complete",
+      defaultValue: "All permissions are ready.",
+      comment: "Message shown when guided permission setup completes"
+    )
+    static func authorizationStep(_ current: Int, _ total: Int, _ permission: String) -> String {
+      format(
+        "preferences-permissions.authorization-step",
+        defaultValue: "Step %d of %d: %@",
+        comment: "Permission guide step. First %d is current, second %d is total, %@ is permission name.",
+        current,
+        total,
+        permission
+      )
+    }
+
+    static let authorizationDragInstruction = string(
+      "preferences-permissions.authorization-drag-instruction",
+      defaultValue: "Drag the ShotPaste icon into the highlighted app list, then turn its switch on.",
+      comment: "Instruction for drag-supported macOS permission pages"
+    )
+    static let authorizationMicrophoneInstruction = string(
+      "preferences-permissions.authorization-microphone-instruction",
+      defaultValue: "Turn on ShotPaste in the highlighted Microphone list. If it is missing, use Grant Access on the permission page first.",
+      comment: "Instruction for the macOS microphone permission page"
+    )
+    static let authorizationOpenCurrent = string(
+      "preferences-permissions.authorization-open-current",
+      defaultValue: "Open Current Settings",
+      comment: "Button opening the current permission settings page"
+    )
+    static let authorizationCheckAndContinue = string(
+      "preferences-permissions.authorization-check-and-continue",
+      defaultValue: "Check & Continue",
+      comment: "Button checking the current permission and advancing the guide"
+    )
+    static let authorizationNotDetected = string(
+      "preferences-permissions.authorization-not-detected",
+      defaultValue: "Permission was not detected yet. Complete the highlighted step and check again.",
+      comment: "Message shown when the current guided permission is still missing"
+    )
+    static let authorizationOpenFailed = string(
+      "preferences-permissions.authorization-open-failed",
+      defaultValue: "System Settings could not be opened automatically. Use the button below.",
+      comment: "Fallback message when macOS permission settings do not open"
+    )
+    static let authorizationHighlightDrag = string(
+      "preferences-permissions.authorization-highlight-drag",
+      defaultValue: "Drag ShotPaste here, then turn it on",
+      comment: "Label over the highlighted drag target in System Settings"
+    )
+    static let authorizationHighlightEnable = string(
+      "preferences-permissions.authorization-highlight-enable",
+      defaultValue: "Find ShotPaste here and turn it on",
+      comment: "Label over the highlighted switch target in System Settings"
+    )
     static let resetSystemPermissions = string(
       "preferences-permissions.reset-system-permissions",
       defaultValue: "Reset System Permissions",
