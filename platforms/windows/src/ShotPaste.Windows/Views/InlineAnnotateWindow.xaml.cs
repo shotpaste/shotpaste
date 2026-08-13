@@ -588,7 +588,8 @@ public partial class InlineAnnotateWindow : Window
     internal static bool ShouldShowOneShotSwitcher(bool isCommitted, bool isDrawingSelection) =>
         !isCommitted && !isDrawingSelection;
 
-    internal static bool ShouldMoveSelectionOnCanvasDrag(bool isCommitted) => !isCommitted;
+    internal static bool ShouldMoveSelectionOnCanvasDrag(OneShotMode mode, bool isCommitted) =>
+        !isCommitted && mode is OneShotMode.Screenshot or OneShotMode.Scrolling or OneShotMode.Recording;
 
     private void UpdateOneShotSwitcherVisibility()
     {
@@ -886,8 +887,9 @@ public partial class InlineAnnotateWindow : Window
         EditorViewbox.Visibility = visibility;
         ElementSelectionChrome.Visibility = visibility;
         ResizeChrome.Visibility = visibility;
-        Toolbar.Visibility = visibility;
-        OneShotToolbarActions.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        var screenshotToolsVisible = visible && _oneShotMode == OneShotMode.Screenshot;
+        Toolbar.Visibility = screenshotToolsVisible ? Visibility.Visible : Visibility.Collapsed;
+        OneShotToolbarActions.Visibility = screenshotToolsVisible ? Visibility.Visible : Visibility.Collapsed;
         if (visible) UpdatePropertiesBar();
         else PropertiesBar.Visibility = Visibility.Collapsed;
     }
@@ -1465,13 +1467,13 @@ public partial class InlineAnnotateWindow : Window
 
     private void OnCanvasMouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (_oneShotMode != OneShotMode.Screenshot) return;
-        if (ShouldMoveSelectionOnCanvasDrag(_oneShotCommitted))
+        if (ShouldMoveSelectionOnCanvasDrag(_oneShotMode, _oneShotCommitted))
         {
             BeginMoveSelection(e.GetPosition(Root));
             e.Handled = true;
             return;
         }
+        if (_oneShotMode != OneShotMode.Screenshot) return;
         if (!CommitOneShotMode()) return;
         _drawStart = e.GetPosition(AnnotationCanvas);
         var clickedElement = HitTestAnnotation(_drawStart, e.OriginalSource as DependencyObject);

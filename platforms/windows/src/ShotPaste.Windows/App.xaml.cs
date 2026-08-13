@@ -32,8 +32,8 @@ public partial class App : System.Windows.Application
         };
         base.OnStartup(e);
         var mutexName = UiTestMode
-            ? $"ShotPaste.Windows.SingleInstance.UiTest.{ScopeToken(_instanceScope)}"
-            : "ShotPaste.Windows.SingleInstance";
+            ? $"{AppBuildIdentity.Current.SingleInstanceMutexName}.UiTest.{ScopeToken(_instanceScope)}"
+            : AppBuildIdentity.Current.SingleInstanceMutexName;
         _singleInstance = new Mutex(true, mutexName, out var createdNew);
         if (!createdNew)
         {
@@ -45,7 +45,7 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        App.WriteQuickAccessLog($"ShotPaste startup begin version={typeof(App).Assembly.GetName().Version} path={Environment.ProcessPath}");
+        App.WriteQuickAccessLog($"{AppBuildIdentity.Current.DisplayName} startup begin version={typeof(App).Assembly.GetName().Version} path={Environment.ProcessPath}");
         _controller = new AppController();
         _commandService = new AppCommandService(_instanceScope);
         _commandService.Start(arguments => Dispatcher.BeginInvoke(() => _controller?.HandleExternalCommand(arguments)));

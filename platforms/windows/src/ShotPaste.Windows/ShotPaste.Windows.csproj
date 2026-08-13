@@ -13,7 +13,6 @@
     <Product>ShotPaste</Product>
     <Description>Lightweight screenshot, annotation, OCR, scrolling capture, and screen recording tool.</Description>
     <Authors>ShotPaste</Authors>
-    <ApplicationIcon />
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
@@ -23,6 +22,11 @@
     <DebugSymbols>false</DebugSymbols>
     <DebugType>none</DebugType>
     <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <Product>ShotPaste Debug</Product>
+    <ApplicationIcon>Assets\shotpaste-debug-icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -39,7 +43,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="..\..\..\..\assets\shotpaste-icon.png" Link="Assets\shotpaste-icon.png" />
+    <Resource Include="..\..\..\..\assets\shotpaste-icon.png"
+              Link="Assets\shotpaste-icon.png"
+              Condition="'$(Configuration)' != 'Debug'" />
+    <Resource Include="Assets\shotpaste-debug-icon.png"
+              Link="Assets\shotpaste-icon.png"
+              Condition="'$(Configuration)' == 'Debug'" />
     <EmbeddedResource Include="..\..\..\..\resources\localization\**\*.xcstrings"
                       Link="Localization\%(RecursiveDir)%(Filename)%(Extension)" />
     <EmbeddedResource Include="Resources\WindowsLocalization.en.json">
