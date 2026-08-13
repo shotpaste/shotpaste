@@ -286,6 +286,7 @@ private struct InlineAreaAnnotateRootView: View {
   @State private var resizingStartRect: CGRect?
   @State private var resizePreviewRect: CGRect?
   @State private var activeResizeHandle: InlineAreaResizeHandle?
+  @State private var hoveredResizeHandle: InlineAreaResizeHandle?
   @State private var cursorIndicatorPoint: CGPoint?
   @State private var propertiesContentWidth: CGFloat = 0
   @State private var oneShotMagnifierSample: OneShotMagnifierSample?
@@ -321,16 +322,20 @@ private struct InlineAreaAnnotateRootView: View {
         if let desktopRect, let viewportRect {
           if session.phase == .annotating {
             if session.oneShotState.activeTab == .screenshot {
-              annotateSurface(rect: viewportRect, usesBackdropPreview: isSelectionPreviewing)
+              annotateSurface(
+                rect: viewportRect,
+                desktopRect: desktopRect,
+                usesBackdropPreview: isSelectionPreviewing
+              )
             } else {
               selectionBorder(rect: viewportRect)
             }
             if !session.isSelectingOneShotOCR,
-               session.isMoveModifierActive || session.isOneShotSelectionEditable {
-              spaceMoveHitArea(rect: viewportRect, desktopRect: desktopRect)
+               session.isOneShotSelectionEditable {
+              selectionMoveHitArea(rect: viewportRect, desktopRect: desktopRect)
             }
             if !session.isSelectingOneShotOCR,
-               session.isOneShotSelectionEditable {
+               session.isOneShotSelectionResizable {
               resizeHandles(rect: viewportRect, desktopRect: desktopRect)
             }
             if !session.isSelectingOneShotOCR,
@@ -516,43 +521,90 @@ private struct InlineAreaAnnotateRootView: View {
     .frame(width: size.width, height: size.height)
   }
 
-  private func annotateSurface(rect: CGRect, usesBackdropPreview: Bool) -> some View {
+  private func annotateSurface(
+    rect: CGRect,
+    desktopRect: CGRect,
+    usesBackdropPreview: Bool
+  ) -> some View {
     let imageSize = session.state.sourceImage?.size ?? rect.size
-    let displayScale = max(rect.width / max(imageSize.width, 1), 0.0001)
+    let stableDesktopRect = session.selectionRect ?? desktopRect
+    let displayScale = max(stableDesktopRect.width / max(imageSize.width, 1), 0.0001)
+    let previewLayout = InlineAreaAnnotationPreviewLayout.resolve(
+      stableSelectionRect: stableDesktopRect,
+      displayFrame: display.localFrame,
+      imageSize: imageSize
+    )
 
-    return ZStack {
+    return ZStack(alignment: .topLeading) {
       if !usesBackdropPreview, let image = session.state.effectiveSourceImage {
         Image(nsImage: image)
           .resizable()
           .frame(width: rect.width, height: rect.height)
+          .position(x: rect.midX, y: rect.midY)
       }
 
+      if usesBackdropPreview {
+        // Keep the annotation layer at a fixed display-sized frame while the
+        // selection changes. The selection acts only as a mask, so annotations
+        // outside the old bounds remain renderable and are revealed on expansion.
+        annotationCanvasSurface(
+          size: display.localFrame.size,
+          displayScale: previewLayout.displayScale,
+          canvasBounds: previewLayout.canvasBounds
+        )
+        .mask(
+          Rectangle()
+            .frame(width: rect.width, height: rect.height)
+            .position(x: rect.midX, y: rect.midY)
+        )
+        .allowsHitTesting(false)
+      } else {
+        annotationCanvasSurface(
+          size: rect.size,
+          displayScale: displayScale,
+          canvasBounds: CGRect(origin: .zero, size: imageSize)
+        )
+        .position(x: rect.midX, y: rect.midY)
+      }
+
+      selectionBorder(rect: rect)
+        .allowsHitTesting(false)
+    }
+    .frame(
+      width: display.localFrame.width,
+      height: display.localFrame.height,
+      alignment: .topLeading
+    )
+  }
+
+  private func annotationCanvasSurface(
+    size: CGSize,
+    displayScale: CGFloat,
+    canvasBounds: CGRect
+  ) -> some View {
+    ZStack {
       CanvasDrawingView(
         state: session.state,
         displayScale: displayScale,
-        canvasBounds: CGRect(origin: .zero, size: imageSize)
+        canvasBounds: canvasBounds,
+        permitsAnnotationOverflow: true
       )
-      .frame(width: rect.width, height: rect.height)
+      .frame(width: size.width, height: size.height)
 
       if session.state.editingTextAnnotationId != nil {
         TextEditOverlay(
           state: session.state,
           scale: displayScale,
-          canvasBounds: CGRect(origin: .zero, size: imageSize)
+          canvasBounds: canvasBounds
         )
-        .frame(width: rect.width, height: rect.height)
+        .frame(width: size.width, height: size.height)
         .clipped()
       }
     }
-    .frame(width: rect.width, height: rect.height)
-    .overlay(
-      selectionBorder(rect: CGRect(origin: .zero, size: rect.size))
-        .allowsHitTesting(false)
-    )
-    .position(x: rect.midX, y: rect.midY)
+    .frame(width: size.width, height: size.height)
   }
 
-  private func spaceMoveHitArea(rect: CGRect, desktopRect: CGRect) -> some View {
+  private func selectionMoveHitArea(rect: CGRect, desktopRect: CGRect) -> some View {
     Color.clear
       .contentShape(Rectangle())
       .frame(width: rect.width, height: rect.height)
@@ -929,15 +981,23 @@ private struct InlineAreaAnnotateRootView: View {
       .allowsHitTesting(false)
 
     ForEach(InlineAreaResizeHandle.allCases) { handle in
-      InlineAreaResizeHandleHitTarget(handle: handle)
-        .position(handle.position(in: rect))
-        .gesture(
-          resizeGesture(
-            for: handle,
-            desktopRect: desktopRect,
-            containerSize: session.desktopFrame.size
-          )
+      InlineAreaResizeHandleHitTarget(handle: handle) { hovering in
+        if hovering {
+          hoveredResizeHandle = handle
+          handle.cursor.set()
+        } else if hoveredResizeHandle == handle {
+          hoveredResizeHandle = nil
+          updateNativeCursorForIndicator(false)
+        }
+      }
+      .position(handle.position(in: rect))
+      .gesture(
+        resizeGesture(
+          for: handle,
+          desktopRect: desktopRect,
+          containerSize: session.desktopFrame.size
         )
+      )
     }
   }
 
@@ -965,6 +1025,7 @@ private struct InlineAreaAnnotateRootView: View {
           movingPreviewRect = nil
           resizePreviewRect = previewRect
         }
+        handle.cursor.set()
       }
       .onEnded { value in
         let start = resizingStartRect ?? desktopRect
@@ -982,6 +1043,7 @@ private struct InlineAreaAnnotateRootView: View {
           resizingStartRect = nil
           activeResizeHandle = nil
         }
+        updateNativeCursorForIndicator(false)
       }
   }
 
@@ -1044,7 +1106,10 @@ private struct InlineAreaAnnotateRootView: View {
   }
 
   private func updateNativeCursorForIndicator(_ isIndicatorVisible: Bool) {
-    if session.phase == .selecting {
+    if !session.isSelectingOneShotOCR,
+       let resizeHandle = activeResizeHandle ?? hoveredResizeHandle {
+      resizeHandle.cursor.set()
+    } else if session.phase == .selecting {
       NSCursor.vectorScreenshotCrosshairLight.set()
     } else if isIndicatorVisible {
       InlineAreaNativeCursor.hide()
@@ -1056,6 +1121,30 @@ private struct InlineAreaAnnotateRootView: View {
 
 private enum InlineAreaCoordinateSpace {
   static let root = "inline-area-annotate-root"
+}
+
+struct InlineAreaAnnotationPreviewLayout: Equatable {
+  let displayScale: CGFloat
+  let canvasBounds: CGRect
+
+  static func resolve(
+    stableSelectionRect: CGRect,
+    displayFrame: CGRect,
+    imageSize: CGSize
+  ) -> InlineAreaAnnotationPreviewLayout {
+    let stable = stableSelectionRect.standardized
+    let display = displayFrame.standardized
+    let displayScale = max(stable.width / max(imageSize.width, 1), 0.0001)
+    return InlineAreaAnnotationPreviewLayout(
+      displayScale: displayScale,
+      canvasBounds: CGRect(
+        x: (display.minX - stable.minX) / displayScale,
+        y: (stable.maxY - display.maxY) / displayScale,
+        width: display.width / displayScale,
+        height: display.height / displayScale
+      )
+    )
+  }
 }
 
 private struct InlineAreaCursorIndicator: View {
@@ -1449,6 +1538,7 @@ private struct InlineAreaResizeHandlesOverlay: View {
 
 private struct InlineAreaResizeHandleHitTarget: View {
   let handle: InlineAreaResizeHandle
+  let onHoverChange: (Bool) -> Void
 
   var body: some View {
     Color.clear
@@ -1456,13 +1546,7 @@ private struct InlineAreaResizeHandleHitTarget: View {
         width: InlineAreaResizeHandleChrome.hitSize, height: InlineAreaResizeHandleChrome.hitSize
       )
       .contentShape(Rectangle())
-      .onHover { hovering in
-        if hovering {
-          handle.cursor.set()
-        } else {
-          NSCursor.arrow.set()
-        }
-      }
+      .onHover(perform: onHoverChange)
   }
 }
 
@@ -1855,7 +1939,7 @@ private struct InlineAreaHudMaterialBackground: NSViewRepresentable {
   }
 }
 
-private enum InlineAreaResizeCursor {
+enum InlineAreaResizeCursor {
   static func diagonal(nwse: Bool) -> NSCursor {
     let size = NSSize(width: 16, height: 16)
     let image = NSImage(size: size)
@@ -1863,11 +1947,10 @@ private enum InlineAreaResizeCursor {
 
     NSColor.clear.setFill()
     NSRect(origin: .zero, size: size).fill()
-    NSColor.labelColor.setStroke()
 
     let path = NSBezierPath()
-    path.lineWidth = 1.8
     path.lineCapStyle = .round
+    path.lineJoinStyle = .round
 
     if nwse {
       path.move(to: NSPoint(x: 3, y: 13))
@@ -1889,8 +1972,17 @@ private enum InlineAreaResizeCursor {
       path.line(to: NSPoint(x: 13, y: 9))
     }
 
+    // Match the high-contrast treatment of system cursors: the white halo
+    // stays visible over dark captures, while the black core remains clear
+    // over light captures.
+    NSColor.white.withAlphaComponent(0.96).setStroke()
+    path.lineWidth = 4
+    path.stroke()
+    NSColor.black.withAlphaComponent(0.92).setStroke()
+    path.lineWidth = 1.8
     path.stroke()
     image.unlockFocus()
+    image.isTemplate = false
     return NSCursor(image: image, hotSpot: NSPoint(x: 8, y: 8))
   }
 }

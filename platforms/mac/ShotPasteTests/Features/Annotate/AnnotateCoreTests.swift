@@ -502,6 +502,27 @@ final class AnnotateCoreTests: XCTestCase {
     XCTAssertEqual(state.annotations.count, 1)
   }
 
+  @MainActor
+  func testInlineCanvasAllowsDrawingBeyondVisibleBoundsWhenOverflowEnabled() throws {
+    let state = makeAnnotateState()
+    state.loadImage(NSImage(size: CGSize(width: 100, height: 100)))
+    state.selectedTool = .rectangle
+
+    let canvas = DrawingCanvasNSView(state: state)
+    canvas.frame = CGRect(x: 0, y: 0, width: 100, height: 100)
+    canvas.displayScale = 1
+    canvas.canvasBounds = CGRect(x: 0, y: 0, width: 100, height: 100)
+    canvas.permitsAnnotationOverflow = true
+
+    canvas.mouseDown(with: makeMouseEvent(type: .leftMouseDown, location: CGPoint(x: 50, y: 50)))
+    canvas.mouseDragged(with: makeMouseEvent(type: .leftMouseDragged, location: CGPoint(x: -40, y: -30)))
+    canvas.mouseUp(with: makeMouseEvent(type: .leftMouseUp, location: CGPoint(x: -40, y: -30)))
+
+    let annotation = try XCTUnwrap(state.annotations.first)
+    XCTAssertEqual(annotation.bounds, CGRect(x: -40, y: -30, width: 90, height: 80))
+    XCTAssertFalse(state.sourceImageBounds.contains(annotation.bounds))
+  }
+
   func testAnnotationFactory_normalizesNearlyHorizontalHighlighterStroke() throws {
     let path = [
       CGPoint(x: 10, y: 100),

@@ -58,7 +58,9 @@ public sealed class LocalizationServiceTests
         Assert.True(LocalizationService.WindowsEnglishFallbackCount > 200,
             $"Fallback entries: {LocalizationService.WindowsEnglishFallbackCount}; resources: {string.Join(", ", typeof(LocalizationService).Assembly.GetManifestResourceNames())}");
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, ".git"))) directory = directory.Parent;
+        while (directory is not null &&
+               !Directory.Exists(Path.Combine(directory.FullName, ".git")) &&
+               !File.Exists(Path.Combine(directory.FullName, ".git"))) directory = directory.Parent;
         var root = directory?.FullName ?? Directory.GetCurrentDirectory();
         var views = Path.Combine(root, "platforms", "windows", "src", "ShotPaste.Windows", "Views");
         Assert.True(Directory.Exists(views), $"Views directory not found from {root}");
@@ -153,7 +155,9 @@ public sealed class LocalizationServiceTests
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, ".git"))) directory = directory.Parent;
+        while (directory is not null &&
+               !Directory.Exists(Path.Combine(directory.FullName, ".git")) &&
+               !File.Exists(Path.Combine(directory.FullName, ".git"))) directory = directory.Parent;
         return directory?.FullName ?? Directory.GetCurrentDirectory();
     }
 

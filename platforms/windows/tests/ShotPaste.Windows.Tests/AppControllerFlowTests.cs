@@ -1,5 +1,6 @@
 using ShotPaste.Windows.Models;
 using ShotPaste.Windows.Services;
+using ShotPaste.Windows.Views;
 using System.Xml.Linq;
 
 namespace ShotPaste.Windows.Tests;
@@ -121,10 +122,38 @@ public sealed class AppControllerFlowTests
         Assert.Contains("OneShotOcr", xaml, StringComparison.Ordinal);
         Assert.Contains("AnnotationOcrIcon", xaml, StringComparison.Ordinal);
         Assert.Contains("private bool CommitOneShotMode()", code, StringComparison.Ordinal);
+        Assert.Contains("UpdateOneShotSwitcherVisibility();", code, StringComparison.Ordinal);
+        Assert.Contains("ShouldShowOneShotSwitcher(_oneShotCommitted, isDrawingSelection)", code,
+            StringComparison.Ordinal);
         Assert.Contains("OneShotMode.Ocr", code, StringComparison.Ordinal);
         Assert.Contains("OneShotOcrPixelRect", code, StringComparison.Ordinal);
         Assert.Contains("button.IsEnabled = !_oneShotCommitted || selected", code, StringComparison.Ordinal);
         Assert.Contains("OneShotPhysicalRectangle()", code, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    public void OneShotSwitcher_OnlyShowsWhileModeCanSwitchAndSelectionIsIdle(
+        bool isCommitted,
+        bool isDrawingSelection,
+        bool expected)
+    {
+        Assert.Equal(expected,
+            InlineAnnotateWindow.ShouldShowOneShotSwitcher(isCommitted, isDrawingSelection));
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void OneShotSelection_DragsOnlyBeforeToolCommit(
+        bool isCommitted,
+        bool expected)
+    {
+        Assert.Equal(expected,
+            InlineAnnotateWindow.ShouldMoveSelectionOnCanvasDrag(isCommitted));
     }
 
     [Fact]
@@ -316,7 +345,9 @@ public sealed class AppControllerFlowTests
     private static string FindRepositoryFile(params string[] relativeParts)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, ".git")))
+        while (directory is not null &&
+               !Directory.Exists(Path.Combine(directory.FullName, ".git")) &&
+               !File.Exists(Path.Combine(directory.FullName, ".git")))
             directory = directory.Parent;
         Assert.NotNull(directory);
         return Path.Combine([directory!.FullName, .. relativeParts]);

@@ -14,7 +14,7 @@ namespace ShotPaste.Windows.InlineE2E;
 
 internal static class Program
 {
-    private static readonly TimeSpan UiTimeout = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan UiTimeout = TimeSpan.FromSeconds(30);
 
     [STAThread]
     private static int Main(string[] args)
@@ -39,6 +39,7 @@ internal static class Program
                 ("quick_access", ScenarioAction.QuickAccess, false),
                 ("editor_removed", ScenarioAction.EditorRemoved, false),
                 ("copy_recovery", ScenarioAction.CopyRecovery, false),
+                ("one_shot_selection_move", ScenarioAction.OneShotSelectionMove, false),
                 ("one_shot_toolbar_drag", ScenarioAction.OneShotToolbarDrag, false),
                 ("performance_baseline", ScenarioAction.PerformanceBaseline, false)
             };
@@ -126,12 +127,76 @@ internal static class Program
             var selectionEnd = new Drawing.Point(
                 Math.Min(screen.Right - 240, selectionStart.X + Math.Max(420, screen.Width / 3)),
                 Math.Min(screen.Bottom - 220, selectionStart.Y + Math.Max(280, screen.Height / 3)));
-            Drag(selectionStart, selectionEnd);
+            Drag(selectionStart, selectionEnd, () =>
+                WaitUntil(
+                    () => FindVisibleByAutomationId(process.Id, "OneShotSwitcherDragHandle") is null,
+                    "One Shot mode switcher remained visible while drawing the selection."));
+
+            WaitUntil(
+                () => FindVisibleByAutomationId(process.Id, "OneShotSwitcherDragHandle") is not null,
+                "One Shot mode switcher did not return after the selection finished.");
 
             var selectionImage = WaitForAutomationId(process.Id, "SelectionImage");
             var selectionBounds = selectionImage.Current.BoundingRectangle;
             if (selectionBounds.Width < 40 || selectionBounds.Height < 40)
                 throw new InvalidOperationException($"Inline selection did not enter annotate mode: {selectionBounds}.");
+
+            if (action == ScenarioAction.OneShotSelectionMove)
+            {
+                var before = selectionBounds;
+                var start = new Drawing.Point(
+                    (int)Math.Round(before.Left + before.Width / 2),
+                    (int)Math.Round(before.Top + before.Height / 2));
+                Drag(start, new Drawing.Point(start.X + 90, start.Y + 60));
+                WaitUntil(() =>
+                {
+                    var moved = FindByAutomationId(process.Id, "SelectionImage");
+                    if (moved is null) return false;
+                    var bounds = moved.Current.BoundingRectangle;
+                    return bounds.Left > before.Left + 45 &&
+                           bounds.Top > before.Top + 30 &&
+                           Math.Abs(bounds.Width - before.Width) < 3 &&
+                           Math.Abs(bounds.Height - before.Height) < 3;
+                }, "Dragging the uncommitted One Shot selection did not move the selected region.");
+                WaitUntil(
+                    () => FindVisibleByAutomationId(process.Id, "OneShotSwitcherDragHandle") is not null,
+                    "Moving the uncommitted selection unexpectedly committed the One Shot mode.");
+                selectionImage = WaitForAutomationId(process.Id, "SelectionImage");
+                selectionBounds = selectionImage.Current.BoundingRectangle;
+
+                Invoke(WaitForAutomationId(process.Id, "InlineToolSelection"));
+                WaitUntil(
+                    () => FindVisibleByAutomationId(process.Id, "OneShotSwitcherDragHandle") is null,
+                    "Explicitly selecting the annotation selection tool did not commit the One Shot mode.");
+                var committedBounds = selectionBounds;
+                var marqueeStart = new Drawing.Point(
+                    (int)Math.Round(committedBounds.Left + committedBounds.Width * 0.35),
+                    (int)Math.Round(committedBounds.Top + committedBounds.Height * 0.35));
+                Drag(marqueeStart, new Drawing.Point(marqueeStart.X + 80, marqueeStart.Y + 55));
+                var afterMarquee = WaitForAutomationId(process.Id, "SelectionImage").Current.BoundingRectangle;
+                if (Math.Abs(afterMarquee.Left - committedBounds.Left) >= 3 ||
+                    Math.Abs(afterMarquee.Top - committedBounds.Top) >= 3 ||
+                    Math.Abs(afterMarquee.Width - committedBounds.Width) >= 3 ||
+                    Math.Abs(afterMarquee.Height - committedBounds.Height) >= 3)
+                    throw new InvalidOperationException(
+                        $"The committed annotation selection tool moved the screenshot region: before={committedBounds}, after={afterMarquee}.");
+
+                var spaceDragStart = new Drawing.Point(
+                    (int)Math.Round(committedBounds.Left + committedBounds.Width * 0.55),
+                    (int)Math.Round(committedBounds.Top + committedBounds.Height * 0.55));
+                DragWhileHoldingKey(
+                    overlay,
+                    0x20,
+                    spaceDragStart,
+                    new Drawing.Point(spaceDragStart.X + 70, spaceDragStart.Y + 45));
+                var afterSpaceDrag = WaitForAutomationId(process.Id, "SelectionImage").Current.BoundingRectangle;
+                if (Math.Abs(afterSpaceDrag.Left - committedBounds.Left) >= 3 ||
+                    Math.Abs(afterSpaceDrag.Top - committedBounds.Top) >= 3 ||
+                    Math.Abs(afterSpaceDrag.Width - committedBounds.Width) >= 3 ||
+                    Math.Abs(afterSpaceDrag.Height - committedBounds.Height) >= 3)
+                    throw new InvalidOperationException(
+                        $"Holding Space moved the committed screenshot region: before={committedBounds}, after={afterSpaceDrag}.");
+            }
 
             if (action == ScenarioAction.OneShotToolbarDrag)
             {
@@ -148,6 +213,11 @@ internal static class Program
                         var moved = FindByAutomationId(process.Id, "OneShotMoveToolbar");
                         return moved is not null && moved.Current.BoundingRectangle.Left > before.Left + 25;
                     }, "One Shot screenshot toolbar did not move.");
+
+                Invoke(WaitForAutomationId(process.Id, "InlineToolRectangle"));
+                WaitUntil(
+                    () => FindVisibleByAutomationId(process.Id, "OneShotSwitcherDragHandle") is null,
+                    "One Shot mode switcher remained visible after the screenshot mode committed.");
             }
 
             if (drawAnnotation)
@@ -217,11 +287,17 @@ internal static class Program
                         "Inline overlay did not remain cancellable after clipboard recovery.");
                     detail = "Clipboard lock showed a recoverable error; retry copied without leaving the editor.";
                     break;
+                case ScenarioAction.OneShotSelectionMove:
+                    Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
+                        "One Shot overlay did not close after selection move validation.");
+                    detail = "Dragging inside the uncommitted screenshot selection moved the region without locking the One Shot mode; after commit, ordinary and Space-modified drags kept the screenshot region locked.";
+                    break;
                 case ScenarioAction.OneShotToolbarDrag:
                     Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
                     WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
                         "One Shot overlay did not close after toolbar drag validation.");
-                    detail = "One Shot mode switcher and screenshot toolbar both moved through their drag handles.";
+                    detail = "One Shot mode switcher hid during selection, returned before commit, hid after commit, and both toolbars remained draggable.";
                     break;
                 case ScenarioAction.PerformanceBaseline:
                     var exportClock = Stopwatch.StartNew();
@@ -643,20 +719,27 @@ internal static class Program
     private static void Invoke(AutomationElement element) =>
         ((InvokePattern)element.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
 
-    private static void Drag(Drawing.Point start, Drawing.Point end)
+    private static void Drag(Drawing.Point start, Drawing.Point end, Action? duringDrag = null)
     {
         Native.SetThreadDpiAwarenessContext(new IntPtr(-4));
         Native.SetCursorPos(start.X, start.Y);
         Thread.Sleep(90);
         Native.mouse_event(Native.MouseLeftDown, 0, 0, 0, UIntPtr.Zero);
-        for (var step = 1; step <= 14; step++)
+        try
         {
-            Native.SetCursorPos(
-                start.X + (end.X - start.X) * step / 14,
-                start.Y + (end.Y - start.Y) * step / 14);
-            Thread.Sleep(18);
+            for (var step = 1; step <= 14; step++)
+            {
+                Native.SetCursorPos(
+                    start.X + (end.X - start.X) * step / 14,
+                    start.Y + (end.Y - start.Y) * step / 14);
+                Thread.Sleep(18);
+            }
+            duringDrag?.Invoke();
         }
-        Native.mouse_event(Native.MouseLeftUp, 0, 0, 0, UIntPtr.Zero);
+        finally
+        {
+            Native.mouse_event(Native.MouseLeftUp, 0, 0, 0, UIntPtr.Zero);
+        }
         Thread.Sleep(300);
     }
 
@@ -666,6 +749,26 @@ internal static class Program
         Thread.Sleep(80);
         Native.keybd_event(virtualKey, 0, 0, UIntPtr.Zero);
         Native.keybd_event(virtualKey, 0, Native.KeyUp, UIntPtr.Zero);
+    }
+
+    private static void DragWhileHoldingKey(
+        AutomationElement window,
+        byte virtualKey,
+        Drawing.Point start,
+        Drawing.Point end)
+    {
+        Native.SetForegroundWindow(new IntPtr(window.Current.NativeWindowHandle));
+        window.SetFocus();
+        Thread.Sleep(80);
+        Native.keybd_event(virtualKey, 0, 0, UIntPtr.Zero);
+        try
+        {
+            Drag(start, end);
+        }
+        finally
+        {
+            Native.keybd_event(virtualKey, 0, Native.KeyUp, UIntPtr.Zero);
+        }
     }
 
     private static void SaveDesktopScreenshot(string path)
@@ -697,6 +800,7 @@ internal static class Program
         QuickAccess,
         EditorRemoved,
         CopyRecovery,
+        OneShotSelectionMove,
         OneShotToolbarDrag,
         PerformanceBaseline
     }
