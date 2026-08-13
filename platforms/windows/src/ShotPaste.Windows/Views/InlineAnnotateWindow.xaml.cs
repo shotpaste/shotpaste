@@ -205,7 +205,6 @@ public partial class InlineAnnotateWindow : Window
         Canvas.SetTop(InstructionBadge, 24);
         UpdateDimLayer(null);
         _oneShotControlsInitializing = true;
-        OneShotSwitcher.Visibility = Visibility.Visible;
         Canvas.SetTop(InstructionBadge, 80);
         OneShotVideo.IsChecked = _oneShotRecordingOptions.OutputMode != RecordingOutputMode.Gif;
         OneShotGif.IsChecked = _oneShotRecordingOptions.OutputMode == RecordingOutputMode.Gif;
@@ -228,6 +227,7 @@ public partial class InlineAnnotateWindow : Window
         _pointerStart = ClampPoint(e.GetPosition(Root));
         _selectionRect = new Rect(_pointerStart, _pointerStart);
         _interaction = OverlayInteraction.Selecting;
+        UpdateOneShotSwitcherVisibility();
         SelectionHost.Visibility = Visibility.Visible;
         SizeBadge.Visibility = Visibility.Visible;
         CaptureMouse();
@@ -291,6 +291,7 @@ public partial class InlineAnnotateWindow : Window
         if (_interaction == OverlayInteraction.None || e.ChangedButton != MouseButton.Left) return;
         var completedInteraction = _interaction;
         _interaction = OverlayInteraction.None;
+        UpdateOneShotSwitcherVisibility();
         ReleaseMouseCapture();
         if (completedInteraction == OverlayInteraction.Selecting)
         {
@@ -464,6 +465,7 @@ public partial class InlineAnnotateWindow : Window
 
     private void UpdateOneShotModeControls()
     {
+        UpdateOneShotSwitcherVisibility();
         foreach (var button in new[]
                  {
                      OneShotScreenshotButton, OneShotScrollingButton,
@@ -539,7 +541,7 @@ public partial class InlineAnnotateWindow : Window
 
     private void OnOneShotDragMouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ChangedButton != MouseButton.Left) return;
+        if (e.ChangedButton != MouseButton.Left || OneShotSwitcher.Visibility != Visibility.Visible) return;
         _draggingOneShotSwitcher = true;
         _oneShotPointerStart = e.GetPosition(OverlayCanvas);
         _oneShotSwitcherDragStart = Canvas.GetLeft(OneShotSwitcher);
@@ -572,6 +574,17 @@ public partial class InlineAnnotateWindow : Window
         if (!_draggingOneShotSwitcher) return;
         _draggingOneShotSwitcher = false;
         ReleaseMouseCapture();
+    }
+
+    internal static bool ShouldShowOneShotSwitcher(bool isCommitted, bool isDrawingSelection) =>
+        !isCommitted && !isDrawingSelection;
+
+    private void UpdateOneShotSwitcherVisibility()
+    {
+        var isDrawingSelection = _interaction == OverlayInteraction.Selecting;
+        OneShotSwitcher.Visibility = ShouldShowOneShotSwitcher(_oneShotCommitted, isDrawingSelection)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private bool CommitOneShotMode()

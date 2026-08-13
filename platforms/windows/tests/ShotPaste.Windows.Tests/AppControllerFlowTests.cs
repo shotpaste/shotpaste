@@ -1,5 +1,6 @@
 using ShotPaste.Windows.Models;
 using ShotPaste.Windows.Services;
+using ShotPaste.Windows.Views;
 using System.Xml.Linq;
 
 namespace ShotPaste.Windows.Tests;
@@ -121,10 +122,27 @@ public sealed class AppControllerFlowTests
         Assert.Contains("OneShotOcr", xaml, StringComparison.Ordinal);
         Assert.Contains("AnnotationOcrIcon", xaml, StringComparison.Ordinal);
         Assert.Contains("private bool CommitOneShotMode()", code, StringComparison.Ordinal);
+        Assert.Contains("UpdateOneShotSwitcherVisibility();", code, StringComparison.Ordinal);
+        Assert.Contains("ShouldShowOneShotSwitcher(_oneShotCommitted, isDrawingSelection)", code,
+            StringComparison.Ordinal);
         Assert.Contains("OneShotMode.Ocr", code, StringComparison.Ordinal);
         Assert.Contains("OneShotOcrPixelRect", code, StringComparison.Ordinal);
         Assert.Contains("button.IsEnabled = !_oneShotCommitted || selected", code, StringComparison.Ordinal);
         Assert.Contains("OneShotPhysicalRectangle()", code, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    public void OneShotSwitcher_OnlyShowsWhileModeCanSwitchAndSelectionIsIdle(
+        bool isCommitted,
+        bool isDrawingSelection,
+        bool expected)
+    {
+        Assert.Equal(expected,
+            InlineAnnotateWindow.ShouldShowOneShotSwitcher(isCommitted, isDrawingSelection));
     }
 
     [Fact]

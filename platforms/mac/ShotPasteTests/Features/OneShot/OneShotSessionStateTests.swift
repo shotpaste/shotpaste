@@ -83,9 +83,31 @@ final class OneShotSessionStateTests: XCTestCase {
     state.beginSelection()
 
     XCTAssertEqual(state.phase, .selecting)
+    XCTAssertFalse(state.canSwitchTab)
     XCTAssertFalse(state.showsTopSwitcher)
     XCTAssertNil(state.selectionRectGlobal)
     XCTAssertTrue(state.selectionDisplayIDs.isEmpty)
+  }
+
+  func testTopSwitcherReturnsAfterSelectionAndHidesWhenModeCommits() {
+    let state = makeArmedState()
+
+    state.beginSelection()
+    XCTAssertFalse(state.showsTopSwitcher)
+
+    XCTAssertTrue(
+      state.finishSelection(
+        CGRect(x: 120, y: 160, width: 640, height: 360),
+        displayIDs: [displayA]
+      )
+    )
+    XCTAssertTrue(state.canSwitchTab)
+    XCTAssertTrue(state.showsTopSwitcher)
+
+    XCTAssertTrue(state.commitModeInteraction(.screenshotTool))
+    XCTAssertFalse(state.canSwitchTab)
+    XCTAssertFalse(state.showsTopSwitcher)
+    XCTAssertEqual(state.requestTab(.scrolling), .rejected)
   }
 
   func testOS015AndOS018TabsPreserveIdenticalGlobalSelectionAcrossDisplays() {
@@ -124,6 +146,8 @@ final class OneShotSessionStateTests: XCTestCase {
     XCTAssertEqual(state.phase, .armed)
     XCTAssertNil(state.selectionRectGlobal)
     XCTAssertTrue(state.selectionDisplayIDs.isEmpty)
+    XCTAssertTrue(state.canSwitchTab)
+    XCTAssertTrue(state.showsTopSwitcher)
   }
 
   func testOS020OS025AndOS026ScreenshotToolCommitsLocksTabsAndSelection() {
@@ -144,6 +168,7 @@ final class OneShotSessionStateTests: XCTestCase {
     XCTAssertEqual(state.selectionRectGlobal, initialRect)
     XCTAssertEqual(state.requestTab(.scrolling), .rejected)
     XCTAssertEqual(state.activeTab, .screenshot)
+    XCTAssertFalse(state.showsTopSwitcher)
   }
 
   func testOneShotOCRCommitsScreenshotAndPreservesTheOuterSelection() {

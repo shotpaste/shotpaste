@@ -128,7 +128,7 @@ final class OneShotSessionState: ObservableObject {
   }
 
   var showsTopSwitcher: Bool {
-    phase == .armed || phase == .selected || phase == .committed
+    canSwitchTab
   }
 
   func beginPreparing(switcherDisplayID: CGDirectDisplayID, switcherX: CGFloat) {
@@ -252,7 +252,7 @@ final class OneShotSessionState: ObservableObject {
   }
 
   func moveSwitcher(to x: CGFloat, within range: ClosedRange<CGFloat>) {
-    guard phase == .armed || phase == .selected || phase == .committed else { return }
+    guard showsTopSwitcher else { return }
     switcherX = min(max(x, range.lowerBound), range.upperBound)
   }
 
