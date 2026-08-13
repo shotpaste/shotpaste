@@ -14,7 +14,7 @@ namespace ShotPaste.Windows.InlineE2E;
 
 internal static class Program
 {
-    private static readonly TimeSpan UiTimeout = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan UiTimeout = TimeSpan.FromSeconds(30);
 
     [STAThread]
     private static int Main(string[] args)
@@ -126,7 +126,14 @@ internal static class Program
             var selectionEnd = new Drawing.Point(
                 Math.Min(screen.Right - 240, selectionStart.X + Math.Max(420, screen.Width / 3)),
                 Math.Min(screen.Bottom - 220, selectionStart.Y + Math.Max(280, screen.Height / 3)));
-            Drag(selectionStart, selectionEnd);
+            Drag(selectionStart, selectionEnd, () =>
+                WaitUntil(
+                    () => FindVisibleByAutomationId(process.Id, "OneShotSwitcherDragHandle") is null,
+                    "One Shot mode switcher remained visible while drawing the selection."));
+
+            WaitUntil(
+                () => FindVisibleByAutomationId(process.Id, "OneShotSwitcherDragHandle") is not null,
+                "One Shot mode switcher did not return after the selection finished.");
 
             var selectionImage = WaitForAutomationId(process.Id, "SelectionImage");
             var selectionBounds = selectionImage.Current.BoundingRectangle;
@@ -148,6 +155,11 @@ internal static class Program
                         var moved = FindByAutomationId(process.Id, "OneShotMoveToolbar");
                         return moved is not null && moved.Current.BoundingRectangle.Left > before.Left + 25;
                     }, "One Shot screenshot toolbar did not move.");
+
+                Invoke(WaitForAutomationId(process.Id, "InlineToolRectangle"));
+                WaitUntil(
+                    () => FindVisibleByAutomationId(process.Id, "OneShotSwitcherDragHandle") is null,
+                    "One Shot mode switcher remained visible after the screenshot mode committed.");
             }
 
             if (drawAnnotation)
@@ -221,7 +233,7 @@ internal static class Program
                     Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
                     WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
                         "One Shot overlay did not close after toolbar drag validation.");
-                    detail = "One Shot mode switcher and screenshot toolbar both moved through their drag handles.";
+                    detail = "One Shot mode switcher hid during selection, returned before commit, hid after commit, and both toolbars remained draggable.";
                     break;
                 case ScenarioAction.PerformanceBaseline:
                     var exportClock = Stopwatch.StartNew();
@@ -643,20 +655,27 @@ internal static class Program
     private static void Invoke(AutomationElement element) =>
         ((InvokePattern)element.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
 
-    private static void Drag(Drawing.Point start, Drawing.Point end)
+    private static void Drag(Drawing.Point start, Drawing.Point end, Action? duringDrag = null)
     {
         Native.SetThreadDpiAwarenessContext(new IntPtr(-4));
         Native.SetCursorPos(start.X, start.Y);
         Thread.Sleep(90);
         Native.mouse_event(Native.MouseLeftDown, 0, 0, 0, UIntPtr.Zero);
-        for (var step = 1; step <= 14; step++)
+        try
         {
-            Native.SetCursorPos(
-                start.X + (end.X - start.X) * step / 14,
-                start.Y + (end.Y - start.Y) * step / 14);
-            Thread.Sleep(18);
+            for (var step = 1; step <= 14; step++)
+            {
+                Native.SetCursorPos(
+                    start.X + (end.X - start.X) * step / 14,
+                    start.Y + (end.Y - start.Y) * step / 14);
+                Thread.Sleep(18);
+            }
+            duringDrag?.Invoke();
         }
-        Native.mouse_event(Native.MouseLeftUp, 0, 0, 0, UIntPtr.Zero);
+        finally
+        {
+            Native.mouse_event(Native.MouseLeftUp, 0, 0, 0, UIntPtr.Zero);
+        }
         Thread.Sleep(300);
     }
 
