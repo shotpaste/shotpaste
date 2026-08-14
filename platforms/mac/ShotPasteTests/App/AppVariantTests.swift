@@ -28,6 +28,7 @@ final class AppVariantTests: XCTestCase {
     XCTAssertEqual(release.problemReportFilePrefix, "shotpaste-problem-report-")
     XCTAssertEqual(release.defaultMCPPort, 48_123)
     XCTAssertEqual(release.mcpClientName, "shotpaste")
+    XCTAssertEqual(release.menuBarIconAssetName, "MenubarIcon")
   }
 
   func testDebugIdentityAndStorageNamesAreDistinctFromRelease() {
@@ -46,6 +47,8 @@ final class AppVariantTests: XCTestCase {
     XCTAssertNotEqual(debug.problemReportFilePrefix, release.problemReportFilePrefix)
     XCTAssertNotEqual(debug.defaultMCPPort, release.defaultMCPPort)
     XCTAssertNotEqual(debug.mcpClientName, release.mcpClientName)
+    XCTAssertEqual(debug.menuBarIconAssetName, "MenubarIconDebug")
+    XCTAssertNotEqual(debug.menuBarIconAssetName, release.menuBarIconAssetName)
   }
 
   func testVariantDataLocationsUseIndependentRoots() {
@@ -94,72 +97,5 @@ final class AppVariantTests: XCTestCase {
 
     XCTAssertNotNil(servers[AppVariant.debug.mcpClientName])
     XCTAssertNil(servers[AppVariant.release.mcpClientName])
-  }
-
-  func testDebugMigrationMovesLegacyDefaultsToIsolatedValuesOnce() {
-    let defaults = UserDefaultsFactory.make()
-    let legacyExport = URL(fileURLWithPath: "/Users/example/Desktop/ShotPaste", isDirectory: true)
-    let isolatedExport = URL(fileURLWithPath: "/Users/example/Desktop/ShotPaste Debug", isDirectory: true)
-    defaults.set(legacyExport.path, forKey: PreferencesKeys.exportLocation)
-    defaults.set(Data("legacy-bookmark".utf8), forKey: PreferencesKeys.exportLocationBookmark)
-    defaults.set(AppVariant.release.defaultMCPPort, forKey: PreferencesKeys.mcpServerPort)
-    let legacyOneShot = ShortcutConfig(
-      keyCode: ShortcutConfig.defaultOneShot.keyCode,
-      modifiers: ShortcutConfig.defaultModifiers(for: .release)
-    )
-    defaults.set(try? JSONEncoder().encode(legacyOneShot), forKey: PreferencesKeys.oneShotShortcut)
-
-    DebugDataIsolationMigration.applyIfNeeded(
-      variant: .debug,
-      defaults: defaults,
-      legacyDefaultExportDirectory: legacyExport,
-      isolatedDefaultExportDirectory: isolatedExport,
-      homeDirectory: URL(fileURLWithPath: "/Users/example", isDirectory: true)
-    )
-
-    XCTAssertEqual(defaults.string(forKey: PreferencesKeys.exportLocation), isolatedExport.path)
-    XCTAssertNil(defaults.data(forKey: PreferencesKeys.exportLocationBookmark))
-    XCTAssertEqual(defaults.integer(forKey: PreferencesKeys.mcpServerPort), AppVariant.debug.defaultMCPPort)
-    let migratedShortcut = defaults.data(forKey: PreferencesKeys.oneShotShortcut)
-      .flatMap { try? JSONDecoder().decode(ShortcutConfig.self, from: $0) }
-    XCTAssertEqual(
-      migratedShortcut?.modifiers,
-      ShortcutConfig.defaultModifiers(for: .debug)
-    )
-    XCTAssertEqual(
-      defaults.integer(forKey: PreferencesKeys.debugDataIsolationMigrationVersion),
-      DebugDataIsolationMigration.currentVersion
-    )
-
-    defaults.set("/Users/example/Custom", forKey: PreferencesKeys.exportLocation)
-    defaults.set(49_999, forKey: PreferencesKeys.mcpServerPort)
-    DebugDataIsolationMigration.applyIfNeeded(
-      variant: .debug,
-      defaults: defaults,
-      legacyDefaultExportDirectory: legacyExport,
-      isolatedDefaultExportDirectory: isolatedExport,
-      homeDirectory: URL(fileURLWithPath: "/Users/example", isDirectory: true)
-    )
-
-    XCTAssertEqual(defaults.string(forKey: PreferencesKeys.exportLocation), "/Users/example/Custom")
-    XCTAssertEqual(defaults.integer(forKey: PreferencesKeys.mcpServerPort), 49_999)
-  }
-
-  func testDebugMigrationNeverMutatesReleaseDefaults() {
-    let defaults = UserDefaultsFactory.make()
-    defaults.set("/Users/example/Desktop/ShotPaste", forKey: PreferencesKeys.exportLocation)
-    defaults.set(AppVariant.release.defaultMCPPort, forKey: PreferencesKeys.mcpServerPort)
-
-    DebugDataIsolationMigration.applyIfNeeded(
-      variant: .release,
-      defaults: defaults,
-      legacyDefaultExportDirectory: URL(fileURLWithPath: "/Users/example/Desktop/ShotPaste"),
-      isolatedDefaultExportDirectory: URL(fileURLWithPath: "/Users/example/Desktop/ShotPaste Debug"),
-      homeDirectory: URL(fileURLWithPath: "/Users/example", isDirectory: true)
-    )
-
-    XCTAssertEqual(defaults.string(forKey: PreferencesKeys.exportLocation), "/Users/example/Desktop/ShotPaste")
-    XCTAssertEqual(defaults.integer(forKey: PreferencesKeys.mcpServerPort), AppVariant.release.defaultMCPPort)
-    XCTAssertNil(defaults.object(forKey: PreferencesKeys.debugDataIsolationMigrationVersion))
   }
 }

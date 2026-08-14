@@ -81,18 +81,16 @@ values:
 | URL Scheme | `shotpaste://` | `shotpaste-debug://` |
 | Default MCP port | `48123` | `48124` |
 | Copied MCP client key | `shotpaste` | `shotpaste-debug` |
+| Menu bar icon | `MenubarIcon` double-frame mark | `MenubarIconDebug` double-frame mark with centered `D` |
 
 Their UserDefaults, privacy permissions, login items, history database,
 thumbnails, clipboard archive, temporary captures, recording metadata, logs,
 problem-report archives, and default output folders therefore do not overlap.
-Debug also has a badged icon and adds Option to its first-launch global
-shortcuts so those bindings do not contend with Release defaults.
-
-On the first build containing this split, Debug updates only legacy default
-values that would otherwise still point at Release's default export folder or
-MCP port. It does not copy or move Release history or files. A directory that a
-developer explicitly selects in both apps is intentionally shared by that
-choice.
+The application icons and menu bar icons share the same brand geometry; Debug
+adds a visible `D`. Debug also adds Option to its default global shortcuts so
+those bindings do not contend with Release defaults. No automatic legacy-data
+migration runs. A directory explicitly selected in both apps is intentionally
+shared by that choice.
 
 ### Release signing identity
 
