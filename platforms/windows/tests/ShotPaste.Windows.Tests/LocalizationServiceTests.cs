@@ -137,16 +137,16 @@ public sealed class LocalizationServiceTests
 
                 Assert.Equal("Clipboard Text", text.Text);
                 Assert.Equal("Copy", button.Content);
-                Assert.Equal("ShotPaste Debug · Welcome", window.Title);
+                Assert.Equal($"{AppBuildIdentity.Current.DisplayName} · Welcome", window.Title);
                 text.Text = "已复制到剪贴板";
                 Assert.Equal("Copied to clipboard", text.Text);
                 window.Title = "ShotPaste · 设置";
-                Assert.Equal("ShotPaste Debug · Preferences", window.Title);
+                Assert.Equal($"{AppBuildIdentity.Current.DisplayName} · Preferences", window.Title);
 
                 LocalizationService.Apply(new AppSettings { Language = "zh-CN" });
                 LocalizationService.LocalizeWindow(window);
                 Assert.Equal("已复制到剪贴板", text.Text);
-                Assert.Equal("ShotPaste Debug · 设置", window.Title);
+                Assert.Equal($"{AppBuildIdentity.Current.DisplayName} · 设置", window.Title);
             }
             catch (Exception exception) { failure = exception; }
             finally { LocalizationService.Apply(new AppSettings { Language = "zh-CN" }); }

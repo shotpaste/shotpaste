@@ -2378,7 +2378,7 @@ public partial class InlineAnnotateWindow : Window
         try
         {
             using var bitmap = RenderSelection();
-            System.Windows.Clipboard.SetImage(BitmapSourceFactory.FromBitmap(bitmap));
+            ClipboardWriter.SetImage(BitmapSourceFactory.FromBitmap(bitmap));
             ContextPillText.Text = "已复制到剪贴板";
             ShowStatus("已复制到剪贴板");
         }

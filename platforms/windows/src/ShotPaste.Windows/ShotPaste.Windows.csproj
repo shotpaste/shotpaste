@@ -1,17 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="Config\AppVariant.$(Configuration).props"
+          Condition="Exists('Config\AppVariant.$(Configuration).props')" />
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <AssemblyName>ShotPaste</AssemblyName>
-    <AssemblyTitle>ShotPaste</AssemblyTitle>
+    <ApplicationManifest>$(ShotPasteApplicationManifest)</ApplicationManifest>
+    <ApplicationIcon Condition="'$(ShotPasteApplicationIcon)' != ''">$(ShotPasteApplicationIcon)</ApplicationIcon>
+    <AssemblyName>$(ShotPasteAssemblyName)</AssemblyName>
+    <AssemblyTitle>$(ShotPasteDisplayName)</AssemblyTitle>
     <RootNamespace>ShotPaste.Windows</RootNamespace>
     <Version>1.12.1</Version>
     <AssemblyVersion>1.12.1.0</AssemblyVersion>
     <FileVersion>1.12.1.0</FileVersion>
-    <Product>ShotPaste</Product>
+    <Product>$(ShotPasteDisplayName)</Product>
     <Description>Lightweight screenshot, annotation, OCR, scrolling capture, and screen recording tool.</Description>
     <Authors>ShotPaste</Authors>
     <PublishSingleFile>true</PublishSingleFile>
@@ -23,13 +27,6 @@
     <DebugSymbols>false</DebugSymbols>
     <DebugType>none</DebugType>
     <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <AssemblyName>ShotPasteDebug</AssemblyName>
-    <AssemblyTitle>ShotPaste Debug</AssemblyTitle>
-    <Product>ShotPaste Debug</Product>
-    <ApplicationIcon>Assets\shotpaste-debug-icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -46,12 +43,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <AssemblyMetadata Include="ShotPasteVariant" Value="$(ShotPasteVariant)" />
+    <AssemblyMetadata Include="ShotPasteDisplayName" Value="$(ShotPasteDisplayName)" />
+    <AssemblyMetadata Include="ShotPasteExecutableName" Value="$(ShotPasteExecutableName)" />
+    <AssemblyMetadata Include="ShotPasteUrlScheme" Value="$(ShotPasteUrlScheme)" />
+    <AssemblyMetadata Include="ShotPasteNativeManifestIdentity" Value="$(ShotPasteNativeManifestIdentity)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Resource Include="..\..\..\..\assets\shotpaste-icon.png"
               Link="Assets\shotpaste-icon.png"
-              Condition="'$(Configuration)' != 'Debug'" />
+              Condition="'$(ShotPasteVariant)' == 'release'" />
     <Resource Include="Assets\shotpaste-debug-icon.png"
               Link="Assets\shotpaste-icon.png"
-              Condition="'$(Configuration)' == 'Debug'" />
+              Condition="'$(ShotPasteVariant)' == 'debug'" />
     <EmbeddedResource Include="..\..\..\..\resources\localization\**\*.xcstrings"
                       Link="Localization\%(RecursiveDir)%(Filename)%(Extension)" />
     <EmbeddedResource Include="Resources\WindowsLocalization.en.json">
@@ -59,6 +64,17 @@
       <LogicalName>ShotPaste.Windows.WindowsLocalization.en.json</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
+
+  <Target Name="ValidateShotPasteBuildIdentity" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(ShotPasteVariant)' == ''"
+           Text="Configuration '$(Configuration)' has no canonical ShotPaste app variant." />
+    <Error Condition="'$(ShotPasteAssemblyName)' == '' Or '$(ShotPasteDisplayName)' == '' Or '$(ShotPasteExecutableName)' == '' Or '$(ShotPasteUrlScheme)' == '' Or '$(ShotPasteNativeManifestIdentity)' == '' Or '$(ShotPasteApplicationManifest)' == ''"
+           Text="The canonical ShotPaste app variant is incomplete for configuration '$(Configuration)'." />
+    <Error Condition="'$(ShotPasteExecutableName)' != '$(ShotPasteAssemblyName).exe'"
+           Text="ShotPaste executable identity '$(ShotPasteExecutableName)' does not match assembly '$(ShotPasteAssemblyName)'." />
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)\$(ShotPasteApplicationManifest)')"
+           Text="ShotPaste manifest '$(ShotPasteApplicationManifest)' does not exist." />
+  </Target>
 
   <Target Name="ExcludeReleaseSymbolsFromPublish"
           AfterTargets="ComputeFilesToPublish"

@@ -1,0 +1,13 @@
+<Project>
+  <!-- Canonical build identity for the independently runnable Debug app. -->
+  <PropertyGroup>
+    <ShotPasteVariant>debug</ShotPasteVariant>
+    <ShotPasteAssemblyName>ShotPasteDebug</ShotPasteAssemblyName>
+    <ShotPasteDisplayName>ShotPaste Debug</ShotPasteDisplayName>
+    <ShotPasteExecutableName>ShotPasteDebug.exe</ShotPasteExecutableName>
+    <ShotPasteUrlScheme>shotpaste-debug</ShotPasteUrlScheme>
+    <ShotPasteNativeManifestIdentity>com.ahtcfg24.shotpaste.windows.debug</ShotPasteNativeManifestIdentity>
+    <ShotPasteApplicationManifest>app.Debug.manifest</ShotPasteApplicationManifest>
+    <ShotPasteApplicationIcon>Assets\shotpaste-debug-icon.ico</ShotPasteApplicationIcon>
+  </PropertyGroup>
+</Project>

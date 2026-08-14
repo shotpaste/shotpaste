@@ -11,8 +11,10 @@ public sealed class AppBuildIdentityTests
         var identity = AppBuildIdentity.ForBuild(debug: false);
 
         Assert.False(identity.IsDebug);
+        Assert.Equal("release", identity.VariantName);
         Assert.Equal("ShotPaste", identity.DisplayName);
         Assert.Equal("ShotPaste.exe", identity.ExecutableName);
+        Assert.Equal("com.ahtcfg24.shotpaste.windows", identity.NativeManifestIdentity);
         Assert.Equal("ShotPaste", identity.DataDirectoryName);
         Assert.Equal("ShotPaste", identity.DefaultSaveDirectoryName);
         Assert.Equal("ShotPaste.Windows.SingleInstance", identity.SingleInstanceMutexName);
@@ -20,6 +22,7 @@ public sealed class AppBuildIdentityTests
         Assert.Equal("ShotPaste", identity.StartupRegistryValueName);
         Assert.Equal("shotpaste", identity.UrlScheme);
         Assert.Equal("Ctrl+Shift", identity.DefaultHotkeyModifiers);
+        Assert.True(identity.PerformsAutomaticUpdateChecks);
     }
 
     [Fact]
@@ -29,8 +32,10 @@ public sealed class AppBuildIdentityTests
         var release = AppBuildIdentity.ForBuild(debug: false);
 
         Assert.True(debug.IsDebug);
+        Assert.Equal("debug", debug.VariantName);
         Assert.Equal("ShotPaste Debug", debug.DisplayName);
         Assert.Equal("ShotPasteDebug.exe", debug.ExecutableName);
+        Assert.Equal("com.ahtcfg24.shotpaste.windows.debug", debug.NativeManifestIdentity);
         Assert.Equal("ShotPaste.Debug", debug.DataDirectoryName);
         Assert.Equal("shotpaste-debug", debug.UrlScheme);
         Assert.NotEqual(release.ExecutableName, debug.ExecutableName);
@@ -41,7 +46,10 @@ public sealed class AppBuildIdentityTests
         Assert.NotEqual(release.StartupRegistryValueName, debug.StartupRegistryValueName);
         Assert.NotEqual(release.UrlScheme, debug.UrlScheme);
         Assert.NotEqual(release.DefaultHotkeyModifiers, debug.DefaultHotkeyModifiers);
+        Assert.NotEqual(release.NativeManifestIdentity, debug.NativeManifestIdentity);
+        Assert.NotEqual(release.InternalClipboardWriteMarkerFormat, debug.InternalClipboardWriteMarkerFormat);
         Assert.NotEqual(AppPaths.DefaultRootFor(release), AppPaths.DefaultRootFor(debug));
+        Assert.False(debug.PerformsAutomaticUpdateChecks);
     }
 
     [Theory]
@@ -88,22 +96,52 @@ public sealed class AppBuildIdentityTests
     }
 
     [Fact]
-    public void ProjectUsesDebugOnlyIconAssetsWithoutChangingReleaseIconInput()
+    public void CurrentBuild_MetadataCompilerAndRuntimeIdentityAgree()
+    {
+        var identity = AppBuildIdentity.Current;
+
+        Assert.Equal(identity.VariantName, AppBuildIdentity.ConfiguredVariantName);
+#if DEBUG
+        Assert.True(identity.IsDebug);
+#else
+        Assert.False(identity.IsDebug);
+#endif
+        Assert.Empty(AppBuildIdentity.ValidateCurrentBuild(identity.ExecutableName));
+    }
+
+    [Fact]
+    public void ProjectImportsCanonicalVariantIdentityAndDistinctNativeManifests()
     {
         var project = File.ReadAllText(FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "ShotPaste.Windows.csproj"));
+        var debugConfiguration = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Config", "AppVariant.Debug.props"));
+        var releaseConfiguration = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Config", "AppVariant.Release.props"));
+        var debugManifest = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "app.Debug.manifest"));
+        var releaseManifest = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "app.manifest"));
         var debugPng = FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Assets", "shotpaste-debug-icon.png");
         var debugIco = FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Assets", "shotpaste-debug-icon.ico");
 
-        Assert.Contains("<ApplicationIcon>Assets\\shotpaste-debug-icon.ico</ApplicationIcon>", project,
+        Assert.Contains("Config\\AppVariant.$(Configuration).props", project, StringComparison.Ordinal);
+        Assert.Contains("<AssemblyName>$(ShotPasteAssemblyName)</AssemblyName>", project, StringComparison.Ordinal);
+        Assert.Contains("<ApplicationManifest>$(ShotPasteApplicationManifest)</ApplicationManifest>", project,
             StringComparison.Ordinal);
-        Assert.Contains("<AssemblyName>ShotPaste</AssemblyName>", project, StringComparison.Ordinal);
-        Assert.Contains("<AssemblyName>ShotPasteDebug</AssemblyName>", project, StringComparison.Ordinal);
-        Assert.Contains("<AssemblyTitle>ShotPaste</AssemblyTitle>", project, StringComparison.Ordinal);
-        Assert.Contains("<AssemblyTitle>ShotPaste Debug</AssemblyTitle>", project, StringComparison.Ordinal);
-        Assert.Contains("Condition=\"'$(Configuration)' == 'Debug'\"", project, StringComparison.Ordinal);
+        Assert.Contains("<ShotPasteVariant>debug</ShotPasteVariant>", debugConfiguration, StringComparison.Ordinal);
+        Assert.Contains("<ShotPasteAssemblyName>ShotPasteDebug</ShotPasteAssemblyName>", debugConfiguration,
+            StringComparison.Ordinal);
+        Assert.Contains("<ShotPasteApplicationIcon>Assets\\shotpaste-debug-icon.ico</ShotPasteApplicationIcon>",
+            debugConfiguration, StringComparison.Ordinal);
+        Assert.Contains("<ShotPasteVariant>release</ShotPasteVariant>", releaseConfiguration, StringComparison.Ordinal);
+        Assert.Contains("<ShotPasteAssemblyName>ShotPaste</ShotPasteAssemblyName>", releaseConfiguration,
+            StringComparison.Ordinal);
+        Assert.Contains("name=\"com.ahtcfg24.shotpaste.windows.debug\"", debugManifest, StringComparison.Ordinal);
+        Assert.Contains("name=\"com.ahtcfg24.shotpaste.windows\"", releaseManifest, StringComparison.Ordinal);
+        Assert.DoesNotContain("name=\"com.ahtcfg24.shotpaste.windows\" />", debugManifest, StringComparison.Ordinal);
         Assert.Contains("..\\..\\..\\..\\assets\\shotpaste-icon.png", project, StringComparison.Ordinal);
         Assert.True(File.Exists(debugPng));
         Assert.True(File.Exists(debugIco));
