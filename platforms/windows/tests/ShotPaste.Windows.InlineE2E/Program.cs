@@ -43,6 +43,8 @@ internal static class Program
                 ("selection_size_badge_edge", ScenarioAction.SelectionSizeBadgeEdge, false),
                 ("toolbar_default_below", ScenarioAction.ToolbarDefaultBelow, false),
                 ("one_shot_selection_move", ScenarioAction.OneShotSelectionMove, false),
+                ("one_shot_scrolling_selection_move", ScenarioAction.OneShotScrollingSelectionMove, false),
+                ("one_shot_recording_selection_move", ScenarioAction.OneShotRecordingSelectionMove, false),
                 ("one_shot_toolbar_drag", ScenarioAction.OneShotToolbarDrag, false),
                 ("performance_baseline", ScenarioAction.PerformanceBaseline, false)
             };
@@ -172,12 +174,25 @@ internal static class Program
             if (selectionBounds.Width < 40 || selectionBounds.Height < 40)
                 throw new InvalidOperationException($"Inline selection did not enter annotate mode: {selectionBounds}.");
 
-            if (action == ScenarioAction.OneShotSelectionMove)
+            if (action == ScenarioAction.OneShotScrollingSelectionMove)
+            {
+                Invoke(WaitForAutomationId(process.Id, "OneShotScrolling"));
+                WaitForAutomationId(process.Id, "OneShotStartScrolling");
+            }
+            else if (action == ScenarioAction.OneShotRecordingSelectionMove)
+            {
+                Invoke(WaitForAutomationId(process.Id, "OneShotRecording"));
+                WaitForAutomationId(process.Id, "OneShotStartRecording");
+            }
+
+            if (action is ScenarioAction.OneShotSelectionMove or
+                ScenarioAction.OneShotScrollingSelectionMove or
+                ScenarioAction.OneShotRecordingSelectionMove)
             {
                 var before = selectionBounds;
                 var start = new Drawing.Point(
-                    (int)Math.Round(before.Left + before.Width / 2),
-                    (int)Math.Round(before.Top + before.Height / 2));
+                    (int)Math.Round(before.Left + Math.Max(32, before.Width * 0.12)),
+                    (int)Math.Round(before.Top + Math.Max(32, before.Height * 0.12)));
                 Drag(start, new Drawing.Point(start.X + 90, start.Y + 60));
                 WaitUntil(() =>
                 {
@@ -195,38 +210,41 @@ internal static class Program
                 selectionImage = WaitForAutomationId(process.Id, "SelectionImage");
                 selectionBounds = selectionImage.Current.BoundingRectangle;
 
-                Invoke(WaitForAutomationId(process.Id, "InlineToolSelection"));
-                WaitUntil(
-                    () => FindVisibleByAutomationId(process.Id, "OneShotSwitcherDragHandle") is null,
-                    "Explicitly selecting the annotation selection tool did not commit the One Shot mode.");
-                var committedBounds = selectionBounds;
-                var marqueeStart = new Drawing.Point(
-                    (int)Math.Round(committedBounds.Left + committedBounds.Width * 0.35),
-                    (int)Math.Round(committedBounds.Top + committedBounds.Height * 0.35));
-                Drag(marqueeStart, new Drawing.Point(marqueeStart.X + 80, marqueeStart.Y + 55));
-                var afterMarquee = WaitForAutomationId(process.Id, "SelectionImage").Current.BoundingRectangle;
-                if (Math.Abs(afterMarquee.Left - committedBounds.Left) >= 3 ||
-                    Math.Abs(afterMarquee.Top - committedBounds.Top) >= 3 ||
-                    Math.Abs(afterMarquee.Width - committedBounds.Width) >= 3 ||
-                    Math.Abs(afterMarquee.Height - committedBounds.Height) >= 3)
-                    throw new InvalidOperationException(
-                        $"The committed annotation selection tool moved the screenshot region: before={committedBounds}, after={afterMarquee}.");
+                if (action == ScenarioAction.OneShotSelectionMove)
+                {
+                    Invoke(WaitForAutomationId(process.Id, "InlineToolSelection"));
+                    WaitUntil(
+                        () => FindVisibleByAutomationId(process.Id, "OneShotSwitcherDragHandle") is null,
+                        "Explicitly selecting the annotation selection tool did not commit the One Shot mode.");
+                    var committedBounds = selectionBounds;
+                    var marqueeStart = new Drawing.Point(
+                        (int)Math.Round(committedBounds.Left + committedBounds.Width * 0.35),
+                        (int)Math.Round(committedBounds.Top + committedBounds.Height * 0.35));
+                    Drag(marqueeStart, new Drawing.Point(marqueeStart.X + 80, marqueeStart.Y + 55));
+                    var afterMarquee = WaitForAutomationId(process.Id, "SelectionImage").Current.BoundingRectangle;
+                    if (Math.Abs(afterMarquee.Left - committedBounds.Left) >= 3 ||
+                        Math.Abs(afterMarquee.Top - committedBounds.Top) >= 3 ||
+                        Math.Abs(afterMarquee.Width - committedBounds.Width) >= 3 ||
+                        Math.Abs(afterMarquee.Height - committedBounds.Height) >= 3)
+                        throw new InvalidOperationException(
+                            $"The committed annotation selection tool moved the screenshot region: before={committedBounds}, after={afterMarquee}.");
 
-                var spaceDragStart = new Drawing.Point(
-                    (int)Math.Round(committedBounds.Left + committedBounds.Width * 0.55),
-                    (int)Math.Round(committedBounds.Top + committedBounds.Height * 0.55));
-                DragWhileHoldingKey(
-                    overlay,
-                    0x20,
-                    spaceDragStart,
-                    new Drawing.Point(spaceDragStart.X + 70, spaceDragStart.Y + 45));
-                var afterSpaceDrag = WaitForAutomationId(process.Id, "SelectionImage").Current.BoundingRectangle;
-                if (Math.Abs(afterSpaceDrag.Left - committedBounds.Left) >= 3 ||
-                    Math.Abs(afterSpaceDrag.Top - committedBounds.Top) >= 3 ||
-                    Math.Abs(afterSpaceDrag.Width - committedBounds.Width) >= 3 ||
-                    Math.Abs(afterSpaceDrag.Height - committedBounds.Height) >= 3)
-                    throw new InvalidOperationException(
-                        $"Holding Space moved the committed screenshot region: before={committedBounds}, after={afterSpaceDrag}.");
+                    var spaceDragStart = new Drawing.Point(
+                        (int)Math.Round(committedBounds.Left + committedBounds.Width * 0.55),
+                        (int)Math.Round(committedBounds.Top + committedBounds.Height * 0.55));
+                    DragWhileHoldingKey(
+                        overlay,
+                        0x20,
+                        spaceDragStart,
+                        new Drawing.Point(spaceDragStart.X + 70, spaceDragStart.Y + 45));
+                    var afterSpaceDrag = WaitForAutomationId(process.Id, "SelectionImage").Current.BoundingRectangle;
+                    if (Math.Abs(afterSpaceDrag.Left - committedBounds.Left) >= 3 ||
+                        Math.Abs(afterSpaceDrag.Top - committedBounds.Top) >= 3 ||
+                        Math.Abs(afterSpaceDrag.Width - committedBounds.Width) >= 3 ||
+                        Math.Abs(afterSpaceDrag.Height - committedBounds.Height) >= 3)
+                        throw new InvalidOperationException(
+                            $"Holding Space moved the committed screenshot region: before={committedBounds}, after={afterSpaceDrag}.");
+                }
             }
 
             if (action == ScenarioAction.OneShotToolbarDrag)
@@ -347,6 +365,18 @@ internal static class Program
                     WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
                         "One Shot overlay did not close after selection move validation.");
                     detail = "Dragging inside the uncommitted screenshot selection moved the region without locking the One Shot mode; after commit, ordinary and Space-modified drags kept the screenshot region locked.";
+                    break;
+                case ScenarioAction.OneShotScrollingSelectionMove:
+                    SendKey(overlay, 0x1B);
+                    WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
+                        "One Shot overlay did not close after scrolling selection move validation.");
+                    detail = "Dragging inside the uncommitted scrolling-capture selection moved the region without locking the One Shot mode.";
+                    break;
+                case ScenarioAction.OneShotRecordingSelectionMove:
+                    SendKey(overlay, 0x1B);
+                    WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
+                        "One Shot overlay did not close after recording selection move validation.");
+                    detail = "Dragging inside the uncommitted recording selection moved the region without locking the One Shot mode.";
                     break;
                 case ScenarioAction.OneShotToolbarDrag:
                     Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
@@ -859,6 +889,8 @@ internal static class Program
         SelectionSizeBadgeEdge,
         ToolbarDefaultBelow,
         OneShotSelectionMove,
+        OneShotScrollingSelectionMove,
+        OneShotRecordingSelectionMove,
         OneShotToolbarDrag,
         PerformanceBaseline
     }

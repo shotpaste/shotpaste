@@ -39,10 +39,7 @@ final class SandboxFileAccessManager {
   }
 
   var defaultExportDirectory: URL {
-    if let desktop = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first {
-      return desktop.appendingPathComponent("ShotPaste", isDirectory: true)
-    }
-    return FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("ShotPaste", isDirectory: true)
+    AppDataLocations.defaultExportDirectory(for: .current)
   }
 
   func ensureExportLocationInitialized() {

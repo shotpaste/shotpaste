@@ -104,7 +104,6 @@ enum RecordingMetadataStore {
     case delete
   }
 
-  private static let appSupportFolderName = "ShotPaste"
   private static let capturesFolderName = "Captures"
   private static let storeFolderName = "RecordingMetadata"
   private static let entriesFolderName = "Entries"
@@ -207,13 +206,11 @@ enum RecordingMetadataStore {
   }
 
   private static func requiredStoreLocation() throws -> StoreLocation {
-    guard let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-    else {
+    guard let appSupportRoot = AppDataLocations.applicationSupportRoot else {
       throw CocoaError(.fileNoSuchFile)
     }
 
-    let rootURL = appSupportURL
-      .appendingPathComponent(appSupportFolderName, isDirectory: true)
+    let rootURL = appSupportRoot
       .appendingPathComponent(capturesFolderName, isDirectory: true)
       .appendingPathComponent(storeFolderName, isDirectory: true)
     let entriesURL = rootURL.appendingPathComponent(entriesFolderName, isDirectory: true)

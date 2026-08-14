@@ -23,7 +23,7 @@
   <Grid Background="{DynamicResource TitleBarBrush}">
     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
     <StackPanel Orientation="Horizontal" Margin="14,0,8,0" VerticalAlignment="Center" IsHitTestVisible="False">
-      <Image Source="pack://application:,,,/ShotPaste;component/Assets/shotpaste-icon.png" Width="18" Height="18" Margin="0,0,9,0"/>
+      <Image Source="../Assets/shotpaste-icon.png" Width="18" Height="18" Margin="0,0,9,0"/>
       <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
                  Foreground="{DynamicResource TextBrush}" FontSize="{DynamicResource FontSize.Body}"
                  FontWeight="{DynamicResource FontWeight.SectionHeader}" VerticalAlignment="Center"/>

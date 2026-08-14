@@ -277,6 +277,10 @@ final class AppStatusBarController: ObservableObject {
     }
   }
 
+  nonisolated static func idleMenuBarTooltip(for variant: AppVariant) -> String {
+    variant.displayName
+  }
+
   private func statusItemAttributedTitle(for state: RecordingState) -> NSAttributedString {
     let title = Self.menuBarTitleString(
       for: state,
@@ -318,27 +322,15 @@ final class AppStatusBarController: ObservableObject {
     case .stopping:
       return "ShotPaste"
     case .idle:
-      return "ShotPaste"
+      return Self.idleMenuBarTooltip(for: .current)
     }
   }
 
   private func makeIdleStatusImage() -> NSImage? {
-    guard let appIcon = NSImage(named: "MenubarIcon") else { return nil }
+    guard let appIcon = NSImage(named: AppVariant.current.menuBarIconAssetName) else { return nil }
 
     let canvasSize = NSSize(width: 18, height: 18)
-    let targetVisibleOccupancy: CGFloat = 0.89
-    // Current MenubarIcon PNG alpha bounds occupy 75.28% of its transparent canvas.
-    let sourceVisibleOccupancy: CGFloat = 0.7528
-    let drawSize = NSSize(
-      width: canvasSize.width * targetVisibleOccupancy / sourceVisibleOccupancy,
-      height: canvasSize.height * targetVisibleOccupancy / sourceVisibleOccupancy
-    )
-    let drawRect = NSRect(
-      x: (canvasSize.width - drawSize.width) / 2,
-      y: (canvasSize.height - drawSize.height) / 2,
-      width: drawSize.width,
-      height: drawSize.height
-    )
+    let drawRect = NSRect(origin: .zero, size: canvasSize)
 
     let resizedIcon = NSImage(size: canvasSize)
     resizedIcon.lockFocus()
@@ -786,27 +778,25 @@ final class AppStatusBarController: ObservableObject {
     }
   }
 
-  #if DEBUG
-    var didElevateForSettingsForTesting: Bool {
-      get { didElevateForSettings }
-      set { didElevateForSettings = newValue }
-    }
+  var didElevateForSettingsForTesting: Bool {
+    get { didElevateForSettings }
+    set { didElevateForSettings = newValue }
+  }
 
-    var trackedPreferencesWindowForTesting: NSWindow? {
-      get { trackedPreferencesWindow }
-      set { trackedPreferencesWindow = newValue }
-    }
+  var trackedPreferencesWindowForTesting: NSWindow? {
+    get { trackedPreferencesWindow }
+    set { trackedPreferencesWindow = newValue }
+  }
 
-    func simulateWindowDidClose(notification: Notification) {
-      windowDidClose(notification)
-    }
+  func simulateWindowDidClose(notification: Notification) {
+    windowDidClose(notification)
+  }
 
-    var isHoverBarVisibleForTesting: Bool {
-      isHoverBarVisible
-    }
+  var isHoverBarVisibleForTesting: Bool {
+    isHoverBarVisible
+  }
 
-    var showsRecordingTimeOnMenuBarForTesting: Bool {
-      showsRecordingTimeOnMenuBar
-    }
-  #endif
+  var showsRecordingTimeOnMenuBarForTesting: Bool {
+    showsRecordingTimeOnMenuBar
+  }
 }

@@ -19,11 +19,30 @@ public partial class App : System.Windows.Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        UiTestMode = e.Args.Any(argument => argument.Equals("--ui-test", StringComparison.OrdinalIgnoreCase));
-        if (UiTestMode && TryGetArgumentValue(e.Args, "--data-root", out var testRoot))
+        if (e.Args.Any(argument => argument.Equals("--verify-build-identity", StringComparison.OrdinalIgnoreCase)))
         {
-            _instanceScope = Path.GetFullPath(testRoot);
-            AppPaths.ConfigureTestRoot(_instanceScope);
+            base.OnStartup(e);
+            var errors = AppBuildIdentity.ValidateCurrentBuild(Environment.ProcessPath);
+            foreach (var error in errors) Console.Error.WriteLine(error);
+            Shutdown(errors.Count == 0 ? 0 : 2);
+            return;
+        }
+
+        UiTestMode = e.Args.Any(argument => argument.Equals("--ui-test", StringComparison.OrdinalIgnoreCase));
+        if (UiTestMode)
+        {
+            try
+            {
+                _instanceScope = UiTestIsolationPolicy.PrepareDataRoot(e.Args, AppBuildIdentity.Current);
+                AppPaths.ConfigureTestRoot(_instanceScope);
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or IOException or UnauthorizedAccessException)
+            {
+                Console.Error.WriteLine(exception.Message);
+                base.OnStartup(e);
+                Shutdown(2);
+                return;
+            }
         }
         DispatcherUnhandledException += (_, args) => WriteCrashLog(args.Exception);
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
@@ -32,8 +51,8 @@ public partial class App : System.Windows.Application
         };
         base.OnStartup(e);
         var mutexName = UiTestMode
-            ? $"ShotPaste.Windows.SingleInstance.UiTest.{ScopeToken(_instanceScope)}"
-            : "ShotPaste.Windows.SingleInstance";
+            ? $"{AppBuildIdentity.Current.SingleInstanceMutexName}.UiTest.{ScopeToken(_instanceScope!)}"
+            : AppBuildIdentity.Current.SingleInstanceMutexName;
         _singleInstance = new Mutex(true, mutexName, out var createdNew);
         if (!createdNew)
         {
@@ -45,7 +64,7 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        App.WriteQuickAccessLog($"ShotPaste startup begin version={typeof(App).Assembly.GetName().Version} path={Environment.ProcessPath}");
+        App.WriteQuickAccessLog($"{AppBuildIdentity.Current.DisplayName} startup begin version={typeof(App).Assembly.GetName().Version} path={Environment.ProcessPath}");
         _controller = new AppController();
         _commandService = new AppCommandService(_instanceScope);
         _commandService.Start(arguments => Dispatcher.BeginInvoke(() => _controller?.HandleExternalCommand(arguments)));
@@ -61,30 +80,9 @@ public partial class App : System.Windows.Application
         }
     }
 
-    private static bool TryGetArgumentValue(IReadOnlyList<string> arguments, string name, out string value)
+    private static string ScopeToken(string scope)
     {
-        value = string.Empty;
-        for (var index = 0; index < arguments.Count; index++)
-        {
-            var argument = arguments[index];
-            if (argument.StartsWith(name + "=", StringComparison.OrdinalIgnoreCase))
-            {
-                value = argument[(name.Length + 1)..];
-                return !string.IsNullOrWhiteSpace(value);
-            }
-
-            if (!argument.Equals(name, StringComparison.OrdinalIgnoreCase) || index + 1 >= arguments.Count) continue;
-            value = arguments[index + 1];
-            return !string.IsNullOrWhiteSpace(value);
-        }
-
-        return false;
-    }
-
-    private static string ScopeToken(string? scope)
-    {
-        var value = string.IsNullOrWhiteSpace(scope) ? Environment.ProcessId.ToString() : scope;
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)))[..16];
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(scope)))[..16];
     }
 
     internal static void WriteCrashLog(Exception exception)

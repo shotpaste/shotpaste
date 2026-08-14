@@ -86,7 +86,7 @@ public static class ThemeService
 
         var replacement = new ResourceDictionary
         {
-            Source = new Uri($"/ShotPaste;component/Resources/Themes/{themeFile}", UriKind.Relative)
+            Source = AppBuildIdentity.ResourceUri($"Resources/Themes/{themeFile}")
         };
         if (themeIndex >= 0)
             dictionaries[themeIndex] = replacement;

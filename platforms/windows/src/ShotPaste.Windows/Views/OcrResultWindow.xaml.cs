@@ -26,6 +26,6 @@ public partial class OcrResultWindow : Window
         Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
     }
 
-    private void OnCopy(object sender, RoutedEventArgs e) => System.Windows.Clipboard.SetText(_result.Text);
+    private void OnCopy(object sender, RoutedEventArgs e) => ClipboardWriter.SetText(_result.Text);
     private void OnClose(object sender, RoutedEventArgs e) => Close();
 }

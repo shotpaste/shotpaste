@@ -51,11 +51,7 @@ final class HistoryThumbnailGenerator {
   }
 
   private static func defaultThumbnailsDirectory() -> URL {
-    let appSupport = FileManager.default.urls(
-      for: .applicationSupportDirectory, in: .userDomainMask
-    ).first!
-    return appSupport
-      .appendingPathComponent("ShotPaste", isDirectory: true)
+    AppDataLocations.applicationSupportRoot!
       .appendingPathComponent("HistoryThumbnails", isDirectory: true)
   }
 

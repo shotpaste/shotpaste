@@ -23,7 +23,9 @@ final class MediaClipboardMonitor {
 
   /// Added by ShotPaste's own clipboard writes to avoid re-archiving captures that
   /// are already present in history.
-  static let internalWriteMarker = NSPasteboard.PasteboardType("com.ahtcfg24.shotpaste.internal-media-write")
+  static let internalWriteMarker = NSPasteboard.PasteboardType(
+    AppVariant.current.internalPasteboardWriteMarkerIdentifier
+  )
   private static let privacyMarkerTypes = Set([
     NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType"),
     NSPasteboard.PasteboardType("org.nspasteboard.TransientType"),
@@ -260,9 +262,10 @@ final class MediaClipboardMonitor {
 
   private nonisolated static func mediaDirectory() throws -> URL {
     let fileManager = FileManager.default
-    let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-    let directory = appSupport
-      .appendingPathComponent("ShotPaste", isDirectory: true)
+    guard let appSupportRoot = AppDataLocations.applicationSupportRoot else {
+      throw CocoaError(.fileNoSuchFile)
+    }
+    let directory = appSupportRoot
       .appendingPathComponent("MediaClipboard", isDirectory: true)
     try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
     return directory

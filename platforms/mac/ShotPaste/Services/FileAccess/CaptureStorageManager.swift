@@ -2,7 +2,7 @@
 //  CaptureStorageManager.swift
 //  ShotPaste
 //
-//  Manages temporary capture storage in Application Support/ShotPaste/Captures.
+//  Manages temporary capture storage in the current app variant's Application Support folder.
 //  Provides cache size calculation and safe cleanup operations.
 //
 
@@ -16,7 +16,6 @@ final class CaptureStorageManager {
   static let shared = CaptureStorageManager()
 
   private let fileManager = FileManager.default
-  private let appSupportFolderName = "ShotPaste"
   private let capturesFolderName = "Captures"
   private let mediaClipboardFolderName = "MediaClipboard"
 
@@ -24,28 +23,14 @@ final class CaptureStorageManager {
 
   // MARK: - Directory
 
-  /// URL to the captures cache directory: Application Support/ShotPaste/Captures
+  /// URL to the captures cache directory for the current app variant.
   var capturesDirectoryURL: URL? {
-    guard
-      let appSupportURL = fileManager.urls(
-        for: .applicationSupportDirectory, in: .userDomainMask
-      ).first
-    else {
-      return nil
-    }
-
-    return appSupportURL
-      .appendingPathComponent(appSupportFolderName, isDirectory: true)
+    AppDataLocations.applicationSupportRoot?
       .appendingPathComponent(capturesFolderName, isDirectory: true)
   }
 
   var mediaClipboardDirectoryURL: URL? {
-    guard let appSupportURL = fileManager.urls(
-      for: .applicationSupportDirectory,
-      in: .userDomainMask
-    ).first else { return nil }
-    return appSupportURL
-      .appendingPathComponent(appSupportFolderName, isDirectory: true)
+    AppDataLocations.applicationSupportRoot?
       .appendingPathComponent(mediaClipboardFolderName, isDirectory: true)
   }
 

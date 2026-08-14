@@ -1,0 +1,7 @@
+// Canonical build identity for the Release app. Keep these values stable.
+SHOTPASTE_VARIANT = release
+SHOTPASTE_APP_ICON = AppIcon
+SHOTPASTE_BUNDLE_IDENTIFIER = com.ahtcfg24.shotpaste
+SHOTPASTE_DISPLAY_NAME = ShotPaste
+SHOTPASTE_EXECUTABLE_NAME = ShotPaste
+SHOTPASTE_URL_SCHEME = shotpaste

@@ -26,7 +26,20 @@ public partial class SettingsWindow : Window
         DataContext = _draft;
         UpdateStatus.Text = $"{LocalizedDialogService.Text("当前版本")}: {_updateService.CurrentVersionString}";
         SelectInitialTab(initialTab);
-        Loaded += async (_, _) => await RefreshRecordingFormatSupportAsync();
+        Loaded += async (_, _) =>
+        {
+            UpdateUrlSchemeLabel();
+            await RefreshRecordingFormatSupportAsync();
+        };
+    }
+
+    private void UpdateUrlSchemeLabel()
+    {
+        if (!AppBuildIdentity.Current.IsDebug || UrlSchemeCheckBox.Content is not string label) return;
+        UrlSchemeCheckBox.Content = label.Replace(
+            "shotpaste://",
+            $"{AppBuildIdentity.Current.UrlScheme}://",
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task RefreshRecordingFormatSupportAsync()

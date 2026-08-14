@@ -146,14 +146,36 @@ public sealed class AppControllerFlowTests
     }
 
     [Theory]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    public void OneShotSelection_DragsOnlyBeforeToolCommit(
+    [InlineData(OneShotMode.Screenshot, false, true)]
+    [InlineData(OneShotMode.Scrolling, false, true)]
+    [InlineData(OneShotMode.Recording, false, true)]
+    [InlineData(OneShotMode.Clipboard, false, false)]
+    [InlineData(OneShotMode.Screenshot, true, false)]
+    [InlineData(OneShotMode.Scrolling, true, false)]
+    [InlineData(OneShotMode.Recording, true, false)]
+    public void OneShotSelection_DragsInEveryCaptureModeOnlyBeforeCommit(
+        OneShotMode mode,
         bool isCommitted,
         bool expected)
     {
         Assert.Equal(expected,
-            InlineAnnotateWindow.ShouldMoveSelectionOnCanvasDrag(isCommitted));
+            InlineAnnotateWindow.ShouldMoveSelectionOnCanvasDrag(mode, isCommitted));
+    }
+
+    [Fact]
+    public void OneShotCanvas_HandlesUncommittedMovementBeforeScreenshotOnlyAnnotationLogic()
+    {
+        var code = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "InlineAnnotateWindow.xaml.cs"));
+        var start = code.IndexOf("private void OnCanvasMouseDown", StringComparison.Ordinal);
+        var end = code.IndexOf("private void OnCanvasPreviewMouseDown", start, StringComparison.Ordinal);
+
+        Assert.True(start >= 0 && end > start, "One Shot canvas mouse handler was not found.");
+        var method = code[start..end];
+        var moveGuard = method.IndexOf("ShouldMoveSelectionOnCanvasDrag", StringComparison.Ordinal);
+        var screenshotGuard = method.IndexOf("_oneShotMode != OneShotMode.Screenshot", StringComparison.Ordinal);
+        Assert.True(moveGuard >= 0 && screenshotGuard > moveGuard,
+            "Capture-mode selection movement must run before screenshot-only annotation handling.");
     }
 
     [Fact]

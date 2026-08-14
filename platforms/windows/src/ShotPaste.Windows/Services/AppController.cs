@@ -81,8 +81,7 @@ public sealed class AppController : IDisposable
         LocalizationService.Apply(_settings.Current);
         LocalizationService.EnableAutomaticWpfLocalization();
         ThemeService.Apply(_settings.Current.Theme);
-        StartupService.Apply(_settings.Current.LaunchAtStartup);
-        UrlSchemeService.Apply(_settings.Current.UrlSchemeEnabled);
+        ApplyOperatingSystemIntegrations();
         await _history.LoadAsync();
         var recoveryScan = await RecordingRecoveryService.ScanAsync();
         if (recoveryScan.Recording is { } recovered &&
@@ -94,18 +93,21 @@ public sealed class AppController : IDisposable
             _capture,
             () => ScreenshotCaptureOptions);
         _scrolling = CreateScrollingCaptureService();
-        _hotkeys = new GlobalHotkeyService();
-        _clipboard = new ClipboardMonitorService(_history, _settings);
-        _tray = new TrayIconService(_settings.Current, () => _recording.Elapsed);
+        if (!App.UiTestMode)
+        {
+            _hotkeys = new GlobalHotkeyService();
+            _clipboard = new ClipboardMonitorService(_history, _settings);
+            _tray = new TrayIconService(_settings.Current, () => _recording.Elapsed);
+        }
         _quickAccess = new QuickAccessService(this, _settings);
         WireEvents();
         if (!string.IsNullOrWhiteSpace(_settings.LastConfigurationWarning))
-            _tray.ShowMessage("设置已恢复", _settings.LastConfigurationWarning, Forms.ToolTipIcon.Warning);
-        _hotkeys.RegisterConfigured(_settings.Current);
+            _tray?.ShowMessage("设置已恢复", _settings.LastConfigurationWarning, Forms.ToolTipIcon.Warning);
+        _hotkeys?.RegisterConfigured(_settings.Current);
         if (recoveryScan.Recording is not null)
-            _tray.ShowMessage("已恢复上次录屏", Path.GetFileName(recoveryScan.Recording.Path));
+            _tray?.ShowMessage("已恢复上次录屏", Path.GetFileName(recoveryScan.Recording.Path));
         else if (!string.IsNullOrWhiteSpace(recoveryScan.Warning))
-            _tray.ShowMessage("录屏恢复", recoveryScan.Warning, Forms.ToolTipIcon.Warning);
+            _tray?.ShowMessage("录屏恢复", recoveryScan.Warning, Forms.ToolTipIcon.Warning);
         _mainWindow = new MainWindow(this, _history, _settings);
         if (App.UiTestMode)
         {
@@ -115,14 +117,12 @@ public sealed class AppController : IDisposable
         _historyMaintenanceTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromHours(24) };
         _historyMaintenanceTimer.Tick += async (_, _) => await _history.PruneAsync(_settings.Current.HistoryRetentionDays, _settings.Current.HistoryMaxCount);
         _historyMaintenanceTimer.Start();
-        if (_hotkeys.FailedActions.Count > 0)
-            _tray.ShowMessage("部分快捷键不可用", "快捷键已被其他程序占用，可继续使用托盘菜单。", Forms.ToolTipIcon.Warning);
+        if (_hotkeys?.FailedActions.Count > 0)
+            _tray?.ShowMessage("部分快捷键不可用", "快捷键已被其他程序占用，可继续使用托盘菜单。", Forms.ToolTipIcon.Warning);
         _ready = true;
         while (_pendingCommands.Count > 0) ExecuteExternalCommand(UrlSchemeService.Parse(_pendingCommands.Dequeue()));
-#if !DEBUG
-        if (!App.UiTestMode)
+        if (!App.UiTestMode && AppBuildIdentity.Current.PerformsAutomaticUpdateChecks)
             _ = CheckForUpdatesAutomaticallyAsync();
-#endif
     }
 
     private async Task CheckForUpdatesAutomaticallyAsync()
@@ -216,13 +216,15 @@ public sealed class AppController : IDisposable
 
     private void WireEvents()
     {
-        if (_tray is null || _hotkeys is null) return;
-        _tray.RecordingRequested += (_, _) => { if (_recording.IsRecording) _recording.Stop(); };
-        _tray.PauseRecordingRequested += (_, _) => _recording.TogglePause();
-        _tray.OneShotRequested += (_, _) => StartOneShot();
-        _tray.HistoryRequested += (_, _) => ShowHistory();
-        _tray.SettingsRequested += (_, _) => ShowSettings();
-        _tray.ExitRequested += (_, _) => Exit();
+        if (_tray is not null)
+        {
+            _tray.RecordingRequested += (_, _) => { if (_recording.IsRecording) _recording.Stop(); };
+            _tray.PauseRecordingRequested += (_, _) => _recording.TogglePause();
+            _tray.OneShotRequested += (_, _) => StartOneShot();
+            _tray.HistoryRequested += (_, _) => ShowHistory();
+            _tray.SettingsRequested += (_, _) => ShowSettings();
+            _tray.ExitRequested += (_, _) => Exit();
+        }
         _history.Items.CollectionChanged += (_, change) =>
         {
             if (change.Action != NotifyCollectionChangedAction.Add || !_settings.Current.PlaySounds) return;
@@ -235,6 +237,7 @@ public sealed class AppController : IDisposable
             _keystrokeOverlay?.SetPaused(!_recording.IsRecording || _recording.IsPaused);
             _recordingInk?.SetPaused(!_recording.IsRecording || _recording.IsPaused);
         });
+        if (_hotkeys is null) return;
         _hotkeys.Triggered += (_, action) => System.Windows.Application.Current.Dispatcher.Invoke(() =>
         {
             switch (action)
@@ -368,8 +371,7 @@ public sealed class AppController : IDisposable
             _tray?.ShowMessage("未识别到文字", "请选择包含清晰文字或二维码的区域。", Forms.ToolTipIcon.Warning);
             return;
         }
-        _clipboard?.SuppressNextChange();
-        System.Windows.Clipboard.SetText(result.Text);
+        ClipboardWriter.SetText(result.Text);
         if (_settings.Current.ShowOcrLinkNotifications && result.Links.Count > 0)
         {
             var resultWindow = new OcrResultWindow(result)
@@ -591,8 +593,7 @@ public sealed class AppController : IDisposable
     {
         if (_settings.Current.CopyScreenshots)
         {
-            _clipboard?.SuppressNextChange();
-            System.Windows.Clipboard.SetImage(BitmapSourceFactory.FromBitmap(image));
+            ClipboardWriter.SetImage(BitmapSourceFactory.FromBitmap(image));
         }
         var item = await _history.AddFileAsync(path, kind);
         if (_settings.Current.ShowQuickAccess && _settings.Current.ShowQuickAccessForScreenshots) ShowQuickAccess(item);
@@ -605,7 +606,6 @@ public sealed class AppController : IDisposable
     {
         try
         {
-            _clipboard?.SuppressNextChange();
             if (item.Kind == CaptureKind.ClipboardText)
             {
                 var loaded = await item.LoadFullTextAsync();
@@ -614,7 +614,7 @@ public sealed class AppController : IDisposable
                     ShowError("复制失败", new IOException(loaded.Error ?? "完整文本不可用。"));
                     return;
                 }
-                System.Windows.Clipboard.SetText(loaded.Text);
+                ClipboardWriter.SetText(loaded.Text);
                 if (loaded.IsLimited && !string.IsNullOrWhiteSpace(loaded.Error))
                     _tray?.ShowMessage("文本已受限", loaded.Error, Forms.ToolTipIcon.Warning);
             }
@@ -622,19 +622,19 @@ public sealed class AppController : IDisposable
             {
                 var files = new StringCollection();
                 files.AddRange(item.ExistingFilePaths.ToArray());
-                System.Windows.Clipboard.SetFileDropList(files);
+                ClipboardWriter.SetFileDropList(files);
             }
             else if (!string.IsNullOrWhiteSpace(item.FilePath) && File.Exists(item.FilePath))
             {
                 if (item.Kind is CaptureKind.Screenshot or CaptureKind.ScrollingScreenshot or CaptureKind.ClipboardImage)
                 {
                     var image = BitmapSourceFactory.FromPath(item.FilePath);
-                    if (image is not null) System.Windows.Clipboard.SetImage(image);
+                    if (image is not null) ClipboardWriter.SetImage(image);
                 }
                 else
                 {
                     var files = new StringCollection { item.FilePath };
-                    System.Windows.Clipboard.SetFileDropList(files);
+                    ClipboardWriter.SetFileDropList(files);
                 }
             }
         }
@@ -653,10 +653,9 @@ public sealed class AppController : IDisposable
             .ToArray();
         if (paths.Length > 0)
         {
-            _clipboard?.SuppressNextChange();
             var files = new StringCollection();
             files.AddRange(paths);
-            System.Windows.Clipboard.SetFileDropList(files);
+            ClipboardWriter.SetFileDropList(files);
         }
         else
         {
@@ -665,7 +664,7 @@ public sealed class AppController : IDisposable
                 .Select(item => item.LoadFullTextAsync()));
             var text = string.Join(Environment.NewLine + Environment.NewLine,
                 loaded.Select(result => result.Text).Where(value => !string.IsNullOrWhiteSpace(value)));
-            if (text.Length > 0) System.Windows.Clipboard.SetText(text);
+            if (text.Length > 0) ClipboardWriter.SetText(text);
         }
     }
 
@@ -708,11 +707,17 @@ public sealed class AppController : IDisposable
         _mainWindow?.RefreshLocalization();
         _mainWindow?.ApplyHistoryBackgroundStyle();
         _quickAccess?.RefreshSettings();
-        StartupService.Apply(_settings.Current.LaunchAtStartup);
-        UrlSchemeService.Apply(_settings.Current.UrlSchemeEnabled);
+        ApplyOperatingSystemIntegrations();
         App.ConfigureDiagnostics(_settings.Current.DiagnosticsEnabled);
         _hotkeys?.RegisterConfigured(_settings.Current);
         _tray?.UpdateShortcuts(_settings.Current);
+    }
+
+    private void ApplyOperatingSystemIntegrations()
+    {
+        if (App.UiTestMode) return;
+        StartupService.Apply(_settings.Current.LaunchAtStartup);
+        UrlSchemeService.Apply(_settings.Current.UrlSchemeEnabled);
     }
 
     private void ShowQuickAccess(CaptureHistoryItem item)

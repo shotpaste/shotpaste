@@ -10,6 +10,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$ROOT_DIR/scripts/macos-app-variant.sh"
 cd "$ROOT_DIR"
 
 PROJECT="${PROJECT:-platforms/mac/ShotPaste.xcodeproj}"
@@ -152,6 +153,7 @@ while [ $# -gt 0 ]; do
 done
 
 validate_configuration
+macos_app_variant_validate_configuration "$CONFIGURATION"
 
 if [ "$(uname -s)" != "Darwin" ]; then
   die "This script requires macOS."
@@ -172,8 +174,8 @@ cleanup_test_apps() {
   # XCTest needs an app host while running, but it must not become another
   # launchable ShotPaste copy after the test process exits.
   rm -rf \
-    "$PRODUCTS_ROOT/Debug/ShotPaste Debug.app" \
-    "$PRODUCTS_ROOT/Release/ShotPaste.app"
+    "$PRODUCTS_ROOT/Debug/$(macos_app_variant_setting Debug SHOTPASTE_DISPLAY_NAME).app" \
+    "$PRODUCTS_ROOT/Release/$(macos_app_variant_setting Release SHOTPASTE_DISPLAY_NAME).app"
 }
 trap cleanup_test_apps EXIT
 
@@ -196,16 +198,18 @@ XCODEBUILD_CMD=(
   "CONFIGURATION_BUILD_DIR=$PRODUCTS_ROOT/$CONFIGURATION"
   COMPILER_INDEX_STORE_ENABLE=NO
   INDEX_ENABLE_DATA_STORE=NO
+  # Release normally hides internal declarations from @testable imports. This
+  # override applies only to the test invocation; canonical Release builds keep
+  # their normal production setting.
+  ENABLE_TESTABILITY=YES
+  # Test hosts are disposable and removed on exit. Keeping them unsigned avoids
+  # Hardened Runtime library-validation failures between separately ad-hoc-signed
+  # host and XCTest bundles; canonical runnable apps are signed by the build script.
+  CODE_SIGN_IDENTITY=
+  CODE_SIGNING_REQUIRED=NO
+  CODE_SIGNING_ALLOWED=NO
   SHOTPASTE_SKIP_POST_SIGN=1
 )
-
-if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
-  XCODEBUILD_CMD+=(
-    CODE_SIGN_IDENTITY=
-    CODE_SIGNING_REQUIRED=NO
-    CODE_SIGNING_ALLOWED=NO
-  )
-fi
 
 if [[ -n "$SOURCE_PACKAGES_PATH" ]]; then
   XCODEBUILD_CMD+=(-clonedSourcePackagesDirPath "$SOURCE_PACKAGES_PATH")

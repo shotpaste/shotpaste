@@ -2,7 +2,7 @@ namespace ShotPaste.Windows.Services;
 
 public static class AppPaths
 {
-    private static string _root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ShotPaste");
+    private static string _root = DefaultRootFor(AppBuildIdentity.Current);
 
     public static string Root => _root;
     public static string Captures => Path.Combine(Root, "Captures");
@@ -12,6 +12,10 @@ public static class AppPaths
     public static string HistoryDatabaseFile => Path.Combine(Root, "history.sqlite3");
     public static string SettingsFile => Path.Combine(Root, "settings.json");
     public static string RecordingRecoveryFile => Path.Combine(Root, "recording-recovery.json");
+
+    internal static string DefaultRootFor(AppBuildIdentity identity) => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        identity.DataDirectoryName);
 
     internal static void ConfigureTestRoot(string path)
     {

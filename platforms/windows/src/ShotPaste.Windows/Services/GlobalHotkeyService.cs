@@ -25,7 +25,7 @@ public sealed class GlobalHotkeyService : IDisposable
 
     public GlobalHotkeyService()
     {
-        var parameters = new HwndSourceParameters("ShotPasteHotkeys")
+        var parameters = new HwndSourceParameters(AppBuildIdentity.Current.HotkeyWindowName)
         {
             Width = 0,
             Height = 0,

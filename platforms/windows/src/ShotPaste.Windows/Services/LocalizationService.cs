@@ -307,6 +307,8 @@ public static class LocalizationService
         }
 
         var translated = TranslatePhrase(propertyState.Source);
+        if (element is Window && property == Window.TitleProperty)
+            translated = AppBuildIdentity.Current.FormatWindowTitle(translated);
         propertyState.LastTranslated = translated;
         if (string.Equals(current, translated, StringComparison.Ordinal)) return;
         state.ApplyingProperties.Add(property);

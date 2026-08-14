@@ -10,11 +10,9 @@ import Foundation
 import Security
 
 nonisolated enum AppBundleIdentity {
-  #if DEBUG
-    static let expected = "com.ahtcfg24.shotpaste.debug"
-  #else
-    static let expected = "com.ahtcfg24.shotpaste"
-  #endif
+  static var expected: String {
+    AppVariant.current.bundleIdentifier
+  }
 }
 
 enum AppIdentityIssue: Equatable, Hashable {

@@ -82,6 +82,11 @@ final class AppStatusBarControllerTests: XCTestCase {
     }
   }
 
+  func testIdleMenuBarTooltipIdentifiesOnlyDebugVariant() {
+    XCTAssertEqual(AppStatusBarController.idleMenuBarTooltip(for: .debug), "ShotPaste Debug")
+    XCTAssertEqual(AppStatusBarController.idleMenuBarTooltip(for: .release), "ShotPaste")
+  }
+
   func testWindowDidClose_revertsActivationPolicyWhenNoOtherVisibleWindows() {
     // 1. Setup initial elevated state
     controller.didElevateForSettingsForTesting = true

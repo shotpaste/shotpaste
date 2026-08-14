@@ -59,16 +59,16 @@
     },
     "preferences-permissions.authorization-guide-description": {
       "localizations": {
-        "de": { "stringUnit": { "state": "translated", "value": "ShotPaste öffnet jede fehlende Berechtigungsseite und überspringt bereits erteilte Zugriffe." } },
-        "en": { "stringUnit": { "state": "translated", "value": "ShotPaste opens each missing permission page and skips access you already granted." } },
-        "es": { "stringUnit": { "state": "translated", "value": "ShotPaste abre cada permiso pendiente y omite los que ya concediste." } },
-        "fr": { "stringUnit": { "state": "translated", "value": "ShotPaste ouvre chaque autorisation manquante et ignore celles déjà accordées." } },
-        "ja": { "stringUnit": { "state": "translated", "value": "不足している権限ページを順に開き、設定済みの権限は自動でスキップします。" } },
-        "ko": { "stringUnit": { "state": "translated", "value": "ShotPaste가 필요한 권한 페이지를 열고 이미 허용된 권한은 건너뜁니다." } },
-        "ru": { "stringUnit": { "state": "translated", "value": "ShotPaste открывает страницы недостающих разрешений и пропускает уже выданные." } },
-        "vi": { "stringUnit": { "state": "translated", "value": "ShotPaste mở từng trang quyền còn thiếu và bỏ qua quyền đã cấp." } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "ShotPaste 会逐个打开缺失权限的设置页，并自动跳过已授权项目。" } },
-        "zh-Hant": { "stringUnit": { "state": "translated", "value": "ShotPaste 會逐個開啟缺少權限的設定頁，並自動略過已授權項目。" } }
+        "de": { "stringUnit": { "state": "translated", "value": "ShotPaste führt dich durch jede fehlende Berechtigung und überspringt bereits erteilte Zugriffe." } },
+        "en": { "stringUnit": { "state": "translated", "value": "ShotPaste walks you through each missing permission and skips access you already granted." } },
+        "es": { "stringUnit": { "state": "translated", "value": "ShotPaste te guía por cada permiso pendiente y omite los que ya concediste." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "ShotPaste vous guide pour chaque autorisation manquante et ignore celles déjà accordées." } },
+        "ja": { "stringUnit": { "state": "translated", "value": "不足している権限を順に案内し、設定済みの権限は自動でスキップします。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "ShotPaste가 필요한 권한을 차례로 안내하고 이미 허용된 권한은 건너뜁니다." } },
+        "ru": { "stringUnit": { "state": "translated", "value": "ShotPaste проводит по каждому недостающему разрешению и пропускает уже выданные." } },
+        "vi": { "stringUnit": { "state": "translated", "value": "ShotPaste hướng dẫn từng quyền còn thiếu và bỏ qua những quyền bạn đã cấp." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "ShotPaste 会逐项引导完成缺失权限，并自动跳过已授权项目。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "ShotPaste 會逐項引導完成缺少的權限，並自動略過已授權項目。" } }
       }
     },
     "preferences-permissions.authorization-all-granted": {
@@ -129,16 +129,16 @@
     },
     "preferences-permissions.authorization-microphone-instruction": {
       "localizations": {
-        "de": { "stringUnit": { "state": "translated", "value": "Aktiviere ShotPaste in der markierten Mikrofonliste. Falls es fehlt, verwende zuerst „Zugriff gewähren“ auf der Berechtigungsseite." } },
-        "en": { "stringUnit": { "state": "translated", "value": "Turn on ShotPaste in the highlighted Microphone list. If it is missing, use Grant Access on the permission page first." } },
-        "es": { "stringUnit": { "state": "translated", "value": "Activa ShotPaste en la lista de Micrófono resaltada. Si no aparece, usa primero Conceder acceso en la página de permisos." } },
-        "fr": { "stringUnit": { "state": "translated", "value": "Activez ShotPaste dans la liste Microphone surlignée. S’il manque, utilisez d’abord Accorder l’accès sur la page des autorisations." } },
-        "ja": { "stringUnit": { "state": "translated", "value": "強調表示されたマイク一覧でShotPasteをオンにします。見つからない場合は、権限ページの「アクセスを許可」を先に使用してください。" } },
-        "ko": { "stringUnit": { "state": "translated", "value": "강조 표시된 마이크 목록에서 ShotPaste를 켜세요. 목록에 없으면 권한 페이지에서 먼저 접근 허용을 사용하세요." } },
-        "ru": { "stringUnit": { "state": "translated", "value": "Включите ShotPaste в выделенном списке микрофона. Если приложения нет, сначала нажмите «Предоставить доступ» на странице разрешений." } },
-        "vi": { "stringUnit": { "state": "translated", "value": "Bật ShotPaste trong danh sách Micrô được tô sáng. Nếu chưa có, hãy dùng Cấp quyền trên trang quyền trước." } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "在高亮的麦克风列表中打开 ShotPaste；如果列表中没有，请先在权限页点击“授予访问权限”。" } },
-        "zh-Hant": { "stringUnit": { "state": "translated", "value": "在醒目提示的麥克風列表中開啟 ShotPaste；如果列表中沒有，請先在權限頁按一下「授予存取權限」。" } }
+        "de": { "stringUnit": { "state": "translated", "value": "Erlaube den Mikrofonzugriff im macOS-Berechtigungsdialog. Falls du ihn zuvor abgelehnt hast, ändere ihn in den Systemeinstellungen." } },
+        "en": { "stringUnit": { "state": "translated", "value": "Allow microphone access in the macOS permission dialog. If you denied it earlier, change it in System Settings." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Permite el acceso al micrófono en el cuadro de permisos de macOS. Si lo rechazaste antes, cámbialo en Ajustes del Sistema." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Autorisez l’accès au microphone dans la fenêtre d’autorisation de macOS. Si vous l’avez refusé auparavant, modifiez-le dans Réglages Système." } },
+        "ja": { "stringUnit": { "state": "translated", "value": "macOSの権限ダイアログでマイクへのアクセスを許可します。以前に拒否した場合は、システム設定で変更してください。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "macOS 권한 대화상자에서 마이크 접근을 허용하세요. 이전에 거부했다면 시스템 설정에서 변경하세요." } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Разрешите доступ к микрофону в диалоге macOS. Если вы ранее отказали, измените настройку в «Системных настройках»." } },
+        "vi": { "stringUnit": { "state": "translated", "value": "Cho phép truy cập micrô trong hộp thoại quyền của macOS. Nếu đã từ chối trước đó, hãy thay đổi trong Cài đặt hệ thống." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "请在 macOS 权限弹窗中允许麦克风访问；如果此前已拒绝，请前往系统设置修改。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "請在 macOS 權限視窗中允許麥克風存取；如果先前已拒絕，請前往系統設定修改。" } }
       }
     },
     "preferences-permissions.authorization-open-current": {

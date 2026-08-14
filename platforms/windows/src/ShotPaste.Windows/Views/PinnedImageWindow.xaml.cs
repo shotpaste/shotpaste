@@ -174,7 +174,7 @@ public partial class PinnedImageWindow : Window
         e.Handled = true;
     }
 
-    private void OnCopy(object sender, RoutedEventArgs e) => System.Windows.Clipboard.SetImage(_source);
+    private void OnCopy(object sender, RoutedEventArgs e) => ClipboardWriter.SetImage(_source);
 
     private void OnSave(object sender, RoutedEventArgs e)
     {

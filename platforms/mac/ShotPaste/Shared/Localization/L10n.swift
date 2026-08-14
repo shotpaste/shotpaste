@@ -1790,7 +1790,7 @@ nonisolated enum L10n {
     )
     static let authorizationGuideDescription = string(
       "preferences-permissions.authorization-guide-description",
-      defaultValue: "ShotPaste opens each missing permission page and skips access you already granted.",
+      defaultValue: "ShotPaste walks you through each missing permission and skips access you already granted.",
       comment: "Description for the guided macOS permission assistant"
     )
     static let authorizationAllGranted = string(
@@ -1821,8 +1821,8 @@ nonisolated enum L10n {
     )
     static let authorizationMicrophoneInstruction = string(
       "preferences-permissions.authorization-microphone-instruction",
-      defaultValue: "Turn on ShotPaste in the highlighted Microphone list. If it is missing, use Grant Access on the permission page first.",
-      comment: "Instruction for the macOS microphone permission page"
+      defaultValue: "Allow microphone access in the macOS permission dialog. If you denied it earlier, change it in System Settings.",
+      comment: "Instruction for the native macOS microphone permission dialog"
     )
     static let authorizationOpenCurrent = string(
       "preferences-permissions.authorization-open-current",

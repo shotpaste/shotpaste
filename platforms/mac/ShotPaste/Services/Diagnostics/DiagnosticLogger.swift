@@ -2,7 +2,7 @@
 //  DiagnosticLogger.swift
 //  ShotPaste
 //
-//  Core logging engine — appends to daily .txt files in ~/Library/Logs/ShotPaste/
+//  Core logging engine — appends to the current app variant's Library/Logs folder.
 //
 
 import AppKit
@@ -14,7 +14,6 @@ final class DiagnosticLogger {
 
   // MARK: - Configuration
 
-  private let logDirectoryName = "ShotPaste"
   private let filePrefix = "shotpaste_"
   private let fileExtension = "txt"
 
@@ -100,9 +99,11 @@ final class DiagnosticLogger {
 
   /// The directory where log files are stored.
   var logDirectoryURL: URL {
-    FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first!
-      .appendingPathComponent("Logs")
-      .appendingPathComponent(logDirectoryName)
+    let libraryDirectory = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first!
+    return AppDataLocations.diagnosticLogDirectory(
+      in: libraryDirectory,
+      variant: .current
+    )
   }
 
   /// Path to today's log file.
@@ -237,7 +238,7 @@ final class DiagnosticLogger {
 
     let header = """
     === SESSION START \(timestamp) ===
-    \(osString) | ShotPaste \(appVersion) (\(buildNumber)) | \(cpuArch)
+    \(osString) | \(AppVariant.current.displayName) \(appVersion) (\(buildNumber)) | \(cpuArch)
     \(memoryGB)GB RAM | \(gpuModel) | \(diskFree)
     \(screens.count) screen\(screens.count == 1 ? "" : "s") (\(screenInfo)) | PID \(pid)
     Locale: \(locale) | Thermal: \(thermalState) | Sandbox: \(isSandboxed ? "YES" : "NO")
