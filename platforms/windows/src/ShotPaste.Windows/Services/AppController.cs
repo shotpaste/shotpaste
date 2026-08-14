@@ -81,8 +81,7 @@ public sealed class AppController : IDisposable
         LocalizationService.Apply(_settings.Current);
         LocalizationService.EnableAutomaticWpfLocalization();
         ThemeService.Apply(_settings.Current.Theme);
-        StartupService.Apply(_settings.Current.LaunchAtStartup);
-        UrlSchemeService.Apply(_settings.Current.UrlSchemeEnabled);
+        ApplyOperatingSystemIntegrations();
         await _history.LoadAsync();
         var recoveryScan = await RecordingRecoveryService.ScanAsync();
         if (recoveryScan.Recording is { } recovered &&
@@ -708,11 +707,17 @@ public sealed class AppController : IDisposable
         _mainWindow?.RefreshLocalization();
         _mainWindow?.ApplyHistoryBackgroundStyle();
         _quickAccess?.RefreshSettings();
-        StartupService.Apply(_settings.Current.LaunchAtStartup);
-        UrlSchemeService.Apply(_settings.Current.UrlSchemeEnabled);
+        ApplyOperatingSystemIntegrations();
         App.ConfigureDiagnostics(_settings.Current.DiagnosticsEnabled);
         _hotkeys?.RegisterConfigured(_settings.Current);
         _tray?.UpdateShortcuts(_settings.Current);
+    }
+
+    private void ApplyOperatingSystemIntegrations()
+    {
+        if (App.UiTestMode) return;
+        StartupService.Apply(_settings.Current.LaunchAtStartup);
+        UrlSchemeService.Apply(_settings.Current.UrlSchemeEnabled);
     }
 
     private void ShowQuickAccess(CaptureHistoryItem item)

@@ -6,6 +6,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>ShotPaste</AssemblyName>
+    <AssemblyTitle>ShotPaste</AssemblyTitle>
     <RootNamespace>ShotPaste.Windows</RootNamespace>
     <Version>1.12.1</Version>
     <AssemblyVersion>1.12.1.0</AssemblyVersion>
@@ -25,6 +26,8 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <AssemblyName>ShotPasteDebug</AssemblyName>
+    <AssemblyTitle>ShotPaste Debug</AssemblyTitle>
     <Product>ShotPaste Debug</Product>
     <ApplicationIcon>Assets\shotpaste-debug-icon.ico</ApplicationIcon>
   </PropertyGroup>

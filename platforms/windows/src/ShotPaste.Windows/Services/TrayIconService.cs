@@ -44,7 +44,7 @@ public sealed class TrayIconService : IDisposable
         _icon = new Forms.NotifyIcon { Text = AppBuildIdentity.Current.DisplayName, Visible = settings.ShowTrayIcon };
         try
         {
-            var resource = WpfApplication.GetResourceStream(new Uri("pack://application:,,,/ShotPaste;component/Assets/shotpaste-icon.png"));
+            var resource = WpfApplication.GetResourceStream(AppBuildIdentity.ResourceUri("Assets/shotpaste-icon.png"));
             if (resource is not null)
             {
                 using var bitmap = new Bitmap(resource.Stream);
