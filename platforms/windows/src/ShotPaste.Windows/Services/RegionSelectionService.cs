@@ -10,9 +10,14 @@ namespace ShotPaste.Windows.Services;
 
 public sealed class RegionSelectionService(
     ScreenCaptureService screenCapture,
-    Func<ScreenCaptureOptions>? optionsProvider = null)
+    Func<ScreenCaptureOptions>? optionsProvider = null,
+    Func<AppSettings>? settingsProvider = null,
+    Action? saveSettings = null)
 {
-    public async Task<OneShotResult?> SelectOneShotAsync(OneShotRecordingOptions recordingOptions)
+    public async Task<OneShotResult?> SelectOneShotAsync(
+        OneShotRecordingOptions recordingOptions,
+        Func<Window, Drawing.Bitmap, bool, Task<bool>>? screenshotCommit = null,
+        OneShotMode initialMode = OneShotMode.Screenshot)
     {
         var options = optionsProvider?.Invoke();
         using var trace = SelectionPerformanceTrace.Start("OneShot", screenCapture.VirtualBounds);
@@ -21,7 +26,14 @@ public sealed class RegionSelectionService(
             : WindowVisibilityScope.HideApplicationWindows();
         var backdrop = await CaptureFrozenBackdropAsync(options, trace)
             ?? throw new InvalidOperationException("无法准备一键 Shot 的冻结桌面帧。");
-        var overlay = new InlineAnnotateWindow(backdrop.Source, backdrop.Bounds, recordingOptions);
+        var overlay = new InlineAnnotateWindow(
+            backdrop.Source,
+            backdrop.Bounds,
+            recordingOptions,
+            screenshotCommit,
+            settingsProvider?.Invoke(),
+            saveSettings,
+            initialMode);
         overlay.SourceInitialized += (_, _) => trace.MarkOverlayInitialized();
         overlay.ContentRendered += (_, _) => trace.MarkFirstFrame();
         if (overlay.ShowDialog() != true || overlay.OneShotAction is not { } action)
@@ -36,7 +48,8 @@ public sealed class RegionSelectionService(
             overlay.OneShotRectangle,
             overlay.ResultImage,
             overlay.PinRequested,
-            overlay.OneShotOptions);
+            overlay.OneShotOptions,
+            overlay.ScreenshotCommitted);
     }
 
     private async Task<FrozenSelectionBackdrop?> CaptureFrozenBackdropAsync(

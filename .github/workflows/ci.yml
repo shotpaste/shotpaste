@@ -7,6 +7,12 @@ on:
       - main
       - release
   workflow_dispatch:
+    inputs:
+      run_windows_interactive:
+        description: Run the signed-in Windows UI parity suite at 150% DPI
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -69,3 +75,39 @@ jobs:
       - name: Build and test Windows
         shell: pwsh
         run: ./scripts/build-windows.ps1 -Configuration '${{ matrix.configuration }}'
+
+  windows-interactive:
+    name: Windows interactive parity at 150% DPI
+    if: github.event_name == 'workflow_dispatch' && inputs.run_windows_interactive
+    runs-on: [self-hosted, Windows, X64, shotpaste-interactive, dpi-150]
+    timeout-minutes: 90
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build and run headless contracts
+        shell: pwsh
+        run: ./scripts/build-windows.ps1 -Configuration Debug
+
+      - name: Run interactive Windows parity suite
+        shell: pwsh
+        run: ./scripts/test-windows-parity.ps1 -Configuration Debug -Tier Interactive -SkipBuild -RequireDpiScale 1.5
+
+      - name: Upload Windows parity evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-parity-debug-${{ github.run_id }}
+          path: build/e2e/windows-parity
+          if-no-files-found: warn
+          retention-days: 14

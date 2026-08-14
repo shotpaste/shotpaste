@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Media;
 using ShotPaste.Windows.Models;
 using ShotPaste.Windows.Services;
 using ShotPaste.Windows.Utilities;
@@ -18,7 +19,8 @@ public partial class MainWindow : Window
     private readonly SettingsStore _settings;
     private CancellationTokenSource? _filterCancellation;
     private bool _allowClose;
-    private string _selectedKind = "Clipboard";
+    private string _selectedKind = "All";
+    private int _openHistoryMenus;
     private readonly System.Windows.Threading.DispatcherTimer _persistSizeTimer = new()
     {
         Interval = TimeSpan.FromMilliseconds(350)
@@ -33,6 +35,16 @@ public partial class MainWindow : Window
         Title = LocalizationService.Text(settings.Current.Language, "history.title");
         Width = settings.Current.HistoryExpandedWidth;
         Height = settings.Current.HistoryExpandedHeight;
+        DataContext = settings.Current;
+        _selectedKind = settings.Current.HistoryDefaultFilter switch
+        {
+            "Scrolling" => "ScrollingScreenshot",
+            "Screenshot" or "Recording" or "Clipboard" => settings.Current.HistoryDefaultFilter,
+            _ => "All"
+        };
+        RootBackground.LayoutTransform = new ScaleTransform(
+            settings.Current.HistoryScale,
+            settings.Current.HistoryScale);
         ApplyHistoryBackgroundStyle();
         UpdateKindPills();
         history.Items.CollectionChanged += (_, _) => Dispatcher.BeginInvoke(() => QueueFilter(TimeSpan.Zero));
@@ -43,7 +55,11 @@ public partial class MainWindow : Window
         };
         SizeChanged += OnHistorySizeChanged;
         LocationChanged += OnHistoryLocationChanged;
-        Loaded += (_, _) => PositionHistoryWindow();
+        Loaded += (_, _) =>
+        {
+            WindowAppearanceService.ConstrainToWorkingArea(this);
+            PositionHistoryWindow();
+        };
         QueueFilter(TimeSpan.Zero, resetScroll: true);
     }
 
@@ -56,11 +72,54 @@ public partial class MainWindow : Window
 
     public void ShowClipboardHistory()
     {
+        ApplyHistoryPresentation();
         _selectedKind = "Clipboard";
         SearchBox.Clear();
         TimeFilter.SelectedIndex = 0;
         UpdateKindPills();
         QueueFilter(TimeSpan.Zero, resetScroll: true);
+    }
+
+    public void ShowDefaultHistory()
+    {
+        ApplyHistoryPresentation();
+        _selectedKind = _settings.Current.HistoryDefaultFilter switch
+        {
+            "Scrolling" => "ScrollingScreenshot",
+            "Screenshot" or "Recording" or "Clipboard" => _settings.Current.HistoryDefaultFilter,
+            _ => "All"
+        };
+        SearchBox.Clear();
+        TimeFilter.SelectedIndex = 0;
+        UpdateKindPills();
+        QueueFilter(TimeSpan.Zero, resetScroll: true);
+    }
+
+    public void ShowHistoryFilter(string? filter)
+    {
+        ApplyHistoryPresentation();
+        _selectedKind = filter?.ToLowerInvariant() switch
+        {
+            "screenshot" => "Screenshot",
+            "scrolling" => "ScrollingScreenshot",
+            "recording" => "Recording",
+            "clipboard" => "Clipboard",
+            _ => "All"
+        };
+        SearchBox.Clear();
+        TimeFilter.SelectedIndex = 0;
+        UpdateKindPills();
+        QueueFilter(TimeSpan.Zero, resetScroll: true);
+    }
+
+    public void ApplyHistoryPresentation()
+    {
+        DataContext = _settings.Current;
+        RootBackground.LayoutTransform = new ScaleTransform(
+            _settings.Current.HistoryScale,
+            _settings.Current.HistoryScale);
+        ApplyHistoryBackgroundStyle();
+        if (IsLoaded) Dispatcher.BeginInvoke(PositionHistoryWindow);
     }
 
     public void ApplyHistoryBackgroundStyle()
@@ -77,21 +136,25 @@ public partial class MainWindow : Window
 
     private Rect CurrentWorkAreaInDips()
     {
-        var cursor = System.Windows.Forms.Cursor.Position;
-        var physical = System.Windows.Forms.Screen.FromPoint(cursor).WorkingArea;
-        var source = PresentationSource.FromVisual(this) as System.Windows.Interop.HwndSource;
-        if (source?.CompositionTarget is null) return SystemParameters.WorkArea;
-        var transform = source.CompositionTarget.TransformFromDevice;
-        var topLeft = transform.Transform(new System.Windows.Point(physical.Left, physical.Top));
-        var bottomRight = transform.Transform(new System.Windows.Point(physical.Right, physical.Bottom));
-        return new Rect(topLeft, bottomRight);
+        return WindowAppearanceService.WorkingAreaInDips(this);
     }
 
     private void PositionHistoryWindow()
     {
         var area = CurrentWorkAreaInDips();
-        var requestedLeft = _settings.Current.HistoryExpandedLeft ?? area.Left + (area.Width - Width) / 2;
-        var requestedTop = _settings.Current.HistoryExpandedTop ?? area.Top + (area.Height - Height) / 2;
+        const double gap = 24d;
+        var centeredLeft = area.Left + (area.Width - Width) / 2;
+        var centeredTop = area.Top + (area.Height - Height) / 2;
+        var (requestedLeft, requestedTop) = _settings.Current.HistoryPosition switch
+        {
+            "TopLeft" => (area.Left + gap, area.Top + gap),
+            "TopRight" => (area.Right - Width - gap, area.Top + gap),
+            "BottomLeft" => (area.Left + gap, area.Bottom - Height - gap),
+            "BottomRight" => (area.Right - Width - gap, area.Bottom - Height - gap),
+            "Center" => (centeredLeft, centeredTop),
+            _ => (_settings.Current.HistoryExpandedLeft ?? centeredLeft,
+                  _settings.Current.HistoryExpandedTop ?? centeredTop)
+        };
         Left = Math.Clamp(requestedLeft, area.Left, Math.Max(area.Left, area.Right - Width));
         Top = Math.Clamp(requestedTop, area.Top, Math.Max(area.Top, area.Bottom - Height));
     }
@@ -251,8 +314,7 @@ public partial class MainWindow : Window
     {
         var selected = HistoryItems.SelectedItems.Cast<CaptureHistoryItem>().ToArray();
         if (!ConfirmDeletion(selected.Length)) return;
-        foreach (var item in selected)
-            await _history.RemoveAsync(item, true);
+        await DeleteItemsAsync(selected);
     }
 
     private async void OnOpenItem(object sender, RoutedEventArgs e)
@@ -272,10 +334,24 @@ public partial class MainWindow : Window
         if ((sender as FrameworkElement)?.Tag is CaptureHistoryItem item) _controller.RestoreHistoryItem(item);
     }
 
+    private void OnShowItemMenu(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { ContextMenu: { } menu } button) return;
+        menu.PlacementTarget = button;
+        menu.IsOpen = true;
+        e.Handled = true;
+    }
+
+    private void OnHistoryMenuOpened(object sender, RoutedEventArgs e) => _openHistoryMenus++;
+    private void OnHistoryMenuClosed(object sender, RoutedEventArgs e) => _openHistoryMenus = Math.Max(0, _openHistoryMenus - 1);
+
     private async void OnClearHistory(object sender, RoutedEventArgs e)
     {
         if (LocalizedDialogService.Show(this, "清空剪贴板历史？已保存的截图和视频文件会保留。", "ShotPaste", MessageBoxButton.OKCancel, MessageBoxImage.Warning) == MessageBoxResult.OK)
-            await _history.ClearAsync();
+        {
+            var result = await _history.ClearAsync();
+            ShowRemovalFailures(result.Failures, result.RemovedCount, result.RequestedCount);
+        }
     }
 
     private async void OnKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -292,7 +368,7 @@ public partial class MainWindow : Window
         {
             var selected = HistoryItems.SelectedItems.Cast<CaptureHistoryItem>().ToArray();
             if (ConfirmDeletion(selected.Length))
-                foreach (var item in selected) await _history.RemoveAsync(item, true);
+                await DeleteItemsAsync(selected);
             e.Handled = true;
         }
         else if (e.Key == System.Windows.Input.Key.Enter && HistoryItems.SelectedItem is CaptureHistoryItem item)
@@ -303,7 +379,8 @@ public partial class MainWindow : Window
 
     private async void OnDeleteItem(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.Tag is CaptureHistoryItem item) await _history.RemoveAsync(item, true);
+        if ((sender as FrameworkElement)?.Tag is not CaptureHistoryItem item || !ConfirmDeletion(1)) return;
+        await DeleteItemsAsync([item]);
     }
 
     private void OnItemDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -314,12 +391,62 @@ public partial class MainWindow : Window
     private bool ConfirmDeletion(int count)
     {
         if (count <= 0) return false;
-        return LocalizedDialogService.Show(
+        return LocalizedDialogService.ShowCustom(
             this,
-            $"确定删除选中的 {count} 条剪贴板历史记录？托管的临时文件也会一并删除。",
-            "ShotPaste",
-            MessageBoxButton.OKCancel,
-            MessageBoxImage.Warning) == MessageBoxResult.OK;
+            $"确定删除选中的 {count} 条历史记录吗？由 ShotPaste 保存的文件会移入 Windows 回收站，可以恢复。",
+            "删除历史记录",
+            "移入回收站",
+            "取消",
+            MessageBoxImage.Warning) == MessageBoxResult.Yes;
+    }
+
+    private void OnKeepOpenChanged(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded) return;
+        _settings.Current.HistoryKeepOpen = KeepOpenCheckBox.IsChecked == true;
+        _settings.Save();
+    }
+
+    private void OnDeactivated(object? sender, EventArgs e)
+    {
+        if (_settings.Current.HistoryKeepOpen || !IsVisible || App.UiTestMode) return;
+        _ = Dispatcher.BeginInvoke(() =>
+        {
+            if (_settings.Current.HistoryKeepOpen || !IsVisible || IsActive || _openHistoryMenus > 0 ||
+                OwnedWindows.Cast<Window>().Any(window => window.IsVisible)) return;
+            Hide();
+        }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+    }
+
+    private async Task DeleteItemsAsync(IEnumerable<CaptureHistoryItem> items)
+    {
+        var requested = 0;
+        var removed = 0;
+        var failures = new List<HistoryRemovalFailure>();
+        foreach (var item in items)
+        {
+            requested++;
+            var result = await _history.RemoveAsync(item, true);
+            if (result.RecordRemoved) removed++;
+            failures.AddRange(result.Failures);
+        }
+        ShowRemovalFailures(failures, removed, requested);
+    }
+
+    private void ShowRemovalFailures(
+        IReadOnlyList<HistoryRemovalFailure> failures,
+        int removed,
+        int requested)
+    {
+        if (failures.Count == 0) return;
+        var detail = string.Join("\n", failures.Take(4).Select(failure =>
+            $"{Path.GetFileName(failure.Path)}：{failure.Message}"));
+        LocalizedDialogService.Show(
+            this,
+            $"已删除 {removed}/{requested} 条记录。其余项目未完成安全文件处理或历史数据库更新，对应记录仍保留，可重试。\n\n{detail}",
+            "部分项目删除失败",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
     }
 
     private void OnClosing(object? sender, CancelEventArgs e)

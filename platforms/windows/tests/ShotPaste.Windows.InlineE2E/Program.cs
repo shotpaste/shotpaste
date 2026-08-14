@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Windows.Automation;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Microsoft.Data.Sqlite;
 using Forms = System.Windows.Forms;
 using Drawing = System.Drawing;
 
@@ -35,8 +36,13 @@ internal static class Program
             {
                 ("done_enter", ScenarioAction.DoneWithEnter, true),
                 ("cancel_escape", ScenarioAction.CancelWithEscape, false),
+                ("dirty_return_discard", ScenarioAction.DirtyReturnAndDiscard, true),
+                ("dirty_save", ScenarioAction.DirtySave, true),
+                ("dirty_exit_return_discard", ScenarioAction.DirtyExitReturnAndDiscard, true),
+                ("dirty_exit_save", ScenarioAction.DirtyExitSave, true),
                 ("pin", ScenarioAction.Pin, false),
                 ("quick_access", ScenarioAction.QuickAccess, false),
+                ("quick_access_delete", ScenarioAction.QuickAccessDelete, false),
                 ("editor_removed", ScenarioAction.EditorRemoved, false),
                 ("copy_recovery", ScenarioAction.CopyRecovery, false),
                 ("selection_size_badge_default", ScenarioAction.SelectionSizeBadgeDefault, false),
@@ -307,6 +313,59 @@ internal static class Program
                         "Inline overlay did not close after Escape.");
                     detail = "Escape cancelled without output.";
                     break;
+                case ScenarioAction.DirtyReturnAndDiscard:
+                    SendKey(overlay, 0x1B);
+                    Thread.Sleep(250);
+                    if (FindByAutomationId(process.Id, "ShotPasteDialog") is null)
+                        SendKey(overlay, 0x1B);
+                    WaitForAutomationId(process.Id, "ShotPasteDialog");
+                    SaveDesktopScreenshot(Path.Combine(root, "dirty-escape-prompt.png"));
+                    Invoke(WaitForAutomationId(process.Id, "DialogTertiary"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "ShotPasteDialog") is null,
+                        "Return did not dismiss the unsaved-annotation prompt.");
+                    if (FindByAutomationId(process.Id, "OneShotCancel") is null)
+                        throw new InvalidOperationException("Return did not preserve the dirty annotation editor.");
+                    Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
+                    WaitForAutomationId(process.Id, "ShotPasteDialog");
+                    Invoke(WaitForAutomationId(process.Id, "DialogSecondary"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
+                        "Discard did not close the dirty annotation editor.");
+                    detail = "Escape offered Save/Discard/Return; Return preserved the editor and toolbar Cancel then discarded without output.";
+                    break;
+                case ScenarioAction.DirtySave:
+                    Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
+                    WaitForAutomationId(process.Id, "ShotPasteDialog");
+                    SaveDesktopScreenshot(Path.Combine(root, "dirty-save-prompt.png"));
+                    Invoke(WaitForAutomationId(process.Id, "DialogPrimary"));
+                    WaitForCaptureCount(captureDirectory, 1);
+                    WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
+                        "Save did not close the dirty annotation editor after the file was written.");
+                    detail = "Toolbar Cancel offered Save/Discard/Return and Save wrote one output before closing.";
+                    break;
+                case ScenarioAction.DirtyExitReturnAndDiscard:
+                    RequestUiTestExit(executable, root);
+                    WaitForAutomationId(process.Id, "ShotPasteDialog");
+                    SaveDesktopScreenshot(Path.Combine(root, "dirty-exit-prompt.png"));
+                    Invoke(WaitForAutomationId(process.Id, "DialogTertiary"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "ShotPasteDialog") is null,
+                        "Return did not dismiss the exit-time unsaved-annotation prompt.");
+                    if (process.HasExited || FindByAutomationId(process.Id, "InlineAnnotateWindow") is null)
+                        throw new InvalidOperationException("Return did not preserve the dirty editor during application exit.");
+                    RequestUiTestExit(executable, root);
+                    WaitForAutomationId(process.Id, "ShotPasteDialog");
+                    Invoke(WaitForAutomationId(process.Id, "DialogSecondary"));
+                    WaitUntil(() => process.HasExited, "Discard during application exit did not close ShotPaste.");
+                    detail = "Tray-equivalent exit offered Save/Discard/Return; Return preserved the editor and Discard then exited without output.";
+                    break;
+                case ScenarioAction.DirtyExitSave:
+                    RequestUiTestExit(executable, root);
+                    WaitForAutomationId(process.Id, "ShotPasteDialog");
+                    SaveDesktopScreenshot(Path.Combine(root, "dirty-exit-save-prompt.png"));
+                    Invoke(WaitForAutomationId(process.Id, "DialogPrimary"));
+                    WaitForCaptureCount(captureDirectory, 1);
+                    WaitUntil(() => process.HasExited, "Save during application exit did not finish the write and close ShotPaste.");
+                    detail = "Tray-equivalent exit saved the dirty annotation, committed history, and only then shut down.";
+                    break;
                 case ScenarioAction.Pin:
                     Invoke(WaitForAutomationId(process.Id, "OneShotPin"));
                     WaitForCaptureCount(captureDirectory, 1);
@@ -320,6 +379,12 @@ internal static class Program
                     var quickVerification = ExerciseQuickAccess(process.Id, root);
                     screenshot = quickVerification.Screenshot;
                     detail = $"Quick Access kept fixed action slots and resumed its saved countdown in {quickVerification.ResumeSeconds:0.00}s.";
+                    break;
+                case ScenarioAction.QuickAccessDelete:
+                    SendKey(overlay, 0x0D);
+                    WaitForCaptureCount(captureDirectory, 1);
+                    screenshot = ExerciseQuickAccessDelete(process.Id, root, captureDirectory);
+                    detail = "Quick Access delete required confirmation; Cancel retained the file and card, then confirmation moved the file to the Recycle Bin and removed history.";
                     break;
                 case ScenarioAction.EditorRemoved:
                     if (FindByAutomationId(process.Id, "InlineOpenEditor") is not null)
@@ -400,10 +465,11 @@ internal static class Program
             var captures = Directory.Exists(captureDirectory)
                 ? Directory.GetFiles(captureDirectory, "*.png")
                 : [];
-            var expectedCount = action is ScenarioAction.DoneWithEnter or ScenarioAction.Pin or ScenarioAction.QuickAccess or ScenarioAction.PerformanceBaseline ? 1 : 0;
+            var expectedCount = action is ScenarioAction.DoneWithEnter or ScenarioAction.DirtySave or ScenarioAction.DirtyExitSave or ScenarioAction.Pin or
+                ScenarioAction.QuickAccess or ScenarioAction.PerformanceBaseline ? 1 : 0;
             if (captures.Length != expectedCount)
                 throw new InvalidOperationException($"{name}: expected {expectedCount} output file(s), got {captures.Length}.");
-            var historyItems = HistoryItemCount(process.Id);
+            var historyItems = process.HasExited ? PersistedHistoryItemCount(database) : HistoryItemCount(process.Id);
             if (historyItems != expectedCount)
                 throw new InvalidOperationException($"{name}: expected {expectedCount} history item(s), got {historyItems}.");
 
@@ -692,6 +758,59 @@ internal static class Program
         return new QuickVerification(stopwatch.Elapsed.TotalSeconds, screenshot);
     }
 
+    private static string ExerciseQuickAccessDelete(int processId, string root, string captureDirectory)
+    {
+        var quick = WaitForAutomationId(processId, "QuickAccessWindow");
+        var bounds = quick.Current.BoundingRectangle;
+        Native.SetCursorPos((int)Math.Round(bounds.Left + bounds.Width / 2), (int)Math.Round(bounds.Top + bounds.Height / 2));
+        Thread.Sleep(350);
+
+        Invoke(WaitForAutomationId(processId, "QuickAccessDelete"));
+        WaitForAutomationId(processId, "ShotPasteDialog");
+        var screenshot = Path.Combine(root, "quick-access-delete-confirmation.png");
+        SaveDesktopScreenshot(screenshot);
+        Invoke(WaitForAutomationId(processId, "DialogSecondary"));
+        WaitUntil(() => FindByAutomationId(processId, "ShotPasteDialog") is null,
+            "Cancel did not dismiss the Quick Access deletion confirmation.");
+        if (Directory.GetFiles(captureDirectory, "*.png").Length != 1 ||
+            FindVisibleByAutomationId(processId, "QuickAccessWindow") is null)
+            throw new InvalidOperationException("Cancelling Quick Access deletion did not preserve both file and card.");
+
+        Invoke(WaitForAutomationId(processId, "QuickAccessDelete"));
+        WaitForAutomationId(processId, "ShotPasteDialog");
+        Invoke(WaitForAutomationId(processId, "DialogPrimary"));
+        WaitUntil(() => Directory.GetFiles(captureDirectory, "*.png").Length == 0,
+            "Confirmed Quick Access deletion did not move the saved screenshot out of its original path.");
+        WaitUntil(() => FindVisibleByAutomationId(processId, "QuickAccessWindow") is null,
+            "Quick Access card remained after confirmed deletion.");
+        return screenshot;
+    }
+
+    private static void RequestUiTestExit(string executable, string root)
+    {
+        using var forwarder = Process.Start(new ProcessStartInfo(executable)
+        {
+            UseShellExecute = false,
+            ArgumentList = { "--ui-test", "--data-root", root, "--ui-test-exit" }
+        }) ?? throw new InvalidOperationException("Could not start the UI-test exit forwarder.");
+        if (!forwarder.WaitForExit(5000))
+        {
+            forwarder.Kill(entireProcessTree: true);
+            throw new TimeoutException("UI-test exit command was not forwarded to the active product instance.");
+        }
+    }
+
+    private static int PersistedHistoryItemCount(string database)
+    {
+        if (!File.Exists(database)) return 0;
+        SqliteConnection.ClearAllPools();
+        using var connection = new SqliteConnection($"Data Source={database};Mode=ReadOnly");
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM history_items;";
+        return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+    }
+
     private static IntPtr PackPoint(Drawing.Point point) => new(unchecked((int)(
         ((uint)(ushort)point.Y << 16) | (ushort)point.X)));
 
@@ -721,13 +840,16 @@ internal static class Program
             SaveScreenshots = true,
             CopyScreenshots = false,
             CopyAfterCapture = false,
-            ShowQuickAccess = action == ScenarioAction.QuickAccess,
+            ShowQuickAccess = action is ScenarioAction.QuickAccess or ScenarioAction.QuickAccessDelete,
             QuickAccessAutoDismissSeconds = 3,
             PauseQuickAccessOnHover = true,
             QuickAccessPosition = "BottomRight",
-            QuickAccessActions = action == ScenarioAction.QuickAccess
-                ? new[] { "Copy", "Pin", "Close" }
-                : new[] { "Copy", "Save", "Pin", "Open", "Drag", "Close" },
+            QuickAccessActions = action switch
+            {
+                ScenarioAction.QuickAccess => new[] { "Copy", "None", "Pin", "None", "None", "Close" },
+                ScenarioAction.QuickAccessDelete => new[] { "Delete", "None", "None", "None", "None", "Close" },
+                _ => new[] { "Copy", "Save", "Pin", "Open", "Drag", "Close" }
+            },
             ClipboardHistoryEnabled = false,
             ShortcutsEnabled = false,
             ExcludeOwnApplicationFromScreenshots = true,
@@ -881,8 +1003,13 @@ internal static class Program
     {
         DoneWithEnter,
         CancelWithEscape,
+        DirtyReturnAndDiscard,
+        DirtySave,
+        DirtyExitReturnAndDiscard,
+        DirtyExitSave,
         Pin,
         QuickAccess,
+        QuickAccessDelete,
         EditorRemoved,
         CopyRecovery,
         SelectionSizeBadgeDefault,

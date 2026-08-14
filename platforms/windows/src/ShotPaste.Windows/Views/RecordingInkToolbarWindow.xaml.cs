@@ -21,9 +21,12 @@ public partial class RecordingInkToolbarWindow : Window
     public event EventHandler? CloseRequested;
     internal static uint CaptureExclusionAffinity => NativeMethods.WdaExcludeFromCapture;
 
-    public RecordingInkToolbarWindow(RecordingInkWindow ink)
+    private readonly RecordingToolbarWindow? _recordingToolbar;
+
+    public RecordingInkToolbarWindow(RecordingInkWindow ink, RecordingToolbarWindow? recordingToolbar = null)
     {
         _ink = ink;
+        _recordingToolbar = recordingToolbar;
         _initializing = true;
         InitializeComponent();
         WindowAppearanceService.Attach(this, WindowBackdropKind.Acrylic);
@@ -33,6 +36,17 @@ public partial class RecordingInkToolbarWindow : Window
         _initializing = false;
         SourceInitialized += OnSourceInitialized;
         Loaded += (_, _) => PositionNearCapture();
+        if (_recordingToolbar is not null)
+        {
+            Owner = _recordingToolbar;
+            _recordingToolbar.LocationChanged += OnOwnerGeometryChanged;
+            _recordingToolbar.SizeChanged += OnOwnerGeometryChanged;
+            Closed += (_, _) =>
+            {
+                _recordingToolbar.LocationChanged -= OnOwnerGeometryChanged;
+                _recordingToolbar.SizeChanged -= OnOwnerGeometryChanged;
+            };
+        }
     }
 
     private void OnSourceInitialized(object? sender, EventArgs e)
@@ -45,6 +59,15 @@ public partial class RecordingInkToolbarWindow : Window
     {
         if (PresentationSource.FromVisual(this) is not HwndSource source) return;
         var toDip = source.CompositionTarget.TransformFromDevice;
+        if (_recordingToolbar is not null)
+        {
+            var anchor = _recordingToolbar.GetPenAnchorBounds();
+            var work = _recordingToolbar.GetMonitorWorkingAreaInDips();
+            var origin = ResolveAnchoredPlacement(anchor, work, new System.Windows.Size(ActualWidth, ActualHeight));
+            Left = origin.X;
+            Top = origin.Y;
+            return;
+        }
         var bounds = _ink.CaptureBounds;
         var screen = Forms.Screen.FromRectangle(bounds);
         var captureTopLeft = toDip.Transform(new WpfPoint(bounds.Left, bounds.Top));
@@ -53,6 +76,20 @@ public partial class RecordingInkToolbarWindow : Window
         Left = Math.Clamp(captureTopLeft.X + 8, workTopLeft.X + 8, Math.Max(workTopLeft.X + 8, workBottomRight.X - ActualWidth - 8));
         var above = captureTopLeft.Y - ActualHeight - 8;
         Top = above >= workTopLeft.Y ? above : Math.Min(workBottomRight.Y - ActualHeight - 8, captureTopLeft.Y + 8);
+    }
+
+    private void OnOwnerGeometryChanged(object? sender, EventArgs e) => PositionNearCapture();
+
+    internal static WpfPoint ResolveAnchoredPlacement(Rect anchor, Rect workingArea, System.Windows.Size windowSize, double gap = 8)
+    {
+        var minimumLeft = workingArea.Left + gap;
+        var maximumLeft = Math.Max(minimumLeft, workingArea.Right - windowSize.Width - gap);
+        var left = Math.Clamp(anchor.Left + anchor.Width / 2 - windowSize.Width / 2, minimumLeft, maximumLeft);
+        var above = anchor.Top - windowSize.Height - gap;
+        var minimumTop = workingArea.Top + gap;
+        var maximumTop = Math.Max(minimumTop, workingArea.Bottom - windowSize.Height - gap);
+        var top = above >= minimumTop ? above : Math.Min(maximumTop, anchor.Bottom + gap);
+        return new WpfPoint(left, Math.Clamp(top, minimumTop, maximumTop));
     }
 
     private void OnTool(object sender, RoutedEventArgs e)
@@ -121,8 +158,4 @@ public partial class RecordingInkToolbarWindow : Window
     }
     private void OnClose(object sender, RoutedEventArgs e) => CloseRequested?.Invoke(this, EventArgs.Empty);
 
-    private void OnWindowMouseDown(object sender, MouseButtonEventArgs e)
-    {
-        if (e.ChangedButton == MouseButton.Left) DragMove();
-    }
 }

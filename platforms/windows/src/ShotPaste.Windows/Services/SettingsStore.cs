@@ -116,6 +116,22 @@ public sealed class SettingsStore
         settings.DiagnosticsRetentionDays = Math.Clamp(settings.DiagnosticsRetentionDays, 1, 30);
         settings.ScreenshotScale = settings.ScreenshotScale is 1 or 2 ? settings.ScreenshotScale : 0;
         settings.ScreenshotColorSpace = settings.ScreenshotColorSpace is "Auto" or "Srgb" or "DisplayP3" ? settings.ScreenshotColorSpace : "Auto";
+        settings.ScreenshotMagnifierZoom = Math.Clamp(settings.ScreenshotMagnifierZoom, 1, 20);
+        settings.AnnotationPrimaryColor = NormalizeColor(settings.AnnotationPrimaryColor, "#FFFF453A");
+        settings.AnnotationStrokeWidth = Math.Clamp(settings.AnnotationStrokeWidth, 1, 40);
+        settings.AnnotationFontSize = Math.Clamp(settings.AnnotationFontSize, 8, 96);
+        settings.AnnotationCornerRadius = Math.Clamp(settings.AnnotationCornerRadius, 0, 64);
+        settings.AnnotationToolSettings ??= [];
+        foreach (var tool in settings.AnnotationToolSettings.Values)
+        {
+            tool.Color = NormalizeColor(tool.Color, settings.AnnotationPrimaryColor);
+            tool.TextBackgroundColor = string.IsNullOrWhiteSpace(tool.TextBackgroundColor)
+                ? null
+                : NormalizeColor(tool.TextBackgroundColor, "#FFFFFFFF");
+            tool.StrokeWidth = Math.Clamp(tool.StrokeWidth, 1, 40);
+            tool.FontSize = Math.Clamp(tool.FontSize, 8, 96);
+            tool.CornerRadius = Math.Clamp(tool.CornerRadius, 0, 64);
+        }
         settings.OcrRecognitionLanguage = string.Equals(settings.OcrRecognitionLanguage, "Auto", StringComparison.OrdinalIgnoreCase) ||
                                           LocalizationService.SupportedLanguages.Any(option => option.Code.Equals(settings.OcrRecognitionLanguage, StringComparison.OrdinalIgnoreCase))
             ? settings.OcrRecognitionLanguage
@@ -128,6 +144,14 @@ public sealed class SettingsStore
         settings.HistoryBackgroundStyle = settings.HistoryBackgroundStyle is "Hud" or "Solid"
             ? settings.HistoryBackgroundStyle
             : "Hud";
+        settings.HistoryDefaultFilter = settings.HistoryDefaultFilter is "All" or "Screenshot" or "Scrolling" or "Recording" or "Clipboard"
+            ? settings.HistoryDefaultFilter
+            : "All";
+        settings.HistoryPosition = settings.HistoryPosition is "Remember" or "TopLeft" or "TopRight" or "BottomLeft" or "BottomRight" or "Center"
+            ? settings.HistoryPosition
+            : "Remember";
+        settings.HistoryScale = Math.Clamp(settings.HistoryScale, 0.75d, 1.5d);
+        settings.McpServerPort = Math.Clamp(settings.McpServerPort, 1024, 65535);
         settings.QuickAccessScale = Math.Clamp(settings.QuickAccessScale, 0.75, 1.5);
         settings.QuickAccessAutoDismissSeconds = Math.Clamp(settings.QuickAccessAutoDismissSeconds, 3, 30);
         settings.QuickAccessPosition = settings.QuickAccessPosition switch
@@ -172,6 +196,12 @@ public sealed class SettingsStore
             _ => "SpecialAndShortcuts"
         };
         settings.RecordingAnnotationFadeMilliseconds = Math.Clamp(settings.RecordingAnnotationFadeMilliseconds, 0, 5000);
+        settings.RecordingAnnotationTemporaryModifier = settings.RecordingAnnotationTemporaryModifier is "Shift" or "Control" or "Alt" or "None"
+            ? settings.RecordingAnnotationTemporaryModifier
+            : "Shift";
+        settings.RecordingAnnotationTemporaryClearMode = settings.RecordingAnnotationTemporaryClearMode is "Manual" or "AfterSeconds" or "MaximumCount"
+            ? settings.RecordingAnnotationTemporaryClearMode
+            : "Manual";
         settings.RecordingAnnotationToolPolicies ??= [];
         foreach (var tool in Enum.GetNames<RecordingAnnotationTool>())
         {
@@ -198,9 +228,16 @@ public sealed class SettingsStore
             StringComparer.OrdinalIgnoreCase);
         var seenActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         settings.QuickAccessActions = settings.QuickAccessActions
-            .Where(action => !string.IsNullOrWhiteSpace(action) && supportedQuickAccessActions.Contains(action))
-            .Where(action => action.Equals("None", StringComparison.OrdinalIgnoreCase) || seenActions.Add(action))
             .Take(6)
+            .Select(action => action switch
+            {
+                "Save" or "Open" => "SaveOrOpen",
+                _ when string.IsNullOrWhiteSpace(action) || !supportedQuickAccessActions.Contains(action) => "None",
+                _ => action
+            })
+            .Select(action => action.Equals("None", StringComparison.OrdinalIgnoreCase) || seenActions.Add(action)
+                ? action
+                : "None")
             .Concat(Enumerable.Repeat("None", 6))
             .Take(6)
             .ToList();

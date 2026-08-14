@@ -110,6 +110,18 @@ public partial class App : System.Windows.Application
 
     internal static void ConfigureDiagnostics(bool enabled) => DiagnosticsLoggingEnabled = enabled;
 
+    protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
+    {
+        var protectActiveSession = _controller?.HasProtectedWork == true;
+        if (protectActiveSession) e.Cancel = true;
+        base.OnSessionEnding(e);
+        if (protectActiveSession)
+        {
+            App.WriteQuickAccessLog($"Windows session ending ({e.ReasonSessionEnding}) was paused for recoverable work.");
+            _ = Dispatcher.BeginInvoke(() => _controller?.RequestSessionEnding());
+        }
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
         ThemeService.Shutdown();

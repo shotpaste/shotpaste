@@ -1,9 +1,11 @@
 using System.Diagnostics;
 using System.Drawing.Imaging;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows.Automation;
+using System.Windows.Media;
 using ShotPaste.Windows.Models;
 using ShotPaste.Windows.Services;
 using Drawing = System.Drawing;
@@ -19,11 +21,18 @@ internal static class Program
     {
         try
         {
-            if (args.Length < 1) throw new ArgumentException("Usage: LocalizationE2E <ShotPaste.exe> [output-root]");
+            if (args.Length < 1) throw new ArgumentException("Usage: LocalizationE2E <ShotPaste.exe> [output-root] [--require-dpi-scale=1.5]");
+            Native.SetProcessDpiAwarenessContext(new IntPtr(-4));
             var executable = Path.GetFullPath(args[0]);
             var outputRoot = Path.GetFullPath(args.ElementAtOrDefault(1) ??
                                               Path.Combine("build", "e2e", "localization"));
-            var result = RunAsync(executable, outputRoot).GetAwaiter().GetResult();
+            var requiredDpiScale = args.Skip(2)
+                .FirstOrDefault(argument => argument.StartsWith("--require-dpi-scale=", StringComparison.OrdinalIgnoreCase))?
+                .Split('=', 2).ElementAtOrDefault(1);
+            var result = RunAsync(executable, outputRoot,
+                double.TryParse(requiredDpiScale, NumberStyles.Float, CultureInfo.InvariantCulture, out var scale)
+                    ? scale
+                    : 0).GetAwaiter().GetResult();
             Directory.CreateDirectory(outputRoot);
             File.WriteAllText(Path.Combine(outputRoot, "summary.json"),
                 JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
@@ -37,20 +46,21 @@ internal static class Program
         }
     }
 
-    private static async Task<object> RunAsync(string executable, string outputRoot)
+    private static async Task<object> RunAsync(string executable, string outputRoot, double requiredDpiScale)
     {
         if (!File.Exists(executable)) throw new FileNotFoundException("Product executable was not found.", executable);
         Directory.CreateDirectory(outputRoot);
         var results = new List<object>();
         foreach (var language in LocalizationService.SupportedLanguages)
-            results.Add(await RunLocaleAsync(executable, outputRoot, language));
-        return new { Locales = results.Count, Results = results };
+            results.Add(await RunLocaleAsync(executable, outputRoot, language, requiredDpiScale));
+        return new { Locales = results.Count, RequiredDpiScale = requiredDpiScale, Results = results };
     }
 
     private static async Task<object> RunLocaleAsync(
         string executable,
         string outputRoot,
-        LocalizationService.LanguageOption language)
+        LocalizationService.LanguageOption language,
+        double requiredDpiScale)
     {
         var root = Path.Combine(outputRoot, language.Code);
         Directory.CreateDirectory(root);
@@ -61,9 +71,10 @@ internal static class Program
         }
         WriteSettings(root, language.Code);
 
-        var shellEvidence = await VerifyHistoryAndSettingsAsync(executable, root, language.Code);
-        var inlineEvidence = await VerifyInlineAsync(executable, root, language.Code);
-        var recordingEvidence = await VerifyOneShotRecordingAsync(executable, root, language.Code);
+        var shellEvidence = await VerifyHistoryAndSettingsAsync(executable, root, language.Code, requiredDpiScale);
+        var inlineEvidence = await VerifyInlineAsync(executable, root, language.Code, requiredDpiScale);
+        var recordingEvidence = await VerifyOneShotRecordingAsync(executable, root, language.Code, requiredDpiScale);
+        var auxiliaryEvidence = await VerifyAuxiliarySurfacesAsync(executable, root, language.Code, requiredDpiScale);
 
         var persisted = JsonSerializer.Deserialize<AppSettings>(
                             await File.ReadAllTextAsync(Path.Combine(root, "settings.json"))) ??
@@ -81,11 +92,16 @@ internal static class Program
             Shell = shellEvidence,
             Inline = inlineEvidence,
             OneShotRecording = recordingEvidence,
+            AuxiliarySurfaces = auxiliaryEvidence,
             PersistedLanguage = persisted.Language
         };
     }
 
-    private static async Task<object> VerifyHistoryAndSettingsAsync(string executable, string root, string language)
+    private static async Task<object> VerifyHistoryAndSettingsAsync(
+        string executable,
+        string root,
+        string language,
+        double requiredDpiScale)
     {
         using var product = Launch(executable, root, "--settings");
         try
@@ -97,6 +113,47 @@ internal static class Program
             AssertEqual(expectedHistoryTitle, history.Current.Name, language, "history title");
             AssertEqual(expectedSettingsTitle, settings.Current.Name, language, "settings title");
 
+            var actualDpiScale = Native.GetDpiForWindow(new IntPtr(settings.Current.NativeWindowHandle)) / 96d;
+            if (requiredDpiScale > 0 && Math.Abs(actualDpiScale - requiredDpiScale) > 0.04)
+                throw new InvalidOperationException(
+                    $"{language}: settings rendered at {actualDpiScale:0.##}x, required {requiredDpiScale:0.##}x.");
+
+            var pages = new[]
+            {
+                (Name: "general", Top: "SettingsGeneralTab", Inner: (string?)null),
+                (Name: "capture-screenshot", Top: "SettingsCaptureRecordingTab", Inner: "SettingsCaptureScreenshotSubtab"),
+                (Name: "capture-recording", Top: "SettingsCaptureRecordingTab", Inner: "SettingsCaptureRecordingSubtab"),
+                (Name: "capture-scrolling", Top: "SettingsCaptureRecordingTab", Inner: "SettingsCaptureScrollingSubtab"),
+                (Name: "quick-access", Top: "SettingsQuickAccessTab", Inner: (string?)null),
+                (Name: "history", Top: "SettingsHistoryTab", Inner: (string?)null),
+                (Name: "shortcuts", Top: "SettingsShortcutsTab", Inner: (string?)null),
+                (Name: "appearance", Top: "SettingsAppearanceTab", Inner: (string?)null),
+                (Name: "advanced", Top: "SettingsAdvancedTab", Inner: (string?)null)
+            };
+            var pageEvidence = new List<object>();
+            foreach (var page in pages)
+            {
+                Select(await WaitForAutomationIdAsync(product.Id, page.Top));
+                if (page.Inner is not null) Select(await WaitForAutomationIdAsync(product.Id, page.Inner));
+                await Task.Delay(240);
+                var pageNames = VisibleNames(settings);
+                AssertNoSimplifiedChineseLeak(pageNames, language);
+                var pageScreenshot = Path.Combine(root, $"settings-{page.Name}.png");
+                SaveElementScreenshot(settings, pageScreenshot);
+                var layout = AssertVisibleLayout(settings, language, page.Name, actualDpiScale);
+                pageEvidence.Add(new
+                {
+                    page.Name,
+                    VisibleNames = pageNames.Length,
+                    layout.VisibleInteractiveControls,
+                    layout.VisibleSingleLineTexts,
+                    Screenshot = pageScreenshot
+                });
+            }
+
+            Select(await WaitForAutomationIdAsync(product.Id, "SettingsCaptureRecordingTab"));
+            Select(await WaitForAutomationIdAsync(product.Id, "SettingsCaptureScreenshotSubtab"));
+            await Task.Delay(160);
             var names = VisibleNames(settings);
             var expectedSection = LocalizationService.TranslatePhrase("保存与截图后操作", language);
             var expectedSave = LocalizationService.TranslatePhrase("保存截图", language);
@@ -104,26 +161,41 @@ internal static class Program
             AssertContains(names, expectedSave, language, "settings checkbox");
             AssertNoSimplifiedChineseLeak(names, language);
 
-            var screenshot = Path.Combine(root, "settings-and-history.png");
-            SaveElementScreenshot(settings, screenshot);
+            Invoke(await WaitForAutomationIdAsync(product.Id, "SettingsSave"));
+            await WaitUntilAsync(() => FindByAutomationId(product.Id, "SettingsWindow") is null,
+                $"{language}: settings window did not close before history validation.");
+            await Task.Delay(180);
+            var historyNames = VisibleNames(history);
+            AssertNoSimplifiedChineseLeak(historyNames, language);
+            var historyScreenshot = Path.Combine(root, "history-window.png");
+            SaveElementScreenshot(history, historyScreenshot);
+            var historyLayout = AssertVisibleLayout(history, language, "history-window", actualDpiScale);
             return new
             {
                 HistoryTitle = history.Current.Name,
                 SettingsTitle = settings.Current.Name,
+                DpiScale = actualDpiScale,
                 ExpectedSection = expectedSection,
                 VisibleNames = names.Length,
-                Screenshot = screenshot
+                HistoryScreenshot = historyScreenshot,
+                HistoryVisibleInteractiveControls = historyLayout.VisibleInteractiveControls,
+                HistoryVisibleSingleLineTexts = historyLayout.VisibleSingleLineTexts,
+                Pages = pageEvidence
             };
         }
         finally { StopExactProcess(product); }
     }
 
-    private static async Task<object> VerifyInlineAsync(string executable, string root, string language)
+    private static async Task<object> VerifyInlineAsync(
+        string executable,
+        string root,
+        string language,
+        double requiredDpiScale)
     {
         using var product = Launch(executable, root, "--one-shot");
         try
         {
-            await WaitForAutomationIdAsync(product.Id, "InlineAnnotateWindow");
+            var overlay = await WaitForAutomationIdAsync(product.Id, "InlineAnnotateWindow");
             await DragAsync(new Drawing.Point(90, 430), new Drawing.Point(610, 760));
             var selection = await WaitForAutomationIdAsync(product.Id, "SelectionImage");
             var selectionBounds = selection.Current.BoundingRectangle;
@@ -134,15 +206,32 @@ internal static class Program
             if (!done.Current.HelpText.Equals(expectedHelp, StringComparison.Ordinal))
                 throw new InvalidOperationException(
                     $"{language}: inline Done help text mismatch: expected '{expectedHelp}', actual '{done.Current.HelpText}'.");
+            var dpiScale = AssertRequiredDpi(overlay, requiredDpiScale, language, "inline annotation");
+            var screenshot = Path.Combine(root, "inline-annotation.png");
+            SaveElementScreenshot(overlay, screenshot);
+            var layout = AssertVisibleLayout(overlay, language, "inline-annotation", dpiScale);
             Invoke(await WaitForAutomationIdAsync(product.Id, "OneShotCancel"));
             await WaitUntilAsync(() => FindByAutomationId(product.Id, "OneShotDone") is null,
                 $"{language}: inline window did not close after Cancel.");
-            return new { SelectionWidth = selectionBounds.Width, SelectionHeight = selectionBounds.Height, DoneHelpText = expectedHelp };
+            return new
+            {
+                SelectionWidth = selectionBounds.Width,
+                SelectionHeight = selectionBounds.Height,
+                DoneHelpText = expectedHelp,
+                DpiScale = dpiScale,
+                layout.VisibleInteractiveControls,
+                layout.VisibleSingleLineTexts,
+                Screenshot = screenshot
+            };
         }
         finally { StopExactProcess(product); }
     }
 
-    private static async Task<object> VerifyOneShotRecordingAsync(string executable, string root, string language)
+    private static async Task<object> VerifyOneShotRecordingAsync(
+        string executable,
+        string root,
+        string language,
+        double requiredDpiScale)
     {
         using var product = Launch(executable, root, "--one-shot");
         try
@@ -154,12 +243,76 @@ internal static class Program
             var expectedStart = LocalizationService.TranslatePhrase("开始录屏", language);
             AssertEqual(expectedStart, start.Current.Name, language, "One Shot recording start");
             var visibleNames = VisibleNames(overlay);
-            AssertContains(visibleNames, "MP4", language, "One Shot recording format");
-            AssertContains(visibleNames, "GIF", language, "One Shot recording format");
+            AssertContains(visibleNames, LocalizationService.TranslatePhrase("MP4", language), language,
+                "One Shot recording format");
+            AssertContains(visibleNames, LocalizationService.TranslatePhrase("GIF", language), language,
+                "One Shot recording format");
             AssertNoSimplifiedChineseLeak(visibleNames, language);
-            return new { Start = start.Current.Name, Controls = visibleNames.Length };
+            var dpiScale = AssertRequiredDpi(overlay, requiredDpiScale, language, "One Shot recording");
+            var screenshot = Path.Combine(root, "one-shot-recording.png");
+            SaveElementScreenshot(overlay, screenshot);
+            var layout = AssertVisibleLayout(overlay, language, "one-shot-recording", dpiScale);
+            return new
+            {
+                Start = start.Current.Name,
+                Controls = visibleNames.Length,
+                DpiScale = dpiScale,
+                layout.VisibleInteractiveControls,
+                layout.VisibleSingleLineTexts,
+                Screenshot = screenshot
+            };
         }
         finally { StopExactProcess(product); }
+    }
+
+    private static async Task<object> VerifyAuxiliarySurfacesAsync(
+        string executable,
+        string root,
+        string language,
+        double requiredDpiScale)
+    {
+        var plans = new[]
+        {
+            (Name: "ocr-card", Surface: "ocr", AutomationId: "OcrResultCard"),
+            (Name: "scrolling-save-recovery", Surface: "scrolling-recovery", AutomationId: "ScrollingProgressWindow"),
+            (Name: "recording-toolbar", Surface: "recording-toolbar", AutomationId: "RecordingToolbarWindow"),
+            (Name: "quick-access", Surface: "quick-access", AutomationId: "QuickAccessWindow"),
+            (Name: "dirty-dialog", Surface: "dialog", AutomationId: "ShotPasteDialog")
+        };
+        var evidence = new List<object>();
+        foreach (var plan in plans)
+        {
+            using var product = Launch(executable, root, $"--ui-test-surface={plan.Surface}");
+            try
+            {
+                var surface = await WaitForAutomationIdAsync(product.Id, plan.AutomationId);
+                if (plan.Surface == "quick-access")
+                {
+                    var bounds = surface.Current.BoundingRectangle;
+                    Native.SetCursorPos((int)Math.Round(bounds.Left + bounds.Width / 2),
+                        (int)Math.Round(bounds.Top + bounds.Height / 2));
+                    await Task.Delay(220);
+                }
+                var dpiScale = AssertRequiredDpi(surface, requiredDpiScale, language, plan.Name);
+                var names = VisibleNames(surface);
+                AssertNoSimplifiedChineseLeak(names, language);
+                var screenshot = Path.Combine(root, $"{plan.Name}.png");
+                SaveElementScreenshot(surface, screenshot);
+                var layout = AssertVisibleLayout(surface, language, plan.Name, dpiScale);
+                evidence.Add(new
+                {
+                    plan.Name,
+                    plan.AutomationId,
+                    DpiScale = dpiScale,
+                    VisibleNames = names.Length,
+                    layout.VisibleInteractiveControls,
+                    layout.VisibleSingleLineTexts,
+                    Screenshot = screenshot
+                });
+            }
+            finally { StopExactProcess(product); }
+        }
+        return new { Count = evidence.Count, Surfaces = evidence };
     }
 
     private static Process Launch(string executable, string root, string command) =>
@@ -246,6 +399,135 @@ internal static class Program
     private static void Invoke(AutomationElement element) =>
         ((InvokePattern)element.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
 
+    private static void Select(AutomationElement element)
+    {
+        if (element.GetCurrentPattern(SelectionItemPattern.Pattern) is not SelectionItemPattern pattern)
+            throw new InvalidOperationException($"{element.Current.AutomationId} does not support SelectionItemPattern.");
+        pattern.Select();
+    }
+
+    private static double AssertRequiredDpi(
+        AutomationElement window,
+        double requiredDpiScale,
+        string language,
+        string surface)
+    {
+        var actual = Native.GetDpiForWindow(new IntPtr(window.Current.NativeWindowHandle)) / 96d;
+        if (requiredDpiScale > 0 && Math.Abs(actual - requiredDpiScale) > 0.04)
+            throw new InvalidOperationException(
+                $"{language}: {surface} rendered at {actual:0.##}x, required {requiredDpiScale:0.##}x.");
+        return actual;
+    }
+
+    private static (int VisibleInteractiveControls, int VisibleSingleLineTexts) AssertVisibleLayout(
+        AutomationElement window,
+        string language,
+        string page,
+        double dpiScale)
+    {
+        var windowBounds = window.Current.BoundingRectangle;
+        var screen = System.Windows.Forms.Screen.FromHandle(new IntPtr(window.Current.NativeWindowHandle));
+        var screenWorkArea = screen.WorkingArea;
+        const double workAreaTolerance = 3d;
+        var permittedArea = page is "inline-annotation" or "one-shot-recording"
+            ? screen.Bounds
+            : screenWorkArea;
+        if (windowBounds.Left < permittedArea.Left - workAreaTolerance ||
+            windowBounds.Top < permittedArea.Top - workAreaTolerance ||
+            windowBounds.Right > permittedArea.Right + workAreaTolerance ||
+            windowBounds.Bottom > permittedArea.Bottom + workAreaTolerance)
+            throw new InvalidOperationException(
+                $"{language}/{page}: window {windowBounds} exceeds permitted monitor area {permittedArea} at {dpiScale:0.##}x.");
+        var footerAction = window.FindFirst(TreeScope.Descendants,
+            new PropertyCondition(AutomationElement.AutomationIdProperty, "SettingsSave"));
+        var contentViewportBottom = footerAction?.Current.BoundingRectangle.Top ?? windowBounds.Bottom;
+        var elements = window.FindAll(TreeScope.Descendants, Condition.TrueCondition)
+            .Cast<AutomationElement>()
+            .Where(element => !element.Current.IsOffscreen)
+            .Select(element => (Element: element, Bounds: element.Current.BoundingRectangle))
+            .Where(item => item.Bounds.Width > 1 && item.Bounds.Height > 1)
+            .Where(item => item.Bounds.Left + item.Bounds.Width / 2 >= windowBounds.Left &&
+                           item.Bounds.Left + item.Bounds.Width / 2 <= windowBounds.Right &&
+                           item.Bounds.Top + item.Bounds.Height / 2 >= windowBounds.Top &&
+                           item.Bounds.Top + item.Bounds.Height / 2 <= windowBounds.Bottom)
+            .Where(item => item.Bounds.Bottom <= contentViewportBottom + 1 ||
+                           item.Element.Current.AutomationId == "SettingsSave")
+            .ToArray();
+        foreach (var item in elements)
+        {
+            const double tolerance = 2.5;
+            if (item.Bounds.Left < windowBounds.Left - tolerance ||
+                item.Bounds.Right > windowBounds.Right + tolerance)
+                throw new InvalidOperationException(
+                    $"{language}/{page}: '{item.Element.Current.Name}' ({item.Element.Current.ControlType.ProgrammaticName}) is clipped horizontally by the settings window: {item.Bounds} outside {windowBounds}.");
+        }
+
+        var interactiveTypes = new HashSet<ControlType>
+        {
+            ControlType.Button, ControlType.CheckBox, ControlType.ComboBox, ControlType.Edit,
+            ControlType.Hyperlink, ControlType.RadioButton, ControlType.Slider, ControlType.TabItem
+        };
+        var interactive = elements.Where(item => interactiveTypes.Contains(item.Element.Current.ControlType)).ToArray();
+        for (var left = 0; left < interactive.Length; left++)
+        for (var right = left + 1; right < interactive.Length; right++)
+        {
+            var first = interactive[left];
+            var second = interactive[right];
+            if (Contains(first.Bounds, second.Bounds) || Contains(second.Bounds, first.Bounds)) continue;
+            var overlapWidth = Math.Min(first.Bounds.Right, second.Bounds.Right) - Math.Max(first.Bounds.Left, second.Bounds.Left);
+            var overlapHeight = Math.Min(first.Bounds.Bottom, second.Bounds.Bottom) - Math.Max(first.Bounds.Top, second.Bounds.Top);
+            if (overlapWidth > 3 && overlapHeight > 3)
+                throw new InvalidOperationException(
+                    $"{language}/{page}: interactive controls overlap: '{first.Element.Current.Name}' {first.Bounds} and '{second.Element.Current.Name}' {second.Bounds}.");
+        }
+
+        var singleLineTexts = elements.Where(item =>
+                item.Element.Current.ControlType == ControlType.Text &&
+                !string.IsNullOrWhiteSpace(item.Element.Current.Name) &&
+                item.Bounds.Height <= 25 * dpiScale)
+            .ToArray();
+        foreach (var item in singleLineTexts)
+        {
+            var text = item.Element.Current.Name.Trim();
+            var (fontFamily, fontSize) = AutomationFont(item.Element);
+            var formatted = new FormattedText(text, CultureInfo.CurrentUICulture, System.Windows.FlowDirection.LeftToRight,
+                new Typeface(fontFamily), fontSize, System.Windows.Media.Brushes.Black, Math.Max(1, dpiScale));
+            var availableWidthInDips = item.Bounds.Width / Math.Max(1, dpiScale);
+            var fallbackTolerance = text.Any(character => character is >= '\u3400' and <= '\u9fff' ||
+                                                           character is >= '\u3040' and <= '\u30ff' ||
+                                                           character is >= '\uac00' and <= '\ud7af')
+                ? Math.Max(6, availableWidthInDips * 0.80)
+                : Math.Max(4, availableWidthInDips * 0.20);
+            if (formatted.WidthIncludingTrailingWhitespace > availableWidthInDips + fallbackTolerance)
+                throw new InvalidOperationException(
+                    $"{language}/{page}: single-line text appears truncated: '{text}' needs {formatted.WidthIncludingTrailingWhitespace:0.#} DIP but has {availableWidthInDips:0.#} DIP at {fontSize:0.#}pt {fontFamily}.");
+        }
+        return (interactive.Length, singleLineTexts.Length);
+    }
+
+    private static bool Contains(System.Windows.Rect outer, System.Windows.Rect inner) =>
+        inner.Left >= outer.Left - 1 && inner.Top >= outer.Top - 1 &&
+        inner.Right <= outer.Right + 1 && inner.Bottom <= outer.Bottom + 1;
+
+    private static (string Family, double Size) AutomationFont(AutomationElement element)
+    {
+        try
+        {
+            if (!element.TryGetCurrentPattern(TextPattern.Pattern, out var raw) || raw is not TextPattern pattern)
+                return ("Segoe UI", 12d);
+            var range = pattern.DocumentRange;
+            var familyValue = range.GetAttributeValue(TextPattern.FontNameAttribute);
+            var sizeValue = range.GetAttributeValue(TextPattern.FontSizeAttribute);
+            var family = familyValue as string;
+            var size = sizeValue is double value && value is >= 6d and <= 72d ? value : 12d;
+            return (string.IsNullOrWhiteSpace(family) ? "Segoe UI" : family, size);
+        }
+        catch (InvalidOperationException)
+        {
+            return ("Segoe UI", 12d);
+        }
+    }
+
     private static async Task DragAsync(Drawing.Point start, Drawing.Point end)
     {
         Native.SetThreadDpiAwarenessContext(new IntPtr(-4));
@@ -300,10 +582,10 @@ internal static class Program
         if (language == "zh-CN") return;
         var combined = string.Join("\n", names);
         var forbidden = language == "zh-TW"
-            ? new[] { "设置", "录制", "截图", "选择目录", "历史记录", "剪贴板历史" }
+            ? new[] { "设置", "录制", "截图", "选择目录", "选择位置", "重试保存", "历史记录", "剪贴板历史" }
             : language is "ja-JP" or "ko-KR"
-                ? new[] { "保存与截图后操作", "复制到剪贴板", "还没有符合条件的记录", "历史记录", "剪贴板历史" }
-                : new[] { "保存与截图后操作", "保存截图", "复制到剪贴板", "还没有符合条件的记录", "历史记录", "剪贴板历史" };
+                ? new[] { "保存与截图后操作", "复制到剪贴板", "还没有符合条件的记录", "选择位置", "重试保存", "保持打开", "历史记录", "剪贴板历史" }
+                : new[] { "保存与截图后操作", "保存截图", "复制到剪贴板", "还没有符合条件的记录", "选择位置", "重试保存", "保持打开", "历史记录", "剪贴板历史" };
         var leaked = forbidden.FirstOrDefault(combined.Contains);
         if (leaked is not null)
         {
@@ -332,6 +614,13 @@ internal static class Program
 
         [DllImport("user32.dll")]
         internal static extern IntPtr SetThreadDpiAwarenessContext(IntPtr value);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool SetProcessDpiAwarenessContext(IntPtr value);
+
+        [DllImport("user32.dll")]
+        internal static extern uint GetDpiForWindow(IntPtr window);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]

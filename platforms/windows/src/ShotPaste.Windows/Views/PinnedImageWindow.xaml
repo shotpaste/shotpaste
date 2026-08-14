@@ -4,6 +4,7 @@
         Width="480" Height="320" MinWidth="180" MinHeight="120" WindowStyle="None"
         ResizeMode="CanResizeWithGrip" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" Topmost="True" MouseWheel="OnMouseWheel" MouseLeftButtonDown="OnMouseDown" KeyDown="OnKeyDown"
+        IsManipulationEnabled="True" ManipulationDelta="OnManipulationDelta"
         AutomationProperties.AutomationId="PinnedImageWindow">
   <Border CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource Pinned.BackgroundBrush}" BorderBrush="{DynamicResource Pinned.BorderBrush}" BorderThickness="1">
     <Grid>

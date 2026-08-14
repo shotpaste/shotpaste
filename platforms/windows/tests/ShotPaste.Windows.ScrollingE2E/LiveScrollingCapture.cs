@@ -187,6 +187,8 @@ internal static class LiveScrollingCapture
         try
         {
             hud.ShowReady(region);
+            hud.Show();
+            hud.UpdateLayout();
             var primary = hud.FindName("PrimaryButton") as Button ??
                           throw new InvalidOperationException("Scrolling HUD primary button was not created.");
             var cancel = hud.FindName("CancelButton") as Button ??
@@ -222,10 +224,17 @@ internal static class LiveScrollingCapture
             if (!Equals(primary.Content, "保存中") || primary.IsEnabled || cancel.IsEnabled ||
                 autoScroll.IsEnabled || !hud.IsInteractionLocked)
                 throw new InvalidOperationException("Scrolling HUD did not enter the locked saving state.");
+
+            var recovery = hud.WaitForSaveRecoveryActionAsync("Injected save failure for lifecycle verification.");
+            hud.Close();
+            if (!recovery.Wait(TimeSpan.FromSeconds(2)) || recovery.Result != ScrollingSaveRecoveryAction.Discard)
+                throw new InvalidOperationException("External close did not complete the scrolling save-recovery wait.");
+            if (!hud.IsVisible)
+                throw new InvalidOperationException("External close destroyed the in-memory scrolling recovery HUD.");
         }
         finally
         {
-            hud.Close();
+            hud.CloseAfterWorkflow();
         }
     }
 

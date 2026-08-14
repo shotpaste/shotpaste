@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -129,6 +130,7 @@ public partial class RecordingToolbarWindow : Window
         _pulse ??= (Storyboard)FindResource("RecordingPulseStoryboard");
         _pulse.Stop(this);
         StatusDot.Opacity = 1;
+        if (AccessibilityPreferences.ReduceMotion) return;
         _pulse.Begin(this, true);
     }
 
@@ -151,6 +153,8 @@ public partial class RecordingToolbarWindow : Window
         _displayedPaused = paused;
         PauseGlyph.Content = FindResource(paused ? "Icon.Resume" : "Icon.Pause");
         PauseButton.ToolTip = paused ? "继续录制" : "暂停录制";
+        AutomationProperties.SetName(PauseButton,
+            LocalizationService.TranslatePhrase(paused ? "继续录制" : "暂停录制"));
         StatusDot.Fill = (System.Windows.Media.Brush)FindResource(paused ? "WarningBrush" : "Annotation.RedBrush");
         if (paused) _pulse?.Stop(this);
         StatusDot.Opacity = paused ? 0.55 : 1;
@@ -160,6 +164,30 @@ public partial class RecordingToolbarWindow : Window
     {
         PenButton.Background = (System.Windows.Media.Brush)FindResource(active ? "HudSelectedBrush" : "HudInputBrush");
         PenButton.ToolTip = active ? "关闭标注" : "在录制画面上标注";
+        AutomationProperties.SetName(PenButton,
+            LocalizationService.TranslatePhrase(active ? "关闭录屏标注" : "打开录屏标注"));
+    }
+    internal Rect GetPenAnchorBounds()
+    {
+        if (!PenButton.IsLoaded) return new Rect(Left, Top, 0, 0);
+        var topLeft = PenButton.PointToScreen(new WpfPoint(0, 0));
+        var bottomRight = PenButton.PointToScreen(new WpfPoint(PenButton.ActualWidth, PenButton.ActualHeight));
+        if (PresentationSource.FromVisual(this) is HwndSource source)
+        {
+            topLeft = source.CompositionTarget.TransformFromDevice.Transform(topLeft);
+            bottomRight = source.CompositionTarget.TransformFromDevice.Transform(bottomRight);
+        }
+        return new Rect(topLeft, bottomRight);
+    }
+    internal Rect GetMonitorWorkingAreaInDips()
+    {
+        var handle = new WindowInteropHelper(this).Handle;
+        var screen = handle == IntPtr.Zero ? Forms.Screen.FromPoint(Forms.Cursor.Position) : Forms.Screen.FromHandle(handle);
+        var transform = (PresentationSource.FromVisual(this) as HwndSource)?
+            .CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
+        var topLeft = transform.Transform(new WpfPoint(screen.WorkingArea.Left, screen.WorkingArea.Top));
+        var bottomRight = transform.Transform(new WpfPoint(screen.WorkingArea.Right, screen.WorkingArea.Bottom));
+        return new Rect(topLeft, bottomRight);
     }
     private void OnWindowMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e) { if (e.ChangedButton == System.Windows.Input.MouseButton.Left) DragMove(); }
     private void OnStop(object sender, RoutedEventArgs e) => StopRequested?.Invoke(this, EventArgs.Empty);

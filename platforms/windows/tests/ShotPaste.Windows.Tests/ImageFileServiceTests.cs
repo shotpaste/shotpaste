@@ -53,4 +53,31 @@ public sealed class ImageFileServiceTests
             if (File.Exists(path)) File.Delete(path);
         }
     }
+
+    [Fact]
+    public void SaveToPath_LockedDestinationPreservesExistingFileAndCleansTemporaryOutput()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "ShotPasteAtomicSaveTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var path = Path.Combine(root, "capture.png");
+        File.WriteAllText(path, "original");
+        var service = new ImageFileService(new SettingsStore(new AppSettings { ScreenshotColorSpace = "Srgb" }));
+        using var source = new Bitmap(24, 16);
+        using (var graphics = Graphics.FromImage(source)) graphics.Clear(Color.CornflowerBlue);
+        try
+        {
+            Exception? failure;
+            using (new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                failure = Record.Exception(() => service.SaveToPath(source, path));
+
+            Assert.True(failure is IOException or UnauthorizedAccessException,
+                $"Expected a locked-file failure, received {failure?.GetType().Name ?? "no exception"}.");
+            Assert.Equal("original", File.ReadAllText(path));
+            Assert.Empty(Directory.EnumerateFiles(root, ".*.tmp"));
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
 }

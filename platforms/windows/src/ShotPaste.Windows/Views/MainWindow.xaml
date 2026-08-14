@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:ShotPaste.Windows.Controls"
         AutomationProperties.AutomationId="HistoryWindow" Title="ShotPaste · 剪贴板历史" Width="980" Height="680" MinWidth="860" MinHeight="520"
-        WindowStartupLocation="CenterScreen" WindowStyle="None" Closing="OnClosing" KeyDown="OnKeyDown">
+        WindowStartupLocation="Manual" WindowStyle="None" Closing="OnClosing" KeyDown="OnKeyDown" Deactivated="OnDeactivated">
   <Window.Resources>
     <Style x:Key="HistoryToolbarButton" TargetType="Button">
       <Setter Property="MinHeight" Value="{DynamicResource Control.MinHeight}"/>
@@ -133,11 +133,23 @@
         </ControlTemplate></Setter.Value>
       </Setter>
     </Style>
+    <ContextMenu x:Key="HistoryItemContextMenu" x:Shared="False"
+                 DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                 Opened="OnHistoryMenuOpened" Closed="OnHistoryMenuClosed">
+      <MenuItem Header="恢复" AutomationProperties.Name="恢复历史项目" Tag="{Binding}" Click="OnRestoreItem"/>
+      <MenuItem Header="复制" AutomationProperties.Name="复制历史项目" Tag="{Binding}" Click="OnCopyItem"/>
+      <MenuItem Header="打开" AutomationProperties.AutomationId="HistoryOpenItem" AutomationProperties.Name="打开历史项目" Tag="{Binding}" Click="OnOpenItem"/>
+      <Separator/>
+      <MenuItem Header="移入回收站…" AutomationProperties.AutomationId="HistoryDeleteItem" AutomationProperties.Name="删除历史项目" Tag="{Binding}" Click="OnDeleteItem"
+                Foreground="{DynamicResource DangerBrush}"/>
+    </ContextMenu>
     <DataTemplate x:Key="ExpandedHistoryCardTemplate">
       <Border x:Name="Card" Width="270" Height="218" CornerRadius="{DynamicResource Radius.Card}" Background="{DynamicResource SurfaceBrush}"
-              BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" ClipToBounds="True">
+              BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" ClipToBounds="True"
+              ContextMenu="{StaticResource HistoryItemContextMenu}"
+              AutomationProperties.HelpText="右键或使用更多按钮可恢复、复制、打开或移入回收站">
         <Grid>
-          <Grid.RowDefinitions><RowDefinition Height="122"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <Grid.RowDefinitions><RowDefinition Height="148"/><RowDefinition Height="*"/></Grid.RowDefinitions>
           <Grid Background="{DynamicResource SurfaceSecondaryBrush}">
             <Image Source="{Binding PreviewSource}" Stretch="UniformToFill"/>
             <TextBlock x:Name="FallbackPreview" Text="{Binding PreviewText}" TextWrapping="Wrap"
@@ -150,36 +162,11 @@
               <TextBlock Text="{Binding Title}" Foreground="{DynamicResource TextBrush}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
               <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
             </StackPanel>
+            <Button Grid.Column="1" Content="⋯" FontSize="18"
+                    Style="{StaticResource HistoryHeaderIconButton}" Tag="{Binding}" Click="OnShowItemMenu"
+                    ContextMenu="{StaticResource HistoryItemContextMenu}" AutomationProperties.AutomationId="HistoryMoreActions"
+                    AutomationProperties.Name="更多历史操作"/>
           </Grid>
-          <Border Grid.Row="2" BorderBrush="{DynamicResource MenuSeparatorBrush}" BorderThickness="0,1,0,0" Padding="7,6,7,7">
-            <UniformGrid Columns="4">
-              <Button Style="{StaticResource HistoryCardAction}" AutomationProperties.Name="恢复" Tag="{Binding}" Click="OnRestoreItem">
-                <StackPanel Orientation="Horizontal">
-                  <ContentControl Content="{StaticResource Icon.Refresh}" ContentTemplate="{StaticResource Icon.CompactTemplate}" VerticalAlignment="Center"/>
-                  <TextBlock Text="恢复" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
-              </Button>
-              <Button Style="{StaticResource HistoryCardAction}" AutomationProperties.Name="复制" Tag="{Binding}" Click="OnCopyItem">
-                <StackPanel Orientation="Horizontal">
-                  <ContentControl Content="{StaticResource Icon.Copy}" ContentTemplate="{StaticResource Icon.CompactTemplate}" VerticalAlignment="Center"/>
-                  <TextBlock Text="复制" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
-              </Button>
-              <Button AutomationProperties.AutomationId="HistoryOpenItem" AutomationProperties.Name="打开"
-                      Style="{StaticResource HistoryCardAction}" Tag="{Binding}" Click="OnOpenItem">
-                <StackPanel Orientation="Horizontal">
-                  <ContentControl Content="{StaticResource Icon.Open}" ContentTemplate="{StaticResource Icon.CompactTemplate}" VerticalAlignment="Center"/>
-                  <TextBlock Text="打开" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
-              </Button>
-              <Button Style="{StaticResource HistoryCardDangerAction}" AutomationProperties.Name="删除" Tag="{Binding}" Click="OnDeleteItem">
-                <StackPanel Orientation="Horizontal">
-                  <ContentControl Content="{StaticResource Icon.Delete}" ContentTemplate="{StaticResource Icon.CompactTemplate}" VerticalAlignment="Center"/>
-                  <TextBlock Text="删除" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
-              </Button>
-            </UniformGrid>
-          </Border>
         </Grid>
       </Border>
       <DataTemplate.Triggers>
@@ -244,6 +231,9 @@
           <Button Content="{StaticResource Icon.Settings}" ContentTemplate="{StaticResource Icon.Template}"
                   Style="{StaticResource HistoryHeaderIconButton}" ToolTip="设置" Click="OnSettings"
                   AutomationProperties.AutomationId="HistorySettings" AutomationProperties.Name="设置"/>
+          <CheckBox x:Name="KeepOpenCheckBox" Content="保持打开" IsChecked="{Binding HistoryKeepOpen}"
+                    Style="{DynamicResource HudCheckBox}" Foreground="{DynamicResource TextBrush}" Margin="8,0,4,0"
+                    Checked="OnKeepOpenChanged" Unchecked="OnKeepOpenChanged" AutomationProperties.Name="保持历史窗口打开"/>
         </StackPanel>
       </Border>
     </Grid>
@@ -252,8 +242,11 @@
       <Border x:Name="KindFilterGroup" HorizontalAlignment="Left" Padding="3" CornerRadius="{DynamicResource Radius.Lg}"
               Background="{DynamicResource SurfaceSecondaryBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1">
         <StackPanel Orientation="Horizontal">
+          <Button Tag="All" Style="{StaticResource HistorySegmentButton}" Click="OnKindPill" AutomationProperties.Name="全部">
+            <TextBlock Text="全部" Margin="4,0"/>
+          </Button>
           <Button x:Name="ScreenshotFilter" Tag="Screenshot" Style="{StaticResource HistorySegmentButton}" Click="OnKindPill"
-                  AutomationProperties.Name="截图">
+                  AutomationProperties.AutomationId="ScreenshotHistoryFilter" AutomationProperties.Name="截图">
             <StackPanel Orientation="Horizontal">
               <ContentControl Content="{StaticResource Icon.Screenshot}" ContentTemplate="{StaticResource Icon.Template}" VerticalAlignment="Center"/>
               <TextBlock Text="截图" Margin="6,0,0,0" VerticalAlignment="Center"/>

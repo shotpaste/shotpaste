@@ -13,23 +13,54 @@ namespace ShotPaste.Windows.Views;
 public partial class SettingsWindow : Window
 {
     private readonly SettingsStore _store;
+    private readonly Action? _settingsApplied;
     private readonly AppUpdateService _updateService = new();
     private AppSettings _draft;
     private Uri? _availableUpdatePageUri;
+    private System.Windows.Point _quickActionDragOrigin;
+    private int _quickActionDragIndex = -1;
+    private readonly System.Windows.Threading.DispatcherTimer _liveApplyTimer = new()
+    {
+        Interval = TimeSpan.FromMilliseconds(180)
+    };
+    private bool _readyForLiveApply;
+    private bool _refreshingBindings;
 
-    public SettingsWindow(SettingsStore store, string? initialTab = null)
+    public SettingsWindow(SettingsStore store, string? initialTab = null, Action? settingsApplied = null)
     {
         InitializeComponent();
         WindowAppearanceService.Attach(this, WindowBackdropKind.Mica);
         _store = store;
+        _settingsApplied = settingsApplied;
         _draft = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(store.Current)) ?? new AppSettings();
         DataContext = _draft;
         UpdateStatus.Text = $"{LocalizedDialogService.Text("当前版本")}: {_updateService.CurrentVersionString}";
         SelectInitialTab(initialTab);
         Loaded += async (_, _) =>
         {
+            WindowAppearanceService.ConstrainToWorkingArea(this);
             UpdateUrlSchemeLabel();
+            UpdateQuickAccessPreview();
+            await RefreshHistoryStorageAsync();
             await RefreshRecordingFormatSupportAsync();
+            _readyForLiveApply = true;
+        };
+        _liveApplyTimer.Tick += (_, _) =>
+        {
+            _liveApplyTimer.Stop();
+            _ = TryApplyDraft(showErrors: false);
+        };
+        AddHandler(System.Windows.Controls.Primitives.ToggleButton.CheckedEvent, new RoutedEventHandler(OnLiveSettingChanged));
+        AddHandler(System.Windows.Controls.Primitives.ToggleButton.UncheckedEvent, new RoutedEventHandler(OnLiveSettingChanged));
+        AddHandler(System.Windows.Controls.Primitives.Selector.SelectionChangedEvent,
+            new System.Windows.Controls.SelectionChangedEventHandler(OnLiveSelectionChanged));
+        AddHandler(System.Windows.Controls.Primitives.RangeBase.ValueChangedEvent,
+            new RoutedPropertyChangedEventHandler<double>(OnLiveRangeChanged));
+        AddHandler(Keyboard.LostKeyboardFocusEvent, new KeyboardFocusChangedEventHandler(OnLiveKeyboardFocusLost));
+        Closed += (_, _) =>
+        {
+            _liveApplyTimer.Stop();
+            if (_readyForLiveApply) _ = TryApplyDraft(showErrors: false);
         };
     }
 
@@ -40,6 +71,35 @@ public partial class SettingsWindow : Window
             "shotpaste://",
             $"{AppBuildIdentity.Current.UrlScheme}://",
             StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void OnCopyMcpConfiguration(object sender, RoutedEventArgs e)
+    {
+        EnsureMcpToken();
+        var configuration = JsonSerializer.Serialize(new
+        {
+            mcpServers = new Dictionary<string, object>
+            {
+                ["shotpaste"] = new
+                {
+                    url = $"http://127.0.0.1:{_draft.McpServerPort}/mcp",
+                    headers = new Dictionary<string, string>
+                    {
+                        ["Authorization"] = $"Bearer {_draft.McpServerAuthToken}"
+                    }
+                }
+            }
+        }, new JsonSerializerOptions { WriteIndented = true });
+        System.Windows.Clipboard.SetText(configuration);
+        McpServerStatusText.Text = "连接配置已复制；其中包含私密 Token，请勿公开或提交到仓库。";
+        ScheduleLiveApply();
+    }
+
+    private void EnsureMcpToken()
+    {
+        if (!string.IsNullOrWhiteSpace(_draft.McpServerAuthToken)) return;
+        _draft.McpServerAuthToken = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32))
+            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
     }
 
     private async Task RefreshRecordingFormatSupportAsync()
@@ -79,8 +139,8 @@ public partial class SettingsWindow : Window
             "quick-access" => QuickAccessTab,
             "history" => HistoryTab,
             "shortcuts-appearance" => ShortcutsTab,
-            "scrolling" => ScrollingTab,
-            "screenshot" => ScreenshotTab,
+            "scrolling" or "screenshot" => CaptureRecordingTab,
+            "appearance" => AppearanceTab,
             "advanced" => AdvancedTab,
             _ => null
         };
@@ -90,6 +150,7 @@ public partial class SettingsWindow : Window
     private void OnSettingsTabChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (!IsLoaded || !ReferenceEquals(e.Source, SettingsTabs)) return;
+        if (AccessibilityPreferences.ReduceMotion) return;
         _ = Dispatcher.BeginInvoke(() =>
         {
             if (SettingsTabs.Template.FindName("PART_SelectedContentHost", SettingsTabs) is not System.Windows.Controls.ContentPresenter host) return;
@@ -106,6 +167,18 @@ public partial class SettingsWindow : Window
         });
     }
 
+    private void OnLiveSettingChanged(object sender, RoutedEventArgs e) => ScheduleLiveApply();
+    private void OnLiveSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) => ScheduleLiveApply();
+    private void OnLiveRangeChanged(object sender, RoutedPropertyChangedEventArgs<double> e) => ScheduleLiveApply();
+    private void OnLiveKeyboardFocusLost(object sender, KeyboardFocusChangedEventArgs e) => ScheduleLiveApply();
+
+    private void ScheduleLiveApply()
+    {
+        if (!_readyForLiveApply || _refreshingBindings) return;
+        _liveApplyTimer.Stop();
+        _liveApplyTimer.Start();
+    }
+
     private void OnChooseDirectory(object sender, RoutedEventArgs e)
     {
         using var dialog = new System.Windows.Forms.FolderBrowserDialog
@@ -116,8 +189,7 @@ public partial class SettingsWindow : Window
         };
         if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             _draft.SaveDirectory = dialog.SelectedPath;
-        DataContext = null;
-        DataContext = _draft;
+        RefreshBindings();
     }
 
     private void OnHotkeyGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
@@ -175,13 +247,18 @@ public partial class SettingsWindow : Window
 
     private void OnSave(object sender, RoutedEventArgs e)
     {
+        if (TryApplyDraft(showErrors: true)) DialogResult = true;
+    }
+
+    private bool TryApplyDraft(bool showErrors)
+    {
         if (_draft.ShortcutsEnabled)
         {
             var gestures = GetHotkeys().Where(entry => !string.IsNullOrWhiteSpace(entry.Gesture)).ToArray();
             if (gestures.Any(entry => !GlobalHotkeyService.TryParseGesture(entry.Gesture, out _, out _)))
             {
-                LocalizedDialogService.Show(this, "快捷键格式无效。请使用类似 Ctrl+Shift+4 的组合。", "ShotPaste", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                if (showErrors) LocalizedDialogService.Show(this, "快捷键格式无效。请使用类似 Ctrl+Shift+4 的组合。", "ShotPaste", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
             }
             var conflicts = gestures.GroupBy(entry => entry.Gesture, StringComparer.OrdinalIgnoreCase)
                 .Where(group => group.Count() > 1)
@@ -189,8 +266,8 @@ public partial class SettingsWindow : Window
                 .ToArray();
             if (conflicts.Length > 0)
             {
-                LocalizedDialogService.Show(this, "快捷键存在内部冲突：\n\n" + string.Join("\n", conflicts), "ShotPaste", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                if (showErrors) LocalizedDialogService.Show(this, "快捷键存在内部冲突：\n\n" + string.Join("\n", conflicts), "ShotPaste", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
             }
         }
         _draft.JpegQuality = Math.Clamp(_draft.JpegQuality, 1, 100);
@@ -204,13 +281,21 @@ public partial class SettingsWindow : Window
         {
             _draft.SaveDirectory = Path.GetFullPath(_draft.SaveDirectory);
             Directory.CreateDirectory(_draft.SaveDirectory);
-            _store.Replace(_draft);
-            DialogResult = true;
+            if (_draft.McpServerEnabled) EnsureMcpToken();
+            var persisted = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(_draft)) ?? new AppSettings();
+            _store.Replace(persisted);
+            _settingsApplied?.Invoke();
+            if (McpServerStatusText is not null)
+                McpServerStatusText.Text = _draft.McpServerEnabled
+                    ? $"监听地址：http://127.0.0.1:{_draft.McpServerPort}/mcp"
+                    : "MCP Server 已关闭；仅启用时监听本机回环地址。";
+            return true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
-            LocalizedDialogService.Show(this, "无法保存设置：" + exception.Message, "ShotPaste",
+            if (showErrors) LocalizedDialogService.Show(this, "无法保存设置：" + exception.Message, "ShotPaste",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
         }
     }
 
@@ -244,6 +329,151 @@ public partial class SettingsWindow : Window
     }
 
     private void OnCancel(object sender, RoutedEventArgs e) => DialogResult = false;
+
+    private void OnQuickActionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded) return;
+        _ = Dispatcher.BeginInvoke(UpdateQuickAccessPreview, System.Windows.Threading.DispatcherPriority.DataBind);
+    }
+
+    private async void OnRefreshHistoryStorage(object sender, RoutedEventArgs e) =>
+        await RefreshHistoryStorageAsync();
+
+    private void OnOpenHistoryDirectory(object sender, RoutedEventArgs e) => OpenTarget(AppPaths.Root);
+
+    private async Task RefreshHistoryStorageAsync()
+    {
+        if (HistoryStorageUsageText is null) return;
+        HistoryStorageUsageText.Text = "正在计算存储占用…";
+        try
+        {
+            var bytes = await Task.Run(() => Directory.Exists(AppPaths.Root)
+                ? Directory.EnumerateFiles(AppPaths.Root, "*", SearchOption.AllDirectories)
+                    .Sum(path =>
+                    {
+                        try { return new FileInfo(path).Length; }
+                        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { return 0L; }
+                    })
+                : 0L);
+            HistoryStorageUsageText.Text = $"历史与缩略图占用：{FormatByteSize(bytes)}";
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            HistoryStorageUsageText.Text = $"无法读取存储占用：{exception.Message}";
+        }
+    }
+
+    private static string FormatByteSize(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB"];
+        var value = (double)Math.Max(0, bytes);
+        var unit = 0;
+        while (value >= 1024 && unit < units.Length - 1) { value /= 1024; unit++; }
+        return $"{value:0.#} {units[unit]}";
+    }
+
+    private void OnQuickActionDragStart(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: not null } handle ||
+            !int.TryParse(handle.Tag.ToString(), out _quickActionDragIndex)) return;
+        _quickActionDragOrigin = e.GetPosition(this);
+    }
+
+    private void OnQuickActionDragMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (_quickActionDragIndex < 0 || e.LeftButton != MouseButtonState.Pressed) return;
+        var current = e.GetPosition(this);
+        if (Math.Abs(current.X - _quickActionDragOrigin.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(current.Y - _quickActionDragOrigin.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+        System.Windows.DragDrop.DoDragDrop((DependencyObject)sender, _quickActionDragIndex, System.Windows.DragDropEffects.Move);
+        _quickActionDragIndex = -1;
+    }
+
+    private void OnQuickActionHandleKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if ((Keyboard.Modifiers & ModifierKeys.Alt) == 0 ||
+            sender is not FrameworkElement { Tag: not null } handle ||
+            !int.TryParse(handle.Tag.ToString(), out var sourceIndex)) return;
+        var delta = e.Key switch
+        {
+            Key.Left or Key.Up => -1,
+            Key.Right or Key.Down => 1,
+            _ => 0
+        };
+        var targetIndex = sourceIndex + delta;
+        if (delta == 0 || targetIndex is < 0 or > 5) return;
+        EnsureQuickActionSlots();
+        (_draft.QuickAccessActions[sourceIndex], _draft.QuickAccessActions[targetIndex]) =
+            (_draft.QuickAccessActions[targetIndex], _draft.QuickAccessActions[sourceIndex]);
+        RefreshQuickActionDesigner();
+        e.Handled = true;
+    }
+
+    private void OnQuickActionDrop(object sender, System.Windows.DragEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: not null } target ||
+            !int.TryParse(target.Tag.ToString(), out var targetIndex) ||
+            e.Data.GetData(typeof(int)) is not int sourceIndex ||
+            sourceIndex == targetIndex) return;
+        EnsureQuickActionSlots();
+        (_draft.QuickAccessActions[sourceIndex], _draft.QuickAccessActions[targetIndex]) =
+            (_draft.QuickAccessActions[targetIndex], _draft.QuickAccessActions[sourceIndex]);
+        RefreshQuickActionDesigner();
+        e.Handled = true;
+    }
+
+    private void OnResetQuickActions(object sender, RoutedEventArgs e)
+    {
+        _draft.QuickAccessActions = ["Copy", "SaveOrOpen", "Close", "Delete", "Pin", "None"];
+        RefreshQuickActionDesigner();
+    }
+
+    private void RefreshQuickActionDesigner()
+    {
+        RefreshBindings();
+        UpdateQuickAccessPreview();
+    }
+
+    private void RefreshBindings()
+    {
+        _refreshingBindings = true;
+        try
+        {
+            DataContext = null;
+            DataContext = _draft;
+        }
+        finally { _refreshingBindings = false; }
+        ScheduleLiveApply();
+    }
+
+    private void EnsureQuickActionSlots()
+    {
+        _draft.QuickAccessActions ??= [];
+        while (_draft.QuickAccessActions.Count < 6) _draft.QuickAccessActions.Add("None");
+        if (_draft.QuickAccessActions.Count > 6) _draft.QuickAccessActions = _draft.QuickAccessActions.Take(6).ToList();
+    }
+
+    private void UpdateQuickAccessPreview()
+    {
+        if (QuickPreviewAction1 is null) return;
+        EnsureQuickActionSlots();
+        var buttons = new[]
+        {
+            QuickPreviewAction1, QuickPreviewAction2, QuickPreviewAction3,
+            QuickPreviewAction4, QuickPreviewAction5, QuickPreviewAction6
+        };
+        for (var index = 0; index < buttons.Length; index++)
+        {
+            var action = _draft.QuickAccessActions[index];
+            buttons[index].Content = action switch
+            {
+                "Copy" => "复制", "SaveOrOpen" => "保存", "Close" => "关闭",
+                "Delete" => "删除", "Pin" => "贴图", _ => "—"
+            };
+            buttons[index].Opacity = action == "None" ? 0.35 : 1;
+            buttons[index].IsEnabled = action != "None";
+        }
+    }
 
     private async void OnCheckForUpdates(object sender, RoutedEventArgs e)
     {
@@ -366,27 +596,15 @@ public partial class SettingsWindow : Window
         _draft.RecordingPauseHotkey = source.RecordingPauseHotkey;
         _draft.RecordingAnnotationHotkey = source.RecordingAnnotationHotkey;
         _draft.RecordingRestartHotkey = source.RecordingRestartHotkey; _draft.RecordingDeleteHotkey = source.RecordingDeleteHotkey;
-        DataContext = null;
-        DataContext = _draft;
+        RefreshBindings();
     }
 
     private void OnRestoreDefaults(object sender, RoutedEventArgs e)
     {
-        if (LocalizedDialogService.Show(this, "恢复默认设置？当前快捷键会保留。", "ShotPaste",
+        if (LocalizedDialogService.Show(this, "恢复全部默认设置？全局快捷键也会恢复默认值。", "ShotPaste",
                 MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK) return;
 
-        var previous = _draft;
-        _draft = new AppSettings
-        {
-            ShortcutsEnabled = previous.ShortcutsEnabled,
-            OneShotHotkey = previous.OneShotHotkey,
-            HistoryHotkey = previous.HistoryHotkey,
-            RecordingPauseHotkey = previous.RecordingPauseHotkey,
-            RecordingAnnotationHotkey = previous.RecordingAnnotationHotkey,
-            RecordingRestartHotkey = previous.RecordingRestartHotkey,
-            RecordingDeleteHotkey = previous.RecordingDeleteHotkey
-        };
-        DataContext = null;
-        DataContext = _draft;
+        _draft = new AppSettings();
+        RefreshBindings();
     }
 }

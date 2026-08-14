@@ -11,6 +11,7 @@ public sealed class ScrollingProgressWindowTests
     [InlineData((int)ScrollingProgressPhase.Capturing, "完成")]
     [InlineData((int)ScrollingProgressPhase.Finalizing, "完成中")]
     [InlineData((int)ScrollingProgressPhase.Saving, "保存中")]
+    [InlineData((int)ScrollingProgressPhase.SaveFailed, "等待重试")]
     public void PrimaryActionLabel_TracksCapturePhase(
         int phase,
         string expected)

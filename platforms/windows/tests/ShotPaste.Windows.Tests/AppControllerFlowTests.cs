@@ -76,7 +76,8 @@ public sealed class AppControllerFlowTests
 
         Assert.True(start >= 0 && end > start, "StartOneShot method was not found.");
         var method = controller[start..end];
-        Assert.Contains("SelectOneShotAsync(recordingOptions)", method, StringComparison.Ordinal);
+        Assert.Contains("SelectOneShotAsync(recordingOptions, CommitScreenshotFromOverlayAsync, initialMode)", method, StringComparison.Ordinal);
+        Assert.Contains("result.ScreenshotCommitted", method, StringComparison.Ordinal);
         Assert.Contains("CaptureScrollingCoreAsync(result.Rectangle)", method, StringComparison.Ordinal);
         Assert.Contains("StartOneShotRecordingAsync(result.Rectangle, result.RecordingOptions)", method, StringComparison.Ordinal);
         Assert.Contains("case OneShotMode.Ocr when result.Image is not null:", method, StringComparison.Ordinal);
@@ -90,7 +91,7 @@ public sealed class AppControllerFlowTests
     }
 
     [Fact]
-    public void ClipboardHistoryEntryPoints_OpenFullPanelOnClipboardFilter()
+    public void HistoryEntryPoints_UseConfiguredDefaultAndExplicitClipboardFilter()
     {
         var controller = File.ReadAllText(FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Services", "AppController.cs"));
@@ -98,13 +99,12 @@ public sealed class AppControllerFlowTests
             "platforms", "windows", "src", "ShotPaste.Windows", "Views", "MainWindow.xaml.cs"));
 
         Assert.Contains("public void ShowHistory()", controller, StringComparison.Ordinal);
-        Assert.Contains("private void ShowClipboardHistory() => ShowHistory();",
-            controller, StringComparison.Ordinal);
+        Assert.Contains("_mainWindow.ShowDefaultHistory();", controller, StringComparison.Ordinal);
         Assert.Contains("_mainWindow.ShowClipboardHistory();", controller, StringComparison.Ordinal);
+        Assert.Contains("public void ShowDefaultHistory()", historyWindow, StringComparison.Ordinal);
         Assert.Contains("public void ShowClipboardHistory()", historyWindow, StringComparison.Ordinal);
+        Assert.Contains("HistoryDefaultFilter", historyWindow, StringComparison.Ordinal);
         Assert.Contains("_selectedKind = \"Clipboard\";", historyWindow, StringComparison.Ordinal);
-        Assert.DoesNotContain("DefaultHistoryFilter", controller, StringComparison.Ordinal);
-        Assert.DoesNotContain("ApplyHistoryMode", historyWindow, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -307,7 +307,8 @@ public sealed class AppControllerFlowTests
 
         Assert.Equal(
             [
-                "OneShotMoveToolbar", "InlineToolSelection", "InlineToolRectangle",
+                "OneShotMoveToolbar", "InlineToolPan", "InlineZoomFit", "InlineZoomPicker",
+                "InlineToolSelection", "InlineToolRectangle",
                 "InlineToolFilledRectangle", "InlineToolOval", "InlineToolArrow", "InlineToolLine",
                 "InlineToolText", "InlineToolHighlighter", "InlineToolBlur", "InlineToolSpotlight",
                 "InlineToolCounter", "InlineToolPencil", "InlineUndo", "InlineRedo", "OneShotOcr",
@@ -348,20 +349,49 @@ public sealed class AppControllerFlowTests
     }
 
     [Fact]
-    public void ToolKeySettingsAndOrdinarySelectionServices_AreDeleted()
+    public void RecordingAnnotationTemporaryMode_IsConfigurableWithoutLegacySelectionServices()
     {
         var settings = File.ReadAllText(FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Models", "AppSettings.cs"));
         var settingsView = File.ReadAllText(FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Views", "SettingsWindow.xaml"));
 
-        Assert.DoesNotContain("RecordingAnnotationTemporaryModifier", settings, StringComparison.Ordinal);
+        Assert.Contains("RecordingAnnotationTemporaryModifier", settings, StringComparison.Ordinal);
+        Assert.Contains("RecordingAnnotationTemporaryClearMode", settings, StringComparison.Ordinal);
         Assert.DoesNotContain("RecordingAnnotationTemporaryHoldDurationMs", settings, StringComparison.Ordinal);
-        Assert.DoesNotContain("临时切换键", settingsView, StringComparison.Ordinal);
+        Assert.Contains("临时切换键", settingsView, StringComparison.Ordinal);
         Assert.False(File.Exists(FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Services", "LiveSelectionInputService.cs")));
         Assert.False(File.Exists(FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Services", "LiveSelectionRawInputService.cs")));
+    }
+
+    [Fact]
+    public void DataSafetyRecoveryContracts_AreWiredBeforeSessionClosure()
+    {
+        var sourceRoot = FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows");
+        var application = File.ReadAllText(Path.Combine(sourceRoot, "App.xaml.cs"));
+        var controller = File.ReadAllText(Path.Combine(sourceRoot, "Services", "AppController.cs"));
+        var inline = File.ReadAllText(Path.Combine(sourceRoot, "Views", "InlineAnnotateWindow.xaml.cs"));
+        var scrolling = File.ReadAllText(Path.Combine(sourceRoot, "Views", "ScrollingProgressWindow.xaml.cs"));
+
+        Assert.Contains("您有未保存的更改。您想在关闭前保存吗？", inline, StringComparison.Ordinal);
+        Assert.Contains("if (!committed)", inline, StringComparison.Ordinal);
+        Assert.True(inline.IndexOf("if (!committed)", StringComparison.Ordinal) <
+                    inline.IndexOf("DialogResult = true", inline.IndexOf("private async void Finish", StringComparison.Ordinal),
+                        StringComparison.Ordinal));
+        Assert.Contains("ScrollingSaveRecoveryAction.Retry", controller, StringComparison.Ordinal);
+        Assert.Contains("ScrollingSaveRecoveryAction.SaveAs", controller, StringComparison.Ordinal);
+        Assert.Contains("ScrollingSaveRecoveryAction.Copy", controller, StringComparison.Ordinal);
+        Assert.Contains("ScrollingProgressPhase.SaveFailed", scrolling, StringComparison.Ordinal);
+        Assert.Contains("停止并保存后退出、丢弃录屏并退出，还是取消退出", controller, StringComparison.Ordinal);
+        Assert.Contains("MoveToRecycleBin", controller, StringComparison.Ordinal);
+        Assert.Contains("protected override void OnSessionEnding", application, StringComparison.Ordinal);
+        Assert.Contains("e.Cancel = true", application, StringComparison.Ordinal);
+        Assert.Contains("HasProtectedWork", application, StringComparison.Ordinal);
+        Assert.Contains("RequestSessionEnding", application, StringComparison.Ordinal);
+        Assert.Contains("internal bool HasProtectedWork", controller, StringComparison.Ordinal);
+        Assert.Contains("internal void RequestSessionEnding() => _ = ExitAsync()", controller, StringComparison.Ordinal);
     }
 
     private static string FindRepositoryFile(params string[] relativeParts)

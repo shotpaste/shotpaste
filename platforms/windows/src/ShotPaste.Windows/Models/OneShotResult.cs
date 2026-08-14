@@ -22,13 +22,15 @@ public sealed class OneShotResult(
     Drawing.Rectangle rectangle,
     Drawing.Bitmap? image = null,
     bool pinRequested = false,
-    OneShotRecordingOptions? recordingOptions = null) : IDisposable
+    OneShotRecordingOptions? recordingOptions = null,
+    bool screenshotCommitted = false) : IDisposable
 {
     public OneShotMode Mode { get; } = mode;
     public Drawing.Rectangle Rectangle { get; } = rectangle;
     public Drawing.Bitmap? Image { get; } = image;
     public bool PinRequested { get; } = pinRequested;
     public OneShotRecordingOptions? RecordingOptions { get; } = recordingOptions;
+    public bool ScreenshotCommitted { get; } = screenshotCommitted;
 
     public void Dispose() => Image?.Dispose();
 }

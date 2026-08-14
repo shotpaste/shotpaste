@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         AutomationProperties.AutomationId="InlineAnnotateWindow" Title="ShotPaste · One Shot" WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" Topmost="True" Cursor="Cross"
-        PreviewKeyDown="OnPreviewKeyDown"
-        MouseLeftButtonDown="OnWindowMouseDown" MouseMove="OnWindowMouseMove" MouseLeftButtonUp="OnWindowMouseUp">
+        PreviewKeyDown="OnPreviewKeyDown" PreviewKeyUp="OnPreviewKeyUp" Closing="OnClosing"
+        PreviewMouseLeftButtonDown="OnWindowMouseDown" MouseMove="OnWindowMouseMove" MouseLeftButtonUp="OnWindowMouseUp">
   <Window.Resources>
     <Style x:Key="OneShotTabButton" TargetType="Button">
       <Setter Property="MinHeight" Value="44"/>
@@ -97,8 +97,15 @@
 
     <Canvas x:Name="OverlayCanvas">
       <Grid x:Name="SelectionHost" Visibility="Collapsed" Background="Transparent" ClipToBounds="False"
-            SnapsToDevicePixels="True" UseLayoutRounding="True">
-        <Viewbox x:Name="EditorViewbox" Stretch="Fill" ClipToBounds="True" SnapsToDevicePixels="True">
+            SnapsToDevicePixels="True" UseLayoutRounding="True" IsManipulationEnabled="True"
+            PreviewMouseWheel="OnEditorMouseWheel" ManipulationDelta="OnEditorManipulationDelta">
+        <Viewbox x:Name="EditorViewbox" Stretch="Fill" ClipToBounds="True" SnapsToDevicePixels="True" RenderTransformOrigin="0,0">
+          <Viewbox.RenderTransform>
+            <TransformGroup>
+              <ScaleTransform x:Name="EditorZoomTransform" ScaleX="1" ScaleY="1"/>
+              <TranslateTransform x:Name="EditorPanTransform"/>
+            </TransformGroup>
+          </Viewbox.RenderTransform>
           <Grid x:Name="EditorSurface">
             <Image x:Name="SelectionImage" Stretch="Fill" IsHitTestVisible="False"
                    RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True"/>
@@ -168,6 +175,16 @@
                     PreviewMouseLeftButtonDown="OnMoveMouseDown" MouseMove="OnToolbarMoveMouseMove" MouseLeftButtonUp="OnToolbarMoveMouseUp">
               <ContentControl x:Name="MoveIcon" Content="Move" ContentTemplate="{StaticResource AnnotationMoveIcon}" IsHitTestVisible="False"/>
             </Button>
+            <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
+            <Button x:Name="PanButton" Content="手形" AutomationProperties.AutomationId="InlineToolPan" Tag="Pan"
+                    Style="{StaticResource HudTextButton}" Click="OnSelectTool" ToolTip="平移画布（按住 Space）" Padding="8,3"/>
+            <Button Content="适应" AutomationProperties.AutomationId="InlineZoomFit" Style="{StaticResource HudTextButton}"
+                    Click="OnZoomFit" ToolTip="适应窗口" Padding="8,3" Margin="3,0,0,0"/>
+            <ComboBox x:Name="CanvasZoomPicker" AutomationProperties.AutomationId="InlineZoomPicker" Width="72" Height="28" Margin="4,0,0,0"
+                      Style="{DynamicResource HudComboBox}" SelectionChanged="OnZoomPresetChanged">
+              <ComboBoxItem Content="50%" Tag="0.5"/><ComboBoxItem Content="100%" Tag="1" IsSelected="True"/>
+              <ComboBoxItem Content="200%" Tag="2"/><ComboBoxItem Content="400%" Tag="4"/>
+            </ComboBox>
             <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
             <Button Content="Selection" AutomationProperties.AutomationId="InlineToolSelection" ContentTemplate="{StaticResource AnnotationSelectionIcon}" Tag="Selection" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="选择"/>
             <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
@@ -299,13 +316,13 @@
         </ScrollViewer>
       </Border>
 
-      <Border x:Name="OneShotSwitcher" Visibility="Collapsed" Width="520" Height="56" CornerRadius="{DynamicResource Radius.Toolbar}"
+      <Border x:Name="OneShotSwitcher" Visibility="Collapsed" Width="556" Height="56" CornerRadius="{DynamicResource Radius.Toolbar}"
               Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1"
               Padding="6" AutomationProperties.AutomationId="OneShotSwitcher">
         <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="22" ShadowDepth="7" Opacity="0.45"/></Border.Effect>
         <Grid>
           <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="34"/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/>
+            <ColumnDefinition Width="34"/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="36"/>
           </Grid.ColumnDefinitions>
           <Button x:Name="OneShotDragHandle" AutomationProperties.AutomationId="OneShotSwitcherDragHandle" Width="34" Height="44" Style="{StaticResource HudIconButton}"
                   Cursor="SizeWE" ToolTip="水平拖动以移动 One Shot"
@@ -340,6 +357,8 @@
               <TextBlock Text="剪贴板历史" VerticalAlignment="Center"/>
             </StackPanel>
           </Button>
+          <Button Grid.Column="5" Content="?" Style="{StaticResource HudIconButton}" Click="OnShowOneShotGuide"
+                  ToolTip="显示 One Shot 操作提示" AutomationProperties.Name="显示 One Shot 操作提示"/>
         </Grid>
       </Border>
 
@@ -387,6 +406,35 @@
               Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="9,5">
         <TextBlock x:Name="SizeText" AutomationProperties.AutomationId="SelectionSizeBadge"
                    Foreground="{DynamicResource Annotation.WhiteBrush}" FontSize="11" FontWeight="SemiBold"/>
+      </Border>
+      <Border x:Name="Magnifier" Visibility="Collapsed" IsHitTestVisible="False" Width="188" Height="184"
+              AutomationProperties.AutomationId="OneShotMagnifier" CornerRadius="{DynamicResource Radius.Lg}"
+              Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" ClipToBounds="True">
+        <Grid>
+          <Grid.RowDefinitions><RowDefinition Height="112"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+          <Grid>
+            <Image x:Name="MagnifierImage" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+            <Rectangle IsHitTestVisible="False" Opacity="0.42">
+              <Rectangle.Fill>
+                <DrawingBrush TileMode="Tile" Viewport="0,0,7,7" ViewportUnits="Absolute">
+                  <DrawingBrush.Drawing>
+                    <GeometryDrawing Brush="Transparent">
+                      <GeometryDrawing.Geometry><RectangleGeometry Rect="0,0,7,7"/></GeometryDrawing.Geometry>
+                      <GeometryDrawing.Pen><Pen Brush="{DynamicResource Capture.MagnifierGridBrush}" Thickness="0.55"/></GeometryDrawing.Pen>
+                    </GeometryDrawing>
+                  </DrawingBrush.Drawing>
+                </DrawingBrush>
+              </Rectangle.Fill>
+            </Rectangle>
+            <Rectangle Width="12" Height="12" Stroke="{DynamicResource Annotation.RedBrush}" StrokeThickness="1.5"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Grid>
+          <StackPanel Grid.Row="1" Margin="9,6" VerticalAlignment="Center">
+            <TextBlock x:Name="MagnifierCoordinateText" Foreground="{DynamicResource HudTextBrush}" FontFamily="Cascadia Mono, Consolas" FontSize="10.5"/>
+            <TextBlock x:Name="MagnifierColorText" Foreground="{DynamicResource HudTextBrush}" FontFamily="Cascadia Mono, Consolas" FontSize="10.5" Margin="0,2,0,0"/>
+            <TextBlock Text="Ctrl+C 复制颜色 · Shift 切换 HEX/RGB" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="9.5" Margin="0,2,0,0"/>
+          </StackPanel>
+        </Grid>
       </Border>
       <Border x:Name="StatusBadge" Visibility="Collapsed" CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource HudBrush}"
               BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="11,7">

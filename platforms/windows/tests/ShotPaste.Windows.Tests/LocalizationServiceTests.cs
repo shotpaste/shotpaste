@@ -52,6 +52,16 @@ public sealed class LocalizationServiceTests
             LocalizationService.TranslatePhrase("包含鼠标指针", "zh-TW"));
     }
 
+    [Theory]
+    [InlineData("保持打开", "de-DE", "Geöffnet lassen")]
+    [InlineData("重试保存", "ja-JP", "保存を再試行")]
+    [InlineData("可恢复", "ko-KR", "복구 가능")]
+    [InlineData("长图保存失败 · 成果仍保留", "fr-FR", "Échec de l’enregistrement de la capture défilante · Résultat conservé")]
+    public void TranslatePhrase_LocalizesWindowsRecoveryUx(string source, string language, string expected)
+    {
+        Assert.Equal(expected, LocalizationService.TranslatePhrase(source, language));
+    }
+
     [Fact]
     public void EnglishLocalization_CoversEveryChineseXamlLiteral()
     {

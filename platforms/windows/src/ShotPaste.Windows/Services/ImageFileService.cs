@@ -72,7 +72,24 @@ public sealed class ImageFileService(SettingsStore settings)
         surface.Canvas.Flush();
         using var image = surface.Snapshot();
         using var encoded = image.Encode(format, quality);
-        using var output = File.Create(path);
-        encoded.SaveTo(output);
+        var fullPath = Path.GetFullPath(path);
+        var directory = Path.GetDirectoryName(fullPath) ?? throw new IOException("保存路径缺少有效目录。");
+        Directory.CreateDirectory(directory);
+        var temporaryPath = Path.Combine(directory, $".{Path.GetFileName(fullPath)}.{Guid.NewGuid():N}.tmp");
+        try
+        {
+            using (var output = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                encoded.SaveTo(output);
+                output.Flush(true);
+            }
+            File.Move(temporaryPath, fullPath, true);
+        }
+        finally
+        {
+            try { if (File.Exists(temporaryPath)) File.Delete(temporaryPath); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
     }
 }

@@ -60,8 +60,8 @@
   <Thickness x:Key="Menu.PopupPadding">5</Thickness>
   <Thickness x:Key="Toast.Padding">14,10</Thickness>
   <Thickness x:Key="ToolTip.Padding">9,6</Thickness>
-  <Thickness x:Key="Settings.TabPadding">16,8</Thickness>
-  <Thickness x:Key="Settings.TabMargin">4,0</Thickness>
+  <Thickness x:Key="Settings.TabPadding">11,8</Thickness>
+  <Thickness x:Key="Settings.TabMargin">2,0</Thickness>
   <Thickness x:Key="Settings.CardPadding">16</Thickness>
   <Thickness x:Key="Settings.CardMargin">0,0,0,12</Thickness>
   <Thickness x:Key="Settings.SectionMargin">0,0,0,8</Thickness>
@@ -124,6 +124,7 @@
   <SolidColorBrush x:Key="Capture.SelectionFillBrush" Color="#140A84FF" />
   <SolidColorBrush x:Key="Capture.MarqueeFillBrush" Color="#1F0A84FF" />
   <SolidColorBrush x:Key="Capture.SelectionBrush" Color="#FF0A84FF" />
+  <SolidColorBrush x:Key="Capture.MagnifierGridBrush" Color="#66FFFFFF" />
   <SolidColorBrush x:Key="Annotation.RedBrush" Color="#FFFF453A" />
   <SolidColorBrush x:Key="Annotation.OrangeBrush" Color="#FFFF9F0A" />
   <SolidColorBrush x:Key="Annotation.YellowBrush" Color="#FFFFD60A" />
@@ -148,6 +149,7 @@
   <sys:String x:Key="Annotation.Yellow.Value">#FFFFD60A</sys:String>
   <sys:String x:Key="Annotation.Green.Value">#FF30D158</sys:String>
   <sys:String x:Key="Annotation.Blue.Value">#FF0A84FF</sys:String>
+  <sys:String x:Key="Annotation.White.Value">#FFFFFFFF</sys:String>
   <sys:String x:Key="Annotation.Background.Clear">TextBackground:Clear</sys:String>
   <sys:String x:Key="Annotation.Background.White">TextBackground:#FFFFFFFF</sys:String>
   <sys:String x:Key="Annotation.Background.Black">TextBackground:#FF000000</sys:String>

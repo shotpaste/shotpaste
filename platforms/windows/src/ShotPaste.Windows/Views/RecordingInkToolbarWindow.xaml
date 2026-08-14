@@ -3,32 +3,28 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStyle="None" ResizeMode="NoResize" Background="{DynamicResource WindowBackdropBrush}"
         ShowInTaskbar="False" Topmost="True" SizeToContent="WidthAndHeight">
-  <Border CornerRadius="{DynamicResource Radius.Toolbar}" Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1"
-          Padding="8" MouseLeftButtonDown="OnWindowMouseDown">
-    <StackPanel>
-      <DockPanel Margin="2,0,0,6">
-        <TextBlock Text="录屏标注" Foreground="{DynamicResource HudTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
-        <Button DockPanel.Dock="Right" Content="{StaticResource Icon.Close}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource HudIconButton}" Click="OnClose" Width="24" Height="22" Padding="0"
-                Margin="8,-2,-2,-2" ToolTip="关闭标注"/>
-      </DockPanel>
-      <WrapPanel x:Name="ToolPanel" MaxWidth="420">
-        <Button Tag="Selection" Content="选择" Style="{StaticResource HudTextButton}" Click="OnTool" Margin="0,0,4,4" Padding="7,3" MinHeight="24"/>
-        <Button Tag="Rectangle" Content="矩形" Style="{StaticResource HudTextButton}" Click="OnTool" Margin="0,0,4,4" Padding="7,3" MinHeight="24"/>
-        <Button Tag="Oval" Content="椭圆" Style="{StaticResource HudTextButton}" Click="OnTool" Margin="0,0,4,4" Padding="7,3" MinHeight="24"/>
-        <Button Tag="Arrow" Content="箭头" Style="{StaticResource HudTextButton}" Click="OnTool" Margin="0,0,4,4" Padding="7,3" MinHeight="24"/>
-        <Button Tag="Line" Content="直线" Style="{StaticResource HudTextButton}" Click="OnTool" Margin="0,0,4,4" Padding="7,3" MinHeight="24"/>
-        <Button Tag="Pencil" Content="铅笔" Style="{StaticResource HudTextButton}" Click="OnTool" Margin="0,0,4,4" Padding="7,3" MinHeight="24"/>
-        <Button Tag="Highlighter" Content="荧光笔" Style="{StaticResource HudTextButton}" Click="OnTool" Margin="0,0,4,4" Padding="7,3" MinHeight="24"/>
-      </WrapPanel>
-      <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-        <Button Tag="{StaticResource Annotation.Red.Value}" Background="{DynamicResource Annotation.RedBrush}" Width="22" Height="22" Padding="0" Click="OnColor" Margin="0,0,4,0"/>
-        <Button Tag="{StaticResource Annotation.Yellow.Value}" Background="{DynamicResource Annotation.YellowBrush}" Width="22" Height="22" Padding="0" Click="OnColor" Margin="0,0,4,0"/>
-        <Button Tag="{StaticResource Annotation.Green.Value}" Background="{DynamicResource Annotation.GreenBrush}" Width="22" Height="22" Padding="0" Click="OnColor" Margin="0,0,4,0"/>
-        <Button Tag="{StaticResource Annotation.Blue.Value}" Background="{DynamicResource Annotation.BlueBrush}" Width="22" Height="22" Padding="0" Click="OnColor" Margin="0,0,8,0"/>
-        <TextBlock Text="粗细" Foreground="{DynamicResource HudSecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-        <Slider x:Name="WidthSlider" Style="{StaticResource HudSlider}" Minimum="1" Maximum="20" Value="4" Width="72" VerticalAlignment="Center" ValueChanged="OnWidthChanged"/>
+  <Border CornerRadius="{DynamicResource Radius.Toolbar}" Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="7,6">
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+      <StackPanel x:Name="ToolPanel" Orientation="Horizontal">
+        <Button Tag="Selection" Content="选择" AutomationProperties.Name="选择标注" Style="{StaticResource HudTextButton}" Click="OnTool" Padding="7,3" MinHeight="26"/>
+        <Button Tag="Rectangle" Content="矩形" AutomationProperties.Name="矩形标注" Style="{StaticResource HudTextButton}" Click="OnTool" Margin="3,0,0,0" Padding="7,3" MinHeight="26"/>
+        <Button Tag="Oval" Content="椭圆" AutomationProperties.Name="椭圆标注" Style="{StaticResource HudTextButton}" Click="OnTool" Margin="3,0,0,0" Padding="7,3" MinHeight="26"/>
+        <Button Tag="Arrow" Content="箭头" AutomationProperties.Name="箭头标注" Style="{StaticResource HudTextButton}" Click="OnTool" Margin="3,0,0,0" Padding="7,3" MinHeight="26"/>
+        <Button Tag="Line" Content="直线" AutomationProperties.Name="直线标注" Style="{StaticResource HudTextButton}" Click="OnTool" Margin="3,0,0,0" Padding="7,3" MinHeight="26"/>
+        <Button Tag="Pencil" Content="铅笔" AutomationProperties.Name="铅笔标注" Style="{StaticResource HudTextButton}" Click="OnTool" Margin="3,0,0,0" Padding="7,3" MinHeight="26"/>
+        <Button Tag="Highlighter" Content="荧光" AutomationProperties.Name="荧光笔标注" Style="{StaticResource HudTextButton}" Click="OnTool" Margin="3,0,0,0" Padding="7,3" MinHeight="26"/>
       </StackPanel>
-      <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+      <Border Width="1" Height="20" Background="{DynamicResource HudDividerBrush}" Margin="7,0"/>
+      <StackPanel Orientation="Horizontal">
+        <Button Tag="{StaticResource Annotation.Red.Value}" AutomationProperties.Name="红色" Background="{DynamicResource Annotation.RedBrush}" Width="22" Height="22" Padding="0" Click="OnColor" Margin="0,0,4,0"/>
+        <Button Tag="{StaticResource Annotation.Yellow.Value}" AutomationProperties.Name="黄色" Background="{DynamicResource Annotation.YellowBrush}" Width="22" Height="22" Padding="0" Click="OnColor" Margin="0,0,4,0"/>
+        <Button Tag="{StaticResource Annotation.Green.Value}" AutomationProperties.Name="绿色" Background="{DynamicResource Annotation.GreenBrush}" Width="22" Height="22" Padding="0" Click="OnColor" Margin="0,0,4,0"/>
+        <Button Tag="{StaticResource Annotation.Blue.Value}" AutomationProperties.Name="蓝色" Background="{DynamicResource Annotation.BlueBrush}" Width="22" Height="22" Padding="0" Click="OnColor" Margin="0,0,4,0"/>
+        <Button Tag="{StaticResource Annotation.White.Value}" AutomationProperties.Name="白色" Background="{DynamicResource Annotation.WhiteBrush}" Width="22" Height="22" Padding="0" Click="OnColor" Margin="0,0,7,0"/>
+        <Slider x:Name="WidthSlider" AutomationProperties.Name="标注粗细" Style="{StaticResource HudSlider}" Minimum="1" Maximum="20" Value="4" Width="62" VerticalAlignment="Center" ValueChanged="OnWidthChanged"/>
+      </StackPanel>
+      <Border Width="1" Height="20" Background="{DynamicResource HudDividerBrush}" Margin="7,0"/>
+      <StackPanel Orientation="Horizontal">
         <ComboBox x:Name="ClearModePicker" Width="104" Height="26" Style="{DynamicResource HudComboBox}" SelectionChanged="OnClearModeChanged">
           <ComboBoxItem Content="手动清除" Tag="Manual"/>
           <ComboBoxItem Content="定时清除" Tag="AfterSeconds"/>
@@ -37,13 +33,13 @@
         <TextBox x:Name="ClearValueBox" Style="{StaticResource HudTextBox}" Width="42" Height="26" Margin="5,0,0,0"
                  VerticalContentAlignment="Center" TextChanged="OnClearValueChanged"/>
         <TextBlock x:Name="ClearValueUnit" Foreground="{DynamicResource HudSecondaryTextBrush}" VerticalAlignment="Center" Margin="4,0,0,0"/>
-        <Button Content="撤销" Style="{StaticResource HudTextButton}" Click="OnUndo" Margin="7,0,0,0" Padding="8,3" MinHeight="26"/>
-        <Button Content="清空" Style="{StaticResource HudTextButton}" Click="OnClear" Margin="5,0,0,0" Padding="8,3" MinHeight="26"/>
+        <Button Content="撤销" AutomationProperties.Name="撤销最后标注" Style="{StaticResource HudTextButton}" Click="OnUndo" Margin="7,0,0,0" Padding="8,3" MinHeight="26"/>
+        <Button Content="清空" AutomationProperties.Name="清空所有标注" Style="{StaticResource HudTextButton}" Click="OnClear" Margin="5,0,0,0" Padding="8,3" MinHeight="26"/>
       </StackPanel>
-      <CheckBox x:Name="FadeCheckBox" Content="到期前淡出" Foreground="{DynamicResource HudTextBrush}" Style="{DynamicResource HudCheckBox}" VerticalAlignment="Center"
-                Checked="OnFadeChanged" Unchecked="OnFadeChanged" Margin="2,5,0,0"/>
-      <TextBlock Text="清除策略按当前工具保存 · 工具面板不会进入成片 · Esc 清空 · Ctrl+Z 撤销"
-                 Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="10" Margin="2,6,0,0"/>
+      <CheckBox x:Name="FadeCheckBox" Content="淡出" Foreground="{DynamicResource HudTextBrush}" Style="{DynamicResource HudCheckBox}" VerticalAlignment="Center"
+                Checked="OnFadeChanged" Unchecked="OnFadeChanged" Margin="7,0,0,0"/>
+      <Button Content="{StaticResource Icon.Close}" ContentTemplate="{StaticResource Icon.Template}" AutomationProperties.Name="关闭录屏标注"
+              Style="{StaticResource HudIconButton}" Click="OnClose" Width="26" Height="24" Padding="0" Margin="7,0,0,0"/>
     </StackPanel>
   </Border>
 </Window>

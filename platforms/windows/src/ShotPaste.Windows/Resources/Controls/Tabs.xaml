@@ -43,4 +43,49 @@
       </Setter.Value>
     </Setter>
   </Style>
+
+  <Style x:Key="SettingsSubTabItem" TargetType="{x:Type TabItem}">
+    <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="12,6" />
+    <Setter Property="Margin" Value="2" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Body}" />
+    <Setter Property="FontWeight" Value="{DynamicResource FontWeight.SectionHeader}" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type TabItem}">
+          <Border x:Name="Chrome" CornerRadius="{DynamicResource Radius.Sm}" Background="{TemplateBinding Background}"
+                  BorderBrush="Transparent" BorderThickness="1" Padding="{TemplateBinding Padding}">
+            <ContentPresenter ContentSource="Header" VerticalAlignment="Center" HorizontalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBackgroundBrush}" /></Trigger>
+            <Trigger Property="IsSelected" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource AccentSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource AccentBrush}" /></Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource FocusRingBrush}" /></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style x:Key="SettingsSubTabControl" TargetType="{x:Type TabControl}">
+    <Setter Property="ItemsPanel"><Setter.Value><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></Setter.Value></Setter>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type TabControl}">
+          <Grid KeyboardNavigation.TabNavigation="Local">
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+            <Border HorizontalAlignment="Left" CornerRadius="{DynamicResource Radius.Lg}"
+                    Background="{DynamicResource SurfaceSecondaryBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="2">
+              <ItemsPresenter KeyboardNavigation.TabIndex="1" />
+            </Border>
+            <ContentPresenter x:Name="PART_SelectedContentHost" Grid.Row="1" ContentSource="SelectedContent"
+                              KeyboardNavigation.TabNavigation="Local" />
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
 </ResourceDictionary>

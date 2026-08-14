@@ -1,0 +1,30 @@
+<Window x:Class="ShotPaste.Windows.Views.ScrollingPreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ShotPaste · 长图预览" Width="230" Height="420" MinHeight="240"
+        WindowStyle="None" ResizeMode="NoResize" WindowStartupLocation="Manual"
+        Background="Transparent" AllowsTransparency="True" ShowInTaskbar="False"
+        ShowActivated="False" Focusable="False" Topmost="True"
+        AutomationProperties.AutomationId="ScrollingPreviewWindow"
+        AutomationProperties.Name="滚动截屏实时预览轨道">
+  <Border CornerRadius="{DynamicResource Radius.Card}" Background="{DynamicResource HudBrush}"
+          BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="10">
+    <Grid>
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <DockPanel Margin="2,0,2,8">
+        <TextBlock x:Name="HeightText" DockPanel.Dock="Right" Text="0 px" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="10"/>
+        <TextBlock Text="已确认长图" Foreground="{DynamicResource HudTextBrush}" FontWeight="SemiBold" FontSize="12"/>
+      </DockPanel>
+      <Border Grid.Row="1" CornerRadius="{DynamicResource Radius.Lg}" Background="{DynamicResource HudPreviewBrush}" ClipToBounds="True">
+        <Grid>
+          <Image x:Name="PreviewImage" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+          <TextBlock x:Name="PreviewPlaceholder" Text="开始后显示已确认的拼接内容" Foreground="{DynamicResource HudSecondaryTextBrush}"
+                     Opacity="0.7" TextWrapping="Wrap" TextAlignment="Center" Margin="24"
+                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Grid>
+      </Border>
+      <TextBlock x:Name="TruthText" Grid.Row="2" Text="仅预览已确认帧" Foreground="{DynamicResource HudSecondaryTextBrush}"
+                 FontSize="10" TextAlignment="Center" Margin="0,7,0,0"/>
+    </Grid>
+  </Border>
+</Window>

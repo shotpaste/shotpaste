@@ -34,6 +34,8 @@ internal static class RecordingSettingsE2E
         try
         {
             await WaitForAsync(product.Id, "SettingsWindow");
+            Select(await WaitForAsync(product.Id, "SettingsCaptureRecordingTab"));
+            Select(await WaitForAsync(product.Id, "SettingsCaptureRecordingSubtab"));
             SetValue(await WaitForAsync(product.Id, "RecordingClickRadius"), "52");
             SetValue(await WaitForAsync(product.Id, "RecordingClickOpacity"), "0.85");
             SetValue(await WaitForAsync(product.Id, "RecordingClickDuration"), "750");
@@ -103,6 +105,13 @@ internal static class RecordingSettingsE2E
         if (element.GetCurrentPattern(InvokePattern.Pattern) is not InvokePattern pattern)
             throw new InvalidOperationException($"{element.Current.AutomationId} does not support InvokePattern.");
         pattern.Invoke();
+    }
+
+    private static void Select(AutomationElement element)
+    {
+        if (element.GetCurrentPattern(SelectionItemPattern.Pattern) is not SelectionItemPattern pattern)
+            throw new InvalidOperationException($"{element.Current.AutomationId} does not support SelectionItemPattern.");
+        pattern.Select();
     }
 
     private static async Task<AutomationElement> WaitForAsync(int processId, string automationId)

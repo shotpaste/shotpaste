@@ -69,6 +69,7 @@ internal static class Program
             throw new InvalidOperationException("History window position was not persisted.");
 
         var restart = await RunRestartSessionAsync(executable, dataRoot, outputRoot, persisted);
+        var deletion = await RunDeletionSessionAsync(executable, outputRoot);
         var clipboard = await RunClipboardSessionAsync(executable, outputRoot);
         return new
         {
@@ -83,6 +84,7 @@ internal static class Program
                 persisted.HistoryExpandedTop
             },
             RestartSession = restart,
+            DeletionSession = deletion,
             ClipboardSession = clipboard,
             ThumbnailCache = thumbnailCache
         };
@@ -151,15 +153,15 @@ internal static class Program
                 "Full history grid did not realize any cards at startup.");
             startup.Stop();
             var initialRealized = VisibleListItems(expanded).Length;
-            var clipboardItemCount = Enumerable.Range(0, 500).Count(index => index % 7 is 4 or 5 or 6);
-            if (initialRealized >= clipboardItemCount)
-                throw new InvalidOperationException("Full history grid realized every clipboard item; virtualization is not active.");
+            var screenshotItemCount = Enumerable.Range(0, 500).Count(index => index % 7 == 0);
+            if (initialRealized >= screenshotItemCount)
+                throw new InvalidOperationException("Full history grid realized every screenshot item; virtualization is not active.");
             product.Refresh();
             var workingSetAtStartup = product.WorkingSet64;
             var window = AncestorWindow(expanded);
-            var clipboardFilter = await WaitForAutomationIdAsync(product.Id, "ClipboardHistoryFilter");
-            if (string.IsNullOrWhiteSpace(clipboardFilter.Current.ItemStatus))
-                throw new InvalidOperationException("Clipboard was not the selected history filter at startup.");
+            var screenshotFilter = await WaitForAutomationIdAsync(product.Id, "ScreenshotHistoryFilter");
+            if (string.IsNullOrWhiteSpace(screenshotFilter.Current.ItemStatus))
+                throw new InvalidOperationException("The configured Screenshot default was not selected at startup.");
             if (FindByAutomationId(product.Id, "HistoryModeToggle") is not null ||
                 FindByAutomationId(product.Id, "CompactHistoryCarousel") is not null)
                 throw new InvalidOperationException("Removed compact-history controls are still exposed through UI Automation.");
@@ -189,7 +191,7 @@ internal static class Program
             await WaitUntilAsync(() => VisibleListItems(expanded).Length > 0,
                 "Full history grid became blank after scrolling and resizing.");
             var fullBounds = PhysicalBounds(window);
-            var fullScreenshot = Path.Combine(outputRoot, "history-full-clipboard.png");
+            var fullScreenshot = Path.Combine(outputRoot, "history-full-screenshot.png");
             SaveWindowScreenshot(fullBounds, fullScreenshot);
 
             var search = await WaitForAutomationIdAsync(product.Id, "HistorySearch");
@@ -323,10 +325,8 @@ internal static class Program
                     await WaitUntilAsync(() => VisibleListItems(expanded).Length == 1,
                         "Large text history search did not converge to the matching card.");
                     var matchingCard = VisibleListItems(expanded).Single();
-                    var openButton = matchingCard.FindFirst(TreeScope.Descendants,
-                        new PropertyCondition(AutomationElement.AutomationIdProperty, "HistoryOpenItem")) ??
-                        throw new InvalidOperationException("The large-text history card had no Open action.");
-                    Invoke(openButton);
+                    ClickMoreAction(matchingCard);
+                    Invoke(await WaitForAutomationIdAsync(product.Id, "HistoryOpenItem"));
                     var fullTextElement = await WaitForAutomationIdAsync(product.Id, "ClipboardFullText");
                     string? displayed = null;
                     await WaitUntilAsync(() =>
@@ -421,6 +421,7 @@ internal static class Program
             HistoryExpandedHeight = 680,
             Language = "en-US",
             ClipboardHistoryEnabled = clipboardHistoryEnabled,
+            HistoryDefaultFilter = clipboardHistoryEnabled ? "Clipboard" : "Screenshot",
             ShortcutsEnabled = false,
             ShowQuickAccess = false
         };
@@ -475,7 +476,7 @@ internal static class Program
             var imageBacked = kind is 0 or 1 or 2 or 3 or 4;
             var fixturePath = Path.Combine(fixtureRoot, $"fixture-{index:D4}.jpg");
             if (imageBacked) File.WriteAllBytes(fixturePath, thumbnailBytes);
-            var text = index == 19
+            var text = index == 21
                 ? "needle-history-item · unique searchable clipboard payload"
                 : $"history fixture item {index:D4} · " + new string((char)('a' + index % 26), index % 8 + 8);
             insert.Parameters.AddWithValue("$id", Guid.NewGuid().ToString("D"));
@@ -487,7 +488,7 @@ internal static class Program
                     ? Path.Combine(Path.GetDirectoryName(database)!, $"fixture-{index:D4}.dat")
                     : DBNull.Value);
             insert.Parameters.AddWithValue("$thumbnail", kind == 2 ? fixturePath : DBNull.Value);
-            insert.Parameters.AddWithValue("$text", kind == 5 || index == 19 ? text : DBNull.Value);
+            insert.Parameters.AddWithValue("$text", kind == 5 || index == 21 ? text : DBNull.Value);
             insert.Parameters.AddWithValue("$size", index * 37L);
             insert.Parameters.AddWithValue("$width", kind is 0 or 1 or 4 ? 1280 : 0);
             insert.Parameters.AddWithValue("$height", kind is 0 or 1 or 4 ? 720 : 0);
@@ -544,7 +545,13 @@ internal static class Program
         Forms.Clipboard.SetFileDropList(files);
     });
 
-    private static void SetClipboardText(string text) => RetryClipboard(() => Forms.Clipboard.SetText(text));
+    private static void SetClipboardText(string text) => RetryClipboard(() =>
+    {
+        var data = new Forms.DataObject();
+        data.SetText(text, Forms.TextDataFormat.UnicodeText);
+        data.SetData("CanIncludeInClipboardHistory", false, BitConverter.GetBytes(1u));
+        Forms.Clipboard.SetDataObject(data, true);
+    });
 
     private static ClipboardBackup CaptureClipboardBackup() => RunSta(() =>
     {
@@ -744,7 +751,62 @@ internal static class Program
         var condition = new AndCondition(
             new PropertyCondition(AutomationElement.ProcessIdProperty, processId),
             new PropertyCondition(AutomationElement.AutomationIdProperty, id));
-        return AutomationElement.RootElement.FindFirst(TreeScope.Descendants, condition);
+        var matches = AutomationElement.RootElement.FindAll(TreeScope.Descendants, condition)
+            .Cast<AutomationElement>()
+            .ToArray();
+        return matches.FirstOrDefault(element => !element.Current.IsOffscreen) ?? matches.FirstOrDefault();
+    }
+
+    private static async Task<object> RunDeletionSessionAsync(string executable, string outputRoot)
+    {
+        var dataRoot = Path.Combine(outputRoot, "deletion-data");
+        if (Directory.Exists(dataRoot)) Directory.Delete(dataRoot, true);
+        Directory.CreateDirectory(dataRoot);
+        var database = Path.Combine(dataRoot, "history.sqlite3");
+        SeedHistory(database, 1);
+        WriteSettings(Path.Combine(dataRoot, "settings.json"), dataRoot);
+        var file = Path.Combine(dataRoot, "history-fixtures", "fixture-0000.jpg");
+        if (!File.Exists(file)) throw new InvalidOperationException("Deletion fixture file was not created.");
+
+        using var product = Launch(executable, dataRoot);
+        try
+        {
+            var expanded = await WaitForAutomationIdAsync(product.Id, "ExpandedHistoryGrid");
+            await WaitUntilAsync(() => VisibleListItems(expanded).Length == 1,
+                "Deletion fixture history card did not appear.");
+            var card = VisibleListItems(expanded).Single();
+
+            ClickMoreAction(card);
+            Invoke(await WaitForAutomationIdAsync(product.Id, "HistoryDeleteItem"));
+            var dialog = await WaitForAutomationIdAsync(product.Id, "ShotPasteDialog");
+            var confirmationScreenshot = Path.Combine(outputRoot, "history-delete-confirmation.png");
+            SaveWindowScreenshot(PhysicalBounds(dialog), confirmationScreenshot);
+            Invoke(await WaitForAutomationIdAsync(product.Id, "DialogSecondary"));
+            await WaitUntilAsync(() => FindByAutomationId(product.Id, "ShotPasteDialog") is null,
+                "Cancelling history deletion did not close the confirmation.");
+            if (!File.Exists(file) || CountHistoryRows(database) != 1 || VisibleListItems(expanded).Length != 1)
+                throw new InvalidOperationException("Cancelling history deletion did not preserve file, database row and card.");
+
+            card = VisibleListItems(expanded).Single();
+            ClickMoreAction(card);
+            Invoke(await WaitForAutomationIdAsync(product.Id, "HistoryDeleteItem"));
+            await WaitForAutomationIdAsync(product.Id, "ShotPasteDialog");
+            Invoke(await WaitForAutomationIdAsync(product.Id, "DialogPrimary"));
+            await WaitUntilAsync(() => TryCountHistoryRows(database) == 0,
+                "Confirmed history deletion did not remove the database row.");
+            await WaitUntilAsync(() => !File.Exists(file),
+                "Confirmed history deletion did not move the file out of its original path.");
+            await WaitUntilAsync(() => VisibleListItems(expanded).Length == 0,
+                "Confirmed history deletion did not remove the UI card.");
+            return new
+            {
+                CancelPreservedFileAndRecord = true,
+                ConfirmedMovedFileToRecycleBin = true,
+                RemainingRows = CountHistoryRows(database),
+                ConfirmationScreenshot = confirmationScreenshot
+            };
+        }
+        finally { StopExactProcess(product); }
     }
 
     private static async Task<AutomationElement> WaitForAutomationIdAsync(int processId, string id)
@@ -809,6 +871,19 @@ internal static class Program
             Native.mouse_event(Native.MouseeventfLeftup, 0, 0, 0, UIntPtr.Zero);
             Thread.Sleep(75);
         }
+    }
+
+    private static void ClickMoreAction(AutomationElement card)
+    {
+        var bounds = PhysicalBounds(card);
+        var window = AncestorWindow(card);
+        var scale = Native.GetDpiForWindow(new IntPtr(window.Current.NativeWindowHandle)) / 96d;
+        Native.SetForegroundWindow(new IntPtr(window.Current.NativeWindowHandle));
+        Native.SetCursorPos(bounds.Right - (int)Math.Round(28 * scale),
+            bounds.Bottom - (int)Math.Round(31 * scale));
+        Native.mouse_event(Native.MouseeventfLeftdown, 0, 0, 0, UIntPtr.Zero);
+        Native.mouse_event(Native.MouseeventfLeftup, 0, 0, 0, UIntPtr.Zero);
+        Thread.Sleep(180);
     }
 
     private static string GetAutomationText(AutomationElement element)

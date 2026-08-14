@@ -42,6 +42,7 @@ public partial class RecordingInkWindow : Window
     private bool _recordingPaused;
     private DateTimeOffset? _pauseStarted;
     private TimeSpan _pausedDuration;
+    private RecordingAnnotationPolicy? _temporaryPolicy;
 
     public RecordingAnnotationState State => _state;
     public Drawing.Rectangle CaptureBounds => _bounds;
@@ -248,6 +249,7 @@ public partial class RecordingInkWindow : Window
             return;
         }
         _start = e.GetPosition(DrawingCanvas);
+        _temporaryPolicy = ResolveTemporaryPolicy(Keyboard.Modifiers);
         _points.Clear();
         _points.Add(_start);
         _dragging = true;
@@ -293,13 +295,34 @@ public partial class RecordingInkWindow : Window
         var hasSize = Math.Abs(end.X - _start.X) >= 2 || Math.Abs(end.Y - _start.Y) >= 2 || _points.Count > 2;
         if (_activeVisual is not null && hasSize)
         {
-            var annotation = _state.Add(_state.SelectedTool, _points, CurrentLogicalTime());
+            var annotation = _state.Add(_state.SelectedTool, _points, CurrentLogicalTime(), _temporaryPolicy);
             _visuals[annotation.Id] = _activeVisual;
             _baseOpacities[annotation.Id] = _activeVisual.Opacity;
         }
         else if (_activeVisual is not null) DrawingCanvas.Children.Remove(_activeVisual);
         _activeVisual = null;
+        _temporaryPolicy = null;
         _points.Clear();
+    }
+
+    private RecordingAnnotationPolicy? ResolveTemporaryPolicy(ModifierKeys modifiers)
+    {
+        if (_settings is null) return null;
+        var active = _settings.RecordingAnnotationTemporaryModifier switch
+        {
+            "Shift" => modifiers.HasFlag(ModifierKeys.Shift),
+            "Control" => modifiers.HasFlag(ModifierKeys.Control),
+            "Alt" => modifiers.HasFlag(ModifierKeys.Alt),
+            _ => false
+        };
+        if (!active || !Enum.TryParse(
+                _settings.RecordingAnnotationTemporaryClearMode,
+                true,
+                out RecordingAnnotationClearMode clearMode)) return null;
+        return new RecordingAnnotationPolicy(
+            clearMode,
+            TimeSpan.FromSeconds(Math.Clamp(_settings.RecordingAnnotationClearSeconds, 1, 3600)),
+            Math.Clamp(_settings.RecordingAnnotationMaxCount, 1, 200));
     }
 
     private UIElement? CreateVisual(RecordingAnnotationTool tool, WpfPoint start)

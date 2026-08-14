@@ -29,7 +29,8 @@ public sealed class SettingsStoreTests
 
         var store = new SettingsStore(settings);
 
-        Assert.Equal(6, store.Current.QuickAccessActions.Count);
+        Assert.Equal(["Copy", "None", "None", "Delete", "SaveOrOpen", "None"],
+            store.Current.QuickAccessActions);
         Assert.DoesNotContain("Unknown", store.Current.QuickAccessActions);
         Assert.DoesNotContain("Edit", store.Current.QuickAccessActions);
         Assert.DoesNotContain("Drag", store.Current.QuickAccessActions);

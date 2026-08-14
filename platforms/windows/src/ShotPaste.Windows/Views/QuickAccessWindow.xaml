@@ -4,6 +4,7 @@
         Title="ShotPaste · Quick Access" Width="204" Height="128" WindowStyle="None" ResizeMode="NoResize"
         Background="{DynamicResource WindowBackdropBrush}" ShowInTaskbar="False" Topmost="True" ShowActivated="False"
         AutomationProperties.AutomationId="QuickAccessWindow"
+        PreviewKeyDown="OnPreviewKeyDown" Deactivated="OnDeactivated"
         IsManipulationEnabled="True" ManipulationDelta="OnManipulationDelta" ManipulationCompleted="OnManipulationCompleted"
         MouseEnter="OnCardMouseEnter" MouseLeave="OnCardMouseLeave" MouseLeftButtonDown="OnWindowMouseDown">
   <Border x:Name="Card" CornerRadius="{DynamicResource Radius.Card}" Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" ClipToBounds="True"
@@ -36,9 +37,9 @@
           <Button x:Name="CloseAction" AutomationProperties.AutomationId="QuickAccessClose" Content="关闭" Style="{StaticResource HudTextButton}" Width="78" Height="28" Margin="1,1" Click="OnClose"/>
         </WrapPanel>
       </Border>
-      <Button x:Name="PinButton" Content="{StaticResource Icon.Pin}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource HudIconButton}" Width="28" Height="28"
+      <Button x:Name="PinButton" Content="{StaticResource Icon.Pin}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource HudIconButton}" Width="28" Height="28" Visibility="Collapsed"
               HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5" Opacity="0" Click="OnPin" ToolTip="贴到屏幕"/>
-      <Button x:Name="CloseButton" Content="{StaticResource Icon.Close}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource HudIconButton}" Width="28" Height="28"
+      <Button x:Name="CloseButton" Content="{StaticResource Icon.Close}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource HudIconButton}" Width="28" Height="28" Visibility="Collapsed"
               HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Opacity="0" Click="OnClose" ToolTip="关闭"/>
       <Border x:Name="DurationBadge" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="7"
               Background="{DynamicResource HudBadgeBrush}" CornerRadius="{DynamicResource Radius.Sm}" Padding="6,2">

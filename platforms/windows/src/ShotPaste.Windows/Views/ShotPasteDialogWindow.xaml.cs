@@ -12,7 +12,12 @@ public partial class ShotPasteDialogWindow : Window
 
     public MessageBoxResult Result { get; private set; } = MessageBoxResult.None;
 
-    public ShotPasteDialogWindow(string message, string caption, MessageBoxButton buttons, MessageBoxImage image)
+    public ShotPasteDialogWindow(
+        string message,
+        string caption,
+        MessageBoxButton buttons,
+        MessageBoxImage image,
+        IReadOnlyList<string>? customButtonText = null)
     {
         InitializeComponent();
         WindowAppearanceService.Attach(this, WindowBackdropKind.Mica);
@@ -20,7 +25,7 @@ public partial class ShotPasteDialogWindow : Window
         MessageText.Text = message;
         _buttons = buttons;
         ConfigureIcon(image);
-        ConfigureButtons(buttons);
+        ConfigureButtons(buttons, customButtonText);
         Closing += OnClosing;
     }
 
@@ -37,25 +42,28 @@ public partial class ShotPasteDialogWindow : Window
         IconBackground.Background = (System.Windows.Media.Brush)FindResource(gradientKey);
     }
 
-    private void ConfigureButtons(MessageBoxButton buttons)
+    private void ConfigureButtons(MessageBoxButton buttons, IReadOnlyList<string>? customButtonText)
     {
+        string Label(int index, string fallback) => customButtonText is not null && customButtonText.Count > index
+            ? customButtonText[index]
+            : fallback;
         switch (buttons)
         {
             case MessageBoxButton.OKCancel:
-                Configure(PrimaryButton, "确定", MessageBoxResult.OK, true, false);
-                Configure(SecondaryButton, "取消", MessageBoxResult.Cancel, false, true);
+                Configure(PrimaryButton, Label(0, "确定"), MessageBoxResult.OK, true, false);
+                Configure(SecondaryButton, Label(1, "取消"), MessageBoxResult.Cancel, false, true);
                 break;
             case MessageBoxButton.YesNo:
-                Configure(PrimaryButton, "是", MessageBoxResult.Yes, true, false);
-                Configure(SecondaryButton, "否", MessageBoxResult.No, false, true);
+                Configure(PrimaryButton, Label(0, "是"), MessageBoxResult.Yes, true, false);
+                Configure(SecondaryButton, Label(1, "否"), MessageBoxResult.No, false, true);
                 break;
             case MessageBoxButton.YesNoCancel:
-                Configure(PrimaryButton, "是", MessageBoxResult.Yes, true, false);
-                Configure(SecondaryButton, "否", MessageBoxResult.No, false, false);
-                Configure(TertiaryButton, "取消", MessageBoxResult.Cancel, false, true);
+                Configure(PrimaryButton, Label(0, "是"), MessageBoxResult.Yes, true, false);
+                Configure(SecondaryButton, Label(1, "否"), MessageBoxResult.No, false, false);
+                Configure(TertiaryButton, Label(2, "取消"), MessageBoxResult.Cancel, false, true);
                 break;
             default:
-                Configure(PrimaryButton, "确定", MessageBoxResult.OK, true, true);
+                Configure(PrimaryButton, Label(0, "确定"), MessageBoxResult.OK, true, true);
                 break;
         }
     }

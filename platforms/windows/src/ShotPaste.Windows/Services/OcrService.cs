@@ -332,18 +332,39 @@ public sealed class OcrService
             var single = reader.Decode(bitmap)?.Text;
             return string.IsNullOrWhiteSpace(single) ? [] : [single];
         }
-        return results
-            .OrderBy(result => result.ResultPoints is { Length: > 0 }
-                ? result.ResultPoints.Min(point => point.Y)
-                : float.MaxValue)
-            .ThenBy(result => result.ResultPoints is { Length: > 0 }
-                ? result.ResultPoints.Min(point => point.X)
-                : float.MaxValue)
-            .Select(result => result.Text?.Trim())
+        var placements = results.Select(result =>
+        {
+            var points = result.ResultPoints ?? [];
+            var left = points.Length > 0 ? points.Min(point => point.X) : float.MaxValue;
+            var top = points.Length > 0 ? points.Min(point => point.Y) : float.MaxValue;
+            var right = points.Length > 0 ? points.Max(point => point.X) : float.MaxValue;
+            var bottom = points.Length > 0 ? points.Max(point => point.Y) : float.MaxValue;
+            return new QrPlacement(result, left, top, right, bottom);
+        }).OrderBy(placement => placement.CenterY).ToList();
+        var visualOrder = new List<QrPlacement>(placements.Count);
+        while (placements.Count > 0)
+        {
+            var anchor = placements[0];
+            var line = placements.Where(candidate =>
+                    Math.Abs(candidate.CenterY - anchor.CenterY) <=
+                    Math.Max(8, Math.Min(anchor.Height, candidate.Height) * 0.35f))
+                .OrderBy(candidate => candidate.Left)
+                .ToArray();
+            visualOrder.AddRange(line);
+            foreach (var placement in line) placements.Remove(placement);
+        }
+        return visualOrder
+            .Select(placement => placement.Result.Text?.Trim())
             .Where(payload => !string.IsNullOrWhiteSpace(payload))
             .Cast<string>()
             .Distinct(StringComparer.Ordinal)
             .ToArray();
+    }
+
+    private sealed record QrPlacement(ZXing.Result Result, float Left, float Top, float Right, float Bottom)
+    {
+        public float CenterY => (Top + Bottom) / 2;
+        public float Height => float.IsFinite(Bottom - Top) ? Math.Max(1, Bottom - Top) : 1;
     }
 
     private sealed record OcrTextPass(string Text, IReadOnlyList<SensitiveRegion> SensitiveRegions);

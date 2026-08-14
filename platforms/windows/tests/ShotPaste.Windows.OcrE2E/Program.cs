@@ -185,13 +185,20 @@ internal static class Program
 
     private static void LoadProductResources(System.Windows.Application app)
     {
-        app.Resources["AccentBrush"] = new SolidColorBrush(WpfColor.FromRgb(124, 58, 237));
-        app.Resources["WindowBrush"] = WpfBrushes.White;
-        app.Resources["TextBrush"] = WpfBrushes.Black;
-        var accent = new Style(typeof(WpfButton));
-        accent.Setters.Add(new Setter(WpfControl.BackgroundProperty, app.Resources["AccentBrush"]));
-        accent.Setters.Add(new Setter(WpfControl.ForegroundProperty, WpfBrushes.White));
-        app.Resources["AccentButton"] = accent;
+        foreach (var relative in new[]
+                 {
+                     "Resources/DesignTokens.xaml", "Resources/Themes/Colors.Light.xaml",
+                     "Resources/AnnotationIcons.xaml", "Resources/Icons.xaml",
+                     "Resources/Controls/Common.xaml", "Resources/Controls/Buttons.xaml",
+                     "Resources/Controls/CheckBox.xaml", "Resources/Controls/RadioButton.xaml",
+                     "Resources/Controls/TextBox.xaml", "Resources/Controls/ComboBox.xaml",
+                     "Resources/Controls/Slider.xaml", "Resources/Controls/ScrollBar.xaml",
+                     "Resources/Controls/Menu.xaml", "Resources/Controls/Tabs.xaml"
+                 })
+            app.Resources.MergedDictionaries.Add(new ResourceDictionary
+            {
+                Source = new Uri($"pack://application:,,,/ShotPaste;component/{relative}", UriKind.Absolute)
+            });
     }
 
     private static IEnumerable<T> VisualDescendants<T>(DependencyObject root) where T : DependencyObject

@@ -114,6 +114,17 @@ public sealed class QuickAccessService(AppController controller, SettingsStore s
         _windows.Clear();
     }
 
+    public void FocusNewest()
+    {
+        var window = _windows.LastOrDefault(candidate => candidate.IsVisible);
+        if (window is null)
+        {
+            controller.ShowHistory();
+            return;
+        }
+        window.EnterKeyboardMode();
+    }
+
     public void SuspendAll()
     {
         _suspended = true;

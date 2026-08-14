@@ -53,6 +53,15 @@ $assemblyName = Get-ShotPasteBuildProperty -Name "AssemblyName"
 $application = Join-Path $targetDirectory "$assemblyName.exe"
 Test-ShotPasteBuildIdentity -Executable $application
 
+# Compile every E2E project in the solution and execute the stable parity contract
+# subset on ordinary/non-interactive build agents. Real desktop E2E is orchestrated
+# by test-windows-parity.ps1 -Tier Interactive on the dedicated Windows node.
+& (Join-Path $PSScriptRoot "test-windows-parity.ps1") `
+    -Configuration $Configuration `
+    -Tier Headless `
+    -SkipBuild
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 if ($Publish) {
     dotnet publish $project -c $Configuration -r win-x64 --self-contained true -p:Platform=x64 -p:PublishSingleFile=true
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

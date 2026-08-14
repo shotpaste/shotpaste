@@ -26,6 +26,7 @@ public partial class QuickAccessWindow : Window
     private HwndSource? _windowSource;
     private bool _isPointerOver;
     private readonly bool _isTemporary;
+    private bool _keyboardMode;
     private bool AutoDismissEnabled => _settings.Current.QuickAccessAutoDismissEnabled;
 
     public CaptureHistoryItem Item => _item;
@@ -83,7 +84,12 @@ public partial class QuickAccessWindow : Window
         Loaded += (_, _) =>
         {
             if (AutoDismissEnabled) ResetCountdown();
-            if (_settings.Current.QuickAccessAnimationStyle.Equals("Scale", StringComparison.OrdinalIgnoreCase))
+            if (Services.AccessibilityPreferences.ReduceMotion)
+            {
+                Card.Opacity = 1;
+                Card.RenderTransform = Transform.Identity;
+            }
+            else if (_settings.Current.QuickAccessAnimationStyle.Equals("Scale", StringComparison.OrdinalIgnoreCase))
             {
                 Card.Opacity = 0;
                 Card.RenderTransformOrigin = new System.Windows.Point(0.5, 0.5);
@@ -151,25 +157,112 @@ public partial class QuickAccessWindow : Window
     {
         HoverOverlay.IsHitTestVisible = true;
         AnimateOpacity(HoverOverlay, 1);
-        AnimateOpacity(PinButton, 1);
-        AnimateOpacity(CloseButton, 1);
         TitleBadge.Opacity = 0;
         DurationBadge.Opacity = 0;
     }
+
+    public void EnterKeyboardMode()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(EnterKeyboardMode);
+            return;
+        }
+        _keyboardMode = true;
+        PauseCountdown();
+        Focusable = true;
+        ShowActivated = true;
+        HoverOverlay.Opacity = 1;
+        HoverOverlay.IsHitTestVisible = true;
+        if (_windowSource is not null)
+        {
+            var style = NativeMethods.GetWindowLongPtr(_windowSource.Handle, NativeMethods.GwlExStyle).ToInt64();
+            NativeMethods.SetWindowLongPtr(_windowSource.Handle, NativeMethods.GwlExStyle,
+                new IntPtr(style & ~NativeMethods.WsExNoActivate));
+            NativeMethods.SetWindowPos(_windowSource.Handle, NativeMethods.HwndTopmost, 0, 0, 0, 0,
+                NativeMethods.SwpNoMove | NativeMethods.SwpNoSize | NativeMethods.SwpFrameChanged);
+        }
+        Activate();
+        if (VisibleActionButtons().FirstOrDefault() is { } first) Keyboard.Focus(first);
+    }
+
+    private void ExitKeyboardMode()
+    {
+        if (!_keyboardMode) return;
+        _keyboardMode = false;
+        Focusable = false;
+        ShowActivated = false;
+        HoverOverlay.IsHitTestVisible = false;
+        if (!_isPointerOver) HoverOverlay.Opacity = 0;
+        if (_windowSource is not null)
+        {
+            var style = NativeMethods.GetWindowLongPtr(_windowSource.Handle, NativeMethods.GwlExStyle).ToInt64();
+            NativeMethods.SetWindowLongPtr(_windowSource.Handle, NativeMethods.GwlExStyle,
+                new IntPtr(style | NativeMethods.WsExNoActivate));
+            NativeMethods.SetWindowPos(_windowSource.Handle, NativeMethods.HwndTopmost, 0, 0, 0, 0,
+                NativeMethods.SwpNoMove | NativeMethods.SwpNoSize | NativeMethods.SwpNoActivate | NativeMethods.SwpFrameChanged);
+        }
+        if (AutoDismissEnabled) ResumeCountdown();
+    }
+
+    private WpfButton[] VisibleActionButtons() =>
+        Actions.Children.OfType<WpfButton>()
+            .Where(button => button.Visibility == Visibility.Visible && button.IsEnabled)
+            .ToArray();
+
+    private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (!_keyboardMode) return;
+        var modifiers = Keyboard.Modifiers;
+        if (e.Key == Key.Escape)
+        {
+            ExitKeyboardMode();
+            e.Handled = true;
+            return;
+        }
+        if (e.Key == Key.Delete)
+        {
+            _ = ExecuteConfiguredActionAsync("Delete");
+            e.Handled = true;
+            return;
+        }
+        if (modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.C)
+        {
+            _controller.CopyHistoryItem(_item);
+            e.Handled = true;
+            return;
+        }
+        if (modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.S)
+        {
+            _ = _controller.SaveHistoryItemAsync(_item);
+            e.Handled = true;
+            return;
+        }
+        if (e.Key is Key.Left or Key.Right or Key.Up or Key.Down)
+        {
+            var actions = VisibleActionButtons();
+            if (actions.Length == 0) return;
+            var focused = Array.IndexOf(actions, Keyboard.FocusedElement as WpfButton);
+            var delta = e.Key is Key.Left or Key.Up ? -1 : 1;
+            actions[(focused < 0 ? 0 : (focused + delta + actions.Length) % actions.Length)].Focus();
+            e.Handled = true;
+        }
+    }
+
+    private void OnDeactivated(object? sender, EventArgs e) => ExitKeyboardMode();
 
     private void OnCardMouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
     {
         HoverOverlay.IsHitTestVisible = false;
         AnimateOpacity(HoverOverlay, 0);
-        AnimateOpacity(PinButton, 0);
-        AnimateOpacity(CloseButton, 0);
         TitleBadge.Opacity = 1;
         DurationBadge.Opacity = 1;
     }
 
     private void AnimateOpacity(UIElement element, double value)
     {
-        if (_settings.Current.QuickAccessAnimationStyle.Equals("None", StringComparison.OrdinalIgnoreCase))
+        if (Services.AccessibilityPreferences.ReduceMotion ||
+            _settings.Current.QuickAccessAnimationStyle.Equals("None", StringComparison.OrdinalIgnoreCase))
         {
             element.BeginAnimation(OpacityProperty, null);
             element.Opacity = value;
@@ -253,9 +346,21 @@ public partial class QuickAccessWindow : Window
             ["Close"] = CloseAction
         };
         Actions.Children.Clear();
-        foreach (var action in configured)
+        foreach (var action in configured.Take(6).Concat(Enumerable.Repeat("None", 6)).Take(6))
         {
-            if (!actions.TryGetValue(action, out var button) || Actions.Children.Contains(button)) continue;
+            if (!actions.TryGetValue(action, out var button) || Actions.Children.Contains(button))
+            {
+                Actions.Children.Add(new Border
+                {
+                    Width = 78,
+                    Height = 28,
+                    Margin = new Thickness(1),
+                    Opacity = 0,
+                    IsHitTestVisible = false,
+                    Focusable = false
+                });
+                continue;
+            }
             button.Visibility = Visibility.Visible;
             Actions.Children.Add(button);
         }
@@ -304,7 +409,9 @@ public partial class QuickAccessWindow : Window
             case "save": await _controller.SaveHistoryItemAsync(_item); Close(); break;
             case "open": await _controller.OpenHistoryItemAsync(_item); Close(); break;
             case "pin": _controller.PinHistoryItem(_item); break;
-            case "delete": await _controller.DeleteHistoryItemAsync(_item); Close(); break;
+            case "delete":
+                if (await _controller.DeleteHistoryItemAsync(_item, this)) Close();
+                break;
             case "none": break;
             default: Close(); break;
         }

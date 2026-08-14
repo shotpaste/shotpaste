@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Interop;
 using ShotPaste.Windows.Interop;
@@ -7,7 +8,8 @@ using Forms = System.Windows.Forms;
 
 namespace ShotPaste.Windows.Views;
 
-internal enum ScrollingProgressPhase { Ready, Starting, Capturing, Finalizing, Saving }
+internal enum ScrollingProgressPhase { Ready, Starting, Capturing, Finalizing, Saving, SaveFailed }
+internal enum ScrollingSaveRecoveryAction { Retry, SaveAs, Copy, Discard, DiscardConfirmed }
 
 public partial class ScrollingProgressWindow : Window
 {
@@ -22,10 +24,14 @@ public partial class ScrollingProgressWindow : Window
     internal string PrimaryActionText => PrimaryButton.Content?.ToString() ?? string.Empty;
     private ScrollingProgressPhase _phase = ScrollingProgressPhase.Ready;
     private Drawing.Rectangle? _captureRegion;
+    private TaskCompletionSource<ScrollingSaveRecoveryAction>? _saveRecovery;
+    private readonly ScrollingPreviewWindow? _previewWindow;
+    private bool _allowClose;
 
-    public ScrollingProgressWindow(bool showHints = true)
+    public ScrollingProgressWindow(bool showHints = true, ScrollingPreviewWindow? previewWindow = null)
     {
         InitializeComponent();
+        _previewWindow = previewWindow;
         WindowAppearanceService.Attach(this, WindowBackdropKind.Acrylic);
         GuidanceText.Visibility = showHints ? Visibility.Visible : Visibility.Collapsed;
         FooterHint.Visibility = showHints ? Visibility.Visible : Visibility.Collapsed;
@@ -41,13 +47,18 @@ public partial class ScrollingProgressWindow : Window
             ApplyPhysicalPlacement();
         };
         SizeChanged += (_, _) => ApplyPhysicalPlacement();
+        Closing += OnClosing;
+        Closed += (_, _) =>
+        {
+            _saveRecovery?.TrySetResult(ScrollingSaveRecoveryAction.Discard);
+        };
     }
 
     public void ShowReady(Drawing.Rectangle region)
     {
         _phase = ScrollingProgressPhase.Ready;
         _captureRegion = region;
-        ApplyPreviewGeometry(region);
+        _previewWindow?.ShowReady(region);
         IsAutoScrollEnabled = false;
         CancelButton.IsEnabled = true;
         PrimaryButton.IsEnabled = true;
@@ -57,7 +68,6 @@ public partial class ScrollingProgressWindow : Window
         ProgressText.Text = $"选区 {region.Width:N0} × {region.Height:N0} px";
         GuidanceText.Text = "可拖动选区或八个边缘调整范围；只框选会滚动的内容，然后点击开始。";
         TruthBadge.Text = "就绪";
-        PreviewPlaceholder.Text = "开始后将在这里实时预览已确认的长图";
         ApplyPhysicalPlacement();
     }
 
@@ -65,7 +75,7 @@ public partial class ScrollingProgressWindow : Window
     {
         if (_phase != ScrollingProgressPhase.Ready) return;
         _captureRegion = region;
-        ApplyPreviewGeometry(region);
+        _previewWindow?.ShowReady(region);
         ProgressText.Text = $"选区 {region.Width:N0} × {region.Height:N0} px";
         ApplyPhysicalPlacement();
     }
@@ -91,6 +101,7 @@ public partial class ScrollingProgressWindow : Window
 
     public void BeginCapture(bool autoScrollAvailable)
     {
+        SetNoActivate(true);
         _phase = ScrollingProgressPhase.Capturing;
         IsAutoScrollEnabled = false;
         CancelButton.IsEnabled = true;
@@ -132,7 +143,10 @@ public partial class ScrollingProgressWindow : Window
             return;
         }
         if (_phase == ScrollingProgressPhase.Saving) return;
+        SetNoActivate(true);
         _phase = ScrollingProgressPhase.Saving;
+        CaptureActions.Visibility = Visibility.Visible;
+        SaveRecoveryActions.Visibility = Visibility.Collapsed;
         IsAutoScrollEnabled = false;
         CancelButton.IsEnabled = false;
         PrimaryButton.IsEnabled = false;
@@ -142,6 +156,26 @@ public partial class ScrollingProgressWindow : Window
         ProgressText.Text = "正在保存长图…";
         GuidanceText.Text = "已锁定拼接结果，正在写入文件，请稍候。";
         TruthBadge.Text = "保存中";
+    }
+
+    internal Task<ScrollingSaveRecoveryAction> WaitForSaveRecoveryActionAsync(string detail)
+    {
+        if (!Dispatcher.CheckAccess())
+            return Dispatcher.Invoke(() => WaitForSaveRecoveryActionAsync(detail));
+
+        _phase = ScrollingProgressPhase.SaveFailed;
+        IsAutoScrollEnabled = false;
+        CaptureActions.Visibility = Visibility.Collapsed;
+        SaveRecoveryActions.Visibility = Visibility.Visible;
+        ProgressText.Text = "长图保存失败 · 成果仍保留";
+        GuidanceText.Text = detail;
+        TruthBadge.Text = "可恢复";
+        _saveRecovery = new TaskCompletionSource<ScrollingSaveRecoveryAction>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        SetNoActivate(false);
+        Activate();
+        RetrySaveButton.Focus();
+        return _saveRecovery.Task;
     }
 
     public void PositionNear(Drawing.Rectangle region)
@@ -173,9 +207,7 @@ public partial class ScrollingProgressWindow : Window
         TruthBadge.Foreground = progress.Safety == ScrollingCaptureSafety.Unsafe
             ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Orange)
             : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(112, 229, 138));
-        if (progress.Preview is null) return;
-        PreviewImage.Source = progress.Preview;
-        PreviewPlaceholder.Visibility = Visibility.Collapsed;
+        _previewWindow?.UpdateProgress(progress);
         if (_phase == ScrollingProgressPhase.Capturing && AutoScrollButton.Visibility == Visibility.Visible)
             AutoScrollButton.IsEnabled = progress.Frames > 0;
     }
@@ -209,6 +241,88 @@ public partial class ScrollingProgressWindow : Window
         AutoScrollRequested?.Invoke(this, EventArgs.Empty);
     }
 
+    private void OnRetrySave(object sender, RoutedEventArgs e) =>
+        _saveRecovery?.TrySetResult(ScrollingSaveRecoveryAction.Retry);
+
+    private void OnSaveAs(object sender, RoutedEventArgs e) =>
+        _saveRecovery?.TrySetResult(ScrollingSaveRecoveryAction.SaveAs);
+
+    private void OnCopyResult(object sender, RoutedEventArgs e) =>
+        _saveRecovery?.TrySetResult(ScrollingSaveRecoveryAction.Copy);
+
+    private void OnDiscardResult(object sender, RoutedEventArgs e) =>
+        _saveRecovery?.TrySetResult(ScrollingSaveRecoveryAction.Discard);
+
+    internal bool RequestCloseForExit()
+    {
+        switch (_phase)
+        {
+            case ScrollingProgressPhase.Ready:
+                CancelRequested?.Invoke(this, EventArgs.Empty);
+                return true;
+            case ScrollingProgressPhase.Starting:
+            case ScrollingProgressPhase.Capturing:
+            {
+                var decision = LocalizedDialogService.ShowCustom(
+                    this,
+                    "滚动截屏尚未完成。确定丢弃当前捕获并退出吗？",
+                    "退出滚动截屏？",
+                    "丢弃并退出",
+                    "返回",
+                    MessageBoxImage.Warning);
+                if (decision != MessageBoxResult.Yes) return false;
+                CancelRequested?.Invoke(this, EventArgs.Empty);
+                return true;
+            }
+            case ScrollingProgressPhase.Finalizing:
+            case ScrollingProgressPhase.Saving:
+                // The controller waits for the protected write/finalization workflow
+                // before it is allowed to shut the application down.
+                return true;
+            case ScrollingProgressPhase.SaveFailed:
+            {
+                var decision = LocalizedDialogService.ShowCustom(
+                    this,
+                    "长图尚未保存。确定丢弃当前合并成果并退出吗？此操作无法恢复。",
+                    "退出并丢弃长图？",
+                    "丢弃并退出",
+                    "返回",
+                    MessageBoxImage.Warning);
+                if (decision != MessageBoxResult.Yes) return false;
+                _saveRecovery?.TrySetResult(ScrollingSaveRecoveryAction.DiscardConfirmed);
+                return true;
+            }
+            default:
+                return false;
+        }
+    }
+
+    internal void CloseAfterWorkflow()
+    {
+        _allowClose = true;
+        Close();
+    }
+
+    private void OnClosing(object? sender, CancelEventArgs e)
+    {
+        if (_allowClose) return;
+        e.Cancel = true;
+        switch (_phase)
+        {
+            case ScrollingProgressPhase.Ready:
+            case ScrollingProgressPhase.Starting:
+            case ScrollingProgressPhase.Capturing:
+                CancelRequested?.Invoke(this, EventArgs.Empty);
+                break;
+            case ScrollingProgressPhase.SaveFailed:
+                // Route Alt+F4, WM_CLOSE and UIA WindowPattern.Close through the same
+                // discard confirmation as the visible recovery action. Keeping the
+                // window alive also keeps the in-memory merged bitmap reachable.
+                _saveRecovery?.TrySetResult(ScrollingSaveRecoveryAction.Discard);
+                break;
+        }
+    }
+
     private void ApplyPhysicalPlacement()
     {
         if (_captureRegion is null || ActualWidth <= 0 || ActualHeight <= 0) return;
@@ -233,12 +347,16 @@ public partial class ScrollingProgressWindow : Window
             NativeMethods.SwpNoActivate | NativeMethods.SwpNoOwnerZOrder);
     }
 
-    private void ApplyPreviewGeometry(Drawing.Rectangle region)
+    private void SetNoActivate(bool enabled)
     {
-        var width = Math.Clamp(region.Width * 0.32d, 240d, 380d);
-        var aspect = region.Width / (double)Math.Max(1, region.Height);
-        Width = width;
-        PreviewRow.Height = new GridLength(Math.Clamp(width / Math.Max(0.45d, aspect), 210d, 420d));
+        var handle = new WindowInteropHelper(this).Handle;
+        if (handle == IntPtr.Zero) return;
+        var style = NativeMethods.GetWindowLongPtr(handle, NativeMethods.GwlExStyle).ToInt64();
+        var updated = enabled
+            ? style | NativeMethods.WsExNoActivate
+            : style & ~(long)NativeMethods.WsExNoActivate;
+        if (updated != style)
+            NativeMethods.SetWindowLongPtr(handle, NativeMethods.GwlExStyle, new IntPtr(updated));
     }
 
     internal static Drawing.Rectangle ResolvePhysicalPlacement(
@@ -264,6 +382,7 @@ public partial class ScrollingProgressWindow : Window
         ScrollingProgressPhase.Capturing => "完成",
         ScrollingProgressPhase.Finalizing => "完成中",
         ScrollingProgressPhase.Saving => "保存中",
+        ScrollingProgressPhase.SaveFailed => "等待重试",
         _ => string.Empty
     };
 }

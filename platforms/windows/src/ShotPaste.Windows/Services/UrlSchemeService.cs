@@ -103,6 +103,7 @@ public static class UrlSchemeService
             "quickaccess" or "quick-access" => "quick-access",
             "history" => "history",
             "shortcuts" or "keyboard-shortcuts" => "shortcuts-appearance",
+            "appearance" or "theme" => "appearance",
             "permissions" or "privacy" or "advanced" or "configuration" or "config" or "toml" => "advanced",
             _ => null
         };

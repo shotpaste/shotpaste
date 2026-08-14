@@ -36,6 +36,7 @@ public sealed class TrayIconService : IDisposable
     public event EventHandler? HistoryRequested;
     public event EventHandler? SettingsRequested;
     public event EventHandler? ExitRequested;
+    public event EventHandler? FocusQuickAccessRequested;
 
     public TrayIconService(AppSettings settings, Func<TimeSpan>? recordingElapsed = null)
     {
@@ -159,6 +160,8 @@ public sealed class TrayIconService : IDisposable
         menu.Items.Add(CreateSeparator());
         menu.Items.Add(CreateMenuItem("剪贴板历史", settings.HistoryHotkey, "Icon.History", settings,
             () => HistoryRequested?.Invoke(this, EventArgs.Empty)));
+        menu.Items.Add(CreateMenuItem("聚焦 Quick Access", null, "Icon.QuickAccess", settings,
+            () => FocusQuickAccessRequested?.Invoke(this, EventArgs.Empty)));
         menu.Items.Add(CreateMenuItem("设置", null, "Icon.Settings", settings,
             () => SettingsRequested?.Invoke(this, EventArgs.Empty)));
         menu.Items.Add(CreateSeparator());
