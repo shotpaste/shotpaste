@@ -1,0 +1,7 @@
+// Canonical build identity for the independently runnable Debug app.
+SHOTPASTE_VARIANT = debug
+SHOTPASTE_APP_ICON = AppIconDebug
+SHOTPASTE_BUNDLE_IDENTIFIER = com.ahtcfg24.shotpaste.debug
+SHOTPASTE_DISPLAY_NAME = ShotPaste Debug
+SHOTPASTE_EXECUTABLE_NAME = ShotPasteDebug
+SHOTPASTE_URL_SCHEME = shotpaste-debug

@@ -152,15 +152,13 @@ final class DatabaseManager: @unchecked Sendable {
   }
 
   private static func databaseDirectory() -> URL {
-    #if DEBUG
-      if isRunningUnderXCTest {
-        let processID = ProcessInfo.processInfo.processIdentifier
-        return FileManager.default.temporaryDirectory
-          .appendingPathComponent("ShotPasteTests", isDirectory: true)
-          .appendingPathComponent("Databases", isDirectory: true)
-          .appendingPathComponent("runner-\(processID)", isDirectory: true)
-      }
-    #endif
+    if isRunningUnderXCTest {
+      let processID = ProcessInfo.processInfo.processIdentifier
+      return FileManager.default.temporaryDirectory
+        .appendingPathComponent("ShotPasteTests", isDirectory: true)
+        .appendingPathComponent("Databases", isDirectory: true)
+        .appendingPathComponent("runner-\(processID)", isDirectory: true)
+    }
 
     return AppDataLocations.applicationSupportRoot!
   }
@@ -174,10 +172,9 @@ final class DatabaseManager: @unchecked Sendable {
   private static var migrator: DatabaseMigrator {
     var migrator = DatabaseMigrator()
 
-    #if DEBUG
-      // Speed up development by nuking the database when migrations change
-      migrator.eraseDatabaseOnSchemaChange = true
-    #endif
+    // Development builds can recreate their isolated database when migrations
+    // change. Release keeps the existing migration-only behavior.
+    migrator.eraseDatabaseOnSchemaChange = AppVariant.current.erasesDatabaseOnSchemaChange
 
     migrator.registerMigration("v1_createCaptureHistoryRecords") { db in
       guard try !db.tableExists("captureHistoryRecord") else { return }
@@ -324,13 +321,11 @@ final class DatabaseManager: @unchecked Sendable {
     return candidateURL
   }
 
-  #if DEBUG
-    static func archiveDatabaseFilesForTesting(
-      in directoryURL: URL,
-      fileNames: [String],
-      timestamp: String = "20260605-000000"
-    ) throws -> DatabaseRecoveryArchive {
-      try archiveDatabaseFiles(in: directoryURL, fileNames: fileNames, timestamp: timestamp)
-    }
-  #endif
+  static func archiveDatabaseFilesForTesting(
+    in directoryURL: URL,
+    fileNames: [String],
+    timestamp: String = "20260605-000000"
+  ) throws -> DatabaseRecoveryArchive {
+    try archiveDatabaseFiles(in: directoryURL, fileNames: fileNames, timestamp: timestamp)
+  }
 }

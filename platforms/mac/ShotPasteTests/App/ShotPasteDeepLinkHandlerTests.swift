@@ -9,11 +9,15 @@
 import XCTest
 
 final class ShotPasteDeepLinkHandlerTests: XCTestCase {
+  private func urlString(_ route: String, variant: AppVariant = .current) -> String {
+    "\(variant.urlScheme)://\(route)"
+  }
+
   func testCanonicalRoutesParseExpectedCommands() throws {
     let cases: [(String, ShotPasteAutomationCommand)] = [
-      ("shotpaste://capture/one-shot", .startCapture(.screenshot)),
-      ("shotpaste://open/history", .openHistory(nil)),
-      ("shotpaste://settings", .openSettings(nil)),
+      (urlString("capture/one-shot"), .startCapture(.screenshot)),
+      (urlString("open/history"), .openHistory(nil)),
+      (urlString("settings"), .openSettings(nil)),
     ]
 
     for (urlString, expectedCommand) in cases {
@@ -22,21 +26,35 @@ final class ShotPasteDeepLinkHandlerTests: XCTestCase {
     }
   }
 
-  #if DEBUG
-    func testDebugSchemeParsesOneShotRoute() throws {
-      let url = try XCTUnwrap(URL(string: "shotpaste-debug://capture/one-shot"))
-      XCTAssertEqual(ShotPasteAutomationCommand(url: url), .startCapture(.screenshot))
+  func testEachVariantAcceptsOnlyItsOwnScheme() throws {
+    for variant in AppVariant.allCases {
+      let ownURL = try XCTUnwrap(URL(string: urlString("capture/one-shot", variant: variant)))
+      XCTAssertEqual(
+        ShotPasteAutomationCommand(url: ownURL, variant: variant),
+        .startCapture(.screenshot)
+      )
+
+      for otherVariant in AppVariant.allCases where otherVariant != variant {
+        XCTAssertNil(ShotPasteAutomationCommand(url: ownURL, variant: otherVariant))
+      }
     }
-  #endif
+  }
+
+  func testCurrentVariantRejectsOtherVariantScheme() throws {
+    let otherVariant = try XCTUnwrap(AppVariant.allCases.first { $0 != .current })
+    let url = try XCTUnwrap(URL(string: urlString("capture/one-shot", variant: otherVariant)))
+
+    XCTAssertNil(ShotPasteAutomationCommand(url: url))
+  }
 
   func testCaptureModeRoutesAndQueryParseExpectedCommands() throws {
     let cases: [(String, ShotPasteAutomationCommand)] = [
-      ("shotpaste://capture/screenshot", .startCapture(.screenshot)),
-      ("shotpaste://capture/scrolling", .startCapture(.scrolling)),
-      ("shotpaste://record/screen", .startCapture(.recording)),
-      ("shotpaste://capture/one-shot?mode=recording", .startCapture(.recording)),
-      ("shotpaste://capture?mode=scrolling", .startCapture(.scrolling)),
-      ("shotpaste://capture/cancel", .cancelCapture),
+      (urlString("capture/screenshot"), .startCapture(.screenshot)),
+      (urlString("capture/scrolling"), .startCapture(.scrolling)),
+      (urlString("record/screen"), .startCapture(.recording)),
+      (urlString("capture/one-shot?mode=recording"), .startCapture(.recording)),
+      (urlString("capture?mode=scrolling"), .startCapture(.scrolling)),
+      (urlString("capture/cancel"), .cancelCapture),
     ]
 
     for (urlString, expectedCommand) in cases {
@@ -47,11 +65,11 @@ final class ShotPasteDeepLinkHandlerTests: XCTestCase {
 
   func testHistoryRoutesParseFilters() throws {
     let cases: [(String, ShotPasteAutomationCommand)] = [
-      ("shotpaste://open/history?filter=all", .openHistory(.all)),
-      ("shotpaste://open/history?filter=screenshots", .openHistory(.screenshot)),
-      ("shotpaste://open/history?filter=scrolling-screenshot", .openHistory(.scrolling)),
-      ("shotpaste://open/history?filter=video", .openHistory(.recording)),
-      ("shotpaste://open/clipboard", .openHistory(.clipboard)),
+      (urlString("open/history?filter=all"), .openHistory(.all)),
+      (urlString("open/history?filter=screenshots"), .openHistory(.screenshot)),
+      (urlString("open/history?filter=scrolling-screenshot"), .openHistory(.scrolling)),
+      (urlString("open/history?filter=video"), .openHistory(.recording)),
+      (urlString("open/clipboard"), .openHistory(.clipboard)),
     ]
 
     for (urlString, expectedCommand) in cases {
@@ -62,9 +80,9 @@ final class ShotPasteDeepLinkHandlerTests: XCTestCase {
 
   func testRecordingControlRoutesParseExpectedCommands() throws {
     let cases: [(String, ShotPasteAutomationCommand)] = [
-      ("shotpaste://recording/pause", .controlRecording(.pause)),
-      ("shotpaste://recording/resume", .controlRecording(.resume)),
-      ("shotpaste://recording/stop", .controlRecording(.stop)),
+      (urlString("recording/pause"), .controlRecording(.pause)),
+      (urlString("recording/resume"), .controlRecording(.resume)),
+      (urlString("recording/stop"), .controlRecording(.stop)),
     ]
 
     for (urlString, expectedCommand) in cases {
@@ -75,18 +93,18 @@ final class ShotPasteDeepLinkHandlerTests: XCTestCase {
 
   func testUnsupportedDirectCaptureRoutesReturnNil() throws {
     let aliases = [
-      "shotpaste://capture/area",
-      "shotpaste://capture/window",
-      "shotpaste://application-capture",
-      "shotpaste://window-capture",
-      "shotpaste://screenshot/window",
-      "shotpaste://capture/active-window",
-      "shotpaste://capture/fullscreen",
-      "shotpaste://capture/area-annotate",
-      "shotpaste://capture/ocr",
-      "shotpaste://record/window",
-      "shotpaste://application-recording",
-      "shotpaste://window-recording",
+      urlString("capture/area"),
+      urlString("capture/window"),
+      urlString("application-capture"),
+      urlString("window-capture"),
+      urlString("screenshot/window"),
+      urlString("capture/active-window"),
+      urlString("capture/fullscreen"),
+      urlString("capture/area-annotate"),
+      urlString("capture/ocr"),
+      urlString("record/window"),
+      urlString("application-recording"),
+      urlString("window-recording"),
     ]
 
     for urlString in aliases {
@@ -107,10 +125,10 @@ final class ShotPasteDeepLinkHandlerTests: XCTestCase {
     ]
 
     for (tabName, expectedTab) in cases {
-      let queryURL = try XCTUnwrap(URL(string: "shotpaste://settings?tab=\(tabName)"))
+      let queryURL = try XCTUnwrap(URL(string: urlString("settings?tab=\(tabName)")))
       XCTAssertEqual(ShotPasteAutomationCommand(url: queryURL), .openSettings(expectedTab), tabName)
 
-      let pathURL = try XCTUnwrap(URL(string: "shotpaste://settings/\(tabName)"))
+      let pathURL = try XCTUnwrap(URL(string: urlString("settings/\(tabName)")))
       XCTAssertEqual(ShotPasteAutomationCommand(url: pathURL), .openSettings(expectedTab), tabName)
     }
   }
@@ -118,13 +136,13 @@ final class ShotPasteDeepLinkHandlerTests: XCTestCase {
   func testUnsupportedRoutesAndInvalidParametersReturnNil() throws {
     let urls = [
       "https://capture/area",
-      "shotpaste://",
-      "shotpaste://capture/unknown",
-      "shotpaste://capture?mode=window",
-      "shotpaste://open/history?filter=secret",
-      "shotpaste://open/unknown",
-      "shotpaste://settings/annotate",
-      "shotpaste://settings?tab=recording",
+      urlString(""),
+      urlString("capture/unknown"),
+      urlString("capture?mode=window"),
+      urlString("open/history?filter=secret"),
+      urlString("open/unknown"),
+      urlString("settings/annotate"),
+      urlString("settings?tab=recording"),
     ]
 
     for urlString in urls {

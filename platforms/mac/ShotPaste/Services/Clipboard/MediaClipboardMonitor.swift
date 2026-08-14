@@ -23,7 +23,9 @@ final class MediaClipboardMonitor {
 
   /// Added by ShotPaste's own clipboard writes to avoid re-archiving captures that
   /// are already present in history.
-  static let internalWriteMarker = NSPasteboard.PasteboardType("com.ahtcfg24.shotpaste.internal-media-write")
+  static let internalWriteMarker = NSPasteboard.PasteboardType(
+    AppVariant.current.internalPasteboardWriteMarkerIdentifier
+  )
   private static let privacyMarkerTypes = Set([
     NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType"),
     NSPasteboard.PasteboardType("org.nspasteboard.TransientType"),

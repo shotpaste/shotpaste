@@ -277,6 +277,10 @@ final class AppStatusBarController: ObservableObject {
     }
   }
 
+  nonisolated static func idleMenuBarTooltip(for variant: AppVariant) -> String {
+    variant.displayName
+  }
+
   private func statusItemAttributedTitle(for state: RecordingState) -> NSAttributedString {
     let title = Self.menuBarTitleString(
       for: state,
@@ -318,7 +322,7 @@ final class AppStatusBarController: ObservableObject {
     case .stopping:
       return "ShotPaste"
     case .idle:
-      return "ShotPaste"
+      return Self.idleMenuBarTooltip(for: .current)
     }
   }
 
@@ -774,27 +778,25 @@ final class AppStatusBarController: ObservableObject {
     }
   }
 
-  #if DEBUG
-    var didElevateForSettingsForTesting: Bool {
-      get { didElevateForSettings }
-      set { didElevateForSettings = newValue }
-    }
+  var didElevateForSettingsForTesting: Bool {
+    get { didElevateForSettings }
+    set { didElevateForSettings = newValue }
+  }
 
-    var trackedPreferencesWindowForTesting: NSWindow? {
-      get { trackedPreferencesWindow }
-      set { trackedPreferencesWindow = newValue }
-    }
+  var trackedPreferencesWindowForTesting: NSWindow? {
+    get { trackedPreferencesWindow }
+    set { trackedPreferencesWindow = newValue }
+  }
 
-    func simulateWindowDidClose(notification: Notification) {
-      windowDidClose(notification)
-    }
+  func simulateWindowDidClose(notification: Notification) {
+    windowDidClose(notification)
+  }
 
-    var isHoverBarVisibleForTesting: Bool {
-      isHoverBarVisible
-    }
+  var isHoverBarVisibleForTesting: Bool {
+    isHoverBarVisible
+  }
 
-    var showsRecordingTimeOnMenuBarForTesting: Bool {
-      showsRecordingTimeOnMenuBar
-    }
-  #endif
+  var showsRecordingTimeOnMenuBarForTesting: Bool {
+    showsRecordingTimeOnMenuBar
+  }
 }

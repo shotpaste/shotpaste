@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RELEASE_BUNDLE_NAME="ShotPaste"
-DEBUG_BUNDLE_NAME="ShotPaste Debug"
-RELEASE_PROCESS_NAME="ShotPaste"
-DEBUG_PROCESS_NAME="ShotPasteDebug"
 SCHEME="ShotPaste"
 PROJECT="platforms/mac/ShotPaste.xcodeproj"
 LOG_SUBSYSTEM="${LOG_SUBSYSTEM:-ShotPaste}"
@@ -19,8 +15,11 @@ BUILD_NUMBER_OVERRIDE="${SHOTPASTE_BUILD_NUMBER:-}"
 RELEASE_ARM64_ONLY="${SHOTPASTE_RELEASE_ARM64_ONLY:-0}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/scripts/macos-app-variant.sh"
 PRODUCTS_ROOT="$ROOT_DIR/.build/macos"
 DERIVED_DATA_PATH="$PRODUCTS_ROOT/DerivedData"
+APP_BUNDLE_NAME=""
+APP_PROCESS_NAME=""
 
 if [[ -t 1 ]]; then
   BLUE=$'\033[0;34m'
@@ -150,6 +149,12 @@ validate_configuration() {
   esac
 }
 
+load_app_variant_configuration() {
+  macos_app_variant_validate_configuration "$CONFIGURATION"
+  APP_BUNDLE_NAME="$(macos_app_variant_setting "$CONFIGURATION" SHOTPASTE_DISPLAY_NAME)"
+  APP_PROCESS_NAME="$(macos_app_variant_setting "$CONFIGURATION" SHOTPASTE_EXECUTABLE_NAME)"
+}
+
 validate_build_overrides() {
   if [[ -n "$MARKETING_VERSION_OVERRIDE" && ! "$MARKETING_VERSION_OVERRIDE" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
     fail "SHOTPASTE_MARKETING_VERSION must be stable SemVer, for example 1.2.3."
@@ -209,19 +214,11 @@ telemetry_log_predicate() {
 }
 
 app_display_name() {
-  if [[ "$CONFIGURATION" == "Debug" ]]; then
-    printf "%s" "$DEBUG_BUNDLE_NAME"
-  else
-    printf "%s" "$RELEASE_BUNDLE_NAME"
-  fi
+  printf "%s" "$APP_BUNDLE_NAME"
 }
 
 app_process_name() {
-  if [[ "$CONFIGURATION" == "Debug" ]]; then
-    printf "%s" "$DEBUG_PROCESS_NAME"
-  else
-    printf "%s" "$RELEASE_PROCESS_NAME"
-  fi
+  printf "%s" "$APP_PROCESS_NAME"
 }
 
 build_products_dir() {
@@ -229,12 +226,7 @@ build_products_dir() {
 }
 
 app_bundle_path() {
-  local bundle_name="$RELEASE_BUNDLE_NAME"
-  if [[ "$CONFIGURATION" == "Debug" ]]; then
-    bundle_name="$DEBUG_BUNDLE_NAME"
-  fi
-
-  printf "%s/%s.app" "$(build_products_dir)" "$bundle_name"
+  printf "%s/%s.app" "$(build_products_dir)" "$APP_BUNDLE_NAME"
 }
 
 app_binary_path() {
@@ -380,6 +372,7 @@ launch_debugger() {
 main() {
   parse_args "$@"
   validate_configuration
+  load_app_variant_configuration
   validate_build_overrides
   require_macos
   require_command xcodebuild

@@ -4,8 +4,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-PROCESS_NAME="ShotPasteDebug"
-APP_BUNDLE="$ROOT_DIR/.build/macos/Debug/ShotPaste Debug.app"
+source "$ROOT_DIR/scripts/macos-app-variant.sh"
+PROCESS_NAME="$(macos_app_variant_setting Debug SHOTPASTE_EXECUTABLE_NAME)"
+APP_NAME="$(macos_app_variant_setting Debug SHOTPASTE_DISPLAY_NAME)"
+URL_SCHEME="$(macos_app_variant_setting Debug SHOTPASTE_URL_SCHEME)"
+APP_BUNDLE="$ROOT_DIR/.build/macos/Debug/$APP_NAME.app"
 
 cd "$ROOT_DIR"
 
@@ -74,15 +77,15 @@ printf "|------------------------|-------------|-------------|-------------|----
 measure "1. Idle Baseline" 5
 
 # Phase 2: One Shot screenshot selection
-open "shotpaste-debug://capture/screenshot" 2>/dev/null || true
+open "$URL_SCHEME://capture/screenshot" 2>/dev/null || true
 measure "2. One Shot Capture" 4
 
 # Phase 3: History Browser
-open "shotpaste-debug://open/history" 2>/dev/null || true
+open "$URL_SCHEME://open/history" 2>/dev/null || true
 measure "3. Capture History" 4
 
 # Phase 4: Settings Window
-open "shotpaste-debug://settings" 2>/dev/null || true
+open "$URL_SCHEME://settings" 2>/dev/null || true
 measure "4. Preferences View" 4
 
 # Phase 5: Post-test Idle

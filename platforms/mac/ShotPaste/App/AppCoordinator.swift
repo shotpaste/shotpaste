@@ -111,9 +111,9 @@ final class AppCoordinator {
       didCrash: didCrash && DiagnosticLogger.shared.isEnabled
     )
     ShotPasteMCPServer.shared.configure(automationController: automationController)
-    #if !DEBUG
+    if AppVariant.current.performsAutomaticUpdateChecks {
       AppUpdateManager.shared.checkAutomaticallyIfNeeded()
-    #endif
+    }
     DiagnosticLogger.shared.log(
       .debug,
       .ui,

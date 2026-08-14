@@ -3,14 +3,45 @@
 //  ShotPasteTests
 //
 
+import AppKit
 import Foundation
 @testable import ShotPaste
+import UniformTypeIdentifiers
 import XCTest
 
 @MainActor
 final class AppVariantTests: XCTestCase {
-  func testDebugBuildUsesDebugVariant() {
-    XCTAssertEqual(AppVariant.current, .debug)
+  func testBuiltAppDeclaresCurrentVariant() throws {
+    let configuredValue = try XCTUnwrap(
+      Bundle.main.object(forInfoDictionaryKey: "ShotPasteVariant") as? String
+    )
+
+    XCTAssertEqual(AppVariant.current.rawValue, configuredValue)
+  }
+
+  func testConfiguredVariantMatchesCompilerConfiguration() {
+    #if DEBUG
+      let compiledVariant = AppVariant.debug
+    #else
+      let compiledVariant = AppVariant.release
+    #endif
+
+    XCTAssertEqual(AppVariant.current, compiledVariant)
+  }
+
+  func testBuiltAppIdentityMatchesCurrentVariant() throws {
+    let variant = AppVariant.current
+    let info = try XCTUnwrap(Bundle.main.infoDictionary)
+    let urlTypes = try XCTUnwrap(info["CFBundleURLTypes"] as? [[String: Any]])
+    let urlType = try XCTUnwrap(urlTypes.first)
+    let schemes = try XCTUnwrap(urlType["CFBundleURLSchemes"] as? [String])
+
+    XCTAssertEqual(Bundle.main.bundleIdentifier, variant.bundleIdentifier)
+    XCTAssertEqual(info["CFBundleDisplayName"] as? String, variant.displayName)
+    XCTAssertEqual(info["CFBundleName"] as? String, variant.displayName)
+    XCTAssertEqual(info["CFBundleExecutable"] as? String, variant.executableName)
+    XCTAssertEqual(urlType["CFBundleURLName"] as? String, variant.bundleIdentifier)
+    XCTAssertEqual(schemes, [variant.urlScheme])
   }
 
   func testReleaseIdentityAndStorageNamesRemainUnchanged() {
@@ -19,6 +50,7 @@ final class AppVariantTests: XCTestCase {
     XCTAssertEqual(release.bundleIdentifier, "com.ahtcfg24.shotpaste")
     XCTAssertEqual(release.displayName, "ShotPaste")
     XCTAssertEqual(release.executableName, "ShotPaste")
+    XCTAssertEqual(release.urlScheme, "shotpaste")
     XCTAssertEqual(release.applicationSupportDirectoryName, "ShotPaste")
     XCTAssertEqual(release.diagnosticLogDirectoryName, "ShotPaste")
     XCTAssertEqual(release.defaultExportDirectoryName, "ShotPaste")
@@ -29,6 +61,20 @@ final class AppVariantTests: XCTestCase {
     XCTAssertEqual(release.defaultMCPPort, 48_123)
     XCTAssertEqual(release.mcpClientName, "shotpaste")
     XCTAssertEqual(release.menuBarIconAssetName, "MenubarIcon")
+    XCTAssertEqual(
+      release.internalPasteboardWriteMarkerIdentifier,
+      "com.ahtcfg24.shotpaste.internal-media-write"
+    )
+    XCTAssertEqual(
+      release.quickAccessActionTypeIdentifier,
+      "com.ahtcfg24.shotpaste.quick-access-action"
+    )
+    XCTAssertEqual(
+      release.quickAccessReorderTypeIdentifier,
+      "com.ahtcfg24.shotpaste.quick-access-reorder"
+    )
+    XCTAssertFalse(release.erasesDatabaseOnSchemaChange)
+    XCTAssertTrue(release.performsAutomaticUpdateChecks)
   }
 
   func testDebugIdentityAndStorageNamesAreDistinctFromRelease() {
@@ -38,6 +84,7 @@ final class AppVariantTests: XCTestCase {
     XCTAssertNotEqual(debug.bundleIdentifier, release.bundleIdentifier)
     XCTAssertNotEqual(debug.displayName, release.displayName)
     XCTAssertNotEqual(debug.executableName, release.executableName)
+    XCTAssertNotEqual(debug.urlScheme, release.urlScheme)
     XCTAssertNotEqual(debug.applicationSupportDirectoryName, release.applicationSupportDirectoryName)
     XCTAssertNotEqual(debug.diagnosticLogDirectoryName, release.diagnosticLogDirectoryName)
     XCTAssertNotEqual(debug.defaultExportDirectoryName, release.defaultExportDirectoryName)
@@ -49,6 +96,25 @@ final class AppVariantTests: XCTestCase {
     XCTAssertNotEqual(debug.mcpClientName, release.mcpClientName)
     XCTAssertEqual(debug.menuBarIconAssetName, "MenubarIconDebug")
     XCTAssertNotEqual(debug.menuBarIconAssetName, release.menuBarIconAssetName)
+    XCTAssertNotEqual(
+      debug.internalPasteboardWriteMarkerIdentifier,
+      release.internalPasteboardWriteMarkerIdentifier
+    )
+    XCTAssertNotEqual(debug.quickAccessActionTypeIdentifier, release.quickAccessActionTypeIdentifier)
+    XCTAssertNotEqual(debug.quickAccessReorderTypeIdentifier, release.quickAccessReorderTypeIdentifier)
+    XCTAssertTrue(debug.erasesDatabaseOnSchemaChange)
+    XCTAssertFalse(debug.performsAutomaticUpdateChecks)
+  }
+
+  func testCurrentGlobalResourceTypesComeFromAppVariant() {
+    let variant = AppVariant.current
+
+    XCTAssertEqual(
+      MediaClipboardMonitor.internalWriteMarker.rawValue,
+      variant.internalPasteboardWriteMarkerIdentifier
+    )
+    XCTAssertEqual(UTType.quickAccessAction.identifier, variant.quickAccessActionTypeIdentifier)
+    XCTAssertEqual(UTType.quickAccessReorder.identifier, variant.quickAccessReorderTypeIdentifier)
   }
 
   func testVariantDataLocationsUseIndependentRoots() {

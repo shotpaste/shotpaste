@@ -86,11 +86,20 @@ values:
 Their UserDefaults, privacy permissions, login items, history database,
 thumbnails, clipboard archive, temporary captures, recording metadata, logs,
 problem-report archives, and default output folders therefore do not overlap.
+Internal pasteboard markers and Quick Access drag types also use variant-scoped
+identifiers; Quick Access payloads are exposed only within their originating
+process. Each app accepts only its registered URL Scheme.
 The application icons and menu bar icons share the same brand geometry; Debug
 adds a visible `D`. Debug also adds Option to its default global shortcuts so
 those bindings do not contend with Release defaults. No automatic legacy-data
 migration runs. A directory explicitly selected in both apps is intentionally
 shared by that choice.
+
+Canonical build identity values live in
+`platforms/mac/ShotPaste/Config/AppVariant-{Debug,Release}.xcconfig`. Xcode,
+local build/signing scripts, and both test configurations consume those files;
+artifact validation must agree with `AppVariant` before a signed build is
+accepted.
 
 ### Release signing identity
 

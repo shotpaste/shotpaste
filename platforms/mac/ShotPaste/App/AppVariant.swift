@@ -12,10 +12,19 @@ nonisolated enum AppVariant: String, CaseIterable, Sendable {
   case release
 
   static var current: AppVariant {
+    if let configuredValue = Bundle.main.object(
+      forInfoDictionaryKey: "ShotPasteVariant"
+    ) as? String,
+      let configuredVariant = AppVariant(rawValue: configuredValue) {
+      return configuredVariant
+    }
+
+    // Keep non-app contexts such as previews usable. Canonical app and test
+    // products always carry ShotPasteVariant and verify it against this model.
     #if DEBUG
-      .debug
+      return .debug
     #else
-      .release
+      return .release
     #endif
   }
 
@@ -40,16 +49,54 @@ nonisolated enum AppVariant: String, CaseIterable, Sendable {
     }
   }
 
+  var urlScheme: String {
+    switch self {
+    case .debug: "shotpaste-debug"
+    case .release: "shotpaste"
+    }
+  }
+
+  private var globalResourceNamespace: String {
+    bundleIdentifier
+  }
+
+  var internalPasteboardWriteMarkerIdentifier: String {
+    "\(globalResourceNamespace).internal-media-write"
+  }
+
+  var quickAccessActionTypeIdentifier: String {
+    "\(globalResourceNamespace).quick-access-action"
+  }
+
+  var quickAccessReorderTypeIdentifier: String {
+    "\(globalResourceNamespace).quick-access-reorder"
+  }
+
+  var erasesDatabaseOnSchemaChange: Bool {
+    self == .debug
+  }
+
+  var performsAutomaticUpdateChecks: Bool {
+    self == .release
+  }
+
   var applicationSupportDirectoryName: String {
-    displayName
+    dataDirectoryName
   }
 
   var diagnosticLogDirectoryName: String {
-    displayName
+    dataDirectoryName
   }
 
   var defaultExportDirectoryName: String {
-    displayName
+    dataDirectoryName
+  }
+
+  private var dataDirectoryName: String {
+    switch self {
+    case .debug: "ShotPaste Debug"
+    case .release: "ShotPaste"
+    }
   }
 
   var configurationDirectoryName: String {

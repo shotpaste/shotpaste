@@ -7,8 +7,9 @@ arbitrary file access, or unattended screen interaction.
 
 ## URL Scheme
 
-Release builds register `shotpaste://`. Debug builds register
-`shotpaste-debug://` and also accept `shotpaste://` while running.
+Release builds register and accept only `shotpaste://`. Debug builds register
+and accept only `shotpaste-debug://`, so a directed Apple event cannot cross
+the two app variants.
 
 | Action | Canonical URL |
 | --- | --- |
@@ -33,6 +34,8 @@ For example:
 open 'shotpaste://capture/one-shot?mode=scrolling'
 open 'shotpaste://open/history?filter=recording'
 ```
+
+When automating Debug, replace the scheme with `shotpaste-debug://`.
 
 The URL Scheme integration can be disabled in **Settings → General →
 Automation**. Unknown routes and parameter values are rejected rather than

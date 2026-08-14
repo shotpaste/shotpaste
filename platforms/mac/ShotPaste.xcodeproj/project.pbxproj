@@ -23,6 +23,8 @@
 
 /* Begin PBXFileReference section */
 		A36462A32F18EEDA0003453D /* ShotPaste Debug.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ShotPaste Debug.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A3C0F0012FC0000000000001 /* AppVariant-Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "ShotPaste/Config/AppVariant-Debug.xcconfig"; sourceTree = "<group>"; };
+		A3C0F0022FC0000000000002 /* AppVariant-Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "ShotPaste/Config/AppVariant-Release.xcconfig"; sourceTree = "<group>"; };
 		D00100012F9F000000000001 /* ShotPasteTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShotPasteTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D00110022F9F000000000002 /* ShotPaste.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = ShotPaste.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -31,6 +33,8 @@
 		A3A629C62F5E9E4E00E06B7C /* Exceptions for "ShotPaste" folder in "ShotPaste" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Config/AppVariant-Debug.xcconfig,
+				Config/AppVariant-Release.xcconfig,
 				Config/Secrets.xcconfig,
 				Resources/Info.plist,
 			);
@@ -94,6 +98,8 @@
 			isa = PBXGroup;
 			children = (
 				D00110022F9F000000000002 /* ShotPaste.xctestplan */,
+				A3C0F0012FC0000000000001 /* AppVariant-Debug.xcconfig */,
+				A3C0F0022FC0000000000002 /* AppVariant-Release.xcconfig */,
 				A36462A52F18EEDA0003453D /* ShotPaste */,
 				D00100032F9F000000000003 /* ShotPasteTests */,
 				E10CA1112FC0000000000002 /* Shared Localization */,
@@ -400,8 +406,9 @@
 		};
 		A36462B12F18EEDB0003453D /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A3C0F0012FC0000000000001 /* AppVariant-Debug.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconDebug;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "$(SHOTPASTE_APP_ICON)";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = ShotPaste/ShotPaste.entitlements;
@@ -414,10 +421,10 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readwrite;
-				EXECUTABLE_NAME = ShotPasteDebug;
+				EXECUTABLE_NAME = "$(SHOTPASTE_EXECUTABLE_NAME)";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ShotPaste/Resources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "ShotPaste Debug";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(SHOTPASTE_DISPLAY_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -426,14 +433,13 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				SHOTPASTE_URL_NAME = com.ahtcfg24.shotpaste.debug;
-				SHOTPASTE_URL_SCHEME = "shotpaste-debug";
+				SHOTPASTE_URL_NAME = "$(SHOTPASTE_BUNDLE_IDENTIFIER)";
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ahtcfg24.shotpaste.debug;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(SHOTPASTE_BUNDLE_IDENTIFIER)";
 				PRODUCT_MODULE_NAME = ShotPaste;
-				PRODUCT_NAME = "ShotPaste Debug";
+				PRODUCT_NAME = "$(SHOTPASTE_DISPLAY_NAME)";
 				REGISTER_APP_GROUPS = YES;
-				SHOTPASTE_BUNDLE_NAME = "ShotPaste Debug";
+				SHOTPASTE_BUNDLE_NAME = "$(SHOTPASTE_DISPLAY_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -445,8 +451,9 @@
 		};
 		A36462B22F18EEDB0003453D /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A3C0F0022FC0000000000002 /* AppVariant-Release.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "$(SHOTPASTE_APP_ICON)";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = ShotPaste/ShotPaste.entitlements;
@@ -459,10 +466,10 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readwrite;
-				EXECUTABLE_NAME = ShotPaste;
+				EXECUTABLE_NAME = "$(SHOTPASTE_EXECUTABLE_NAME)";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ShotPaste/Resources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "ShotPaste";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(SHOTPASTE_DISPLAY_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -471,14 +478,13 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				SHOTPASTE_URL_NAME = com.ahtcfg24.shotpaste;
-				SHOTPASTE_URL_SCHEME = shotpaste;
+				SHOTPASTE_URL_NAME = "$(SHOTPASTE_BUNDLE_IDENTIFIER)";
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ahtcfg24.shotpaste;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(SHOTPASTE_BUNDLE_IDENTIFIER)";
 				PRODUCT_MODULE_NAME = ShotPaste;
-				PRODUCT_NAME = "ShotPaste";
+				PRODUCT_NAME = "$(SHOTPASTE_DISPLAY_NAME)";
+				SHOTPASTE_BUNDLE_NAME = "$(SHOTPASTE_DISPLAY_NAME)";
 				REGISTER_APP_GROUPS = YES;
-				SHOTPASTE_BUNDLE_NAME = "ShotPaste";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -490,6 +496,7 @@
 		};
 		D001000A2F9F00000000000A /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A3C0F0012FC0000000000001 /* AppVariant-Debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -509,12 +516,13 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ShotPaste Debug.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ShotPasteDebug";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/$(SHOTPASTE_DISPLAY_NAME).app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/$(SHOTPASTE_EXECUTABLE_NAME)";
 			};
 			name = Debug;
 		};
 		D001000B2F9F00000000000B /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A3C0F0022FC0000000000002 /* AppVariant-Release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -534,7 +542,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ShotPaste.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ShotPaste";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/$(SHOTPASTE_DISPLAY_NAME).app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/$(SHOTPASTE_EXECUTABLE_NAME)";
 			};
 			name = Release;
 		};
