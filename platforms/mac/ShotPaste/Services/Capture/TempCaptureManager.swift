@@ -37,21 +37,17 @@ final class TempCaptureManager {
     self.defaults = defaults
   }
 
-  /// Temp directory for unsaved captures (Application Support/ShotPaste/Captures/).
+  /// Temp directory for unsaved captures in this app variant's Application Support folder.
   /// Uses Application Support instead of /tmp/ so macOS won't purge files
   /// during drag-and-drop — same pattern as CleanShot X.
   let tempCaptureDirectory: URL = {
-    guard let appSupport = FileManager.default.urls(
-      for: .applicationSupportDirectory, in: .userDomainMask
-    ).first else {
+    guard let appSupportRoot = AppDataLocations.applicationSupportRoot else {
       // Fallback if Application Support unavailable
-      let fallback = FileManager.default.temporaryDirectory
-        .appendingPathComponent("ShotPaste_Captures", isDirectory: true)
+      let fallback = AppDataLocations.fallbackCaptureDirectory
       try? FileManager.default.createDirectory(at: fallback, withIntermediateDirectories: true)
       return fallback
     }
-    let capturesDir = appSupport
-      .appendingPathComponent("ShotPaste", isDirectory: true)
+    let capturesDir = appSupportRoot
       .appendingPathComponent("Captures", isDirectory: true)
     try? FileManager.default.createDirectory(at: capturesDir, withIntermediateDirectories: true)
     return capturesDir
@@ -368,15 +364,11 @@ final class TempCaptureManager {
   // MARK: - Private
 
   private static func tempCaptureRootDirectory() -> URL {
-    guard let appSupport = FileManager.default.urls(
-      for: .applicationSupportDirectory, in: .userDomainMask
-    ).first else {
-      return FileManager.default.temporaryDirectory
-        .appendingPathComponent("ShotPaste_Captures", isDirectory: true)
+    guard let appSupportRoot = AppDataLocations.applicationSupportRoot else {
+      return AppDataLocations.fallbackCaptureDirectory
     }
 
-    return appSupport
-      .appendingPathComponent("ShotPaste", isDirectory: true)
+    return appSupportRoot
       .appendingPathComponent("Captures", isDirectory: true)
   }
 

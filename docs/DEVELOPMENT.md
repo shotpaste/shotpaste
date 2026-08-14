@@ -64,6 +64,43 @@ Products:
 - Debug: `.build/macos/Debug/ShotPaste Debug.app`
 - Release: `.build/macos/Release/ShotPaste.app`
 
+### Debug and Release isolation
+
+The two macOS configurations are independent applications and can run at the
+same time. Release keeps its existing identity and paths; Debug uses dedicated
+values:
+
+| Surface | Release | Debug |
+| --- | --- | --- |
+| Bundle ID | `com.ahtcfg24.shotpaste` | `com.ahtcfg24.shotpaste.debug` |
+| Executable | `ShotPaste` | `ShotPasteDebug` |
+| Application Support | `~/Library/Application Support/ShotPaste` | `~/Library/Application Support/ShotPaste Debug` |
+| Diagnostic logs | `~/Library/Logs/ShotPaste` | `~/Library/Logs/ShotPaste Debug` |
+| Managed TOML | `~/.config/shotpaste/config.toml` | `~/.config/shotpaste-debug/config.toml` |
+| Default export folder | `~/Desktop/ShotPaste` | `~/Desktop/ShotPaste Debug` |
+| URL Scheme | `shotpaste://` | `shotpaste-debug://` |
+| Default MCP port | `48123` | `48124` |
+| Copied MCP client key | `shotpaste` | `shotpaste-debug` |
+| Menu bar icon | `MenubarIcon` double-frame mark | `MenubarIconDebug` double-frame mark with centered `D` |
+
+Their UserDefaults, privacy permissions, login items, history database,
+thumbnails, clipboard archive, temporary captures, recording metadata, logs,
+problem-report archives, and default output folders therefore do not overlap.
+Internal pasteboard markers and Quick Access drag types also use variant-scoped
+identifiers; Quick Access payloads are exposed only within their originating
+process. Each app accepts only its registered URL Scheme.
+The application icons and menu bar icons share the same brand geometry; Debug
+adds a visible `D`. Debug also adds Option to its default global shortcuts so
+those bindings do not contend with Release defaults. No automatic legacy-data
+migration runs. A directory explicitly selected in both apps is intentionally
+shared by that choice.
+
+Canonical build identity values live in
+`platforms/mac/ShotPaste/Config/AppVariant-{Debug,Release}.xcconfig`. Xcode,
+local build/signing scripts, and both test configurations consume those files;
+artifact validation must agree with `AppVariant` before a signed build is
+accepted.
+
 ### Release signing identity
 
 Until an Apple Developer ID certificate is available, official release builds use

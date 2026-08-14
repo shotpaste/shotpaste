@@ -24,7 +24,6 @@ public sealed class ClipboardMonitorService : IDisposable
     private readonly SettingsStore _settings;
     private readonly HwndSource _source;
     private readonly SemaphoreSlim _captureGate = new(1, 1);
-    private DateTimeOffset _suppressUntil;
     private string? _lastFingerprint;
 
     public ClipboardMonitorService(CaptureHistoryStore history, SettingsStore settings)
@@ -42,14 +41,9 @@ public sealed class ClipboardMonitorService : IDisposable
         NativeMethods.AddClipboardFormatListener(_source.Handle);
     }
 
-    public void SuppressNextChange() => _suppressUntil = DateTimeOffset.UtcNow.AddSeconds(1);
-
     private IntPtr WindowProc(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         if (message != NativeMethods.WmClipboardUpdate) return IntPtr.Zero;
-        // WPF publishes one logical clipboard write through several native format updates.
-        // Suppress the short burst instead of only its first WM_CLIPBOARDUPDATE message.
-        if (DateTimeOffset.UtcNow <= _suppressUntil) return IntPtr.Zero;
         if (!_settings.Current.ClipboardHistoryEnabled) return IntPtr.Zero;
         _ = CaptureClipboardAsync();
         return IntPtr.Zero;
@@ -106,10 +100,14 @@ public sealed class ClipboardMonitorService : IDisposable
         string.Equals(_lastFingerprint, fingerprint, StringComparison.Ordinal) ||
         await _history.ContainsContentHashAsync(fingerprint);
 
-    internal static bool ShouldIgnoreClipboardData(System.Windows.IDataObject data)
+    internal static bool ShouldIgnoreClipboardData(System.Windows.IDataObject data) =>
+        ShouldIgnoreClipboardData(data, AppBuildIdentity.Current);
+
+    internal static bool ShouldIgnoreClipboardData(System.Windows.IDataObject data, AppBuildIdentity identity)
     {
         try
         {
+            if (data.GetDataPresent(identity.InternalClipboardWriteMarkerFormat, false)) return true;
             if (data.GetDataPresent(ExcludeFromMonitorFormat, false)) return true;
             if (TransientFormats.Any(format => data.GetDataPresent(format, false))) return true;
             if (!data.GetDataPresent(CanIncludeInHistoryFormat, false)) return false;

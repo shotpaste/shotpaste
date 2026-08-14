@@ -45,9 +45,13 @@ jobs:
         run: ./scripts/run-tests.sh
 
   windows:
-    name: Windows build and tests
+    name: Windows ${{ matrix.configuration }} build and tests
     runs-on: windows-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Debug, Release]
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
       DOTNET_NOLOGO: "1"
@@ -64,4 +68,4 @@ jobs:
 
       - name: Build and test Windows
         shell: pwsh
-        run: ./scripts/build-windows.ps1 -Configuration Debug
+        run: ./scripts/build-windows.ps1 -Configuration '${{ matrix.configuration }}'

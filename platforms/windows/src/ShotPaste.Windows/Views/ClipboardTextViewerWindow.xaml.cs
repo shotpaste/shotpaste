@@ -40,7 +40,7 @@ public partial class ClipboardTextViewerWindow : Window
         if (string.IsNullOrEmpty(_loadedText)) return;
         try
         {
-            System.Windows.Clipboard.SetText(_loadedText);
+            ClipboardWriter.SetText(_loadedText);
             StatusText.Text = LocalizationService.TranslatePhrase("已复制当前显示文本");
         }
         catch (ExternalException exception)

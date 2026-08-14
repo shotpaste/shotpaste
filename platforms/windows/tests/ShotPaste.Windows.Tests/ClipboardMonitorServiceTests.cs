@@ -25,6 +25,18 @@ public sealed class ClipboardMonitorServiceTests
     }
 
     [Fact]
+    public void InternalWriteMarker_IsScopedToTheWritingAppVariant()
+    {
+        var debugWrite = ClipboardWriter.CreateTextDataObject("debug", AppBuildIdentity.Debug);
+        var releaseWrite = ClipboardWriter.CreateTextDataObject("release", AppBuildIdentity.Release);
+
+        Assert.True(ClipboardMonitorService.ShouldIgnoreClipboardData(debugWrite, AppBuildIdentity.Debug));
+        Assert.False(ClipboardMonitorService.ShouldIgnoreClipboardData(debugWrite, AppBuildIdentity.Release));
+        Assert.True(ClipboardMonitorService.ShouldIgnoreClipboardData(releaseWrite, AppBuildIdentity.Release));
+        Assert.False(ClipboardMonitorService.ShouldIgnoreClipboardData(releaseWrite, AppBuildIdentity.Debug));
+    }
+
+    [Fact]
     public void ComputeHash_IsStableAndContentSensitive()
     {
         var first = ClipboardMonitorService.ComputeHash("image", Encoding.UTF8.GetBytes("same"));

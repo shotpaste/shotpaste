@@ -3,7 +3,7 @@
   <Style TargetType="{x:Type Window}">
     <Setter Property="FontFamily" Value="{DynamicResource Font.Family}" />
     <Setter Property="FontSize" Value="{DynamicResource FontSize.Body}" />
-    <Setter Property="Icon" Value="pack://application:,,,/ShotPaste;component/Assets/shotpaste-icon.png" />
+    <Setter Property="Icon" Value="../../Assets/shotpaste-icon.png" />
     <Setter Property="Background" Value="{DynamicResource WindowBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
   </Style>

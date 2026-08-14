@@ -37,10 +37,10 @@ final class PauseResumeRecordingShortcutTests: XCTestCase {
 
   // MARK: - ShortcutConfig.defaultPauseResumeRecording
 
-  func testDefaultPauseResumeRecordingShortcut_matchesRecommendedCmdShiftSpace() {
+  func testDefaultPauseResumeRecordingShortcut_matchesCurrentVariantRecommendation() {
     let config = ShortcutConfig.defaultPauseResumeRecording
     XCTAssertEqual(config.keyCode, UInt32(kVK_Space))
-    XCTAssertEqual(config.modifiers, UInt32(cmdKey | shiftKey))
+    XCTAssertEqual(config.modifiers, ShortcutConfig.defaultModifiers(for: .current))
   }
 
   // MARK: - GlobalShortcutKind

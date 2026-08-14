@@ -11,20 +11,51 @@ import XCTest
 
 @MainActor
 final class ShotPasteConfigurationPathsTests: XCTestCase {
-  func testSuggestedConfigURLUsesProvidedHomeDirectory() {
+  func testCurrentSuggestedConfigURLUsesProvidedHomeDirectory() {
     let home = URL(fileURLWithPath: "/Users/example", isDirectory: true)
 
     let url = ShotPasteConfigurationPaths.suggestedConfigURL(homeDirectory: home)
+    let expected = AppDataLocations.configurationDirectory(
+      in: home,
+      variant: .current
+    ).appendingPathComponent("config.toml")
 
-    XCTAssertEqual(url.path, "/Users/example/.config/shotpaste/config.toml")
+    XCTAssertEqual(url.path, expected.path)
   }
 
-  func testSuggestedConfigDirectoryURLUsesProvidedHomeDirectory() {
+  func testCurrentSuggestedConfigDirectoryURLUsesProvidedHomeDirectory() {
     let home = URL(fileURLWithPath: "/Users/example", isDirectory: true)
 
     let url = ShotPasteConfigurationPaths.suggestedConfigDirectoryURL(homeDirectory: home)
 
-    XCTAssertEqual(url.path, "/Users/example/.config/shotpaste")
+    XCTAssertEqual(
+      url.path,
+      AppDataLocations.configurationDirectory(in: home, variant: .current).path
+    )
+  }
+
+  func testReleaseSuggestedConfigPathRemainsUnchanged() {
+    let home = URL(fileURLWithPath: "/Users/example", isDirectory: true)
+
+    XCTAssertEqual(
+      ShotPasteConfigurationPaths.suggestedConfigURL(
+        homeDirectory: home,
+        variant: .release
+      ).path,
+      "/Users/example/.config/shotpaste/config.toml"
+    )
+  }
+
+  func testDebugSuggestedConfigPathIsIndependent() {
+    let home = URL(fileURLWithPath: "/Users/example", isDirectory: true)
+
+    XCTAssertEqual(
+      ShotPasteConfigurationPaths.suggestedConfigURL(
+        homeDirectory: home,
+        variant: .debug
+      ).path,
+      "/Users/example/.config/shotpaste-debug/config.toml"
+    )
   }
 
   func testCollapsingHomePathConvertsAbsolutePathToTilde() {

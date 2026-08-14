@@ -99,6 +99,33 @@ nonisolated enum PermissionAuthorizationGuidePolicy {
   ) -> PermissionAuthorizationSettingsTarget? {
     PermissionAuthorizationSettingsTarget.guideOrder.first { !snapshot.isGranted($0) }
   }
+
+  static func authorizationAction(
+    for target: PermissionAuthorizationSettingsTarget,
+    microphoneStatus: AVAuthorizationStatus
+  ) -> PermissionAuthorizationGuideAction {
+    switch target {
+    case .screenRecording, .accessibility:
+      .openSystemSettings
+    case .microphone:
+      switch microphoneStatus {
+      case .notDetermined:
+        .requestMicrophoneAccess
+      case .denied:
+        .openSystemSettings
+      case .authorized, .restricted:
+        .none
+      @unknown default:
+        .none
+      }
+    }
+  }
+}
+
+nonisolated enum PermissionAuthorizationGuideAction: Equatable {
+  case openSystemSettings
+  case requestMicrophoneAccess
+  case none
 }
 
 nonisolated enum PermissionSettingsHighlightGeometry {
@@ -190,6 +217,7 @@ final class PermissionAuthorizationAssistantController: NSObject, ObservableObje
   @Published private(set) var didCompleteGuide = false
   @Published private(set) var didFailCurrentDetection = false
   @Published private(set) var requiresManualSettingsOpen = false
+  @Published private(set) var isRequestingMicrophone = false
 
   private var panel: PermissionAuthorizationAssistantPanel?
   private var highlightPanel: PermissionSettingsHighlightPanel?
@@ -275,7 +303,7 @@ final class PermissionAuthorizationAssistantController: NSObject, ObservableObje
         advanceGuide(openSettings: true)
       } else {
         didFailCurrentDetection = true
-        _ = openSettings(target)
+        performAuthorizationAction(for: target)
       }
     }
   }
@@ -324,6 +352,26 @@ final class PermissionAuthorizationAssistantController: NSObject, ObservableObje
       if isGuiding {
         advanceGuide(openSettings: true)
       }
+    }
+  }
+
+  func authorizationAction(
+    for target: PermissionAuthorizationSettingsTarget
+  ) -> PermissionAuthorizationGuideAction {
+    PermissionAuthorizationGuidePolicy.authorizationAction(
+      for: target,
+      microphoneStatus: microphoneStatus
+    )
+  }
+
+  func performAuthorizationAction(for target: PermissionAuthorizationSettingsTarget) {
+    switch authorizationAction(for: target) {
+    case .openSystemSettings:
+      _ = openSettings(target)
+    case .requestMicrophoneAccess:
+      requestMicrophoneAccess()
+    case .none:
+      break
     }
   }
 
@@ -413,7 +461,33 @@ final class PermissionAuthorizationAssistantController: NSObject, ObservableObje
     requiresManualSettingsOpen = false
     hideHighlight()
     if shouldOpenSettings {
-      _ = openSettings(nextTarget)
+      performAuthorizationAction(for: nextTarget)
+    }
+  }
+
+  private func requestMicrophoneAccess() {
+    guard microphoneStatus == .notDetermined, !isRequestingMicrophone else { return }
+
+    clearResetOverride(for: .microphone)
+    requiresManualSettingsOpen = false
+    isRequestingMicrophone = true
+    hideHighlight()
+
+    // The preceding guide steps keep System Settings frontmost. Bring ShotPaste
+    // forward so the native microphone authorization alert is immediately visible.
+    NSApp.activate(ignoringOtherApps: true)
+    panel?.level = .floating
+    panel?.orderFrontRegardless()
+
+    Task { @MainActor [weak self] in
+      _ = await AVCaptureDevice.requestAccess(for: .audio)
+      guard let self else { return }
+
+      isRequestingMicrophone = false
+      await refreshPermissionStatesNow()
+      if isGuiding {
+        advanceGuide(openSettings: true)
+      }
     }
   }
 
@@ -844,15 +918,23 @@ private struct PermissionAuthorizationAssistantView: View {
 
       HStack(spacing: Spacing.sm) {
         if let target = controller.currentTarget {
-          Button {
-            _ = controller.openSettings(target)
-          } label: {
-            Label(
-              L10n.PreferencesPermissions.authorizationOpenCurrent,
-              systemImage: "arrow.up.forward.app"
-            )
+          if controller.authorizationAction(for: target) != .none {
+            Button {
+              controller.performAuthorizationAction(for: target)
+            } label: {
+              if target == .microphone, controller.isRequestingMicrophone {
+                ProgressView()
+                  .controlSize(.small)
+              } else {
+                Label(
+                  authorizationActionTitle(for: target),
+                  systemImage: authorizationActionIcon(for: target)
+                )
+              }
+            }
+            .buttonStyle(.bordered)
+            .disabled(controller.isRequestingMicrophone)
           }
-          .buttonStyle(.bordered)
 
           Button {
             controller.checkCurrentAndContinue()
@@ -863,6 +945,7 @@ private struct PermissionAuthorizationAssistantView: View {
             )
           }
           .buttonStyle(.borderedProminent)
+          .disabled(controller.isRequestingMicrophone)
         }
 
         Spacer()
@@ -977,16 +1060,22 @@ private struct PermissionAuthorizationAssistantView: View {
         .font(.callout.weight(.medium))
       Spacer()
       StatusBadge(label: state.label, systemImage: state.icon, tint: state.tint)
-      if !state.isGranted {
+      if !state.isGranted, controller.authorizationAction(for: target) != .none {
         Button {
-          _ = controller.openSettings(target)
+          controller.performAuthorizationAction(for: target)
         } label: {
-          Image(systemName: "arrow.up.forward.app")
+          if target == .microphone, controller.isRequestingMicrophone {
+            ProgressView()
+              .controlSize(.small)
+          } else {
+            Image(systemName: authorizationActionIcon(for: target))
+          }
         }
         .buttonStyle(.link)
         .controlSize(.small)
-        .help(L10n.Common.openSystemSettings)
-        .accessibilityLabel(L10n.Common.openSystemSettings)
+        .disabled(controller.isRequestingMicrophone)
+        .help(authorizationActionTitle(for: target))
+        .accessibilityLabel(authorizationActionTitle(for: target))
       }
     }
     .padding(.horizontal, Spacing.sm)
@@ -1016,6 +1105,28 @@ private struct PermissionAuthorizationAssistantView: View {
     target.supportsDragging
       ? L10n.PreferencesPermissions.authorizationDragInstruction
       : L10n.PreferencesPermissions.authorizationMicrophoneInstruction
+  }
+
+  private func authorizationActionTitle(
+    for target: PermissionAuthorizationSettingsTarget
+  ) -> String {
+    switch controller.authorizationAction(for: target) {
+    case .requestMicrophoneAccess:
+      L10n.Permission.grantAccess
+    case .openSystemSettings, .none:
+      L10n.PreferencesPermissions.authorizationOpenCurrent
+    }
+  }
+
+  private func authorizationActionIcon(
+    for target: PermissionAuthorizationSettingsTarget
+  ) -> String {
+    switch controller.authorizationAction(for: target) {
+    case .requestMicrophoneAccess:
+      "mic.badge.plus"
+    case .openSystemSettings, .none:
+      "arrow.up.forward.app"
+    }
   }
 
   private func title(for target: PermissionAuthorizationSettingsTarget) -> String {

@@ -3,6 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/scripts/macos-app-variant.sh"
 APP_PATH="${1:-}"
 CONFIGURATION="${2:-Release}"
 ENTITLEMENTS_SOURCE="${SHOTPASTE_ENTITLEMENTS_PATH:-$ROOT_DIR/platforms/mac/ShotPaste/ShotPaste.entitlements}"
@@ -41,6 +42,8 @@ fi
 [[ -d "$APP_PATH" ]] || fail "App bundle not found: $APP_PATH"
 [[ -f "$APP_PATH/Contents/Info.plist" ]] || fail "App Info.plist not found: $APP_PATH"
 [[ -f "$ENTITLEMENTS_SOURCE" ]] || fail "Entitlements file not found: $ENTITLEMENTS_SOURCE"
+macos_app_variant_validate_configuration "$CONFIGURATION" || fail \
+  "Invalid macOS app variant configuration: $CONFIGURATION"
 command -v codesign >/dev/null 2>&1 || fail "codesign is required."
 command -v security >/dev/null 2>&1 || fail "security is required."
 
@@ -108,16 +111,32 @@ esac
 
 BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Contents/Info.plist")"
 EXECUTABLE_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP_PATH/Contents/Info.plist")"
-EXPECTED_BUNDLE_ID="${SHOTPASTE_EXPECTED_BUNDLE_ID:-}"
-if [[ -z "$EXPECTED_BUNDLE_ID" ]]; then
-  if [[ "$CONFIGURATION" == "Debug" ]]; then
-    EXPECTED_BUNDLE_ID="com.ahtcfg24.shotpaste.debug"
-  else
-    EXPECTED_BUNDLE_ID="com.ahtcfg24.shotpaste"
-  fi
-fi
+DISPLAY_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP_PATH/Contents/Info.plist")"
+BUNDLE_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$APP_PATH/Contents/Info.plist")"
+VARIANT_NAME="$(/usr/libexec/PlistBuddy -c 'Print :ShotPasteVariant' "$APP_PATH/Contents/Info.plist")"
+URL_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleURLTypes:0:CFBundleURLName' "$APP_PATH/Contents/Info.plist")"
+URL_SCHEME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleURLTypes:0:CFBundleURLSchemes:0' "$APP_PATH/Contents/Info.plist")"
+EXPECTED_BUNDLE_ID="$(macos_app_variant_setting "$CONFIGURATION" SHOTPASTE_BUNDLE_IDENTIFIER)"
+EXPECTED_EXECUTABLE_NAME="$(macos_app_variant_setting "$CONFIGURATION" SHOTPASTE_EXECUTABLE_NAME)"
+EXPECTED_DISPLAY_NAME="$(macos_app_variant_setting "$CONFIGURATION" SHOTPASTE_DISPLAY_NAME)"
+EXPECTED_VARIANT_NAME="$(macos_app_variant_setting "$CONFIGURATION" SHOTPASTE_VARIANT)"
+EXPECTED_URL_SCHEME="$(macos_app_variant_setting "$CONFIGURATION" SHOTPASTE_URL_SCHEME)"
 [[ "$BUNDLE_ID" == "$EXPECTED_BUNDLE_ID" ]] || fail \
   "Unexpected bundle identifier '$BUNDLE_ID'; expected '$EXPECTED_BUNDLE_ID'."
+[[ "$EXECUTABLE_NAME" == "$EXPECTED_EXECUTABLE_NAME" ]] || fail \
+  "Unexpected executable '$EXECUTABLE_NAME'; expected '$EXPECTED_EXECUTABLE_NAME'."
+[[ "$DISPLAY_NAME" == "$EXPECTED_DISPLAY_NAME" ]] || fail \
+  "Unexpected display name '$DISPLAY_NAME'; expected '$EXPECTED_DISPLAY_NAME'."
+[[ "$BUNDLE_NAME" == "$EXPECTED_DISPLAY_NAME" ]] || fail \
+  "Unexpected bundle name '$BUNDLE_NAME'; expected '$EXPECTED_DISPLAY_NAME'."
+[[ "$VARIANT_NAME" == "$EXPECTED_VARIANT_NAME" ]] || fail \
+  "Unexpected app variant '$VARIANT_NAME'; expected '$EXPECTED_VARIANT_NAME'."
+[[ "$URL_NAME" == "$EXPECTED_BUNDLE_ID" ]] || fail \
+  "Unexpected URL type name '$URL_NAME'; expected '$EXPECTED_BUNDLE_ID'."
+[[ "$URL_SCHEME" == "$EXPECTED_URL_SCHEME" ]] || fail \
+  "Unexpected URL scheme '$URL_SCHEME'; expected '$EXPECTED_URL_SCHEME'."
+[[ "$(basename "$APP_PATH")" == "$EXPECTED_DISPLAY_NAME.app" ]] || fail \
+  "Unexpected app bundle name '$(basename "$APP_PATH")'; expected '$EXPECTED_DISPLAY_NAME.app'."
 
 SIGNING_DIR="$ROOT_DIR/.build/macos/signing"
 CONFIGURATION_SLUG="$(printf '%s' "$CONFIGURATION" | /usr/bin/tr '[:upper:]' '[:lower:]')"

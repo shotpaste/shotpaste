@@ -8,7 +8,9 @@ public sealed class AppSettings
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public string Language { get; set; } = "System";
     public bool PlaySounds { get; set; } = true;
-    public string SaveDirectory { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "ShotPaste");
+    public string SaveDirectory { get; set; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+        AppBuildIdentity.Current.DefaultSaveDirectoryName);
     public bool CopyAfterCapture { get; set; } = true;
     public bool ShowQuickAccess { get; set; } = true;
     public bool CopyScreenshots { get; set; } = true;
@@ -111,12 +113,12 @@ public sealed class AppSettings
     public string ScreenshotNameTemplate { get; set; } = "ShotPaste_{datetime}_{ms}";
     public string RecordingNameTemplate { get; set; } = "ShotPaste_Recording_{datetime}";
     public bool ShortcutsEnabled { get; set; } = true;
-    public string OneShotHotkey { get; set; } = "Ctrl+Shift+1";
-    public string HistoryHotkey { get; set; } = "Ctrl+Shift+H";
-    public string RecordingPauseHotkey { get; set; } = "Ctrl+Shift+P";
-    public string RecordingAnnotationHotkey { get; set; } = "Ctrl+Shift+D";
-    public string RecordingRestartHotkey { get; set; } = "Ctrl+Shift+R";
-    public string RecordingDeleteHotkey { get; set; } = "Ctrl+Shift+Backspace";
+    public string OneShotHotkey { get; set; } = $"{AppBuildIdentity.Current.DefaultHotkeyModifiers}+1";
+    public string HistoryHotkey { get; set; } = $"{AppBuildIdentity.Current.DefaultHotkeyModifiers}+H";
+    public string RecordingPauseHotkey { get; set; } = $"{AppBuildIdentity.Current.DefaultHotkeyModifiers}+P";
+    public string RecordingAnnotationHotkey { get; set; } = $"{AppBuildIdentity.Current.DefaultHotkeyModifiers}+D";
+    public string RecordingRestartHotkey { get; set; } = $"{AppBuildIdentity.Current.DefaultHotkeyModifiers}+R";
+    public string RecordingDeleteHotkey { get; set; } = $"{AppBuildIdentity.Current.DefaultHotkeyModifiers}+Backspace";
     public double HistoryExpandedWidth { get; set; } = 980d;
     public double HistoryExpandedHeight { get; set; } = 680d;
     public double? HistoryExpandedLeft { get; set; }

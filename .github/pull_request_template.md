@@ -5,8 +5,9 @@ Describe the user-visible outcome and why the change is needed.
 ## Scope
 
 - Platforms changed: <!-- macOS / Windows / website / shared / docs -->
-- Target branch: <!-- main, or release for an approved promotion/hotfix -->
-- Release promotion: <!-- None / macos-vX.Y.Z / windows-vX.Y.Z -->
+- Source branch: <!-- A non-main branch in your fork, or main for an owner release PR -->
+- Target branch: <!-- main for contributions; release only for an owner main-to-release PR -->
+- Release candidate: <!-- None / macOS / Windows / both -->
 - Related issue: <!-- Fixes #123, if applicable -->
 - Intentional platform differences: <!-- None, or explain the OS constraint -->
 
@@ -24,7 +25,7 @@ system, architecture, and produced app/package path when platform code changed.
 - [ ] User-facing text is localized in every supported locale and checked with long labels.
 - [ ] Accessibility names, keyboard use, and narrow-window layouts were considered.
 - [ ] Documentation and release notes were updated when user behavior changed.
-- [ ] A `release` promotion contains only completed, selected changes already reviewed on `main`.
+- [ ] If this targets `release`, its source is `main`; the resulting release commit will not be tagged until CI, builds, and owner acceptance pass.
 - [ ] Logs, screenshots, fixtures, and commits contain no private data or credentials.
 - [ ] I reviewed and tested any content produced with automated tools.
 

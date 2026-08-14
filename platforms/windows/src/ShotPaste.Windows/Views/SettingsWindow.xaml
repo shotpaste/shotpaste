@@ -88,7 +88,7 @@
             <Border Style="{StaticResource SettingsCard}">
               <StackPanel>
                 <TextBlock Text="URL Scheme" Style="{StaticResource SectionTitle}"/>
-                <CheckBox Content="允许 shotpaste:// 自动化链接" IsChecked="{Binding UrlSchemeEnabled}"/>
+                <CheckBox x:Name="UrlSchemeCheckBox" Content="允许 shotpaste:// 自动化链接" IsChecked="{Binding UrlSchemeEnabled}"/>
                 <TextBlock Text="支持 One Shot、截图、滚动截屏、OCR、录屏、历史与设置页面；关闭后会注销协议。" Style="{StaticResource SettingHint}" Margin="24,2,0,0"/>
               </StackPanel>
             </Border>

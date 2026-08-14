@@ -3,6 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/scripts/macos-app-variant.sh"
 INCLUDE_XCODE_DERIVED_DATA=0
 
 if [[ "${1:-}" == "--include-xcode-derived-data" ]]; then
@@ -17,12 +18,12 @@ fi
   exit 1
 }
 
-CANONICAL_DEBUG="$ROOT_DIR/.build/macos/Debug/ShotPaste Debug.app"
-CANONICAL_RELEASE="$ROOT_DIR/.build/macos/Release/ShotPaste.app"
+DEBUG_APP_NAME="$(macos_app_variant_setting Debug SHOTPASTE_DISPLAY_NAME).app"
+RELEASE_APP_NAME="$(macos_app_variant_setting Release SHOTPASTE_DISPLAY_NAME).app"
+CANONICAL_DEBUG="$ROOT_DIR/.build/macos/Debug/$DEBUG_APP_NAME"
+CANONICAL_RELEASE="$ROOT_DIR/.build/macos/Release/$RELEASE_APP_NAME"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 REMOVED=0
-
-pgrep -x ShotPaste >/dev/null 2>&1 && pkill -x ShotPaste >/dev/null 2>&1 || true
 
 remove_candidate() {
   local candidate="$1"
@@ -30,7 +31,7 @@ remove_candidate() {
   base_name="$(basename "$candidate")"
 
   [[ "$candidate" != "$CANONICAL_DEBUG" && "$candidate" != "$CANONICAL_RELEASE" ]] || return 0
-  [[ "$base_name" == "ShotPaste Debug.app" || "$base_name" == "ShotPaste.app" ]] || return 0
+  [[ "$base_name" == "$DEBUG_APP_NAME" || "$base_name" == "$RELEASE_APP_NAME" ]] || return 0
 
   case "$candidate" in
     "$ROOT_DIR/.build/"*|"$ROOT_DIR/build/"*|"$HOME/Library/Developer/Xcode/DerivedData/"*) ;;
@@ -55,7 +56,7 @@ scan_root() {
     remove_candidate "$candidate"
   done < <(
     /usr/bin/find "$search_root" -type d \( \
-      -name 'ShotPaste Debug.app' -o -name 'ShotPaste.app' \
+      -name "$DEBUG_APP_NAME" -o -name "$RELEASE_APP_NAME" \
     \) -prune -print0
   )
 }

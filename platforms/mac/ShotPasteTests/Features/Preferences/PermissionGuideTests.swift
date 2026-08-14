@@ -3,6 +3,7 @@
 //  ShotPasteTests
 //
 
+import AVFoundation
 @testable import ShotPaste
 import XCTest
 
@@ -56,6 +57,31 @@ final class PermissionGuideTests: XCTestCase {
       .microphone
     )
     XCTAssertFalse(snapshot.allGranted)
+  }
+
+  func testAuthorizationGuideUsesNativePromptForUndeterminedMicrophonePermission() {
+    XCTAssertEqual(
+      PermissionAuthorizationGuidePolicy.authorizationAction(
+        for: .microphone,
+        microphoneStatus: .notDetermined
+      ),
+      .requestMicrophoneAccess
+    )
+    XCTAssertEqual(
+      PermissionAuthorizationGuidePolicy.authorizationAction(
+        for: .microphone,
+        microphoneStatus: .denied
+      ),
+      .openSystemSettings
+    )
+    XCTAssertEqual(
+      PermissionAuthorizationGuidePolicy.authorizationAction(
+        for: .microphone,
+        microphoneStatus: .restricted
+      ),
+      .none
+    )
+    XCTAssertFalse(PermissionAuthorizationSettingsTarget.microphone.supportsDragging)
   }
 
   func testAuthorizationGuideDoesNothingWhenEveryPermissionIsGranted() {

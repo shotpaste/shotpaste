@@ -15,7 +15,6 @@ namespace ShotPaste.Windows.Services;
 
 public sealed class TrayIconService : IDisposable
 {
-    private const string DefaultBalloonTitle = "ShotPaste";
     private const string DefaultBalloonMessage = "操作未能完成，请重试。";
     private readonly Forms.NotifyIcon _icon;
     private readonly Forms.Timer _recordingTimer = new() { Interval = 250 };
@@ -42,10 +41,10 @@ public sealed class TrayIconService : IDisposable
     {
         _settings = settings;
         _recordingElapsed = recordingElapsed;
-        _icon = new Forms.NotifyIcon { Text = "ShotPaste", Visible = settings.ShowTrayIcon };
+        _icon = new Forms.NotifyIcon { Text = AppBuildIdentity.Current.DisplayName, Visible = settings.ShowTrayIcon };
         try
         {
-            var resource = WpfApplication.GetResourceStream(new Uri("pack://application:,,,/ShotPaste;component/Assets/shotpaste-icon.png"));
+            var resource = WpfApplication.GetResourceStream(AppBuildIdentity.ResourceUri("Assets/shotpaste-icon.png"));
             if (resource is not null)
             {
                 using var bitmap = new Bitmap(resource.Stream);
@@ -83,7 +82,7 @@ public sealed class TrayIconService : IDisposable
 
     internal static (string Title, string Message) NormalizeBalloonContent(string? title, string? message)
     {
-        var normalizedTitle = string.IsNullOrWhiteSpace(title) ? DefaultBalloonTitle : title.Trim();
+        var normalizedTitle = string.IsNullOrWhiteSpace(title) ? AppBuildIdentity.Current.DisplayName : title.Trim();
         var normalizedMessage = string.IsNullOrWhiteSpace(message) ? DefaultBalloonMessage : message.Trim();
         return (LocalizationService.TranslatePhrase(normalizedTitle),
             LocalizationService.TranslatePhrase(normalizedMessage));
@@ -217,14 +216,14 @@ public sealed class TrayIconService : IDisposable
     {
         if (!_isRecording)
         {
-            _icon.Text = "ShotPaste";
+            _icon.Text = AppBuildIdentity.Current.DisplayName;
             return;
         }
         var status = LocalizationService.TranslatePhrase(_isPaused ? "录制已暂停" : "正在录制", _settings.Language);
         var duration = _settings.ShowRecordingDurationInTray && _recordingElapsed is not null
             ? $" {_recordingElapsed():hh\\:mm\\:ss}"
             : string.Empty;
-        var tooltip = $"ShotPaste · {status}{duration}";
+        var tooltip = $"{AppBuildIdentity.Current.DisplayName} · {status}{duration}";
         _icon.Text = tooltip[..Math.Min(63, tooltip.Length)];
     }
 

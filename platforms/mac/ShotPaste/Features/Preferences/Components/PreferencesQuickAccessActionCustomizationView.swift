@@ -120,7 +120,7 @@ private struct QuickAccessActionConfigurationRow: View {
           if let data = action.rawValue.data(using: .utf8) {
             provider.registerDataRepresentation(
               forTypeIdentifier: UTType.quickAccessReorder.identifier,
-              visibility: .all
+              visibility: .ownProcess
             ) { completion in
               completion(data, nil)
               return nil
@@ -222,8 +222,6 @@ private struct QuickAccessActionDragPreview: View {
 }
 
 private struct ReorderDropDelegate: DropDelegate {
-  private static let reorderMarker = "com.ahtcfg24.shotpaste.quick-access-reorder"
-
   let targetAction: QuickAccessActionKind
   let targetIndex: Int
   let actionStore: QuickAccessActionConfigurationStore

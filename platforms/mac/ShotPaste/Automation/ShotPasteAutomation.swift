@@ -63,8 +63,8 @@ enum ShotPasteAutomationCommand: Equatable {
     }
   }
 
-  init?(url: URL) {
-    guard let scheme = url.scheme?.lowercased(), AppURLScheme.supported.contains(scheme) else {
+  init?(url: URL, variant: AppVariant = .current) {
+    guard let scheme = url.scheme?.lowercased(), scheme == variant.urlScheme else {
       return nil
     }
 
@@ -342,12 +342,4 @@ final class ShotPasteAutomationController {
       "historyVisible": HistoryFloatingManager.shared.isVisible ? "true" : "false",
     ]
   }
-}
-
-private enum AppURLScheme {
-  #if DEBUG
-    static let supported = Set(["shotpaste-debug", "shotpaste"])
-  #else
-    static let supported = Set(["shotpaste"])
-  #endif
 }

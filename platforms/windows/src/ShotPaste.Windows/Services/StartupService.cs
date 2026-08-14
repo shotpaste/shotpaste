@@ -13,8 +13,9 @@ public static class StartupService
         if (enabled)
         {
             var executable = Environment.ProcessPath;
-            if (!string.IsNullOrWhiteSpace(executable)) key.SetValue("ShotPaste", $"\"{executable}\"");
+            if (!string.IsNullOrWhiteSpace(executable))
+                key.SetValue(AppBuildIdentity.Current.StartupRegistryValueName, $"\"{executable}\"");
         }
-        else key.DeleteValue("ShotPaste", throwOnMissingValue: false);
+        else key.DeleteValue(AppBuildIdentity.Current.StartupRegistryValueName, throwOnMissingValue: false);
     }
 }

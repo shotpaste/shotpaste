@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="ShotPaste"
-RELEASE_BUNDLE_NAME="ShotPaste"
-DEBUG_BUNDLE_NAME="ShotPaste Debug"
 SCHEME="ShotPaste"
 PROJECT="platforms/mac/ShotPaste.xcodeproj"
 LOG_SUBSYSTEM="${LOG_SUBSYSTEM:-ShotPaste}"
@@ -18,8 +15,11 @@ BUILD_NUMBER_OVERRIDE="${SHOTPASTE_BUILD_NUMBER:-}"
 RELEASE_ARM64_ONLY="${SHOTPASTE_RELEASE_ARM64_ONLY:-0}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/scripts/macos-app-variant.sh"
 PRODUCTS_ROOT="$ROOT_DIR/.build/macos"
 DERIVED_DATA_PATH="$PRODUCTS_ROOT/DerivedData"
+APP_BUNDLE_NAME=""
+APP_PROCESS_NAME=""
 
 if [[ -t 1 ]]; then
   BLUE=$'\033[0;34m'
@@ -49,7 +49,7 @@ ${BOLD}Usage:${NC} $0 [build|run|--logs|--telemetry|--debug|--verify] [options]
 ${BOLD}Modes:${NC}
   build               Build and sign the canonical app without launching it
   run                 Kill, build, and launch ShotPaste (default)
-  --logs, logs        Launch then stream unified logs for process == "ShotPaste"
+  --logs, logs        Launch then stream unified logs for the selected app variant
   --telemetry         Launch then stream unified logs for subsystem == "$LOG_SUBSYSTEM"
   --debug, debug      Build then launch the app binary under lldb
   --verify, verify    Launch and confirm the ShotPaste process is running
@@ -149,6 +149,12 @@ validate_configuration() {
   esac
 }
 
+load_app_variant_configuration() {
+  macos_app_variant_validate_configuration "$CONFIGURATION"
+  APP_BUNDLE_NAME="$(macos_app_variant_setting "$CONFIGURATION" SHOTPASTE_DISPLAY_NAME)"
+  APP_PROCESS_NAME="$(macos_app_variant_setting "$CONFIGURATION" SHOTPASTE_EXECUTABLE_NAME)"
+}
+
 validate_build_overrides() {
   if [[ -n "$MARKETING_VERSION_OVERRIDE" && ! "$MARKETING_VERSION_OVERRIDE" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
     fail "SHOTPASTE_MARKETING_VERSION must be stable SemVer, for example 1.2.3."
@@ -198,13 +204,21 @@ message_type_predicate() {
 }
 
 process_log_predicate() {
-  printf "process == \"%s\"" "$APP_NAME"
+  printf "process == \"%s\"" "$(app_process_name)"
   message_type_predicate "$LOG_LEVEL"
 }
 
 telemetry_log_predicate() {
-  printf "subsystem == \"%s\"" "$LOG_SUBSYSTEM"
+  printf "subsystem == \"%s\" AND process == \"%s\"" "$LOG_SUBSYSTEM" "$(app_process_name)"
   message_type_predicate "$LOG_LEVEL"
+}
+
+app_display_name() {
+  printf "%s" "$APP_BUNDLE_NAME"
+}
+
+app_process_name() {
+  printf "%s" "$APP_PROCESS_NAME"
 }
 
 build_products_dir() {
@@ -212,22 +226,19 @@ build_products_dir() {
 }
 
 app_bundle_path() {
-  local bundle_name="$RELEASE_BUNDLE_NAME"
-  if [[ "$CONFIGURATION" == "Debug" ]]; then
-    bundle_name="$DEBUG_BUNDLE_NAME"
-  fi
-
-  printf "%s/%s.app" "$(build_products_dir)" "$bundle_name"
+  printf "%s/%s.app" "$(build_products_dir)" "$APP_BUNDLE_NAME"
 }
 
 app_binary_path() {
-  printf "%s/Contents/MacOS/%s" "$(app_bundle_path)" "$APP_NAME"
+  printf "%s/Contents/MacOS/%s" "$(app_bundle_path)" "$(app_process_name)"
 }
 
 stop_app() {
-  if pgrep -x "$APP_NAME" >/dev/null 2>&1; then
-    info "Stopping existing $APP_NAME process..."
-    pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+  local process_name
+  process_name="$(app_process_name)"
+  if pgrep -x "$process_name" >/dev/null 2>&1; then
+    info "Stopping existing $(app_display_name) process..."
+    pkill -x "$process_name" >/dev/null 2>&1 || true
     sleep 0.5
   fi
 }
@@ -319,19 +330,19 @@ build_app() {
 open_app() {
   local app_bundle
   app_bundle="$(app_bundle_path)"
-  info "Launching $APP_NAME..."
+  info "Launching $(app_display_name)..."
   /usr/bin/open -n "$app_bundle"
-  success "Launched $APP_NAME"
+  success "Launched $(app_display_name)"
 }
 
 verify_app() {
   open_app
   sleep 2
 
-  if pgrep -x "$APP_NAME" >/dev/null 2>&1; then
-    success "$APP_NAME is running."
+  if pgrep -x "$(app_process_name)" >/dev/null 2>&1; then
+    success "$(app_display_name) is running."
   else
-    fail "$APP_NAME did not stay running after launch."
+    fail "$(app_display_name) did not stay running after launch."
   fi
 }
 
@@ -342,8 +353,8 @@ stream_logs() {
 
   cleanup_stream() {
     printf "\n"
-    info "Stopping $APP_NAME..."
-    pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+    info "Stopping $(app_display_name)..."
+    pkill -x "$(app_process_name)" >/dev/null 2>&1 || true
     success "App stopped."
   }
   trap cleanup_stream INT TERM
@@ -361,6 +372,7 @@ launch_debugger() {
 main() {
   parse_args "$@"
   validate_configuration
+  load_app_variant_configuration
   validate_build_overrides
   require_macos
   require_command xcodebuild

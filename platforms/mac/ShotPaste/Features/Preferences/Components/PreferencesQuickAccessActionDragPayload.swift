@@ -9,8 +9,12 @@ import Foundation
 import UniformTypeIdentifiers
 
 extension UTType {
-  static let quickAccessAction = UTType("com.ahtcfg24.shotpaste.quick-access-action") ?? .text
-  static let quickAccessReorder = UTType("com.ahtcfg24.shotpaste.quick-access-reorder") ?? .text
+  static let quickAccessAction = UTType(
+    exportedAs: AppVariant.current.quickAccessActionTypeIdentifier
+  )
+  static let quickAccessReorder = UTType(
+    exportedAs: AppVariant.current.quickAccessReorderTypeIdentifier
+  )
 }
 
 struct QuickAccessActionDragPayload {
@@ -22,7 +26,7 @@ struct QuickAccessActionDragPayload {
 
   static let typeIdentifiers = [UTType.quickAccessAction]
 
-  private static let marker = "com.ahtcfg24.shotpaste.quick-access-action"
+  private static let marker = AppVariant.current.quickAccessActionTypeIdentifier
 
   let action: QuickAccessActionKind
   let source: Source
@@ -32,7 +36,7 @@ struct QuickAccessActionDragPayload {
     if let data = Self(action: action, source: source).encoded.data(using: .utf8) {
       provider
         .registerDataRepresentation(forTypeIdentifier: UTType.quickAccessAction.identifier,
-                                    visibility: .all) { completion in
+                                    visibility: .ownProcess) { completion in
           completion(data, nil)
           return nil
         }

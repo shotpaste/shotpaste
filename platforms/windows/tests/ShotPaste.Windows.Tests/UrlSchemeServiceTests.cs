@@ -14,7 +14,7 @@ public sealed class UrlSchemeServiceTests
     [InlineData("--history", AppCommand.History)]
     public void Parse_MapsSupportedRoutes(string argument, AppCommand expected)
     {
-        Assert.Equal(expected, UrlSchemeService.Parse([argument]).Command);
+        Assert.Equal(expected, UrlSchemeService.Parse([ForCurrentScheme(argument)]).Command);
     }
 
     [Theory]
@@ -24,7 +24,7 @@ public sealed class UrlSchemeServiceTests
     [InlineData("--settings=advanced", "advanced")]
     public void Parse_SettingsDeepLinkNormalizesTab(string argument, string expected)
     {
-        var result = UrlSchemeService.Parse([argument]);
+        var result = UrlSchemeService.Parse([ForCurrentScheme(argument)]);
 
         Assert.Equal(AppCommand.Settings, result.Command);
         Assert.Equal(expected, result.SettingsTab);
@@ -47,7 +47,7 @@ public sealed class UrlSchemeServiceTests
     [InlineData("shotpaste://%")]
     public void Parse_InvalidUrlReturnsSafeFeedbackCommand(string argument)
     {
-        var result = UrlSchemeService.Parse([argument]);
+        var result = UrlSchemeService.Parse([ForCurrentScheme(argument)]);
 
         Assert.Equal(AppCommand.Invalid, result.Command);
         Assert.True(result.IsUrl);
@@ -65,13 +65,18 @@ public sealed class UrlSchemeServiceTests
             service.Start(arguments => received.TrySetResult(arguments));
 
             Assert.True(await AppCommandService.SendAsync(
-                ["shotpaste://settings/history"], timeoutMilliseconds: 3000, instanceScope: scope));
+                [$"{UrlSchemeService.Scheme}://settings/history"], timeoutMilliseconds: 3000, instanceScope: scope));
             var arguments = await received.Task.WaitAsync(TimeSpan.FromSeconds(3));
-            Assert.Equal("shotpaste://settings/history", Assert.Single(arguments));
+            Assert.Equal($"{UrlSchemeService.Scheme}://settings/history", Assert.Single(arguments));
         }
         finally
         {
             if (Directory.Exists(scope)) Directory.Delete(scope, true);
         }
     }
+
+    private static string ForCurrentScheme(string argument) => argument.Replace(
+        "shotpaste:",
+        UrlSchemeService.Scheme + ":",
+        StringComparison.OrdinalIgnoreCase);
 }

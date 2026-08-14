@@ -19,7 +19,8 @@ public sealed record ParsedAppCommand(
 
 public static class UrlSchemeService
 {
-    private const string ProtocolKey = @"Software\Classes\shotpaste";
+    internal static string Scheme => AppBuildIdentity.Current.UrlScheme;
+    internal static string ProtocolKey => $@"Software\Classes\{Scheme}";
 
     public static void Apply(bool enabled)
     {
@@ -31,7 +32,7 @@ public static class UrlSchemeService
                 return;
             }
             using var protocol = Registry.CurrentUser.CreateSubKey(ProtocolKey);
-            protocol.SetValue(null, "URL:ShotPaste Protocol");
+            protocol.SetValue(null, $"URL:{AppBuildIdentity.Current.DisplayName} Protocol");
             protocol.SetValue("URL Protocol", string.Empty);
             using var command = protocol.CreateSubKey(@"shell\open\command");
             command.SetValue(null, $"\"{Environment.ProcessPath}\" \"%1\"");
@@ -46,7 +47,7 @@ public static class UrlSchemeService
     {
         foreach (var argument in arguments)
         {
-            if (Uri.TryCreate(argument, UriKind.Absolute, out var uri) && uri.Scheme.Equals("shotpaste", StringComparison.OrdinalIgnoreCase))
+            if (Uri.TryCreate(argument, UriKind.Absolute, out var uri) && uri.Scheme.Equals(Scheme, StringComparison.OrdinalIgnoreCase))
             {
                 var route = Uri.UnescapeDataString((uri.Host + uri.AbsolutePath).Trim('/'))
                     .Replace('/', '-').ToLowerInvariant();
@@ -69,7 +70,7 @@ public static class UrlSchemeService
                 };
             }
 
-            if (argument.TrimStart().StartsWith("shotpaste:", StringComparison.OrdinalIgnoreCase))
+            if (argument.TrimStart().StartsWith(Scheme + ":", StringComparison.OrdinalIgnoreCase))
                 return new ParsedAppCommand(AppCommand.Invalid, IsUrl: true, Error: "ShotPaste 链接格式无效");
 
             var command = argument.Trim().ToLowerInvariant();

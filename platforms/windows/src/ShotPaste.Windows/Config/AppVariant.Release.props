@@ -1,0 +1,13 @@
+<Project>
+  <!-- Canonical build identity for the Release app. Keep these values stable. -->
+  <PropertyGroup>
+    <ShotPasteVariant>release</ShotPasteVariant>
+    <ShotPasteAssemblyName>ShotPaste</ShotPasteAssemblyName>
+    <ShotPasteDisplayName>ShotPaste</ShotPasteDisplayName>
+    <ShotPasteExecutableName>ShotPaste.exe</ShotPasteExecutableName>
+    <ShotPasteUrlScheme>shotpaste</ShotPasteUrlScheme>
+    <ShotPasteNativeManifestIdentity>com.ahtcfg24.shotpaste.windows</ShotPasteNativeManifestIdentity>
+    <ShotPasteApplicationManifest>app.manifest</ShotPasteApplicationManifest>
+    <ShotPasteApplicationIcon></ShotPasteApplicationIcon>
+  </PropertyGroup>
+</Project>

@@ -7,8 +7,9 @@ arbitrary file access, or unattended screen interaction.
 
 ## URL Scheme
 
-Release builds register `shotpaste://`. Debug builds register
-`shotpaste-debug://` and also accept `shotpaste://` while running.
+Release builds register and accept only `shotpaste://`. Debug builds register
+and accept only `shotpaste-debug://`, so a directed Apple event cannot cross
+the two app variants.
 
 | Action | Canonical URL |
 | --- | --- |
@@ -34,6 +35,8 @@ open 'shotpaste://capture/one-shot?mode=scrolling'
 open 'shotpaste://open/history?filter=recording'
 ```
 
+When automating Debug, replace the scheme with `shotpaste-debug://`.
+
 The URL Scheme integration can be disabled in **Settings → General →
 Automation**. Unknown routes and parameter values are rejected rather than
 falling back to a broader action.
@@ -50,9 +53,13 @@ default.
    client that supports Streamable HTTP.
 4. Keep ShotPaste running while the client is connected.
 
-The default endpoint is `http://127.0.0.1:48123/mcp`. The copied configuration
-also contains the generated bearer token. Do not publish or commit that token.
-The port can be changed in ShotPaste's local TOML configuration:
+The Release default endpoint is `http://127.0.0.1:48123/mcp`; Debug defaults to
+`http://127.0.0.1:48124/mcp` so both apps can run their servers concurrently.
+Each app has its own generated bearer token. The copied configuration contains
+the applicable token and uses `shotpaste` or `shotpaste-debug` as its client key;
+do not publish or commit the token. The port can be changed in that app's local
+TOML configuration (`~/.config/shotpaste/config.toml` for Release and
+`~/.config/shotpaste-debug/config.toml` for Debug):
 
 ```toml
 [general]
