@@ -66,7 +66,13 @@ enum ShotPasteConfigurationExporter {
 
     writer.section("capture.screenshot")
     writer.value("format", defaults.string(forKey: PreferencesKeys.screenshotFormat) ?? ImageFormatOption.png.rawValue)
-    writer.value("include_shotpaste", defaults.boolValue(PreferencesKeys.screenshotIncludeOwnApp, default: false))
+    writer.value(
+      "include_shotpaste",
+      defaults.boolValue(
+        PreferencesKeys.screenshotIncludeOwnApp,
+        default: PreferencesKeys.defaultScreenshotIncludeOwnApp
+      )
+    )
     writer.value("show_cursor", defaults.boolValue(PreferencesKeys.screenshotShowCursor, default: false))
     writer.value("magnifier_enabled", defaults.boolValue(PreferencesKeys.screenshotMagnifierEnabled, default: true))
     writer.value("magnifier_zoom", defaults.integerValue(PreferencesKeys.screenshotMagnifierZoom, default: 1))

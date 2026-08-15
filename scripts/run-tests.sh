@@ -30,6 +30,7 @@ fi
 MODULE_CACHE_PATH="$BUILD_DIR/swift-module-cache"
 RESULT_BUNDLE_PATH="$BUILD_DIR/ci-test.xcresult"
 LOG_PATH="$BUILD_DIR/ci-test.log"
+TEST_HOST_INFOPLIST_PATH="$BUILD_DIR/TestHost-Info.plist"
 OPEN_RESULT=0
 XCODEBUILD_ARGS=()
 
@@ -170,6 +171,15 @@ if [[ -n "$SOURCE_PACKAGES_PATH" ]]; then
 fi
 mkdir -p "${mkdir_paths[@]}"
 
+# LaunchServices correctly rejects a second canonical ShotPaste instance. XCTest
+# intentionally uses multiple disposable app hosts, so derive a test-only plist
+# at a fixed build path and change only that policy bit.
+cp "$ROOT_DIR/platforms/mac/ShotPaste/Resources/Info.plist" "$TEST_HOST_INFOPLIST_PATH"
+/usr/bin/plutil \
+  -replace LSMultipleInstancesProhibited \
+  -bool false \
+  "$TEST_HOST_INFOPLIST_PATH"
+
 cleanup_test_apps() {
   # XCTest needs an app host while running, but it must not become another
   # launchable ShotPaste copy after the test process exits.
@@ -209,6 +219,7 @@ XCODEBUILD_CMD=(
   CODE_SIGNING_REQUIRED=NO
   CODE_SIGNING_ALLOWED=NO
   SHOTPASTE_SKIP_POST_SIGN=1
+  "SHOTPASTE_INFOPLIST_FILE=$TEST_HOST_INFOPLIST_PATH"
 )
 
 if [[ -n "$SOURCE_PACKAGES_PATH" ]]; then

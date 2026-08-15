@@ -60,7 +60,7 @@ enum ShotPasteConfigurationDefaultDocument {
 
     writer.section("capture.screenshot")
     writer.value("format", ImageFormatOption.png.rawValue)
-    writer.value("include_shotpaste", false)
+    writer.value("include_shotpaste", PreferencesKeys.defaultScreenshotIncludeOwnApp)
     writer.value("show_cursor", false)
     writer.value("magnifier_enabled", true)
     writer.value("magnifier_zoom", 1)

@@ -58,4 +58,39 @@ final class ScreenCapturePermissionRequestFlowTests: XCTestCase {
     XCTAssertFalse(granted)
     XCTAssertEqual(requestCount, 1)
   }
+
+  func testAuthorizationLogSnapshotKeepsRawGrantAndIdentityBlockDistinct() {
+    let snapshot = ScreenRecordingAuthorizationLogSnapshot(
+      rawSystemGranted: true,
+      effectiveStatus: .grantedButUnavailableDueToAppIdentity("invalid signature"),
+      identityHealthy: false,
+      identityIssueNames: ["invalid-bundle-signature"],
+      resetOverrideActive: false
+    )
+
+    let context = snapshot.context(source: .applicationLaunch)
+
+    XCTAssertEqual(context["rawTCCGranted"], "true")
+    XCTAssertEqual(context["effectiveStatus"], "identity-blocked")
+    XCTAssertEqual(context["identityHealthy"], "false")
+    XCTAssertEqual(context["identityIssues"], "invalid-bundle-signature")
+    XCTAssertEqual(context["source"], "application-launch")
+  }
+
+  func testAuthorizationLogSnapshotRecordsPermissionResetOverride() {
+    let snapshot = ScreenRecordingAuthorizationLogSnapshot(
+      rawSystemGranted: true,
+      effectiveStatus: .notGranted,
+      identityHealthy: true,
+      identityIssueNames: [],
+      resetOverrideActive: true
+    )
+
+    let context = snapshot.context(source: .permissionReset)
+
+    XCTAssertEqual(context["rawTCCGranted"], "true")
+    XCTAssertEqual(context["effectiveStatus"], "not-granted")
+    XCTAssertEqual(context["resetOverrideActive"], "true")
+    XCTAssertEqual(context["identityIssues"], "none")
+  }
 }

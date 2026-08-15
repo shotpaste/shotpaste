@@ -33,7 +33,8 @@ struct CaptureSettingsView: View {
   // Screenshot behavior
   @AppStorage(PreferencesKeys.hideDesktopIcons) private var hideDesktopIcons = false
   @AppStorage(PreferencesKeys.hideDesktopWidgets) private var hideDesktopWidgets = false
-  @AppStorage(PreferencesKeys.screenshotIncludeOwnApp) private var includeOwnAppInScreenshots = false
+  @AppStorage(PreferencesKeys.screenshotIncludeOwnApp)
+  private var includeOwnAppInScreenshots = PreferencesKeys.defaultScreenshotIncludeOwnApp
   @AppStorage(PreferencesKeys.screenshotShowCursor) private var screenshotShowCursor = false
   @AppStorage(PreferencesKeys.screenshotMagnifierEnabled) private var screenshotMagnifierEnabled = true
   @AppStorage(PreferencesKeys.screenshotMagnifierZoom) private var screenshotMagnifierZoom = 1
