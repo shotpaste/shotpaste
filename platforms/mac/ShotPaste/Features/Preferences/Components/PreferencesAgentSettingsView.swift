@@ -15,6 +15,8 @@ struct AgentSettingsView: View {
   private var endpoint = AgentProviderConfiguration.defaultEndpoint
   @AppStorage(PreferencesKeys.agentProviderModel)
   private var model = AgentProviderConfiguration.defaultModel
+  @AppStorage(PreferencesKeys.agentProviderProtocol)
+  private var apiProtocolRaw = AgentProviderAPIProtocol.openAICompatible.rawValue
   @AppStorage(PreferencesKeys.agentThinkingEnabled) private var thinkingEnabled = true
   @AppStorage(PreferencesKeys.agentProviderSendsImages) private var sendsImages = true
   @AppStorage(PreferencesKeys.agentScreenshotRetentionEnabled) private var retainsScreenshots = false
@@ -83,14 +85,32 @@ struct AgentSettingsView: View {
 
       Section(L10n.Agent.providerSection) {
         SettingRow(
+          icon: "arrow.left.arrow.right",
+          title: L10n.Agent.protocolTitle,
+          description: ""
+        ) {
+          Picker("", selection: protocolBinding) {
+            Text(L10n.Agent.protocolOpenAICompatible)
+              .tag(AgentProviderAPIProtocol.openAICompatible)
+            Text(L10n.Agent.protocolAnthropicMessages)
+              .tag(AgentProviderAPIProtocol.anthropicMessages)
+          }
+          .labelsHidden()
+          .frame(width: 300)
+        }
+
+        SettingRow(
           icon: "link",
           title: L10n.Agent.endpointTitle,
           description: endpointConfiguration.isValid ? endpointHost : AgentProviderError.invalidConfiguration
             .localizedDescription
         ) {
-          TextField(AgentProviderConfiguration.defaultEndpoint, text: $endpoint)
-            .textFieldStyle(.roundedBorder)
-            .frame(width: 300)
+          TextField(
+            AgentProviderConfiguration.defaultEndpoint(for: selectedProtocol),
+            text: $endpoint
+          )
+          .textFieldStyle(.roundedBorder)
+          .frame(width: 300)
         }
 
         SettingRow(
@@ -98,9 +118,12 @@ struct AgentSettingsView: View {
           title: L10n.Agent.modelTitle,
           description: ""
         ) {
-          TextField(AgentProviderConfiguration.defaultModel, text: $model)
-            .textFieldStyle(.roundedBorder)
-            .frame(width: 220)
+          TextField(
+            AgentProviderConfiguration.defaultModel(for: selectedProtocol),
+            text: $model
+          )
+          .textFieldStyle(.roundedBorder)
+          .frame(width: 220)
         }
 
         SettingRow(
@@ -192,6 +215,28 @@ struct AgentSettingsView: View {
     )
   }
 
+  /// 当前选中的 API 协议；存储层使用 rawValue 字符串。
+  private var selectedProtocol: AgentProviderAPIProtocol {
+    AgentProviderAPIProtocol(rawValue: apiProtocolRaw) ?? .openAICompatible
+  }
+
+  private var protocolBinding: Binding<AgentProviderAPIProtocol> {
+    Binding(
+      get: { selectedProtocol },
+      set: { newProtocol in
+        let values = AgentProviderConfiguration.connectionValues(
+          switchingFrom: selectedProtocol,
+          to: newProtocol,
+          endpoint: endpoint,
+          model: model
+        )
+        endpoint = values.endpoint
+        model = values.model
+        apiProtocolRaw = newProtocol.rawValue
+      }
+    )
+  }
+
   private var shortcutEnabledBinding: Binding<Bool> {
     Binding(
       get: { shortcutManager.isShortcutEnabled(for: .agentMode) },
@@ -205,7 +250,8 @@ struct AgentSettingsView: View {
       model: model,
       thinkingEnabled: thinkingEnabled,
       sendsImages: sendsImages,
-      maxActions: maxActions
+      maxActions: maxActions,
+      apiProtocol: selectedProtocol
     )
   }
 
@@ -274,8 +320,35 @@ struct AgentSettingsView: View {
   }
 
   private func refreshState() {
+    refreshProviderDefaults()
     maskedStoredKey = credentialStore.maskedStoredAPIKey()
     accessibilityGranted = AXIsProcessTrusted()
     Task { await screenCaptureManager.checkPermission() }
+  }
+
+  /// @AppStorage 的声明默认值属于 OpenAI。字段从未保存时使用当前协议
+  /// 默认值；只有端点和模型同时仍是另一协议的完整默认组合时才修复，
+  /// 避免误改恰好与某个默认值相同的自定义单项。
+  private func refreshProviderDefaults() {
+    let defaults = UserDefaults.standard
+    let endpointWasStored = defaults.object(forKey: PreferencesKeys.agentProviderEndpoint) != nil
+    let modelWasStored = defaults.object(forKey: PreferencesKeys.agentProviderModel) != nil
+    if !endpointWasStored {
+      endpoint = AgentProviderConfiguration.defaultEndpoint(for: selectedProtocol)
+    }
+    if !modelWasStored {
+      model = AgentProviderConfiguration.defaultModel(for: selectedProtocol)
+    }
+
+    let otherProtocol: AgentProviderAPIProtocol = selectedProtocol == .openAICompatible
+      ? .anthropicMessages : .openAICompatible
+    if endpointWasStored, modelWasStored,
+       endpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+       == AgentProviderConfiguration.defaultEndpoint(for: otherProtocol),
+       model.trimmingCharacters(in: .whitespacesAndNewlines)
+       == AgentProviderConfiguration.defaultModel(for: otherProtocol) {
+      endpoint = AgentProviderConfiguration.defaultEndpoint(for: selectedProtocol)
+      model = AgentProviderConfiguration.defaultModel(for: selectedProtocol)
+    }
   }
 }

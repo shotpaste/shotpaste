@@ -353,6 +353,16 @@ nonisolated enum L10n {
     static let denyAction = string(
       "agent.deny-action", defaultValue: "Deny", comment: "Deny an Agent action"
     )
+    static let unverifiedTargetApprovalTitle = string(
+      "agent.approval.unverified-target-title",
+      defaultValue: "Confirm unverified coordinate click",
+      comment: "Approval title for a coordinate click without a verified Accessibility target"
+    )
+    static let unverifiedTargetApprovalDetail = string(
+      "agent.approval.unverified-target-detail",
+      defaultValue: "Agent Mode wants to click coordinates that could not be matched to an observed Accessibility element. The target cannot be verified locally.",
+      comment: "Approval detail for a coordinate click without a verified Accessibility target"
+    )
     static let continueAction = string(
       "agent.continue-action", defaultValue: "Continue", comment: "Continue Agent task action"
     )
@@ -411,6 +421,19 @@ nonisolated enum L10n {
     )
     static let endpointTitle = string(
       "agent.endpoint-title", defaultValue: "API endpoint", comment: "Agent provider endpoint title"
+    )
+    static let protocolTitle = string(
+      "agent.protocol-title", defaultValue: "API protocol", comment: "Agent provider protocol title"
+    )
+    static let protocolOpenAICompatible = string(
+      "agent.protocol-openai-compatible",
+      defaultValue: "OpenAI-compatible",
+      comment: "Agent provider protocol option"
+    )
+    static let protocolAnthropicMessages = string(
+      "agent.protocol-anthropic-messages",
+      defaultValue: "Anthropic Messages",
+      comment: "Agent provider protocol option"
     )
     static let modelTitle = string(
       "agent.model-title", defaultValue: "Model", comment: "Agent provider model title"
