@@ -32,6 +32,37 @@ struct AppLanguageOption: Identifiable, Hashable {
   ]
 }
 
+nonisolated struct AppRelaunchPlan {
+  static let helperExecutableURL = URL(fileURLWithPath: "/bin/sh")
+
+  /// Wait at most 30 seconds for the current process to exit. If termination is
+  /// cancelled by an active capture confirmation, the helper exits instead of
+  /// unexpectedly reopening ShotPaste later.
+  static let waitForExitScript = """
+  attempts=0
+  while /bin/kill -0 "$1" 2>/dev/null; do
+    attempts=$((attempts + 1))
+    [ "$attempts" -lt 300 ] || exit 0
+    /bin/sleep 0.1
+  done
+  exec /usr/bin/open "$2"
+  """
+
+  let executableURL: URL
+  let arguments: [String]
+
+  init(bundleURL: URL, processIdentifier: Int32) {
+    executableURL = Self.helperExecutableURL
+    arguments = [
+      "-c",
+      Self.waitForExitScript,
+      "shotpaste-relaunch",
+      String(processIdentifier),
+      bundleURL.path,
+    ]
+  }
+}
+
 @MainActor
 final class AppLanguageManager: ObservableObject {
   static let shared = AppLanguageManager()
@@ -120,13 +151,24 @@ final class AppLanguageManager: ObservableObject {
       )
     }
 
-    // Launch the exact bundle path instead of resolving by display name or bundle ID.
-    // This prevents LaunchServices from selecting an older, separately installed app.
+    // Single-instance protection rejects `open -n` while this process is alive.
+    // Start a bounded helper that opens the exact bundle path only after the
+    // current process exits, preventing both overlap and accidental selection
+    // of an older, separately installed app.
+    let plan = AppRelaunchPlan(
+      bundleURL: bundleURL,
+      processIdentifier: ProcessInfo.processInfo.processIdentifier
+    )
     let relaunchProcess = Process()
-    relaunchProcess.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-    relaunchProcess.arguments = ["-n", bundleURL.path]
+    relaunchProcess.executableURL = plan.executableURL
+    relaunchProcess.arguments = plan.arguments
     try relaunchProcess.run()
 
+    DiagnosticLogger.shared.log(
+      .info,
+      .lifecycle,
+      "Application relaunch scheduled after current process exits"
+    )
     NSApp.terminate(nil)
   }
 

@@ -34,6 +34,19 @@ enum AppIdentityIssue: Equatable, Hashable {
       return L10n.AppIdentity.quarantined
     }
   }
+
+  var diagnosticName: String {
+    switch self {
+    case .unexpectedBundleIdentifier:
+      "unexpected-bundle-identifier"
+    case .invalidBundleSignature:
+      "invalid-bundle-signature"
+    case .outsideApplications:
+      "outside-applications"
+    case .quarantined:
+      "quarantined"
+    }
+  }
 }
 
 struct AppIdentityHealth: Equatable {

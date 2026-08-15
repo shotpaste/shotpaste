@@ -6,12 +6,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_PATH="$ROOT_DIR/.build/macos/Release/ShotPaste.app"
 OUTPUT_DIR="$ROOT_DIR/build/local-release"
 DMG_PATH="$OUTPUT_DIR/ShotPaste-local-macOS-arm64.dmg"
-STAGING_DIR="$(mktemp -d)"
-
-cleanup() {
-  rm -rf "$STAGING_DIR"
-}
-trap cleanup EXIT
 
 [[ "$(uname -s)" == "Darwin" ]] || {
   printf "error: This script only supports macOS.\n" >&2
@@ -33,18 +27,11 @@ while IFS= read -r -d '' old_dmg; do
   rm -f -- "$old_dmg"
 done < <(/usr/bin/find "$OUTPUT_DIR" -maxdepth 1 -type f -name '*.dmg' -print0)
 
-ditto "$APP_PATH" "$STAGING_DIR/ShotPaste.app"
-ln -s /Applications "$STAGING_DIR/Applications"
-sed 's/@VERSION@/local/g' "$ROOT_DIR/docs/release/START-HERE-macOS.txt" \
-  > "$STAGING_DIR/START-HERE-macOS.txt"
-
-hdiutil create \
-  -volname "ShotPaste Local" \
-  -srcfolder "$STAGING_DIR" \
-  -format UDZO \
-  -ov \
-  "$DMG_PATH"
-hdiutil verify "$DMG_PATH"
+"$ROOT_DIR/scripts/create-macos-dmg.sh" \
+  "$APP_PATH" \
+  "$DMG_PATH" \
+  "ShotPaste Local" \
+  "local"
 
 DMG_COUNT="$(/usr/bin/find "$OUTPUT_DIR" -maxdepth 1 -type f -name '*.dmg' | /usr/bin/wc -l | /usr/bin/tr -d ' ')"
 [[ "$DMG_COUNT" == "1" ]] || {

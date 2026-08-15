@@ -11,6 +11,28 @@ import XCTest
 
 @MainActor
 final class FrozenAreaCaptureSessionTests: XCTestCase {
+  func testCoreGraphicsFastPathIsDisabledWhenOwnApplicationMustBeExcluded() {
+    XCTAssertFalse(
+      FrozenSnapshotCapturePolicy.canUseCoreGraphics(
+        showCursor: false,
+        excludeDesktopIcons: false,
+        excludeDesktopWidgets: false,
+        excludeOwnApplication: true
+      )
+    )
+  }
+
+  func testCoreGraphicsFastPathRemainsAvailableWithoutCaptureFilters() {
+    XCTAssertTrue(
+      FrozenSnapshotCapturePolicy.canUseCoreGraphics(
+        showCursor: false,
+        excludeDesktopIcons: false,
+        excludeDesktopWidgets: false,
+        excludeOwnApplication: false
+      )
+    )
+  }
+
   // MARK: - Helpers
 
   /// Create a test session with a single display snapshot.

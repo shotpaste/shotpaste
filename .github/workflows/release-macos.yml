@@ -204,26 +204,15 @@ jobs:
         run: |
           set -euo pipefail
           app="$GITHUB_WORKSPACE/.build/macos/Release/ShotPaste.app"
-          staging="$RUNNER_TEMP/shotpaste-dmg-root"
           dmg="build/release/ShotPaste-v${VERSION}-macOS-arm64.dmg"
 
-          rm -rf "$staging"
-          mkdir -p build/release "$staging"
+          mkdir -p build/release
           find build/release -maxdepth 1 -type f -name '*.dmg' -delete
-          ditto "$app" "$staging/ShotPaste.app"
-          ln -s /Applications "$staging/Applications"
-          sed "s/@VERSION@/$VERSION/g" docs/release/START-HERE-macOS.txt > "$staging/START-HERE-macOS.txt"
-          cp LICENSE "$staging/LICENSE.txt"
-          cp THIRD_PARTY_NOTICES.md "$staging/THIRD_PARTY_NOTICES.md"
-
-          hdiutil create \
-            -volname "ShotPaste $VERSION" \
-            -srcfolder "$staging" \
-            -format UDZO \
-            -ov \
-            "$dmg"
-          hdiutil verify "$dmg"
-          rm -rf "$staging"
+          ./scripts/create-macos-dmg.sh \
+            "$app" \
+            "$dmg" \
+            "ShotPaste $VERSION" \
+            "$VERSION"
 
           dmg_count=$(find build/release -maxdepth 1 -type f -name '*.dmg' | wc -l | tr -d ' ')
           [[ "$dmg_count" == "1" ]] || {

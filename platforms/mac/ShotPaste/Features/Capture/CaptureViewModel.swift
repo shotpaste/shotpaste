@@ -83,7 +83,8 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
   }
 
   private var includesOwnAppInScreenshots: Bool {
-    UserDefaults.standard.bool(forKey: PreferencesKeys.screenshotIncludeOwnApp)
+    UserDefaults.standard.object(forKey: PreferencesKeys.screenshotIncludeOwnApp) as? Bool
+      ?? PreferencesKeys.defaultScreenshotIncludeOwnApp
   }
 
   private var showsCursorInScreenshots: Bool {
@@ -348,6 +349,7 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
     isAreaSelectionActive = true
     DiagnosticLogger.shared.log(.info, .capture, "One Shot preparation started", context: [
       "displayID": "\(primaryDisplayID)",
+      "excludeOwnApplication": excludeOwnApplication ? "true" : "false",
       "format": resolvedFormat.fileExtension,
     ])
 
@@ -380,6 +382,10 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
           excludeOwnApplication: excludeOwnApplication,
           prefetchedContentTask: prefetchedContentTask
         )
+        DiagnosticLogger.shared.log(.debug, .capture, "One Shot frozen snapshot prepared", context: [
+          "excludeOwnApplication": excludeOwnApplication ? "true" : "false",
+          "mode": prepared.mode,
+        ])
         let snapshotDisplayIDs = prepared.session.displayIDs
         let screens = NSScreen.screens.filter { screen in
           guard let displayID = screen.displayID else { return false }
@@ -429,11 +435,16 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
     excludeOwnApplication: Bool,
     prefetchedContentTask: ShareableContentPrefetchTask?
   ) async throws -> (session: FrozenAreaCaptureSession, mode: String) {
-    // Own normal windows are already hidden by the caller, so CoreGraphics can be
-    // used when the user excludes ShotPaste from the One Shot frozen backdrop.
-    let canUseFastPath = !showCursor
-      && !excludeDesktopIcons
-      && !excludeDesktopWidgets
+    // Hiding an app window does not guarantee that WindowServer has removed its
+    // last composited frame. When ShotPaste must be excluded, use
+    // ScreenCaptureKit's application filter instead of risking a translucent
+    // CoreGraphics ghost in the frozen backdrop.
+    let canUseFastPath = FrozenSnapshotCapturePolicy.canUseCoreGraphics(
+      showCursor: showCursor,
+      excludeDesktopIcons: excludeDesktopIcons,
+      excludeDesktopWidgets: excludeDesktopWidgets,
+      excludeOwnApplication: excludeOwnApplication
+    )
     if canUseFastPath {
       // Resolve NSScreen data on main thread (AppKit requirement), then run
       // CGDisplayCreateImage concurrently off-main for all displays.

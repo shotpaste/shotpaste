@@ -34,6 +34,7 @@ struct PermissionGuideLaunchPolicy {
 final class AppCoordinator {
   private let environment: AppEnvironment
   private let automationController: ShotPasteAutomationController
+  private(set) var didSchedulePermissionGuide = false
 
   init(environment: AppEnvironment) {
     self.environment = environment
@@ -55,7 +56,10 @@ final class AppCoordinator {
       .info,
       .lifecycle,
       "App launch sequence started",
-      context: ["previousCrash": didCrash ? "true" : "false"]
+      context: [
+        "previousCrash": didCrash ? "true" : "false",
+        "singleInstanceProtection": SingleInstanceProtection.isEnabled() ? "enabled" : "disabled",
+      ]
     )
     if defaults.object(forKey: PreferencesKeys.diagnosticsRetentionDays) == nil {
       defaults.set(LogCleanupScheduler.defaultRetentionDays, forKey: PreferencesKeys.diagnosticsRetentionDays)
@@ -69,6 +73,12 @@ final class AppCoordinator {
     }
     if defaults.object(forKey: PreferencesKeys.mcpServerPort) == nil {
       defaults.set(ShotPasteMCPServer.defaultPort, forKey: PreferencesKeys.mcpServerPort)
+    }
+    if defaults.object(forKey: PreferencesKeys.screenshotIncludeOwnApp) == nil {
+      defaults.set(
+        PreferencesKeys.defaultScreenshotIncludeOwnApp,
+        forKey: PreferencesKeys.screenshotIncludeOwnApp
+      )
     }
 
     // History defaults
@@ -121,6 +131,10 @@ final class AppCoordinator {
       context: ["crashPrompt": (didCrash && DiagnosticLogger.shared.isEnabled) ? "true" : "false"]
     )
 
+    Task {
+      await ScreenCaptureManager.shared.checkPermission(source: .applicationLaunch)
+    }
+
     presentPermissionGuideIfNeeded(defaults: defaults)
   }
 
@@ -133,6 +147,7 @@ final class AppCoordinator {
       hasUsableScreenRecordingPermission: hasUsableScreenRecordingPermission
     ) else { return }
 
+    didSchedulePermissionGuide = true
     DiagnosticLogger.shared.log(.info, .preferences, "First-run permission guide scheduled")
     DispatchQueue.main.async {
       AppStatusBarController.shared.openPreferencesWindow(tab: .permissions)

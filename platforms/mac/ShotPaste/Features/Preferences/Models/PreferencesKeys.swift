@@ -41,6 +41,7 @@ nonisolated enum PreferencesKeys {
   static let screenshotFormat = "screenshot.format"
   static let screenshotFileNameTemplate = "screenshot.fileNameTemplate"
   static let screenshotIncludeOwnApp = "screenshot.includeOwnApp"
+  static let defaultScreenshotIncludeOwnApp = true
   static let screenshotShowCursor = "screenshot.showCursor"
   static let screenshotMagnifierEnabled = "screenshot.magnifierEnabled"
   static let screenshotMagnifierZoom = "screenshot.magnifierZoom"

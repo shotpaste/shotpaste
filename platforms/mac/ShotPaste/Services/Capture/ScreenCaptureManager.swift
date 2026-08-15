@@ -65,10 +65,74 @@ enum CaptureError: Error, LocalizedError {
   }
 }
 
-enum ScreenRecordingPermissionStatus: Equatable {
+nonisolated enum ScreenRecordingPermissionStatus: Equatable {
   case notGranted
   case granted
   case grantedButUnavailableDueToAppIdentity(String)
+
+  var diagnosticName: String {
+    switch self {
+    case .notGranted:
+      "not-granted"
+    case .granted:
+      "granted"
+    case .grantedButUnavailableDueToAppIdentity:
+      "identity-blocked"
+    }
+  }
+}
+
+nonisolated enum ScreenCapturePermissionCheckSource: String {
+  case initialization
+  case applicationLaunch = "application-launch"
+  case refresh
+  case authorizationRequest = "authorization-request"
+  case permissionReset = "permission-reset"
+
+  var alwaysLogs: Bool {
+    switch self {
+    case .applicationLaunch, .authorizationRequest, .permissionReset:
+      true
+    case .initialization, .refresh:
+      false
+    }
+  }
+}
+
+nonisolated struct ScreenRecordingAuthorizationLogSnapshot: Equatable {
+  let rawSystemGranted: Bool
+  let effectiveStatus: ScreenRecordingPermissionStatus
+  let identityHealthy: Bool
+  let identityIssueNames: [String]
+  let resetOverrideActive: Bool
+
+  func context(source: ScreenCapturePermissionCheckSource) -> [String: String] {
+    [
+      "bundleID": Bundle.main.bundleIdentifier ?? "missing",
+      "bundlePath": Bundle.main.bundleURL.standardizedFileURL.path,
+      "effectiveStatus": effectiveStatus.diagnosticName,
+      "identityHealthy": identityHealthy ? "true" : "false",
+      "identityIssues": identityIssueNames.isEmpty ? "none" : identityIssueNames.joined(separator: ","),
+      "pid": "\(ProcessInfo.processInfo.processIdentifier)",
+      "rawTCCGranted": rawSystemGranted ? "true" : "false",
+      "resetOverrideActive": resetOverrideActive ? "true" : "false",
+      "source": source.rawValue,
+    ]
+  }
+}
+
+nonisolated enum FrozenSnapshotCapturePolicy {
+  static func canUseCoreGraphics(
+    showCursor: Bool,
+    excludeDesktopIcons: Bool,
+    excludeDesktopWidgets: Bool,
+    excludeOwnApplication: Bool
+  ) -> Bool {
+    !showCursor
+      && !excludeDesktopIcons
+      && !excludeDesktopWidgets
+      && !excludeOwnApplication
+  }
 }
 
 /// Keeps the permission guide to one native request. Enumerating shareable
@@ -141,6 +205,7 @@ final class ScreenCaptureManager: ObservableObject {
   private var screenParametersObserver: NSObjectProtocol?
   private var isPermissionResetPending = false
   private var didObserveResetPermissionRevocation = false
+  private var lastLoggedAuthorizationSnapshot: ScreenRecordingAuthorizationLogSnapshot?
   private nonisolated static let minimumScreenshotOutputScaleFactor: CGFloat = 2.0
 
   private var preferredScreenshotOutputScaleFactor: CGFloat {
@@ -169,25 +234,25 @@ final class ScreenCaptureManager: ObservableObject {
     }
 
     Task {
-      await checkPermission()
+      await checkPermission(source: .initialization)
     }
   }
 
   // MARK: - Permission Handling
 
   /// Check if screen recording permission is granted
-  func checkPermission() async {
+  func checkPermission(source: ScreenCapturePermissionCheckSource = .refresh) async {
     AppIdentityManager.shared.refresh()
-    let systemGranted = CGPreflightScreenCaptureAccess()
+    let rawSystemGranted = CGPreflightScreenCaptureAccess()
     if isPermissionResetPending {
-      if !systemGranted {
+      if !rawSystemGranted {
         didObserveResetPermissionRevocation = true
       } else if didObserveResetPermissionRevocation {
         isPermissionResetPending = false
         didObserveResetPermissionRevocation = false
       }
     }
-    updatePermissionStatus(systemGranted: systemGranted && !isPermissionResetPending)
+    updatePermissionStatus(rawSystemGranted: rawSystemGranted, source: source)
   }
 
   /// Immediately reflect a successful `tccutil reset` in the current process.
@@ -198,7 +263,10 @@ final class ScreenCaptureManager: ObservableObject {
   func markPermissionReset() {
     isPermissionResetPending = true
     didObserveResetPermissionRevocation = false
-    updatePermissionStatus(systemGranted: false)
+    updatePermissionStatus(
+      rawSystemGranted: CGPreflightScreenCaptureAccess(),
+      source: .permissionReset
+    )
   }
 
   func clearPermissionResetOverride() {
@@ -214,16 +282,32 @@ final class ScreenCaptureManager: ObservableObject {
   func requestPermission() async -> Bool {
     AppIdentityManager.shared.refresh()
     clearPermissionResetOverride()
+    let preflightGranted = CGPreflightScreenCaptureAccess()
+    DiagnosticLogger.shared.log(
+      .info,
+      .capture,
+      "Screen recording authorization request started",
+      context: ["preflightGranted": preflightGranted ? "true" : "false"]
+    )
     let systemGranted = ScreenCapturePermissionRequestFlow.requestAccess(
-      preflight: { CGPreflightScreenCaptureAccess() },
+      preflight: { preflightGranted },
       request: { CGRequestScreenCaptureAccess() }
     )
-    updatePermissionStatus(systemGranted: systemGranted)
+    updatePermissionStatus(
+      rawSystemGranted: systemGranted,
+      source: .authorizationRequest
+    )
     return hasPermission
   }
 
   /// Open System Preferences to Screen Recording section
   func openScreenRecordingPreferences() {
+    DiagnosticLogger.shared.log(
+      .info,
+      .preferences,
+      "Opening Screen Recording privacy settings",
+      context: ["effectiveStatus": permissionStatus.diagnosticName]
+    )
     let url = URL(
       string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
     )!
@@ -1152,24 +1236,32 @@ final class ScreenCaptureManager: ObservableObject {
     }
   }
 
-  private func updatePermissionStatus(systemGranted: Bool) {
+  private func updatePermissionStatus(
+    rawSystemGranted: Bool,
+    source: ScreenCapturePermissionCheckSource
+  ) {
+    let systemGranted = rawSystemGranted && !isPermissionResetPending
+    let identityHealth = AppIdentityManager.shared.health
     if !systemGranted {
       permissionStatus = .notGranted
       hasPermission = false
-      invalidateShareableContentCache()
-      return
-    }
-
-    let identityHealth = AppIdentityManager.shared.health
-    if !identityHealth.isHealthy {
+    } else if !identityHealth.isHealthy {
       permissionStatus = .grantedButUnavailableDueToAppIdentity(identityHealth.summary)
       hasPermission = false
-      invalidateShareableContentCache()
-      return
+    } else {
+      permissionStatus = .granted
+      hasPermission = true
     }
 
-    permissionStatus = .granted
-    hasPermission = true
+    if !hasPermission {
+      invalidateShareableContentCache()
+    }
+
+    logAuthorizationState(
+      rawSystemGranted: rawSystemGranted,
+      identityHealth: identityHealth,
+      source: source
+    )
     // Do not enumerate shareable content as a side effect of checking TCC state.
     // macOS 26 can present a separate confirmation for apps that access the
     // screen directly instead of using the system picker. Starting that request
@@ -1177,6 +1269,38 @@ final class ScreenCaptureManager: ObservableObject {
     // confirmation into its backdrop, leaving the real dialog underneath and
     // impossible to click. Capture entry points prefetch on an explicit user
     // action and must await the task before presenting the frozen desktop UI.
+  }
+
+  private func logAuthorizationState(
+    rawSystemGranted: Bool,
+    identityHealth: AppIdentityHealth,
+    source: ScreenCapturePermissionCheckSource
+  ) {
+    let snapshot = ScreenRecordingAuthorizationLogSnapshot(
+      rawSystemGranted: rawSystemGranted,
+      effectiveStatus: permissionStatus,
+      identityHealthy: identityHealth.isHealthy,
+      identityIssueNames: identityHealth.issues.map(\.diagnosticName),
+      resetOverrideActive: isPermissionResetPending
+    )
+    let previousSnapshot = lastLoggedAuthorizationSnapshot
+    guard source.alwaysLogs || snapshot != previousSnapshot else { return }
+    lastLoggedAuthorizationSnapshot = snapshot
+
+    let message = if previousSnapshot == nil {
+      "Screen recording authorization state observed"
+    } else if snapshot != previousSnapshot {
+      "Screen recording authorization state changed"
+    } else {
+      "Screen recording authorization state confirmed"
+    }
+
+    DiagnosticLogger.shared.log(
+      .info,
+      .capture,
+      message,
+      context: snapshot.context(source: source)
+    )
   }
 
   private func shareableContentCacheMode(includeDesktopWindows: Bool) -> ShareableContentCacheMode {

@@ -78,6 +78,27 @@ struct AppLaunchPolicy {
   }
 }
 
+enum SingleInstanceProtection {
+  static let infoPlistKey = "LSMultipleInstancesProhibited"
+
+  static func isEnabled(in infoDictionary: [String: Any]? = Bundle.main.infoDictionary) -> Bool {
+    infoDictionary?[infoPlistKey] as? Bool == true
+  }
+}
+
+enum ApplicationReopenPolicy {
+  static func shouldOpenPreferences(didFinishLaunching: Bool) -> Bool {
+    didFinishLaunching
+  }
+
+  static func shouldOpenPreferencesAfterLaunch(
+    isDefaultLaunch: Bool,
+    didSchedulePermissionGuide: Bool
+  ) -> Bool {
+    isDefaultLaunch && !didSchedulePermissionGuide
+  }
+}
+
 // MARK: - App Delegate
 
 @MainActor
@@ -106,7 +127,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     )
   }
 
-  func applicationDidFinishLaunching(_: Notification) {
+  func applicationDidFinishLaunching(_ notification: Notification) {
     guard launchPolicyProvider().shouldStartInteractiveApplication else {
       return
     }
@@ -125,6 +146,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     coordinator.applicationDidFinishLaunching()
     didFinishLaunching = true
     flushPendingDeepLinks()
+
+    let isDefaultLaunch = notification.userInfo?[NSApplication.launchIsDefaultUserInfoKey] as? Bool ?? true
+    DispatchQueue.main.async { [weak coordinator] in
+      guard let coordinator else { return }
+      guard ApplicationReopenPolicy.shouldOpenPreferencesAfterLaunch(
+        isDefaultLaunch: isDefaultLaunch,
+        didSchedulePermissionGuide: coordinator.didSchedulePermissionGuide
+      ) else { return }
+
+      DiagnosticLogger.shared.log(
+        .info,
+        .ui,
+        "Interactive application launch opened preferences",
+        context: ["wasApplicationActive": NSApp.isActive ? "true" : "false"]
+      )
+      AppStatusBarController.shared.openPreferencesWindow(tab: .general)
+    }
   }
 
   func applicationWillTerminate(_: Notification) {
@@ -195,11 +233,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     return alert.runModal() == .alertSecondButtonReturn
   }
 
-  func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
-    guard didFinishLaunching else { return true }
-    let showsMenuBarIcon = UserDefaults.standard.object(forKey: PreferencesKeys.showMenuBarIcon) as? Bool ?? true
-    guard !showsMenuBarIcon else { return true }
+  func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows: Bool) -> Bool {
+    guard ApplicationReopenPolicy.shouldOpenPreferences(didFinishLaunching: didFinishLaunching) else {
+      return true
+    }
 
+    DiagnosticLogger.shared.log(
+      .info,
+      .ui,
+      "Application reopen opened preferences",
+      context: ["hadVisibleWindows": hasVisibleWindows ? "true" : "false"]
+    )
     AppStatusBarController.shared.openPreferencesWindow(tab: .general)
     return false
   }
