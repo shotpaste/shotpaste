@@ -4,7 +4,7 @@ namespace ShotPaste.Windows.Models;
 
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 15;
+    public const int CurrentSchemaVersion = 16;
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public string Language { get; set; } = "System";
     public bool PlaySounds { get; set; } = true;
@@ -75,7 +75,7 @@ public sealed class AppSettings
     public bool LaunchAtStartup { get; set; }
     public bool UrlSchemeEnabled { get; set; } = true;
     public bool McpServerEnabled { get; set; }
-    public int McpServerPort { get; set; } = 48123;
+    public int McpServerPort { get; set; } = AppBuildIdentity.Current.DefaultMcpServerPort;
     public string McpServerAuthToken { get; set; } = string.Empty;
     public bool ShowTrayIcon { get; set; } = true;
     public bool CheckForUpdatesAutomatically { get; set; } = true;
@@ -83,6 +83,8 @@ public sealed class AppSettings
     public string LastPromptedUpdateVersion { get; set; } = string.Empty;
     public bool ShowRecordingDurationInTray { get; set; } = true;
     public bool ShowRecordingToolbar { get; set; } = true;
+    public double? RecordingToolbarLeft { get; set; }
+    public double? RecordingToolbarTop { get; set; }
     public int RecordingFps { get; set; } = 30;
     public int RecordingGifFps { get; set; } = 15;
     public int HistoryRetentionDays { get; set; } = 30;
@@ -137,8 +139,8 @@ public sealed class AppSettings
     public double? HistoryExpandedTop { get; set; }
     public string HistoryBackgroundStyle { get; set; } = "Hud";
     public bool HistoryKeepOpen { get; set; }
-    public string HistoryDefaultFilter { get; set; } = "All";
-    public string HistoryPosition { get; set; } = "Remember";
+    public string HistoryDefaultFilter { get; set; } = "Clipboard";
+    public string HistoryPosition { get; set; } = "TopCenter";
     public double HistoryScale { get; set; } = 1d;
     public string LastOneShotGuideVersion { get; set; } = string.Empty;
 

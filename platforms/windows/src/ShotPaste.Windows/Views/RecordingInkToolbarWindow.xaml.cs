@@ -3,7 +3,6 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using ShotPaste.Windows.Interop;
 using ShotPaste.Windows.Models;
 using ShotPaste.Windows.Services;
 using Forms = System.Windows.Forms;
@@ -19,7 +18,6 @@ public partial class RecordingInkToolbarWindow : Window
     private bool _initializing;
 
     public event EventHandler? CloseRequested;
-    internal static uint CaptureExclusionAffinity => NativeMethods.WdaExcludeFromCapture;
 
     private readonly RecordingToolbarWindow? _recordingToolbar;
 
@@ -34,7 +32,6 @@ public partial class RecordingInkToolbarWindow : Window
         FadeCheckBox.IsChecked = ink.State.FadeEnabled;
         RefreshPolicyEditor();
         _initializing = false;
-        SourceInitialized += OnSourceInitialized;
         Loaded += (_, _) => PositionNearCapture();
         if (_recordingToolbar is not null)
         {
@@ -47,12 +44,6 @@ public partial class RecordingInkToolbarWindow : Window
                 _recordingToolbar.SizeChanged -= OnOwnerGeometryChanged;
             };
         }
-    }
-
-    private void OnSourceInitialized(object? sender, EventArgs e)
-    {
-        var handle = new WindowInteropHelper(this).Handle;
-        if (!App.UiTestMode) NativeMethods.SetWindowDisplayAffinity(handle, CaptureExclusionAffinity);
     }
 
     private void PositionNearCapture()

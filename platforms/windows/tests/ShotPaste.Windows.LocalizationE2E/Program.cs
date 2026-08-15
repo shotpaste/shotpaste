@@ -108,8 +108,10 @@ internal static class Program
         {
             var history = await WaitForAutomationIdAsync(product.Id, "HistoryWindow");
             var settings = await WaitForAutomationIdAsync(product.Id, "SettingsWindow");
-            var expectedHistoryTitle = LocalizationService.Text(language, "history.title");
-            var expectedSettingsTitle = LocalizationService.TranslatePhrase("ShotPaste · 设置", language);
+            var expectedHistoryTitle = AppBuildIdentity.Current.FormatWindowTitle(
+                LocalizationService.Text(language, "history.title"));
+            var expectedSettingsTitle = AppBuildIdentity.Current.FormatWindowTitle(
+                LocalizationService.TranslatePhrase("ShotPaste · 设置", language));
             AssertEqual(expectedHistoryTitle, history.Current.Name, language, "history title");
             AssertEqual(expectedSettingsTitle, settings.Current.Name, language, "settings title");
 

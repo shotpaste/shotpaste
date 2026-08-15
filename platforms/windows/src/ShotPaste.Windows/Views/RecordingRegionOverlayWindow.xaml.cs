@@ -91,6 +91,12 @@ public partial class RecordingRegionOverlayWindow : Window
         SetInteractionEnabled(false);
         _showBorder = false;
         _dimOutside = dimOutside;
+        if (App.UiTestMode)
+        {
+            System.Windows.Automation.AutomationProperties.SetItemStatus(
+                this,
+                dimOutside ? "Dimmed" : "OutlineOnly");
+        }
         if (IsLoaded) UpdateLayoutForRegion();
     }
 
@@ -113,7 +119,6 @@ public partial class RecordingRegionOverlayWindow : Window
         NativeMethods.SetWindowLongPtr(handle, NativeMethods.GwlExStyle,
             new IntPtr((style & ~NativeMethods.WsExTransparent) | NativeMethods.WsExNoActivate | toolWindowStyle));
         source.AddHook(WndProc);
-        if (!App.UiTestMode) NativeMethods.SetWindowDisplayAffinity(handle, NativeMethods.WdaExcludeFromCapture);
         ApplyPhysicalWindowBounds();
     }
 

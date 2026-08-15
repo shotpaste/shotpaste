@@ -59,9 +59,8 @@
               Condition="'$(ShotPasteVariant)' == 'debug'" />
     <EmbeddedResource Include="..\..\..\..\resources\localization\**\*.xcstrings"
                       Link="Localization\%(RecursiveDir)%(Filename)%(Extension)" />
-    <EmbeddedResource Include="Resources\WindowsLocalization.en.json">
+    <EmbeddedResource Include="Resources\WindowsLocalization.*.json">
       <WithCulture>false</WithCulture>
-      <LogicalName>ShotPaste.Windows.WindowsLocalization.en.json</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 

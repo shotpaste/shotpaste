@@ -24,22 +24,25 @@ public sealed record OcrWordRegion(string Text, Drawing.Rectangle Bounds);
 public sealed class OcrService
 {
     private readonly Func<string>? _languageProvider;
+    private readonly Func<bool>? _linkDetectionProvider;
     private readonly Func<Drawing.Bitmap, Task<string?>>? _ocrTextRecognizer;
     private readonly Func<Drawing.Bitmap, IReadOnlyList<string>> _qrReader;
 
-    public OcrService(Func<string>? languageProvider = null)
-        : this(languageProvider, null, TryReadQrs)
+    public OcrService(Func<string>? languageProvider = null, Func<bool>? linkDetectionProvider = null)
+        : this(languageProvider, null, TryReadQrs, linkDetectionProvider)
     {
     }
 
     internal OcrService(
         Func<string>? languageProvider,
         Func<Drawing.Bitmap, Task<string?>>? ocrTextRecognizer,
-        Func<Drawing.Bitmap, IReadOnlyList<string>> qrReader)
+        Func<Drawing.Bitmap, IReadOnlyList<string>> qrReader,
+        Func<bool>? linkDetectionProvider = null)
     {
         _languageProvider = languageProvider;
         _ocrTextRecognizer = ocrTextRecognizer;
         _qrReader = qrReader;
+        _linkDetectionProvider = linkDetectionProvider;
     }
 
     public async Task<string> RecognizeAsync(Drawing.Bitmap bitmap)
@@ -63,19 +66,41 @@ public sealed class OcrService
             recognized = null;
         }
 
-        var ocrText = recognized?.Text.Trim() ?? string.Empty;
-        var sections = new List<string>();
-        if (!string.IsNullOrWhiteSpace(ocrText)) sections.Add(ocrText);
-        foreach (var payload in qrPayloads)
-        {
-            if (sections.Any(section => string.Equals(section, payload, StringComparison.Ordinal))) continue;
-            if (!string.IsNullOrWhiteSpace(ocrText) && ocrText.Split('\r', '\n').Any(line => string.Equals(line.Trim(), payload, StringComparison.Ordinal))) continue;
-            sections.Add(payload);
-        }
-        var text = string.Join(Environment.NewLine, sections);
-        var links = DetectLinks(text);
+        var uniqueQrPayloads = qrPayloads
+            .Select(payload => payload?.Trim())
+            .Where(payload => !string.IsNullOrWhiteSpace(payload))
+            .Cast<string>()
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        var text = ComposeOcrAndQrPayload(recognized?.Text, uniqueQrPayloads, LocalizationService.TranslatePhrase("二维码"))
+            ?? string.Empty;
+        var links = (_linkDetectionProvider?.Invoke() ?? true) ? DetectLinks(text) : [];
         var sensitive = recognized?.SensitiveRegions ?? [];
-        return new OcrRecognitionResult(text, qrPayloads, links, sensitive);
+        return new OcrRecognitionResult(text, uniqueQrPayloads, links, sensitive);
+    }
+
+    internal static string? ComposeOcrAndQrPayload(
+        string? recognizedText,
+        IEnumerable<string> qrPayloads,
+        string qrSectionTitle)
+    {
+        var text = recognizedText?.Trim() ?? string.Empty;
+        var unique = qrPayloads
+            .Select(payload => payload?.Trim())
+            .Where(payload => !string.IsNullOrWhiteSpace(payload))
+            .Cast<string>()
+            .Distinct(StringComparer.Ordinal)
+            .Where(payload => text.Length == 0 || !text.Contains(payload, StringComparison.Ordinal))
+            .ToArray();
+        if (text.Length == 0)
+        {
+            if (unique.Length == 0) return null;
+            return unique.Length == 1
+                ? unique[0]
+                : $"{qrSectionTitle}:{Environment.NewLine}{string.Join(Environment.NewLine, unique)}";
+        }
+        if (unique.Length == 0) return text;
+        return $"{text}{Environment.NewLine}{Environment.NewLine}{qrSectionTitle}:{Environment.NewLine}{string.Join(Environment.NewLine, unique)}";
     }
 
     private async Task<OcrTextPass?> RecognizeTextPassAsync(Drawing.Bitmap bitmap)

@@ -101,9 +101,13 @@ public static class DiagnosticsService
         var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
         using var document = JsonDocument.Parse(json);
         var values = document.RootElement.EnumerateObject()
-            .Where(property => property.Name is not ("SaveDirectory" or "RecordingMicrophoneDeviceId" or "RecordingMicrophoneDeviceName"))
+            .Where(property => property.Name is not ("SaveDirectory" or "RecordingMicrophoneDeviceId" or
+                "RecordingMicrophoneDeviceName" or "McpServerAuthToken"))
             .ToDictionary(property => property.Name, property => property.Value.Clone());
         values["SaveDirectory"] = JsonSerializer.SerializeToElement("<redacted>");
+        values["RecordingMicrophoneDeviceId"] = JsonSerializer.SerializeToElement("<redacted>");
+        values["RecordingMicrophoneDeviceName"] = JsonSerializer.SerializeToElement("<redacted>");
+        values["McpServerAuthToken"] = JsonSerializer.SerializeToElement("<redacted>");
         return JsonSerializer.Serialize(values, new JsonSerializerOptions { WriteIndented = true });
     }
 

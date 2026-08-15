@@ -133,12 +133,30 @@
         </ControlTemplate></Setter.Value>
       </Setter>
     </Style>
+    <Style x:Key="ReducedMotionHistoryListBoxItem" TargetType="ListBoxItem">
+      <Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0,0,12,12"/>
+      <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="AutomationProperties.Name" Value="{Binding PreviewText}"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="VerticalContentAlignment" Value="Stretch"/>
+      <Setter Property="Template">
+        <Setter.Value><ControlTemplate TargetType="ListBoxItem">
+          <Border x:Name="SelectionChrome" CornerRadius="{DynamicResource Radius.Card}" BorderBrush="Transparent" BorderThickness="2" Padding="2">
+            <ContentPresenter/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsSelected" Value="True"><Setter TargetName="SelectionChrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SelectionChrome" Property="BorderBrush" Value="{DynamicResource CardHoverBorderBrush}"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value>
+      </Setter>
+    </Style>
     <ContextMenu x:Key="HistoryItemContextMenu" x:Shared="False"
                  DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
                  Opened="OnHistoryMenuOpened" Closed="OnHistoryMenuClosed">
       <MenuItem Header="恢复" AutomationProperties.Name="恢复历史项目" Tag="{Binding}" Click="OnRestoreItem"/>
       <MenuItem Header="复制" AutomationProperties.Name="复制历史项目" Tag="{Binding}" Click="OnCopyItem"/>
       <MenuItem Header="打开" AutomationProperties.AutomationId="HistoryOpenItem" AutomationProperties.Name="打开历史项目" Tag="{Binding}" Click="OnOpenItem"/>
+      <MenuItem Header="在资源管理器中显示" AutomationProperties.AutomationId="HistoryRevealItem" AutomationProperties.Name="在资源管理器中显示历史项目" Tag="{Binding}" Click="OnRevealItem"/>
       <Separator/>
       <MenuItem Header="移入回收站…" AutomationProperties.AutomationId="HistoryDeleteItem" AutomationProperties.Name="删除历史项目" Tag="{Binding}" Click="OnDeleteItem"
                 Foreground="{DynamicResource DangerBrush}"/>
@@ -147,7 +165,7 @@
       <Border x:Name="Card" Width="270" Height="218" CornerRadius="{DynamicResource Radius.Card}" Background="{DynamicResource SurfaceBrush}"
               BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" ClipToBounds="True"
               ContextMenu="{StaticResource HistoryItemContextMenu}"
-              AutomationProperties.HelpText="右键或使用更多按钮可恢复、复制、打开或移入回收站">
+              AutomationProperties.HelpText="右键或使用更多按钮可恢复、复制、打开、在资源管理器中显示或移入回收站">
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="148"/><RowDefinition Height="*"/></Grid.RowDefinitions>
           <Grid Background="{DynamicResource SurfaceSecondaryBrush}">
@@ -220,8 +238,9 @@
               CornerRadius="{DynamicResource Radius.Lg}" Background="{DynamicResource SurfaceBrush}"
               BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1">
         <StackPanel Orientation="Horizontal">
-          <Button Style="{StaticResource HistoryHeaderActionButton}" AutomationProperties.Name="清空剪贴板历史"
-                  ToolTip="清空剪贴板历史（文件保留）" Click="OnClearHistory">
+          <Button Style="{StaticResource HistoryHeaderActionButton}" AutomationProperties.Name="清空全部历史"
+                  AutomationProperties.AutomationId="HistoryClearAll"
+                  ToolTip="清空全部历史（关联文件移入回收站）" Click="OnClearHistory">
             <StackPanel Orientation="Horizontal">
               <ContentControl Content="{StaticResource Icon.Delete}" ContentTemplate="{StaticResource Icon.Template}" VerticalAlignment="Center"/>
               <TextBlock Text="清空" Margin="6,0,0,0" VerticalAlignment="Center"/>

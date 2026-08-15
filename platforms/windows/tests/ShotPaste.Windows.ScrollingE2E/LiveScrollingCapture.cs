@@ -27,9 +27,20 @@ internal static class LiveScrollingCapture
         var outputPath = Path.GetFullPath(args[0]);
         var completion = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
         var thread = new Thread(() => RunOnSta(outputPath, fastManualScroll, completion));
+        // A stalled UI/capture path must not keep the E2E process alive after
+        // the outer 90-second contract has already failed.
+        thread.IsBackground = true;
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        return await completion.Task.WaitAsync(TimeSpan.FromSeconds(90));
+        try
+        {
+            return await completion.Task.WaitAsync(TimeSpan.FromSeconds(90));
+        }
+        catch (TimeoutException)
+        {
+            Console.Error.WriteLine("Live scrolling capture exceeded the 90-second E2E timeout.");
+            return 1;
+        }
     }
 
     private static void RunOnSta(

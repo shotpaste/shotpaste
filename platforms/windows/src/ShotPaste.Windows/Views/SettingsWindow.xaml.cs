@@ -41,6 +41,8 @@ public partial class SettingsWindow : Window
             WindowAppearanceService.ConstrainToWorkingArea(this);
             UpdateUrlSchemeLabel();
             UpdateQuickAccessPreview();
+            UpdateDiagnosticRecoveryNotice();
+            RefreshHotkeyStatuses();
             await RefreshHistoryStorageAsync();
             await RefreshRecordingFormatSupportAsync();
             _readyForLiveApply = true;
@@ -243,6 +245,7 @@ public partial class SettingsWindow : Window
         property.SetValue(_draft, gesture);
         textBox.GetBindingExpression(WpfTextBox.TextProperty)?.UpdateTarget();
         textBox.SelectAll();
+        RefreshHotkeyStatuses();
     }
 
     private void OnSave(object sender, RoutedEventArgs e)
@@ -285,6 +288,7 @@ public partial class SettingsWindow : Window
             var persisted = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(_draft)) ?? new AppSettings();
             _store.Replace(persisted);
             _settingsApplied?.Invoke();
+            RefreshHotkeyStatuses();
             if (McpServerStatusText is not null)
                 McpServerStatusText.Text = _draft.McpServerEnabled
                     ? $"监听地址：http://127.0.0.1:{_draft.McpServerPort}/mcp"
@@ -339,29 +343,82 @@ public partial class SettingsWindow : Window
     private async void OnRefreshHistoryStorage(object sender, RoutedEventArgs e) =>
         await RefreshHistoryStorageAsync();
 
-    private void OnOpenHistoryDirectory(object sender, RoutedEventArgs e) => OpenTarget(AppPaths.Root);
+    private void OnOpenCaptureDirectory(object sender, RoutedEventArgs e)
+    {
+        Directory.CreateDirectory(_draft.SaveDirectory);
+        OpenTarget(_draft.SaveDirectory);
+    }
+
+    private void UpdateDiagnosticRecoveryNotice()
+    {
+        if (PreviousCrashNotice is null) return;
+        PreviousCrashNotice.Visibility = File.Exists(Path.Combine(AppPaths.Root, "crash.log"))
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
+
+    private void OnExportDiagnosticBundle(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = LocalizedDialogService.Text("导出 ShotPaste 诊断包"),
+            Filter = LocalizedDialogService.Text("ZIP 压缩包|*.zip|所有文件|*.*"),
+            DefaultExt = ".zip",
+            AddExtension = true,
+            FileName = $"ShotPaste-Diagnostics-{DateTime.Now:yyyyMMdd-HHmmss}.zip"
+        };
+        if (dialog.ShowDialog(this) != true) return;
+        try
+        {
+            DiagnosticsService.CreateSupportBundle(dialog.FileName, _draft);
+            LocalizedDialogService.Show(this,
+                $"{LocalizationService.TranslatePhrase("诊断包已导出：")}\n{dialog.FileName}\n\n" +
+                LocalizationService.TranslatePhrase("包内设置已移除保存路径、设备标识和 MCP Token。"),
+                "ShotPaste", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            LocalizedDialogService.Show(this,
+                LocalizationService.TranslatePhrase("无法导出诊断包：") + exception.Message, "ShotPaste",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void OnOpenClipboardDirectory(object sender, RoutedEventArgs e)
+    {
+        Directory.CreateDirectory(AppPaths.ClipboardFiles);
+        OpenTarget(AppPaths.ClipboardFiles);
+    }
 
     private async Task RefreshHistoryStorageAsync()
     {
-        if (HistoryStorageUsageText is null) return;
-        HistoryStorageUsageText.Text = "正在计算存储占用…";
+        if (CaptureStorageUsageText is null || ClipboardStorageUsageText is null) return;
+        CaptureStorageUsageText.Text = "正在计算截图与录屏目录占用…";
+        ClipboardStorageUsageText.Text = "正在计算媒体剪贴板目录占用…";
         try
         {
-            var bytes = await Task.Run(() => Directory.Exists(AppPaths.Root)
-                ? Directory.EnumerateFiles(AppPaths.Root, "*", SearchOption.AllDirectories)
-                    .Sum(path =>
-                    {
-                        try { return new FileInfo(path).Length; }
-                        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { return 0L; }
-                    })
-                : 0L);
-            HistoryStorageUsageText.Text = $"历史与缩略图占用：{FormatByteSize(bytes)}";
+            var sizes = await Task.Run(() => (
+                Capture: DirectorySize(_draft.SaveDirectory),
+                Clipboard: DirectorySize(AppPaths.ClipboardFiles)));
+            CaptureStorageUsageText.Text = LocalizationService.TranslatePhrase("截图与录屏目录占用：") +
+                                           FormatByteSize(sizes.Capture);
+            ClipboardStorageUsageText.Text = LocalizationService.TranslatePhrase("媒体剪贴板目录占用：") +
+                                             FormatByteSize(sizes.Clipboard);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            HistoryStorageUsageText.Text = $"无法读取存储占用：{exception.Message}";
+            CaptureStorageUsageText.Text = $"无法读取存储占用：{exception.Message}";
+            ClipboardStorageUsageText.Text = $"无法读取存储占用：{exception.Message}";
         }
     }
+
+    private static long DirectorySize(string path) => Directory.Exists(path)
+        ? Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).Sum(file =>
+        {
+            try { return new FileInfo(file).Length; }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { return 0L; }
+        })
+        : 0L;
 
     private static string FormatByteSize(long bytes)
     {
@@ -468,7 +525,7 @@ public partial class SettingsWindow : Window
             buttons[index].Content = action switch
             {
                 "Copy" => "复制", "SaveOrOpen" => "保存", "Close" => "关闭",
-                "Delete" => "删除", "Pin" => "贴图", _ => "—"
+                "Delete" => "删除", "Pin" => "贴图", "Drag" => "拖出", _ => "—"
             };
             buttons[index].Opacity = action == "None" ? 0.35 : 1;
             buttons[index].IsEnabled = action != "None";
@@ -597,6 +654,52 @@ public partial class SettingsWindow : Window
         _draft.RecordingAnnotationHotkey = source.RecordingAnnotationHotkey;
         _draft.RecordingRestartHotkey = source.RecordingRestartHotkey; _draft.RecordingDeleteHotkey = source.RecordingDeleteHotkey;
         RefreshBindings();
+        RefreshHotkeyStatuses();
+    }
+
+    private void OnRefreshHotkeyStatus(object sender, RoutedEventArgs e) => RefreshHotkeyStatuses();
+
+    private void OnOpenKeyboardSettings(object sender, RoutedEventArgs e) => OpenTarget("ms-settings:easeofaccess-keyboard");
+
+    private void RefreshHotkeyStatuses()
+    {
+        if (OneShotHotkeyStatus is null) return;
+        IReadOnlyDictionary<HotkeyAction, HotkeyAvailabilityResult> results;
+        try { results = GlobalHotkeyService.ProbeConfigured(_draft); }
+        catch (Exception exception) when (exception is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            HotkeySummaryText.Text = LocalizationService.TranslatePhrase("无法检查快捷键状态：") + exception.Message;
+            return;
+        }
+        var targets = new Dictionary<HotkeyAction, System.Windows.Controls.TextBlock>
+        {
+            [HotkeyAction.OneShot] = OneShotHotkeyStatus,
+            [HotkeyAction.History] = HistoryHotkeyStatus,
+            [HotkeyAction.RecordingPause] = RecordingPauseHotkeyStatus,
+            [HotkeyAction.RecordingAnnotation] = RecordingAnnotationHotkeyStatus,
+            [HotkeyAction.RecordingRestart] = RecordingRestartHotkeyStatus,
+            [HotkeyAction.RecordingDelete] = RecordingDeleteHotkeyStatus
+        };
+        foreach (var pair in targets)
+        {
+            var result = results[pair.Key];
+            pair.Value.Text = result.Availability switch
+            {
+                HotkeyAvailability.Available => "✓ " + result.Message,
+                HotkeyAvailability.Disabled => "— " + result.Message,
+                _ => "⚠ " + result.Message
+            };
+            pair.Value.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty,
+                result.Availability == HotkeyAvailability.Available ? "SuccessBrush" :
+                result.Availability == HotkeyAvailability.Disabled ? "SecondaryTextBrush" : "WarningBrush");
+        }
+        var conflicts = results.Values.Count(result => result.Availability is HotkeyAvailability.Conflict or HotkeyAvailability.Invalid);
+        HotkeySummaryText.Text = !_draft.ShortcutsEnabled
+            ? "全局快捷键已停用"
+            : conflicts == 0
+            ? "所有已启用快捷键均可注册。"
+            : $"{conflicts} " + LocalizationService.TranslatePhrase(
+                "个快捷键不可注册。请选择其他组合，或关闭占用该组合的应用后刷新状态。Windows 没有统一的全局快捷键管理页。");
     }
 
     private void OnRestoreDefaults(object sender, RoutedEventArgs e)

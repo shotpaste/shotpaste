@@ -342,13 +342,15 @@ public partial class QuickAccessWindow : Window
             ["Copy"] = CopyAction,
             ["SaveOrOpen"] = SaveAction,
             ["Pin"] = PinAction,
+            ["Drag"] = DragAction,
             ["Delete"] = DeleteAction,
             ["Close"] = CloseAction
         };
         Actions.Children.Clear();
         foreach (var action in configured.Take(6).Concat(Enumerable.Repeat("None", 6)).Take(6))
         {
-            if (!actions.TryGetValue(action, out var button) || Actions.Children.Contains(button))
+            if (action.Equals("Drag", StringComparison.OrdinalIgnoreCase) && !_settings.Current.QuickAccessEnableDrag ||
+                !actions.TryGetValue(action, out var button) || Actions.Children.Contains(button))
             {
                 Actions.Children.Add(new Border
                 {
@@ -364,14 +366,53 @@ public partial class QuickAccessWindow : Window
             button.Visibility = Visibility.Visible;
             Actions.Children.Add(button);
         }
+        ConfigureContextMenu(configured, isTemporary);
+    }
+
+    private void ConfigureContextMenu(IReadOnlyList<string> configured, bool isTemporary)
+    {
+        var menu = new ContextMenu();
+        var addedDestructiveSeparator = false;
+        foreach (var action in configured.Where(action => !action.Equals("None", StringComparison.OrdinalIgnoreCase)))
+        {
+            if (action.Equals("Drag", StringComparison.OrdinalIgnoreCase) && !_settings.Current.QuickAccessEnableDrag) continue;
+            if (action.Equals("Delete", StringComparison.OrdinalIgnoreCase) && menu.Items.Count > 0 && !addedDestructiveSeparator)
+            {
+                menu.Items.Add(new Separator());
+                addedDestructiveSeparator = true;
+            }
+            var title = action switch
+            {
+                "Copy" => "复制",
+                "SaveOrOpen" => isTemporary ? "另存为" : "打开",
+                "Pin" => "贴到屏幕",
+                "Drag" => "拖出文件",
+                "Delete" => "删除",
+                "Close" => "关闭卡片",
+                _ => null
+            };
+            if (title is null) continue;
+            var item = new MenuItem
+            {
+                Header = Services.LocalizationService.TranslatePhrase(title),
+                Tag = action
+            };
+            if (action.Equals("Delete", StringComparison.OrdinalIgnoreCase))
+                item.SetResourceReference(System.Windows.Controls.Control.ForegroundProperty, "DangerBrush");
+            item.Click += (_, _) => _ = ExecuteConfiguredActionAsync(action);
+            menu.Items.Add(item);
+        }
+        Card.ContextMenu = menu.Items.Count == 0 ? null : menu;
     }
 
     private void OnWindowMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        if (e.OriginalSource is DependencyObject source && Actions.IsAncestorOf(source)) return;
+        if (e.OriginalSource is DependencyObject source &&
+            (Actions.IsAncestorOf(source) || PinButton.IsAncestorOf(source) || CloseButton.IsAncestorOf(source))) return;
         if (e.ChangedButton == System.Windows.Input.MouseButton.Left && _settings.Current.QuickAccessEnableDrag)
         {
-            try { DragMove(); } catch (InvalidOperationException) { }
+            BeginExternalDrag();
+            e.Handled = true;
         }
     }
 
@@ -409,11 +450,13 @@ public partial class QuickAccessWindow : Window
             case "save": await _controller.SaveHistoryItemAsync(_item); Close(); break;
             case "open": await _controller.OpenHistoryItemAsync(_item); Close(); break;
             case "pin": _controller.PinHistoryItem(_item); break;
+            case "drag": BeginExternalDrag(); break;
             case "delete":
                 if (await _controller.DeleteHistoryItemAsync(_item, this)) Close();
                 break;
+            case "close": Close(); break;
             case "none": break;
-            default: Close(); break;
+            default: break;
         }
     }
     private void OnCopy(object sender, RoutedEventArgs e) => _ = ExecuteConfiguredActionAsync("Copy");
@@ -425,6 +468,13 @@ public partial class QuickAccessWindow : Window
 
     private void OnDragOut(object sender, MouseButtonEventArgs e)
     {
+        BeginExternalDrag();
+        e.Handled = true;
+    }
+
+    private bool BeginExternalDrag()
+    {
+        if (!_settings.Current.QuickAccessEnableDrag) return false;
         var data = new System.Windows.DataObject();
         if (_item.FilePaths.Count > 0 && _item.ExistingFilePaths.Count > 0)
             data.SetData(System.Windows.DataFormats.FileDrop, _item.ExistingFilePaths.Select(Path.GetFullPath).ToArray());
@@ -432,11 +482,16 @@ public partial class QuickAccessWindow : Window
             data.SetData(System.Windows.DataFormats.FileDrop, new[] { Path.GetFullPath(_item.FilePath) });
         else if (!string.IsNullOrWhiteSpace(_item.Text))
             data.SetData(System.Windows.DataFormats.UnicodeText, _item.Text);
-        else return;
+        else return false;
         PauseCountdown();
-        System.Windows.DragDrop.DoDragDrop(this, data, System.Windows.DragDropEffects.Copy);
+        var result = System.Windows.DragDrop.DoDragDrop(this, data, System.Windows.DragDropEffects.Copy);
+        if (result != System.Windows.DragDropEffects.None)
+        {
+            Close();
+            return true;
+        }
         if (AutoDismissEnabled) ResumeCountdown();
-        e.Handled = true;
+        return false;
     }
 
     public void Suspend()

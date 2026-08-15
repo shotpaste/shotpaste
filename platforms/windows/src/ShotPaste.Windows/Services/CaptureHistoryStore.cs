@@ -40,6 +40,7 @@ public sealed class CaptureHistoryStore
 
     public ObservableCollection<CaptureHistoryItem> Items { get; } = [];
     public event EventHandler<CaptureHistoryItem>? ItemAdded;
+    internal string DatabasePath => _databasePath;
 
     public async Task LoadAsync()
     {
@@ -230,7 +231,10 @@ public sealed class CaptureHistoryStore
         var failures = new List<HistoryRemovalFailure>();
         foreach (var item in snapshot)
         {
-            var result = await RemoveAsync(item, IsManagedClipboardItem(item));
+            // Clearing history is the same destructive action on both native
+            // implementations: every record-associated user file is moved to
+            // the OS recycle bin before its row is committed as deleted.
+            var result = await RemoveAsync(item, true);
             if (result.RecordRemoved) removed++;
             failures.AddRange(result.Failures);
         }
@@ -291,41 +295,49 @@ public sealed class CaptureHistoryStore
     private async Task<SqliteConnection> OpenConnectionAsync()
     {
         var connection = new SqliteConnection($"Data Source={_databasePath};Mode=ReadWriteCreate;Cache=Shared");
-        await connection.OpenAsync();
-        await using var command = connection.CreateCommand();
-        command.CommandText = """
-            CREATE TABLE IF NOT EXISTS history_items (
-                id TEXT PRIMARY KEY,
-                kind INTEGER NOT NULL,
-                created_at TEXT NOT NULL,
-                file_path TEXT NULL,
-                thumbnail_path TEXT NULL,
-                text_value TEXT NULL,
-                size_bytes INTEGER NOT NULL,
-                pixel_width INTEGER NOT NULL,
-                pixel_height INTEGER NOT NULL,
-                duration_ticks INTEGER NULL,
-                is_pinned INTEGER NOT NULL DEFAULT 0,
-                file_paths_json TEXT NULL,
-                content_hash TEXT NULL,
-                text_storage_path TEXT NULL,
-                text_length INTEGER NOT NULL DEFAULT 0,
-                text_is_truncated INTEGER NOT NULL DEFAULT 0,
-                preview_error TEXT NULL
-            );
-            CREATE INDEX IF NOT EXISTS idx_history_created_at ON history_items(created_at DESC);
-            """;
-        await command.ExecuteNonQueryAsync();
-        await EnsureColumnAsync(connection, "file_paths_json", "TEXT NULL");
-        await EnsureColumnAsync(connection, "content_hash", "TEXT NULL");
-        await EnsureColumnAsync(connection, "text_storage_path", "TEXT NULL");
-        await EnsureColumnAsync(connection, "text_length", "INTEGER NOT NULL DEFAULT 0");
-        await EnsureColumnAsync(connection, "text_is_truncated", "INTEGER NOT NULL DEFAULT 0");
-        await EnsureColumnAsync(connection, "preview_error", "TEXT NULL");
-        await using var indexCommand = connection.CreateCommand();
-        indexCommand.CommandText = "CREATE INDEX IF NOT EXISTS idx_history_content_hash ON history_items(content_hash) WHERE content_hash IS NOT NULL;";
-        await indexCommand.ExecuteNonQueryAsync();
-        return connection;
+        try
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                CREATE TABLE IF NOT EXISTS history_items (
+                    id TEXT PRIMARY KEY,
+                    kind INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    file_path TEXT NULL,
+                    thumbnail_path TEXT NULL,
+                    text_value TEXT NULL,
+                    size_bytes INTEGER NOT NULL,
+                    pixel_width INTEGER NOT NULL,
+                    pixel_height INTEGER NOT NULL,
+                    duration_ticks INTEGER NULL,
+                    is_pinned INTEGER NOT NULL DEFAULT 0,
+                    file_paths_json TEXT NULL,
+                    content_hash TEXT NULL,
+                    text_storage_path TEXT NULL,
+                    text_length INTEGER NOT NULL DEFAULT 0,
+                    text_is_truncated INTEGER NOT NULL DEFAULT 0,
+                    preview_error TEXT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_history_created_at ON history_items(created_at DESC);
+                """;
+            await command.ExecuteNonQueryAsync();
+            await EnsureColumnAsync(connection, "file_paths_json", "TEXT NULL");
+            await EnsureColumnAsync(connection, "content_hash", "TEXT NULL");
+            await EnsureColumnAsync(connection, "text_storage_path", "TEXT NULL");
+            await EnsureColumnAsync(connection, "text_length", "INTEGER NOT NULL DEFAULT 0");
+            await EnsureColumnAsync(connection, "text_is_truncated", "INTEGER NOT NULL DEFAULT 0");
+            await EnsureColumnAsync(connection, "preview_error", "TEXT NULL");
+            await using var indexCommand = connection.CreateCommand();
+            indexCommand.CommandText = "CREATE INDEX IF NOT EXISTS idx_history_content_hash ON history_items(content_hash) WHERE content_hash IS NOT NULL;";
+            await indexCommand.ExecuteNonQueryAsync();
+            return connection;
+        }
+        catch
+        {
+            await connection.DisposeAsync();
+            throw;
+        }
     }
 
     private static async Task EnsureColumnAsync(SqliteConnection connection, string name, string declaration)

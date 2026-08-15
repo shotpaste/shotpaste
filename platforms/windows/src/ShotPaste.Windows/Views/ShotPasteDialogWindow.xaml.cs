@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
 using ShotPaste.Windows.Services;
@@ -26,7 +27,37 @@ public partial class ShotPasteDialogWindow : Window
         _buttons = buttons;
         ConfigureIcon(image);
         ConfigureButtons(buttons, customButtonText);
+        FitLocalizedChrome(caption);
         Closing += OnClosing;
+    }
+
+    private void FitLocalizedChrome(string caption)
+    {
+        var requiredButtonWidth = 36d;
+        foreach (var button in new[] { TertiaryButton, SecondaryButton, PrimaryButton }
+                     .Where(button => button.Visibility == Visibility.Visible))
+        {
+            button.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+            requiredButtonWidth += button.DesiredSize.Width + button.Margin.Left + button.Margin.Right;
+        }
+
+        var displayedTitle = AppBuildIdentity.Current.FormatWindowTitle(caption);
+        var titleTypeface = new Typeface(
+            System.Windows.SystemFonts.MessageFontFamily,
+            FontStyles.Normal,
+            FontWeights.SemiBold,
+            FontStretches.Normal);
+        var titleMeasurement = new FormattedText(
+            displayedTitle,
+            CultureInfo.CurrentUICulture,
+            System.Windows.FlowDirection.LeftToRight,
+            titleTypeface,
+            System.Windows.SystemFonts.MessageFontSize,
+            System.Windows.Media.Brushes.Black,
+            VisualTreeHelper.GetDpi(this).PixelsPerDip);
+        const double titleIconAndCloseAllowance = 112d;
+        var requiredTitleWidth = titleMeasurement.WidthIncludingTrailingWhitespace + titleIconAndCloseAllowance;
+        Width = Math.Clamp(Math.Ceiling(Math.Max(requiredButtonWidth, requiredTitleWidth)), MinWidth, MaxWidth);
     }
 
     private void ConfigureIcon(MessageBoxImage image)

@@ -19,6 +19,7 @@ public partial class OcrResultWindow : Window
         InitializeComponent();
         WindowAppearanceService.Attach(this, WindowBackdropKind.Acrylic);
         DataContext = result;
+        OpenAllButton.Visibility = result.Links.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
         _dismissTimer.Tick += (_, _) => Close();
         SourceInitialized += (_, _) =>
         {
@@ -49,11 +50,27 @@ public partial class OcrResultWindow : Window
     private void OnOpenLink(object sender, RoutedEventArgs e)
     {
         if (sender is not System.Windows.Controls.Button { Tag: string value } || string.IsNullOrWhiteSpace(value)) return;
+        OpenLink(value);
+    }
+
+    private static void OpenLink(string value)
+    {
         var target = value.Contains('@') && !value.Contains("://", StringComparison.Ordinal)
             ? "mailto:" + value
             : value.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? "https://" + value : value;
         if (!Uri.TryCreate(target, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https" or "mailto")) return;
         Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
+    }
+
+    private void OnCopyLink(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { Tag: string value } && !string.IsNullOrWhiteSpace(value))
+            ClipboardWriter.SetText(value);
+    }
+
+    private void OnOpenAll(object sender, RoutedEventArgs e)
+    {
+        foreach (var link in _result.Links) OpenLink(link);
     }
 
     private void OnCopy(object sender, RoutedEventArgs e) => ClipboardWriter.SetText(_result.Text);

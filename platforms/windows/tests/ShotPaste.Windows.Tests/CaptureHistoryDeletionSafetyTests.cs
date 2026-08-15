@@ -223,6 +223,75 @@ public sealed class CaptureHistoryDeletionSafetyTests
         }
     }
 
+    [Fact]
+    public async Task ClearAsync_RecyclesCaptureAndRecordingFilesBeforeRemovingEveryRecord()
+    {
+        var root = CreateRoot();
+        var database = Path.Combine(root, "history.db");
+        var screenshot = Path.Combine(root, "capture.png");
+        var recording = Path.Combine(root, "recording.mp4");
+        await File.WriteAllTextAsync(screenshot, "capture");
+        await File.WriteAllTextAsync(recording, "recording");
+        var recycle = new FakeRecoverableFiles(path => new RecoverableFileResult(path, true, false));
+        try
+        {
+            var store = new CaptureHistoryStore(database, Path.Combine(root, "thumbs"), recycle);
+            await store.LoadAsync();
+            await store.AddAsync(new CaptureHistoryItem { Kind = CaptureKind.Screenshot, FilePath = screenshot });
+            await store.AddAsync(new CaptureHistoryItem { Kind = CaptureKind.Recording, FilePath = recording });
+
+            var result = await store.ClearAsync();
+
+            Assert.True(result.FullySucceeded);
+            Assert.Equal(2, result.RequestedCount);
+            Assert.Equal(2, result.RemovedCount);
+            Assert.Empty(store.Items);
+            Assert.Equal(
+                [Path.GetFullPath(screenshot), Path.GetFullPath(recording)],
+                recycle.Paths.OrderBy(path => path, StringComparer.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public async Task ClearAsync_LeavesFailedRecordVisibleAndReportsPartialResult()
+    {
+        var root = CreateRoot();
+        var database = Path.Combine(root, "history.db");
+        var succeeded = Path.Combine(root, "ok.png");
+        var failed = Path.Combine(root, "locked.mp4");
+        await File.WriteAllTextAsync(succeeded, "capture");
+        await File.WriteAllTextAsync(failed, "recording");
+        var recycle = new FakeRecoverableFiles(path => path.Equals(Path.GetFullPath(failed), StringComparison.OrdinalIgnoreCase)
+            ? new RecoverableFileResult(path, false, false, "locked")
+            : new RecoverableFileResult(path, true, false));
+        try
+        {
+            var store = new CaptureHistoryStore(database, Path.Combine(root, "thumbs"), recycle);
+            await store.LoadAsync();
+            await store.AddAsync(new CaptureHistoryItem { Kind = CaptureKind.Screenshot, FilePath = succeeded });
+            var failedItem = new CaptureHistoryItem { Kind = CaptureKind.Recording, FilePath = failed };
+            await store.AddAsync(failedItem);
+
+            var result = await store.ClearAsync();
+
+            Assert.False(result.FullySucceeded);
+            Assert.Equal(2, result.RequestedCount);
+            Assert.Equal(1, result.RemovedCount);
+            Assert.Single(result.Failures);
+            Assert.Equal(failedItem.Id, Assert.Single(store.Items).Id);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            Directory.Delete(root, true);
+        }
+    }
+
     private static string CreateRoot()
     {
         var path = Path.Combine(Path.GetTempPath(), "ShotPasteDeletionTests", Guid.NewGuid().ToString("N"));

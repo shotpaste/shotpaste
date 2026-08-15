@@ -87,7 +87,13 @@
             <Border Style="{StaticResource SettingsCard}">
               <StackPanel>
                 <TextBlock Text="帮助" Style="{StaticResource SectionTitle}"/>
-                <Button Content="报告问题…" Click="OnOpenReportPage" HorizontalAlignment="Left"/>
+                <TextBlock x:Name="PreviousCrashNotice" Text="检测到上次异常退出日志。导出诊断包可一并保存 crash.log，便于排查。"
+                           Style="{StaticResource SettingHint}" Foreground="{DynamicResource WarningBrush}" TextWrapping="Wrap"
+                           Visibility="Collapsed" Margin="0,0,0,10"/>
+                <StackPanel Orientation="Horizontal">
+                  <Button Content="导出诊断包…" Click="OnExportDiagnosticBundle" Margin="0,0,8,0"/>
+                  <Button Content="报告问题…" Click="OnOpenReportPage"/>
+                </StackPanel>
               </StackPanel>
             </Border>
           </StackPanel>
@@ -165,8 +171,14 @@
                 <WrapPanel>
                   <CheckBox Content="捕获成功通知" IsChecked="{Binding ShowCaptureNotifications}" Margin="0,4,18,4"/>
                   <CheckBox Content="OCR 成功通知" IsChecked="{Binding ShowOcrSuccessNotifications}" Margin="0,4,18,4"/>
-                  <CheckBox Content="识别链接时显示卡片" IsChecked="{Binding ShowOcrLinkNotifications}" Margin="0,4,18,4"/>
+                  <CheckBox Content="检测 OCR 结果中的链接并显示卡片" IsChecked="{Binding ShowOcrLinkNotifications}" Margin="0,4,18,4"/>
                 </WrapPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                  <TextBlock Text="OCR 识别语言" Width="140" VerticalAlignment="Center"/>
+                  <ComboBox SelectedValue="{Binding OcrRecognitionLanguage}" SelectedValuePath="Tag" Width="210" AutomationProperties.AutomationId="SettingsOcrLanguage">
+                    <ComboBoxItem Content="跟随应用语言" Tag="Auto"/><ComboBoxItem Content="简体中文" Tag="zh-CN"/><ComboBoxItem Content="繁體中文" Tag="zh-TW"/><ComboBoxItem Content="English" Tag="en-US"/><ComboBoxItem Content="日本語" Tag="ja-JP"/><ComboBoxItem Content="한국어" Tag="ko-KR"/><ComboBoxItem Content="Deutsch" Tag="de-DE"/><ComboBoxItem Content="Français" Tag="fr-FR"/><ComboBoxItem Content="Español" Tag="es-ES"/><ComboBoxItem Content="Русский" Tag="ru-RU"/><ComboBoxItem Content="Tiếng Việt" Tag="vi-VN"/>
+                  </ComboBox>
+                </StackPanel>
               </StackPanel>
             </Border>
                 </StackPanel>
@@ -189,7 +201,8 @@
                   <CheckBox Content="显示按键" IsChecked="{Binding ShowKeystrokes}" Margin="0,5,20,5"/>
                   <CheckBox Content="录制中包含 ShotPaste" IsChecked="{Binding IncludeShotPasteInRecording}" Margin="0,5,20,5"
                             AutomationProperties.AutomationId="IncludeShotPasteInRecording"/>
-                  <CheckBox Content="暗化未选区域" IsChecked="{Binding DimNonSelectedRecordingArea}" Margin="0,5,20,5"/>
+                  <CheckBox Content="暗化未选区域" IsChecked="{Binding DimNonSelectedRecordingArea}" Margin="0,5,20,5"
+                            AutomationProperties.AutomationId="DimNonSelectedRecordingArea"/>
                   <CheckBox Content="系统声音" IsChecked="{Binding RecordSystemAudio}" Margin="0,5,20,5"/>
                   <CheckBox Content="麦克风" IsChecked="{Binding RecordMicrophone}" Margin="0,5,20,5"/>
                 </WrapPanel>
@@ -285,7 +298,8 @@
                   <ComboBox SelectedValue="{Binding RecordingGifFps}" SelectedValuePath="Tag" Width="120">
                     <ComboBoxItem Content="10 FPS" Tag="10"/><ComboBoxItem Content="15 FPS" Tag="15"/><ComboBoxItem Content="20 FPS" Tag="20"/><ComboBoxItem Content="30 FPS" Tag="30"/>
                   </ComboBox>
-                  <CheckBox Content="显示录屏控制条" IsChecked="{Binding ShowRecordingToolbar}" Margin="22,0,0,0"/>
+                  <CheckBox Content="显示录屏控制条" IsChecked="{Binding ShowRecordingToolbar}" Margin="22,0,0,0"
+                            AutomationProperties.AutomationId="ShowRecordingToolbar"/>
                   <CheckBox Content="托盘显示录屏时长" IsChecked="{Binding ShowRecordingDurationInTray}" Margin="18,0,0,0"/>
                 </StackPanel>
                 <TextBlock Text="录屏实时标注" Style="{StaticResource SectionTitle}" Margin="0,14,0,8"/>
@@ -393,12 +407,12 @@
                       </StackPanel>
                     </Border>
                     <UniformGrid Columns="2" Margin="0,9,0,0">
-                      <Border Tag="0" AllowDrop="True" Drop="OnQuickActionDrop" Margin="0,0,6,6" Padding="4" CornerRadius="{DynamicResource Radius.Sm}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"><DockPanel><TextBlock Tag="0" Text="⋮⋮ 1" Cursor="SizeAll" Focusable="True" Margin="2,0,5,0" VerticalAlignment="Center" PreviewMouseLeftButtonDown="OnQuickActionDragStart" PreviewMouseMove="OnQuickActionDragMove" PreviewKeyDown="OnQuickActionHandleKeyDown" AutomationProperties.HelpText="Alt 加方向键调整槽位顺序"/><ComboBox SelectionChanged="OnQuickActionChanged" SelectedValue="{Binding QuickAccessAction1}" SelectedValuePath="Tag"><ComboBoxItem Content="复制" Tag="Copy"/><ComboBoxItem Content="保存 / 打开" Tag="SaveOrOpen"/><ComboBoxItem Content="关闭" Tag="Close"/><ComboBoxItem Content="删除" Tag="Delete"/><ComboBoxItem Content="贴图" Tag="Pin"/><ComboBoxItem Content="停用" Tag="None"/></ComboBox></DockPanel></Border>
-                      <Border Tag="1" AllowDrop="True" Drop="OnQuickActionDrop" Margin="0,0,6,6" Padding="4" CornerRadius="{DynamicResource Radius.Sm}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"><DockPanel><TextBlock Tag="1" Text="⋮⋮ 2" Cursor="SizeAll" Focusable="True" Margin="2,0,5,0" VerticalAlignment="Center" PreviewMouseLeftButtonDown="OnQuickActionDragStart" PreviewMouseMove="OnQuickActionDragMove" PreviewKeyDown="OnQuickActionHandleKeyDown" AutomationProperties.HelpText="Alt 加方向键调整槽位顺序"/><ComboBox SelectionChanged="OnQuickActionChanged" SelectedValue="{Binding QuickAccessAction2}" SelectedValuePath="Tag"><ComboBoxItem Content="复制" Tag="Copy"/><ComboBoxItem Content="保存 / 打开" Tag="SaveOrOpen"/><ComboBoxItem Content="关闭" Tag="Close"/><ComboBoxItem Content="删除" Tag="Delete"/><ComboBoxItem Content="贴图" Tag="Pin"/><ComboBoxItem Content="停用" Tag="None"/></ComboBox></DockPanel></Border>
-                      <Border Tag="2" AllowDrop="True" Drop="OnQuickActionDrop" Margin="0,0,6,6" Padding="4" CornerRadius="{DynamicResource Radius.Sm}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"><DockPanel><TextBlock Tag="2" Text="⋮⋮ 3" Cursor="SizeAll" Focusable="True" Margin="2,0,5,0" VerticalAlignment="Center" PreviewMouseLeftButtonDown="OnQuickActionDragStart" PreviewMouseMove="OnQuickActionDragMove" PreviewKeyDown="OnQuickActionHandleKeyDown" AutomationProperties.HelpText="Alt 加方向键调整槽位顺序"/><ComboBox SelectionChanged="OnQuickActionChanged" SelectedValue="{Binding QuickAccessAction3}" SelectedValuePath="Tag"><ComboBoxItem Content="复制" Tag="Copy"/><ComboBoxItem Content="保存 / 打开" Tag="SaveOrOpen"/><ComboBoxItem Content="关闭" Tag="Close"/><ComboBoxItem Content="删除" Tag="Delete"/><ComboBoxItem Content="贴图" Tag="Pin"/><ComboBoxItem Content="停用" Tag="None"/></ComboBox></DockPanel></Border>
-                      <Border Tag="3" AllowDrop="True" Drop="OnQuickActionDrop" Margin="0,0,6,6" Padding="4" CornerRadius="{DynamicResource Radius.Sm}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"><DockPanel><TextBlock Tag="3" Text="⋮⋮ 4" Cursor="SizeAll" Focusable="True" Margin="2,0,5,0" VerticalAlignment="Center" PreviewMouseLeftButtonDown="OnQuickActionDragStart" PreviewMouseMove="OnQuickActionDragMove" PreviewKeyDown="OnQuickActionHandleKeyDown" AutomationProperties.HelpText="Alt 加方向键调整槽位顺序"/><ComboBox SelectionChanged="OnQuickActionChanged" SelectedValue="{Binding QuickAccessAction4}" SelectedValuePath="Tag"><ComboBoxItem Content="复制" Tag="Copy"/><ComboBoxItem Content="保存 / 打开" Tag="SaveOrOpen"/><ComboBoxItem Content="关闭" Tag="Close"/><ComboBoxItem Content="删除" Tag="Delete"/><ComboBoxItem Content="贴图" Tag="Pin"/><ComboBoxItem Content="停用" Tag="None"/></ComboBox></DockPanel></Border>
-                      <Border Tag="4" AllowDrop="True" Drop="OnQuickActionDrop" Margin="0,0,6,6" Padding="4" CornerRadius="{DynamicResource Radius.Sm}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"><DockPanel><TextBlock Tag="4" Text="⋮⋮ 5" Cursor="SizeAll" Focusable="True" Margin="2,0,5,0" VerticalAlignment="Center" PreviewMouseLeftButtonDown="OnQuickActionDragStart" PreviewMouseMove="OnQuickActionDragMove" PreviewKeyDown="OnQuickActionHandleKeyDown" AutomationProperties.HelpText="Alt 加方向键调整槽位顺序"/><ComboBox SelectionChanged="OnQuickActionChanged" SelectedValue="{Binding QuickAccessAction5}" SelectedValuePath="Tag"><ComboBoxItem Content="复制" Tag="Copy"/><ComboBoxItem Content="保存 / 打开" Tag="SaveOrOpen"/><ComboBoxItem Content="关闭" Tag="Close"/><ComboBoxItem Content="删除" Tag="Delete"/><ComboBoxItem Content="贴图" Tag="Pin"/><ComboBoxItem Content="停用" Tag="None"/></ComboBox></DockPanel></Border>
-                      <Border Tag="5" AllowDrop="True" Drop="OnQuickActionDrop" Margin="0,0,6,6" Padding="4" CornerRadius="{DynamicResource Radius.Sm}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"><DockPanel><TextBlock Tag="5" Text="⋮⋮ 6" Cursor="SizeAll" Focusable="True" Margin="2,0,5,0" VerticalAlignment="Center" PreviewMouseLeftButtonDown="OnQuickActionDragStart" PreviewMouseMove="OnQuickActionDragMove" PreviewKeyDown="OnQuickActionHandleKeyDown" AutomationProperties.HelpText="Alt 加方向键调整槽位顺序"/><ComboBox SelectionChanged="OnQuickActionChanged" SelectedValue="{Binding QuickAccessAction6}" SelectedValuePath="Tag"><ComboBoxItem Content="复制" Tag="Copy"/><ComboBoxItem Content="保存 / 打开" Tag="SaveOrOpen"/><ComboBoxItem Content="关闭" Tag="Close"/><ComboBoxItem Content="删除" Tag="Delete"/><ComboBoxItem Content="贴图" Tag="Pin"/><ComboBoxItem Content="停用" Tag="None"/></ComboBox></DockPanel></Border>
+                      <Border Tag="0" AllowDrop="True" Drop="OnQuickActionDrop" Margin="0,0,6,6" Padding="4" CornerRadius="{DynamicResource Radius.Sm}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"><DockPanel><TextBlock Tag="0" Text="⋮⋮ 1" Cursor="SizeAll" Focusable="True" Margin="2,0,5,0" VerticalAlignment="Center" PreviewMouseLeftButtonDown="OnQuickActionDragStart" PreviewMouseMove="OnQuickActionDragMove" PreviewKeyDown="OnQuickActionHandleKeyDown" AutomationProperties.HelpText="Alt 加方向键调整槽位顺序"/><ComboBox SelectionChanged="OnQuickActionChanged" SelectedValue="{Binding QuickAccessAction1}" SelectedValuePath="Tag"><ComboBoxItem Content="复制" Tag="Copy"/><ComboBoxItem Content="保存 / 打开" Tag="SaveOrOpen"/><ComboBoxItem Content="拖出" Tag="Drag"/><ComboBoxItem Content="关闭" Tag="Close"/><ComboBoxItem Content="删除" Tag="Delete"/><ComboBoxItem Content="贴图" Tag="Pin"/><ComboBoxItem Content="停用" Tag="None"/></ComboBox></DockPanel></Border>
+                      <Border Tag="1" AllowDrop="True" Drop="OnQuickActionDrop" Margin="0,0,6,6" Padding="4" CornerRadius="{DynamicResource Radius.Sm}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"><DockPanel><TextBlock Tag="1" Text="⋮⋮ 2" Cursor="SizeAll" Focusable="True" Margin="2,0,5,0" VerticalAlignment="Center" PreviewMouseLeftButtonDown="OnQuickActionDragStart" PreviewMouseMove="OnQuickActionDragMove" PreviewKeyDown="OnQuickActionHandleKeyDown" AutomationProperties.HelpText="Alt 加方向键调整槽位顺序"/><ComboBox SelectionChanged="OnQuickActionChanged" SelectedValue="{Binding QuickAccessAction2}" SelectedValuePath="Tag"><ComboBoxItem Content="复制" Tag="Copy"/><ComboBoxItem Content="保存 / 打开" Tag="SaveOrOpen"/><ComboBoxItem Content="拖出" Tag="Drag"/><ComboBoxItem Content="关闭" Tag="Close"/><ComboBoxItem Content="删除" Tag="Delete"/><ComboBoxItem Content="贴图" Tag="Pin"/><ComboBoxItem Content="停用" Tag="None"/></ComboBox></DockPanel></Border>
+                      <Border Tag="2" AllowDrop="True" Drop="OnQuickActionDrop" Margin="0,0,6,6" Padding="4" CornerRadius="{DynamicResource Radius.Sm}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"><DockPanel><TextBlock Tag="2" Text="⋮⋮ 3" Cursor="SizeAll" Focusable="True" Margin="2,0,5,0" VerticalAlignment="Center" PreviewMouseLeftButtonDown="OnQuickActionDragStart" PreviewMouseMove="OnQuickActionDragMove" PreviewKeyDown="OnQuickActionHandleKeyDown" AutomationProperties.HelpText="Alt 加方向键调整槽位顺序"/><ComboBox SelectionChanged="OnQuickActionChanged" SelectedValue="{Binding QuickAccessAction3}" SelectedValuePath="Tag"><ComboBoxItem Content="复制" Tag="Copy"/><ComboBoxItem Content="保存 / 打开" Tag="SaveOrOpen"/><ComboBoxItem Content="拖出" Tag="Drag"/><ComboBoxItem Content="关闭" Tag="Close"/><ComboBoxItem Content="删除" Tag="Delete"/><ComboBoxItem Content="贴图" Tag="Pin"/><ComboBoxItem Content="停用" Tag="None"/></ComboBox></DockPanel></Border>
+                      <Border Tag="3" AllowDrop="True" Drop="OnQuickActionDrop" Margin="0,0,6,6" Padding="4" CornerRadius="{DynamicResource Radius.Sm}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"><DockPanel><TextBlock Tag="3" Text="⋮⋮ 4" Cursor="SizeAll" Focusable="True" Margin="2,0,5,0" VerticalAlignment="Center" PreviewMouseLeftButtonDown="OnQuickActionDragStart" PreviewMouseMove="OnQuickActionDragMove" PreviewKeyDown="OnQuickActionHandleKeyDown" AutomationProperties.HelpText="Alt 加方向键调整槽位顺序"/><ComboBox SelectionChanged="OnQuickActionChanged" SelectedValue="{Binding QuickAccessAction4}" SelectedValuePath="Tag"><ComboBoxItem Content="复制" Tag="Copy"/><ComboBoxItem Content="保存 / 打开" Tag="SaveOrOpen"/><ComboBoxItem Content="拖出" Tag="Drag"/><ComboBoxItem Content="关闭" Tag="Close"/><ComboBoxItem Content="删除" Tag="Delete"/><ComboBoxItem Content="贴图" Tag="Pin"/><ComboBoxItem Content="停用" Tag="None"/></ComboBox></DockPanel></Border>
+                      <Border Tag="4" AllowDrop="True" Drop="OnQuickActionDrop" Margin="0,0,6,6" Padding="4" CornerRadius="{DynamicResource Radius.Sm}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"><DockPanel><TextBlock Tag="4" Text="⋮⋮ 5" Cursor="SizeAll" Focusable="True" Margin="2,0,5,0" VerticalAlignment="Center" PreviewMouseLeftButtonDown="OnQuickActionDragStart" PreviewMouseMove="OnQuickActionDragMove" PreviewKeyDown="OnQuickActionHandleKeyDown" AutomationProperties.HelpText="Alt 加方向键调整槽位顺序"/><ComboBox SelectionChanged="OnQuickActionChanged" SelectedValue="{Binding QuickAccessAction5}" SelectedValuePath="Tag"><ComboBoxItem Content="复制" Tag="Copy"/><ComboBoxItem Content="保存 / 打开" Tag="SaveOrOpen"/><ComboBoxItem Content="拖出" Tag="Drag"/><ComboBoxItem Content="关闭" Tag="Close"/><ComboBoxItem Content="删除" Tag="Delete"/><ComboBoxItem Content="贴图" Tag="Pin"/><ComboBoxItem Content="停用" Tag="None"/></ComboBox></DockPanel></Border>
+                      <Border Tag="5" AllowDrop="True" Drop="OnQuickActionDrop" Margin="0,0,6,6" Padding="4" CornerRadius="{DynamicResource Radius.Sm}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"><DockPanel><TextBlock Tag="5" Text="⋮⋮ 6" Cursor="SizeAll" Focusable="True" Margin="2,0,5,0" VerticalAlignment="Center" PreviewMouseLeftButtonDown="OnQuickActionDragStart" PreviewMouseMove="OnQuickActionDragMove" PreviewKeyDown="OnQuickActionHandleKeyDown" AutomationProperties.HelpText="Alt 加方向键调整槽位顺序"/><ComboBox SelectionChanged="OnQuickActionChanged" SelectedValue="{Binding QuickAccessAction6}" SelectedValuePath="Tag"><ComboBoxItem Content="复制" Tag="Copy"/><ComboBoxItem Content="保存 / 打开" Tag="SaveOrOpen"/><ComboBoxItem Content="拖出" Tag="Drag"/><ComboBoxItem Content="关闭" Tag="Close"/><ComboBoxItem Content="删除" Tag="Delete"/><ComboBoxItem Content="贴图" Tag="Pin"/><ComboBoxItem Content="停用" Tag="None"/></ComboBox></DockPanel></Border>
                     </UniformGrid>
                     <DockPanel>
                       <Button DockPanel.Dock="Right" Content="重置槽位" Click="OnResetQuickActions" Padding="9,4"/>
@@ -407,7 +421,7 @@
                   </StackPanel>
                   <TextBlock Grid.Row="4" Text="卡片缩放" VerticalAlignment="Center" Margin="0,12,0,0"/>
                   <Slider Grid.Row="4" Grid.Column="1" Minimum="0.75" Maximum="1.5" TickFrequency="0.25" IsSnapToTickEnabled="True" Value="{Binding QuickAccessScale}" Width="150" HorizontalAlignment="Left" Margin="0,12,0,0"/>
-                  <CheckBox Grid.Row="5" Grid.Column="1" Content="允许拖动卡片" IsChecked="{Binding QuickAccessEnableDrag}" Margin="0,12,0,0"/>
+                  <CheckBox Grid.Row="5" Grid.Column="1" Content="允许从卡片拖出文件" IsChecked="{Binding QuickAccessEnableDrag}" Margin="0,12,0,0"/>
                   <TextBlock Grid.Row="6" Text="动画样式" VerticalAlignment="Center" Margin="0,12,0,0"/>
                   <ComboBox Grid.Row="6" Grid.Column="1" SelectedValue="{Binding QuickAccessAnimationStyle}" SelectedValuePath="Tag" Width="130" HorizontalAlignment="Left" Margin="0,12,0,0">
                     <ComboBoxItem Content="滑入" Tag="Slide"/><ComboBoxItem Content="缩放" Tag="Scale"/>
@@ -455,22 +469,20 @@
                 <TextBlock Text="面板行为" Style="{StaticResource SectionTitle}"/>
                 <Grid>
                   <Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition Width="180"/><ColumnDefinition Width="140"/><ColumnDefinition Width="160"/></Grid.ColumnDefinitions>
-                  <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                  <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
                   <TextBlock Text="默认筛选" VerticalAlignment="Center"/>
                   <ComboBox Grid.Column="1" SelectedValue="{Binding HistoryDefaultFilter}" SelectedValuePath="Tag">
                     <ComboBoxItem Content="全部" Tag="All"/><ComboBoxItem Content="截图" Tag="Screenshot"/><ComboBoxItem Content="滚动截屏" Tag="Scrolling"/><ComboBoxItem Content="录屏" Tag="Recording"/><ComboBoxItem Content="剪贴板" Tag="Clipboard"/>
                   </ComboBox>
                   <TextBlock Grid.Column="2" Text="打开位置" Margin="14,0,0,0" VerticalAlignment="Center"/>
                   <ComboBox Grid.Column="3" SelectedValue="{Binding HistoryPosition}" SelectedValuePath="Tag">
-                    <ComboBoxItem Content="记住上次位置" Tag="Remember"/><ComboBoxItem Content="屏幕中央" Tag="Center"/>
-                    <ComboBoxItem Content="左上" Tag="TopLeft"/><ComboBoxItem Content="右上" Tag="TopRight"/>
-                    <ComboBoxItem Content="左下" Tag="BottomLeft"/><ComboBoxItem Content="右下" Tag="BottomRight"/>
+                    <ComboBoxItem Content="顶部居中" Tag="TopCenter"/><ComboBoxItem Content="底部居中" Tag="BottomCenter"/>
                   </ComboBox>
                   <TextBlock Grid.Row="1" Text="界面缩放" Margin="0,12,0,0" VerticalAlignment="Center"/>
                   <Slider Grid.Row="1" Grid.Column="1" Minimum="0.75" Maximum="1.5" TickFrequency="0.25" IsSnapToTickEnabled="True"
                           Value="{Binding HistoryScale}" Margin="0,12,0,0" AutomationProperties.Name="历史面板界面缩放"/>
-                  <CheckBox Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Content="保持打开（失焦时不自动隐藏）"
-                            IsChecked="{Binding HistoryKeepOpen}" Margin="14,12,0,0"/>
+                  <CheckBox Grid.Row="2" Grid.ColumnSpan="4" Content="保持打开（失焦时不自动隐藏）"
+                            IsChecked="{Binding HistoryKeepOpen}" Margin="0,12,0,0"/>
                 </Grid>
               </StackPanel>
             </Border>
@@ -485,13 +497,17 @@
                   <TextBlock Grid.Row="1" Text="最大记录数（0 为无限）" VerticalAlignment="Center" Margin="0,12,0,0"/>
                   <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding HistoryMaxCount}" Width="80" HorizontalAlignment="Left" Margin="0,12,0,0"/>
                 </Grid>
-                <DockPanel Margin="0,12,0,0">
-                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Grid Margin="0,12,0,0">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                  <TextBlock x:Name="CaptureStorageUsageText" Text="正在计算截图与录屏目录占用…" Style="{StaticResource SettingHint}" VerticalAlignment="Center"/>
+                  <Button Grid.Column="1" Content="打开截图与录屏目录" Click="OnOpenCaptureDirectory" Margin="8,0,0,0"/>
+                  <TextBlock x:Name="ClipboardStorageUsageText" Grid.Row="1" Text="正在计算媒体剪贴板目录占用…" Style="{StaticResource SettingHint}" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                  <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="8,8,0,0">
                     <Button Content="刷新占用" Click="OnRefreshHistoryStorage" Margin="0,0,8,0"/>
-                    <Button Content="打开目录" Click="OnOpenHistoryDirectory"/>
+                    <Button Content="打开媒体剪贴板目录" Click="OnOpenClipboardDirectory"/>
                   </StackPanel>
-                  <TextBlock x:Name="HistoryStorageUsageText" Text="正在计算存储占用…" Style="{StaticResource SettingHint}" VerticalAlignment="Center"/>
-                </DockPanel>
+                </Grid>
                 <TextBlock Text="剪贴板历史窗口支持搜索、类型 / 时间筛选、多选以及 Ctrl+A、Ctrl+C、Delete 和 Enter。" Style="{StaticResource SettingHint}" Margin="0,14,0,0"/>
                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                   <TextBlock Text="剪贴板历史背景样式" Width="180" VerticalAlignment="Center"/>
@@ -516,19 +532,22 @@
                 <CheckBox Content="启用全局快捷键" IsChecked="{Binding ShortcutsEnabled}"/>
                 <TextBlock Text="单击快捷键框后，直接按下 Ctrl、Alt、Shift、Win 与一个普通按键的组合。One Shot 是唯一的闲置捕获入口。" Style="{StaticResource SettingHint}" Margin="0,3,0,12"/>
                 <Grid>
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="155"/><ColumnDefinition Width="220"/></Grid.ColumnDefinitions>
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="155"/><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                   <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                  <TextBlock Text="One Shot" VerticalAlignment="Center"/><TextBox Grid.Column="1" Text="{Binding OneShotHotkey}" Tag="OneShotHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3" AutomationProperties.AutomationId="SettingsOneShotHotkey"/>
-                  <TextBlock Grid.Row="1" Text="剪贴板历史" VerticalAlignment="Center"/><TextBox Grid.Row="1" Grid.Column="1" Text="{Binding HistoryHotkey}" Tag="HistoryHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3"/>
-                  <TextBlock Grid.Row="2" Text="录屏暂停/继续" VerticalAlignment="Center"/><TextBox Grid.Row="2" Grid.Column="1" Text="{Binding RecordingPauseHotkey}" Tag="RecordingPauseHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3"/>
-                  <TextBlock Grid.Row="3" Text="录屏标注开关" VerticalAlignment="Center"/><TextBox Grid.Row="3" Grid.Column="1" Text="{Binding RecordingAnnotationHotkey}" Tag="RecordingAnnotationHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3"/>
-                  <TextBlock Grid.Row="4" Text="重新录制" VerticalAlignment="Center"/><TextBox Grid.Row="4" Grid.Column="1" Text="{Binding RecordingRestartHotkey}" Tag="RecordingRestartHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3"/>
-                  <TextBlock Grid.Row="5" Text="删除当前录屏" VerticalAlignment="Center"/><TextBox Grid.Row="5" Grid.Column="1" Text="{Binding RecordingDeleteHotkey}" Tag="RecordingDeleteHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3"/>
+                  <TextBlock Text="One Shot" VerticalAlignment="Center"/><TextBox Grid.Column="1" Text="{Binding OneShotHotkey}" Tag="OneShotHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3" AutomationProperties.AutomationId="SettingsOneShotHotkey"/><TextBlock x:Name="OneShotHotkeyStatus" Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Row="1" Text="剪贴板历史" VerticalAlignment="Center"/><TextBox Grid.Row="1" Grid.Column="1" Text="{Binding HistoryHotkey}" Tag="HistoryHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3"/><TextBlock x:Name="HistoryHotkeyStatus" Grid.Row="1" Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Row="2" Text="录屏暂停/继续" VerticalAlignment="Center"/><TextBox Grid.Row="2" Grid.Column="1" Text="{Binding RecordingPauseHotkey}" Tag="RecordingPauseHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3"/><TextBlock x:Name="RecordingPauseHotkeyStatus" Grid.Row="2" Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Row="3" Text="录屏标注开关" VerticalAlignment="Center"/><TextBox Grid.Row="3" Grid.Column="1" Text="{Binding RecordingAnnotationHotkey}" Tag="RecordingAnnotationHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3"/><TextBlock x:Name="RecordingAnnotationHotkeyStatus" Grid.Row="3" Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Row="4" Text="重新录制" VerticalAlignment="Center"/><TextBox Grid.Row="4" Grid.Column="1" Text="{Binding RecordingRestartHotkey}" Tag="RecordingRestartHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3"/><TextBlock x:Name="RecordingRestartHotkeyStatus" Grid.Row="4" Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Row="5" Text="删除当前录屏" VerticalAlignment="Center"/><TextBox Grid.Row="5" Grid.Column="1" Text="{Binding RecordingDeleteHotkey}" Tag="RecordingDeleteHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3"/><TextBlock x:Name="RecordingDeleteHotkeyStatus" Grid.Row="5" Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center"/>
                 </Grid>
-                <StackPanel Orientation="Horizontal" Margin="155,10,0,0">
-                  <Button Content="恢复默认" Click="OnResetHotkeys" Margin="0,0,8,0"/>
-                  <Button Content="清除全部" Click="OnClearHotkeys"/>
-                </StackPanel>
+                <TextBlock x:Name="HotkeySummaryText" Text="正在检查快捷键注册状态…" Style="{StaticResource SettingHint}" Margin="155,8,0,0" TextWrapping="Wrap"/>
+                <WrapPanel Margin="155,10,0,0" HorizontalAlignment="Left">
+                  <Button Content="恢复默认" Click="OnResetHotkeys" Margin="0,0,8,8"/>
+                  <Button Content="清除全部" Click="OnClearHotkeys" Margin="0,0,8,8"/>
+                  <Button Content="刷新状态" Click="OnRefreshHotkeyStatus" Margin="0,0,8,8"/>
+                  <Button Content="打开 Windows 键盘设置" Click="OnOpenKeyboardSettings" Margin="0,0,0,8"/>
+                </WrapPanel>
               </StackPanel>
             </Border>
           </StackPanel>

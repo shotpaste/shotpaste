@@ -155,6 +155,7 @@ public partial class InlineAnnotateWindow : Window
     private double? _oneShotToolbarLeft;
     private double? _oneShotToolbarTop;
     private bool _selectingOneShotOcr;
+    private readonly bool _startWithOcr;
     private WpfPoint _oneShotOcrStart;
     private Rect _oneShotOcrRect;
     private readonly System.Windows.Threading.DispatcherTimer _statusTimer = new()
@@ -165,6 +166,7 @@ public partial class InlineAnnotateWindow : Window
     public Drawing.Bitmap? ResultImage { get; private set; }
     public bool PinRequested { get; private set; }
     public OneShotMode? OneShotAction { get; private set; }
+    internal OneShotMode CurrentOneShotMode => _startWithOcr ? OneShotMode.Ocr : _oneShotMode;
     public Drawing.Rectangle OneShotRectangle { get; private set; }
     public OneShotRecordingOptions? OneShotOptions { get; private set; }
     public bool ScreenshotCommitted { get; private set; }
@@ -187,6 +189,7 @@ public partial class InlineAnnotateWindow : Window
         _screenshotCommit = screenshotCommit;
         _settings = settings;
         _saveSettings = saveSettings;
+        _startWithOcr = initialMode == OneShotMode.Ocr;
         _oneShotMode = initialMode is OneShotMode.Screenshot or OneShotMode.Scrolling or OneShotMode.Recording
             ? initialMode
             : OneShotMode.Screenshot;
@@ -318,7 +321,9 @@ public partial class InlineAnnotateWindow : Window
     private void OnWindowMouseDown(object sender, MouseButtonEventArgs e)
     {
         UpdateMagnifier(e.GetPosition(Root));
-        if (_annotating && (_panToolActive || _spacePanActive) && e.ChangedButton == MouseButton.Left)
+        if (_annotating && (_panToolActive || _spacePanActive) && e.ChangedButton == MouseButton.Left &&
+            !IsWithin(Toolbar, e.OriginalSource) && !IsWithin(PropertiesBar, e.OriginalSource) &&
+            !IsWithin(OneShotModePanel, e.OriginalSource))
         {
             BeginCanvasPan(e.GetPosition(SelectionHost));
             e.Handled = true;
@@ -421,7 +426,10 @@ public partial class InlineAnnotateWindow : Window
                 UpdateDimLayer(null);
                 return;
             }
-            BeginAnnotating();
+            if (_startWithOcr)
+                CompleteDirectOcrSelection();
+            else
+                BeginAnnotating();
         }
         else
         {
@@ -454,6 +462,20 @@ public partial class InlineAnnotateWindow : Window
         UpdatePropertiesBar();
         UpdateOverlayLayout();
         Magnifier.Visibility = Visibility.Collapsed;
+    }
+
+    private void CompleteDirectOcrSelection()
+    {
+        var crop = SelectionPixelRect();
+        if (crop.Width <= 0 || crop.Height <= 0) return;
+        var source = new CroppedBitmap(_backdropSource,
+            new Int32Rect(crop.X, crop.Y, crop.Width, crop.Height));
+        source.Freeze();
+        ResultImage = BitmapSourceFactory.ToBitmap(source);
+        OneShotAction = OneShotMode.Ocr;
+        OneShotRectangle = OneShotPhysicalRectangle();
+        _allowClose = true;
+        DialogResult = true;
     }
 
     private void RefreshSelectionImage()
@@ -1153,6 +1175,13 @@ public partial class InlineAnnotateWindow : Window
 
     private void OnZoomFit(object sender, RoutedEventArgs e) =>
         SetCanvasZoom(1d, new WpfPoint(SelectionHost.ActualWidth / 2, SelectionHost.ActualHeight / 2), resetPan: true);
+
+    private void OnZoomOut(object sender, RoutedEventArgs e) => ZoomBy(1d / 1.25d);
+    private void OnZoomIn(object sender, RoutedEventArgs e) => ZoomBy(1.25d);
+
+    private void ZoomBy(double factor) => SetCanvasZoom(
+        _canvasZoom * factor,
+        new WpfPoint(SelectionHost.ActualWidth / 2, SelectionHost.ActualHeight / 2));
 
     private void OnEditorMouseWheel(object sender, MouseWheelEventArgs e)
     {
@@ -2838,7 +2867,22 @@ public partial class InlineAnnotateWindow : Window
         var modifiers = System.Windows.Input.Keyboard.Modifiers;
         if ((modifiers & ModifierKeys.Control) != 0)
         {
-            if (e.Key == Key.C && !_annotating && Magnifier.Visibility == Visibility.Visible &&
+            if (e.Key is Key.OemMinus or Key.Subtract)
+            {
+                ZoomBy(1d / 1.25d);
+                e.Handled = true;
+            }
+            else if (e.Key is Key.OemPlus or Key.Add)
+            {
+                ZoomBy(1.25d);
+                e.Handled = true;
+            }
+            else if (e.Key is Key.D0 or Key.NumPad0)
+            {
+                OnZoomFit(this, new RoutedEventArgs());
+                e.Handled = true;
+            }
+            else if (e.Key == Key.C && !_annotating && Magnifier.Visibility == Visibility.Visible &&
                 (_hexMagnifier ? _magnifierHex : _magnifierRgb) is { } colorValue)
             {
                 try

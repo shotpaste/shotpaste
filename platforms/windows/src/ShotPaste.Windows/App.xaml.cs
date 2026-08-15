@@ -11,6 +11,7 @@ namespace ShotPaste.Windows;
 public partial class App : System.Windows.Application
 {
     internal static bool UiTestMode { get; private set; }
+    internal static bool UiTestClipboardMonitorEnabled { get; private set; }
     internal static bool DiagnosticsLoggingEnabled { get; private set; } = true;
     private Mutex? _singleInstance;
     private AppController? _controller;
@@ -29,6 +30,8 @@ public partial class App : System.Windows.Application
         }
 
         UiTestMode = e.Args.Any(argument => argument.Equals("--ui-test", StringComparison.OrdinalIgnoreCase));
+        UiTestClipboardMonitorEnabled = UiTestMode && e.Args.Any(argument =>
+            argument.Equals("--ui-test-clipboard", StringComparison.OrdinalIgnoreCase));
         if (UiTestMode)
         {
             try

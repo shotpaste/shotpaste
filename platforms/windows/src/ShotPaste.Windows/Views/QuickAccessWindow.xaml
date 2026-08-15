@@ -10,17 +10,6 @@
   <Border x:Name="Card" CornerRadius="{DynamicResource Radius.Card}" Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" ClipToBounds="True"
           ToolTip="{Binding FilePath}" ToolTipService.InitialShowDelay="10000">
     <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="18" ShadowDepth="7" Opacity="0.48"/></Border.Effect>
-    <Border.ContextMenu>
-      <ContextMenu>
-        <MenuItem Header="复制" Click="OnCopy"><MenuItem.Icon><ContentControl Content="{StaticResource Icon.Copy}" ContentTemplate="{StaticResource Icon.Template}" Foreground="{DynamicResource TextBrush}"/></MenuItem.Icon></MenuItem>
-        <MenuItem Header="另存为" Click="OnSave"><MenuItem.Icon><ContentControl Content="{StaticResource Icon.Save}" ContentTemplate="{StaticResource Icon.Template}" Foreground="{DynamicResource TextBrush}"/></MenuItem.Icon></MenuItem>
-        <MenuItem Header="打开" Click="OnOpen"><MenuItem.Icon><ContentControl Content="{StaticResource Icon.Open}" ContentTemplate="{StaticResource Icon.Template}" Foreground="{DynamicResource TextBrush}"/></MenuItem.Icon></MenuItem>
-        <MenuItem Header="贴到屏幕" Click="OnPin"><MenuItem.Icon><ContentControl Content="{StaticResource Icon.Pin}" ContentTemplate="{StaticResource Icon.Template}" Foreground="{DynamicResource TextBrush}"/></MenuItem.Icon></MenuItem>
-        <Separator Style="{StaticResource MenuSeparator}"/>
-        <MenuItem Header="删除" Foreground="{DynamicResource DangerBrush}" Click="OnDelete"><MenuItem.Icon><ContentControl Content="{StaticResource Icon.Delete}" ContentTemplate="{StaticResource Icon.Template}" Foreground="{DynamicResource DangerBrush}"/></MenuItem.Icon></MenuItem>
-        <MenuItem Header="关闭卡片" Click="OnClose"><MenuItem.Icon><ContentControl Content="{StaticResource Icon.Close}" ContentTemplate="{StaticResource Icon.Template}" Foreground="{DynamicResource TextBrush}"/></MenuItem.Icon></MenuItem>
-      </ContextMenu>
-    </Border.ContextMenu>
     <Grid>
       <Image x:Name="Preview" Stretch="UniformToFill"/>
       <Grid x:Name="TextPreview" Background="{DynamicResource HudBrush}" Visibility="Collapsed">

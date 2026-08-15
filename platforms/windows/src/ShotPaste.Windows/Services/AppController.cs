@@ -23,6 +23,7 @@ public sealed class AppController : IDisposable
     private readonly ImageFileService _images;
     private readonly OcrService _ocr;
     private readonly IRecoverableFileOperations _recoverableFiles = new ShellRecoverableFileOperations();
+    private readonly WindowCaptureExclusionService _recordingCaptureExclusion = new();
     private RegionSelectionService? _selection;
     private ScrollingCaptureService? _scrolling;
     private GlobalHotkeyService? _hotkeys;
@@ -50,13 +51,16 @@ public sealed class AppController : IDisposable
     private bool _exitInProgress;
     private readonly Queue<IReadOnlyList<string>> _pendingCommands = new();
     private bool _ready;
+    private bool _settingsWindowOpen;
+    private string? _databaseRecoveryArchivePath;
 
     public AppController()
     {
         _images = new ImageFileService(_settings);
         _ocr = new OcrService(() => _settings.Current.OcrRecognitionLanguage.Equals("Auto", StringComparison.OrdinalIgnoreCase)
             ? _settings.Current.Language
-            : _settings.Current.OcrRecognitionLanguage);
+            : _settings.Current.OcrRecognitionLanguage,
+            () => _settings.Current.ShowOcrLinkNotifications);
     }
 
     public async void Start()
@@ -88,7 +92,7 @@ public sealed class AppController : IDisposable
         LocalizationService.EnableAutomaticWpfLocalization();
         ThemeService.Apply(_settings.Current.Theme);
         ApplyOperatingSystemIntegrations();
-        await _history.LoadAsync();
+        if (!await EnsureHistoryDatabaseReadyForLaunchAsync()) return;
         var recoveryScan = await RecordingRecoveryService.ScanAsync();
         if (recoveryScan.Recording is { } recovered &&
             !_history.Items.Any(item => string.Equals(item.FilePath, recovered.Path, StringComparison.OrdinalIgnoreCase)))
@@ -104,9 +108,10 @@ public sealed class AppController : IDisposable
         if (!App.UiTestMode)
         {
             _hotkeys = new GlobalHotkeyService();
-            _clipboard = new ClipboardMonitorService(_history, _settings);
             _tray = new TrayIconService(_settings.Current, () => _recording.Elapsed);
         }
+        if (!App.UiTestMode || App.UiTestClipboardMonitorEnabled)
+            _clipboard = new ClipboardMonitorService(_history, _settings);
         _quickAccess = new QuickAccessService(this, _settings);
         WireEvents();
         if (!string.IsNullOrWhiteSpace(_settings.LastConfigurationWarning))
@@ -122,6 +127,11 @@ public sealed class AppController : IDisposable
             GetMcpStatus,
             typeof(AppController).Assembly.GetName().Version?.ToString() ?? "1.0.0"));
         ApplyMcpSettings();
+        if (!string.IsNullOrWhiteSpace(_databaseRecoveryArchivePath))
+            _tray?.ShowMessage(
+                LocalizationService.TranslatePhrase("数据库已重置"),
+                LocalizationService.TranslatePhrase("旧数据库已保存在：") + _databaseRecoveryArchivePath,
+                Forms.ToolTipIcon.Warning);
         if (App.UiTestMode)
         {
             _mainWindow.Show();
@@ -136,6 +146,81 @@ public sealed class AppController : IDisposable
         while (_pendingCommands.Count > 0) HandleExternalCommand(_pendingCommands.Dequeue());
         if (!App.UiTestMode && AppBuildIdentity.Current.PerformsAutomaticUpdateChecks)
             _ = CheckForUpdatesAutomaticallyAsync();
+    }
+
+    private async Task<bool> EnsureHistoryDatabaseReadyForLaunchAsync()
+    {
+        Exception? currentError = null;
+        string? note = null;
+        while (true)
+        {
+            try
+            {
+                await _history.LoadAsync();
+                return true;
+            }
+            catch (Exception exception) when (DatabaseRecoveryService.IsRecoverableLaunchFailure(exception))
+            {
+                currentError = exception;
+            }
+
+            var details = $"{LocalizationService.TranslatePhrase("ShotPaste 需要历史数据库才能运行。")}\n\n" +
+                          $"{LocalizationService.TranslatePhrase("数据库：")}\n{_history.DatabasePath}\n\n" +
+                          $"{LocalizationService.TranslatePhrase("错误：")}\n{currentError.Message}";
+            if (!string.IsNullOrWhiteSpace(note)) details += $"\n\n{LocalizationService.TranslatePhrase(note)}";
+            details += "\n\n" + LocalizationService.TranslatePhrase(
+                "请先尝试修复。重置会把现有数据库移到恢复文件夹，再创建空数据库；磁盘上的截图、录屏和剪贴板文件不会被删除。");
+            var action = LocalizedDialogService.ShowCustom(
+                null,
+                details,
+                "ShotPaste 无法打开数据库",
+                "尝试修复",
+                "重置数据库…",
+                "退出 ShotPaste",
+                MessageBoxImage.Error);
+
+            if (action == MessageBoxResult.Yes)
+            {
+                note = "修复未成功。你可以在备份现有数据库后重置，或退出 ShotPaste。";
+                continue;
+            }
+
+            if (action == MessageBoxResult.No)
+            {
+                var confirm = LocalizedDialogService.ShowCustom(
+                    null,
+                    $"{LocalizationService.TranslatePhrase("ShotPaste 会把当前数据库文件移到恢复文件夹，然后创建新的空数据库。")}\n\n" +
+                    $"{LocalizationService.TranslatePhrase("这会清空 ShotPaste 内的历史记录，但不会删除磁盘上的截图、录屏或剪贴板文件。")}\n\n" +
+                    $"{LocalizationService.TranslatePhrase("数据库：")}\n{_history.DatabasePath}\n\n" +
+                    $"{LocalizationService.TranslatePhrase("当前错误：")}\n{currentError.Message}",
+                    "重置 ShotPaste 数据库？",
+                    "重置数据库",
+                    "取消",
+                    MessageBoxImage.Warning);
+                if (confirm != MessageBoxResult.Yes)
+                {
+                    note = null;
+                    continue;
+                }
+
+                try
+                {
+                    var archive = DatabaseRecoveryService.ArchiveDatabaseFiles(_history.DatabasePath);
+                    _databaseRecoveryArchivePath = archive.ArchiveDirectory;
+                    note = "旧数据库已移到恢复文件夹，但 ShotPaste 仍无法创建新数据库。";
+                    continue;
+                }
+                catch (Exception resetException) when (DatabaseRecoveryService.IsRecoverableLaunchFailure(resetException))
+                {
+                    currentError = resetException;
+                    note = "重置在创建新数据库前失败。";
+                    continue;
+                }
+            }
+
+            System.Windows.Application.Current.Shutdown(1);
+            return false;
+        }
     }
 
     private async Task CheckForUpdatesAutomaticallyAsync()
@@ -235,10 +320,43 @@ public sealed class AppController : IDisposable
                     LocalizationService.TranslatePhrase(command.Error ?? "ShotPaste 链接格式无效"),
                     Forms.ToolTipIcon.Warning);
                 break;
-            case AppCommand.OneShot: StartOneShot(); break;
-            case AppCommand.History: ShowHistory(); break;
+            case AppCommand.OneShot:
+                StartOneShot(command.CaptureMode switch
+                {
+                    "scrolling" => OneShotMode.Scrolling,
+                    "recording" => OneShotMode.Recording,
+                    "ocr" => OneShotMode.Ocr,
+                    _ => OneShotMode.Screenshot
+                });
+                break;
+            case AppCommand.CancelCapture:
+            {
+                var overlay = System.Windows.Application.Current.Windows.OfType<InlineAnnotateWindow>()
+                    .FirstOrDefault(window => window.IsVisible);
+                if (overlay is null)
+                    _tray?.ShowMessage("无法取消捕获", "当前没有正在进行的 One Shot。", Forms.ToolTipIcon.Warning);
+                else
+                    overlay.RequestExternalCancel();
+                break;
+            }
+            case AppCommand.History: ShowHistory(command.HistoryFilter); break;
             case AppCommand.Settings: ShowSettings(command.SettingsTab); break;
+            case AppCommand.ControlRecording: ExecuteExternalRecordingAction(command.RecordingAction); break;
         }
+    }
+
+    private void ExecuteExternalRecordingAction(string? action)
+    {
+        if (!_recording.IsRecording)
+        {
+            _tray?.ShowMessage("无法控制录屏", "当前没有正在进行的录屏。", Forms.ToolTipIcon.Warning);
+            return;
+        }
+        if (action == "pause" && !_recording.IsPaused) _recording.TogglePause();
+        else if (action == "resume" && _recording.IsPaused) _recording.TogglePause();
+        else if (action == "stop") _recording.Stop();
+        else
+            _tray?.ShowMessage("无法控制录屏", action == "pause" ? "录屏已经暂停。" : "录屏当前并未暂停。", Forms.ToolTipIcon.Warning);
     }
 
     private void WireEvents()
@@ -711,6 +829,7 @@ public sealed class AppController : IDisposable
         _recordingRegionOverlay ??= new RecordingRegionOverlayWindow(rectangle, _capture.VirtualBounds);
         if (!_recordingRegionOverlay.IsVisible) _recordingRegionOverlay.Show();
         _recordingRegionOverlay.SetRecordingAppearance(request.DimNonSelectedArea);
+        _recordingCaptureExclusion.SetEnabled(!request.IncludeShotPaste);
         HideApplicationWindows(forRecording: true);
         try
         {
@@ -742,12 +861,7 @@ public sealed class AppController : IDisposable
                 }
                 if (_settings.Current.ShowRecordingToolbar)
                 {
-                    _recordingToolbar = new RecordingToolbarWindow(_recording, _settings.Current);
-                    _recordingToolbar.StopRequested += (_, _) => _recording.Stop();
-                    _recordingToolbar.DeleteRequested += (_, _) => RequestRecordingDiscard();
-                    _recordingToolbar.RestartRequested += (_, _) => RequestRecordingRestart();
-                    _recordingToolbar.PenRequested += (_, _) => ToggleRecordingInk(rectangle);
-                    _recordingToolbar.Show();
+                    ShowRecordingToolbar(rectangle);
                 }
                 var path = await completion;
                 var duration = _recording.Elapsed;
@@ -793,9 +907,26 @@ public sealed class AppController : IDisposable
         }
         finally
         {
+            _recordingCaptureExclusion.SetEnabled(false);
             workflow.TrySetResult(completedSafely);
             if (ReferenceEquals(_activeRecordingWorkflow, workflow)) _activeRecordingWorkflow = null;
         }
+    }
+
+    private void ShowRecordingToolbar(Rectangle rectangle)
+    {
+        if (_recordingToolbar is { IsVisible: true }) return;
+        var toolbar = new RecordingToolbarWindow(_recording, () => _settings.Current, _settings.Save);
+        _recordingToolbar = toolbar;
+        toolbar.StopRequested += (_, _) => _recording.Stop();
+        toolbar.DeleteRequested += (_, _) => RequestRecordingDiscard();
+        toolbar.RestartRequested += (_, _) => RequestRecordingRestart();
+        toolbar.PenRequested += (_, _) => ToggleRecordingInk(rectangle);
+        toolbar.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_recordingToolbar, toolbar)) _recordingToolbar = null;
+        };
+        toolbar.Show();
     }
 
     private void RequestRecordingRestart()
@@ -990,7 +1121,8 @@ public sealed class AppController : IDisposable
     private void ShowHistory(string? filter)
     {
         if (_mainWindow is null) return;
-        _mainWindow.ShowHistoryFilter(filter);
+        if (string.IsNullOrWhiteSpace(filter)) _mainWindow.ShowDefaultHistory();
+        else _mainWindow.ShowHistoryFilter(filter);
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
@@ -1000,6 +1132,7 @@ public sealed class AppController : IDisposable
     {
         var window = new SettingsWindow(_settings, tab, ApplyLiveSettings) { Owner = _mainWindow?.IsVisible == true ? _mainWindow : null };
         _hotkeys?.Suspend();
+        _settingsWindowOpen = true;
         var saved = false;
         try
         {
@@ -1008,6 +1141,7 @@ public sealed class AppController : IDisposable
         }
         finally
         {
+            _settingsWindowOpen = false;
             _hotkeys?.RegisterConfigured(_settings.Current);
         }
 
@@ -1026,8 +1160,19 @@ public sealed class AppController : IDisposable
         _quickAccess?.RefreshSettings();
         ApplyOperatingSystemIntegrations();
         App.ConfigureDiagnostics(_settings.Current.DiagnosticsEnabled);
-        _hotkeys?.RegisterConfigured(_settings.Current);
+        if (!_settingsWindowOpen) _hotkeys?.RegisterConfigured(_settings.Current);
         _tray?.UpdateShortcuts(_settings.Current);
+        _recordingCaptureExclusion.SetEnabled(_recording.IsRecording && !_settings.Current.IncludeShotPasteInRecording);
+        if (_recording.IsRecording && _currentRecordingRectangle is { } rectangle)
+        {
+            _recordingRegionOverlay?.SetRecordingAppearance(_settings.Current.DimNonSelectedRecordingArea);
+            if (_settings.Current.ShowRecordingToolbar) ShowRecordingToolbar(rectangle);
+            else
+            {
+                _recordingToolbar?.Close();
+                _recordingToolbar = null;
+            }
+        }
         ApplyMcpSettings();
     }
 
@@ -1101,12 +1246,13 @@ public sealed class AppController : IDisposable
             }
             case "shotpaste.control_recording":
             {
-                if (!_recording.IsRecording) return McpAutomationResult.Failure("No recording is active.", GetMcpStatus().State);
                 var action = ShotPasteMcpProtocol.ReadString(arguments, "action");
-                if (action == "pause" && !_recording.IsPaused) _recording.TogglePause();
-                else if (action == "resume" && _recording.IsPaused) _recording.TogglePause();
+                var transitionError = RecordingActionError(action, _recording.IsRecording, _recording.IsPaused);
+                if (transitionError is not null)
+                    return McpAutomationResult.Failure(transitionError, GetMcpStatus().State);
+                if (action is "pause" or "resume") _recording.TogglePause();
                 else if (action == "stop") _recording.Stop();
-                return new McpAutomationResult(true, $"Recording action {action} accepted.", GetMcpStatus().State);
+                return new McpAutomationResult(true, $"Recording {action} request accepted.", GetMcpStatus().State);
             }
             default:
                 return McpAutomationResult.Failure("Unknown MCP tool.", GetMcpStatus().State);
@@ -1117,15 +1263,48 @@ public sealed class AppController : IDisposable
     {
         var dispatcher = System.Windows.Application.Current.Dispatcher;
         if (!dispatcher.CheckAccess()) return dispatcher.Invoke(GetMcpStatus);
-        var oneShotActive = System.Windows.Application.Current.Windows.OfType<InlineAnnotateWindow>().Any(window => window.IsVisible);
-        var state = new Dictionary<string, string>
-        {
-            ["oneShot"] = oneShotActive ? "active" : "idle",
-            ["recording"] = !_recording.IsRecording ? "idle" : _recording.IsPaused ? "paused" : "recording",
-            ["history"] = _mainWindow?.IsVisible == true ? "visible" : "hidden"
-        };
+        var oneShot = System.Windows.Application.Current.Windows.OfType<InlineAnnotateWindow>()
+            .FirstOrDefault(window => window.IsVisible);
+        var state = BuildMcpStatusState(
+            oneShot?.CurrentOneShotMode,
+            _activeScrollingWorkflow is not null,
+            _recording.IsRecording,
+            _recording.IsPaused,
+            _recording.IsPostProcessing,
+            _recording.Elapsed,
+            _mainWindow?.IsVisible == true);
         return new McpAutomationResult(true, "ShotPaste status read.", state);
     }
+
+    internal static IReadOnlyDictionary<string, string> BuildMcpStatusState(
+        OneShotMode? oneShotMode,
+        bool scrollingActive,
+        bool recordingActive,
+        bool recordingPaused,
+        bool recordingPostProcessing,
+        TimeSpan recordingDuration,
+        bool historyVisible) => new Dictionary<string, string>
+        {
+            ["platform"] = "Windows",
+            ["oneShot"] = oneShotMode is null ? "idle" : "active",
+            ["oneShotMode"] = oneShotMode?.ToString().ToLowerInvariant() ?? "none",
+            ["scrollingCapture"] = scrollingActive ? "active" : "idle",
+            ["recording"] = recordingPostProcessing ? "stopping" :
+                !recordingActive ? "idle" : recordingPaused ? "paused" : "recording",
+            ["recordingDuration"] = $"{(int)recordingDuration.TotalMinutes:00}:{recordingDuration.Seconds:00}",
+            ["historyVisible"] = historyVisible ? "true" : "false"
+        };
+
+    internal static string? RecordingActionError(string? action, bool recordingActive, bool recordingPaused) => action switch
+    {
+        "pause" when recordingActive && !recordingPaused => null,
+        "pause" => "No running recording can be paused.",
+        "resume" when recordingActive && recordingPaused => null,
+        "resume" => "No paused recording can be resumed.",
+        "stop" when recordingActive => null,
+        "stop" => "No active recording can be stopped.",
+        _ => "Unknown recording action."
+    };
 
     private void ApplyOperatingSystemIntegrations()
     {
@@ -1515,6 +1694,7 @@ public sealed class AppController : IDisposable
     public void Dispose()
     {
         _historyMaintenanceTimer?.Stop();
+        _recordingCaptureExclusion.Dispose();
         _recording.Dispose();
         _keystrokeOverlay?.Dispose();
         _mouseClickOverlay?.Dispose();

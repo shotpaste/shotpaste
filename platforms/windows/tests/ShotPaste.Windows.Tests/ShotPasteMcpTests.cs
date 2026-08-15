@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json.Nodes;
+using ShotPaste.Windows.Models;
 using ShotPaste.Windows.Services;
 
 namespace ShotPaste.Windows.Tests;
@@ -65,6 +66,55 @@ public sealed class ShotPasteMcpTests
         Assert.Null(await CreateProtocol().HandleAsync(
             "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"));
     }
+
+    [Fact]
+    public void StatusState_UsesTheSameKeysAndStateSemanticsAsMacOs()
+    {
+        var state = AppController.BuildMcpStatusState(
+            OneShotMode.Recording,
+            scrollingActive: true,
+            recordingActive: true,
+            recordingPaused: true,
+            recordingPostProcessing: false,
+            recordingDuration: TimeSpan.FromSeconds(125),
+            historyVisible: true);
+
+        Assert.Equal(
+            ["platform", "oneShot", "oneShotMode", "scrollingCapture", "recording", "recordingDuration", "historyVisible"],
+            state.Keys);
+        Assert.Equal("Windows", state["platform"]);
+        Assert.Equal("active", state["oneShot"]);
+        Assert.Equal("recording", state["oneShotMode"]);
+        Assert.Equal("active", state["scrollingCapture"]);
+        Assert.Equal("paused", state["recording"]);
+        Assert.Equal("02:05", state["recordingDuration"]);
+        Assert.Equal("true", state["historyVisible"]);
+        Assert.DoesNotContain("history", state.Keys);
+    }
+
+    [Fact]
+    public void StatusState_ReportsPostProcessingAsStopping()
+    {
+        var state = AppController.BuildMcpStatusState(
+            null, false, false, false, true, TimeSpan.Zero, false);
+
+        Assert.Equal("stopping", state["recording"]);
+        Assert.Equal("none", state["oneShotMode"]);
+        Assert.Equal("false", state["historyVisible"]);
+    }
+
+    [Theory]
+    [InlineData("pause", true, false, null)]
+    [InlineData("pause", true, true, "No running recording can be paused.")]
+    [InlineData("pause", false, false, "No running recording can be paused.")]
+    [InlineData("resume", true, true, null)]
+    [InlineData("resume", true, false, "No paused recording can be resumed.")]
+    [InlineData("stop", true, false, null)]
+    [InlineData("stop", false, false, "No active recording can be stopped.")]
+    [InlineData("unknown", true, false, "Unknown recording action.")]
+    public void RecordingTransitions_ReturnErrorsInsteadOfFalseSuccess(
+        string action, bool active, bool paused, string? expectedError) =>
+        Assert.Equal(expectedError, AppController.RecordingActionError(action, active, paused));
 
     [Fact]
     public async Task LoopbackServerRequiresBearerTokenAndRejectsForeignOrigin()

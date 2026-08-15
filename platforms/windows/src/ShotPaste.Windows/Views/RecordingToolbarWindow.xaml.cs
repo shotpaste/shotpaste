@@ -17,9 +17,12 @@ public partial class RecordingToolbarWindow : Window
 {
     private readonly ScreenRecordingService _recording;
     private readonly MicrophoneLevelMonitor _microphone;
+    private readonly Func<AppSettings> _settingsProvider;
+    private readonly Action? _saveSettings;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private Storyboard? _pulse;
     private bool _positioning;
+    private bool _initialPositionApplied;
     private bool? _displayedPaused;
     public event EventHandler? StopRequested;
     public event EventHandler? RestartRequested;
@@ -31,11 +34,24 @@ public partial class RecordingToolbarWindow : Window
     }
 
     public RecordingToolbarWindow(ScreenRecordingService recording, AppSettings settings)
+        : this(recording, settings, null)
+    {
+    }
+
+    public RecordingToolbarWindow(ScreenRecordingService recording, AppSettings settings, Action? saveSettings)
+        : this(recording, () => settings, saveSettings)
+    {
+    }
+
+    internal RecordingToolbarWindow(ScreenRecordingService recording, Func<AppSettings> settingsProvider, Action? saveSettings)
     {
         InitializeComponent();
         WindowAppearanceService.Attach(this, WindowBackdropKind.Acrylic);
         ShowInTaskbar = App.UiTestMode;
         _recording = recording;
+        _settingsProvider = settingsProvider;
+        _saveSettings = saveSettings;
+        var settings = settingsProvider();
         _microphone = new MicrophoneLevelMonitor(settings);
         MicrophonePanel.Visibility = settings.RecordMicrophone ? Visibility.Visible : Visibility.Collapsed;
         _timer.Tick += (_, _) =>
@@ -48,22 +64,16 @@ public partial class RecordingToolbarWindow : Window
             PenButton.IsEnabled = !processing;
             UpdateMicrophoneFeedback(_microphone.Read());
             RefreshRecordingState();
-            PositionNearSelection();
         };
         _recording.StateChanged += OnRecordingStateChanged;
         _timer.Start();
-        SourceInitialized += (_, _) =>
-        {
-            var handle = new WindowInteropHelper(this).Handle;
-            if (!App.UiTestMode) NativeMethods.SetWindowDisplayAffinity(handle, NativeMethods.WdaExcludeFromCapture);
-        };
         Loaded += (_, _) =>
         {
-            PositionNearSelection();
+            ApplyInitialPosition();
             EnsureTopmost();
             StartPulse();
         };
-        SizeChanged += (_, _) => PositionNearSelection();
+        SizeChanged += (_, _) => { if (!_initialPositionApplied) ApplyInitialPosition(); };
         Closed += (_, _) =>
         {
             _pulse?.Stop(this);
@@ -71,6 +81,34 @@ public partial class RecordingToolbarWindow : Window
             _recording.StateChanged -= OnRecordingStateChanged;
             _microphone.Dispose();
         };
+    }
+
+    private void ApplyInitialPosition()
+    {
+        if (_initialPositionApplied || !IsLoaded || ActualWidth <= 0 || ActualHeight <= 0) return;
+        var settings = _settingsProvider();
+        if (settings.RecordingToolbarLeft is { } left && settings.RecordingToolbarTop is { } top &&
+            double.IsFinite(left) && double.IsFinite(top) && IsVisibleOnAnyScreen(left, top, ActualWidth, ActualHeight))
+        {
+            Left = left;
+            Top = top;
+        }
+        else
+        {
+            PositionNearSelection();
+        }
+        _initialPositionApplied = true;
+    }
+
+    private static bool IsVisibleOnAnyScreen(double left, double top, double width, double height)
+    {
+        var candidate = new Rect(left, top, Math.Max(1, width), Math.Max(1, height));
+        var virtualScreen = new Rect(
+            SystemParameters.VirtualScreenLeft,
+            SystemParameters.VirtualScreenTop,
+            SystemParameters.VirtualScreenWidth,
+            SystemParameters.VirtualScreenHeight);
+        return candidate.IntersectsWith(virtualScreen);
     }
 
     private void UpdateMicrophoneFeedback(MicrophoneLevelSnapshot snapshot)
@@ -189,7 +227,20 @@ public partial class RecordingToolbarWindow : Window
         var bottomRight = transform.Transform(new WpfPoint(screen.WorkingArea.Right, screen.WorkingArea.Bottom));
         return new Rect(topLeft, bottomRight);
     }
-    private void OnWindowMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e) { if (e.ChangedButton == System.Windows.Input.MouseButton.Left) DragMove(); }
+    private void OnWindowMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != System.Windows.Input.MouseButton.Left) return;
+        try
+        {
+            DragMove();
+            _initialPositionApplied = true;
+            var settings = _settingsProvider();
+            settings.RecordingToolbarLeft = Left;
+            settings.RecordingToolbarTop = Top;
+            _saveSettings?.Invoke();
+        }
+        catch (InvalidOperationException) { }
+    }
     private void OnStop(object sender, RoutedEventArgs e) => StopRequested?.Invoke(this, EventArgs.Empty);
     private void OnRestart(object sender, RoutedEventArgs e) => RestartRequested?.Invoke(this, EventArgs.Empty);
     private void OnDelete(object sender, RoutedEventArgs e) => DeleteRequested?.Invoke(this, EventArgs.Empty);

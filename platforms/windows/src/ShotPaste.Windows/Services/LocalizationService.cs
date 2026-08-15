@@ -103,6 +103,8 @@ public static class LocalizationService
         new(BuildPhraseCatalog);
     private static readonly Lazy<IReadOnlyDictionary<string, string>> WindowsEnglishFallback =
         new(BuildWindowsEnglishFallback);
+    private static readonly Lazy<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>> WindowsLocaleOverrides =
+        new(BuildWindowsLocaleOverrides);
     private static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> WindowsUxPhraseOverrides =
         new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal)
         {
@@ -198,6 +200,9 @@ public static class LocalizationService
         if (string.IsNullOrWhiteSpace(value)) return value ?? string.Empty;
         var normalized = Resolve(language ?? CurrentLanguage);
         if (normalized == "zh-CN") return value;
+        if (WindowsLocaleOverrides.Value.TryGetValue(normalized, out var windowsOverrides) &&
+            windowsOverrides.TryGetValue(value, out var windowsTranslation))
+            return windowsTranslation;
         if (WindowsUxPhraseOverrides.TryGetValue(value, out var uxPhrase) &&
             uxPhrase.TryGetValue(normalized, out var uxTranslation))
             return uxTranslation;
@@ -225,7 +230,7 @@ public static class LocalizationService
         }
         if (!WindowsEnglishFallback.Value.TryGetValue(value, out var english)) return composite;
         if (normalized == "en-US") return english;
-        return phrases.TryGetValue(english, out var localizedEnglish) ? localizedEnglish : english;
+        return phrases.TryGetValue(english, out var localizedEnglish) ? localizedEnglish : composite;
     }
 
     private static IReadOnlyDictionary<string, string> LocalizedUxPhrase(
@@ -420,6 +425,24 @@ public static class LocalizationService
                new Dictionary<string, string>(StringComparer.Ordinal);
     }
 
+    private static IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> BuildWindowsLocaleOverrides()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var result = new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var language in SupportedLanguages.Where(language => language.Code is not ("zh-CN" or "en-US")))
+        {
+            var suffix = $"WindowsLocalization.{language.Code}.json";
+            var resourceName = assembly.GetManifestResourceNames()
+                .FirstOrDefault(name => name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase));
+            if (resourceName is null) continue;
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream is null) continue;
+            result[language.Code] = JsonSerializer.Deserialize<Dictionary<string, string>>(stream) ??
+                                    new Dictionary<string, string>(StringComparer.Ordinal);
+        }
+        return result;
+    }
+
     private static bool ContainsCjk(string value) => value.Any(character => character is >= '\u3400' and <= '\u9fff');
 
     private static bool TryReadLocalization(JsonElement localizations, string locale, out string value)
@@ -441,9 +464,9 @@ public static class LocalizationService
                 {
                     foreach (var (source, english) in WindowsEnglishFallback.Value)
                     {
-                        values[source] = locale.Key == "en-US"
-                            ? english
-                            : locale.Value.TryGetValue(english, out var localizedEnglish) ? localizedEnglish : english;
+                        if (locale.Key == "en-US") values[source] = english;
+                        else if (locale.Value.TryGetValue(english, out var localizedEnglish))
+                            values[source] = localizedEnglish;
                     }
                 }
                 return (IReadOnlyDictionary<char, IReadOnlyList<KeyValuePair<string, string>>>)values

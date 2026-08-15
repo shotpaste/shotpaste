@@ -35,6 +35,7 @@ internal static class Program
             var plans = new (string Name, ScenarioAction Action, bool Draw)[]
             {
                 ("done_enter", ScenarioAction.DoneWithEnter, true),
+                ("pan_toolbar_recovery", ScenarioAction.PanToolbarRecovery, false),
                 ("cancel_escape", ScenarioAction.CancelWithEscape, false),
                 ("dirty_return_discard", ScenarioAction.DirtyReturnAndDiscard, true),
                 ("dirty_save", ScenarioAction.DirtySave, true),
@@ -42,6 +43,7 @@ internal static class Program
                 ("dirty_exit_save", ScenarioAction.DirtyExitSave, true),
                 ("pin", ScenarioAction.Pin, false),
                 ("quick_access", ScenarioAction.QuickAccess, false),
+                ("quick_access_drag", ScenarioAction.QuickAccessDrag, false),
                 ("quick_access_delete", ScenarioAction.QuickAccessDelete, false),
                 ("editor_removed", ScenarioAction.EditorRemoved, false),
                 ("copy_recovery", ScenarioAction.CopyRecovery, false),
@@ -287,6 +289,35 @@ internal static class Program
                 Drag(drawStart, drawEnd);
             }
 
+            if (action == ScenarioAction.PanToolbarRecovery)
+            {
+                var zoomPicker = WaitForAutomationId(process.Id, "InlineZoomPicker");
+                string SelectedZoom()
+                {
+                    var selected = ((SelectionPattern)zoomPicker.GetCurrentPattern(SelectionPattern.Pattern))
+                        .Current.GetSelection();
+                    return selected.SingleOrDefault()?.Current.Name ?? string.Empty;
+                }
+
+                var zoomBefore = SelectedZoom();
+                PhysicalClick(WaitForAutomationId(process.Id, "InlineToolPan"));
+                PhysicalClick(WaitForAutomationId(process.Id, "InlineZoomIn"));
+                WaitUntil(() => !string.Equals(SelectedZoom(), zoomBefore, StringComparison.Ordinal),
+                    "Zoom In did not respond after the Pan tool was selected.");
+
+                PhysicalClick(WaitForAutomationId(process.Id, "InlineToolRectangle"));
+                WaitUntil(
+                    () => FindVisibleByAutomationId(process.Id, "OneShotSwitcherDragHandle") is null,
+                    "A physical Rectangle click did not leave the Pan tool or commit screenshot mode.");
+                var drawStart = new Drawing.Point(
+                    (int)Math.Round(selectionBounds.Left + selectionBounds.Width * 0.28),
+                    (int)Math.Round(selectionBounds.Top + selectionBounds.Height * 0.30));
+                var drawEnd = new Drawing.Point(
+                    (int)Math.Round(selectionBounds.Left + selectionBounds.Width * 0.62),
+                    (int)Math.Round(selectionBounds.Top + selectionBounds.Height * 0.62));
+                Drag(drawStart, drawEnd);
+            }
+
             double? interactionMilliseconds = null;
             if (action == ScenarioAction.PerformanceBaseline)
             {
@@ -306,6 +337,11 @@ internal static class Program
                     SendKey(overlay, 0x0D);
                     WaitForCaptureCount(captureDirectory, 1);
                     detail = "Enter confirmed the inline editor.";
+                    break;
+                case ScenarioAction.PanToolbarRecovery:
+                    SendKey(overlay, 0x0D);
+                    WaitForCaptureCount(captureDirectory, 1);
+                    detail = "After a physical Pan-tool click, Zoom In, Rectangle, drawing, and Enter completion all remained operable.";
                     break;
                 case ScenarioAction.CancelWithEscape:
                     SendKey(overlay, 0x1B);
@@ -379,6 +415,12 @@ internal static class Program
                     var quickVerification = ExerciseQuickAccess(process.Id, root);
                     screenshot = quickVerification.Screenshot;
                     detail = $"Quick Access kept fixed action slots and resumed its saved countdown in {quickVerification.ResumeSeconds:0.00}s.";
+                    break;
+                case ScenarioAction.QuickAccessDrag:
+                    SendKey(overlay, 0x0D);
+                    WaitForCaptureCount(captureDirectory, 1);
+                    screenshot = ExerciseQuickAccessDrag(process.Id, root, captureDirectory);
+                    detail = "Quick Access performed a native cross-process file drag and closed only after the drop target accepted it.";
                     break;
                 case ScenarioAction.QuickAccessDelete:
                     SendKey(overlay, 0x0D);
@@ -465,8 +507,8 @@ internal static class Program
             var captures = Directory.Exists(captureDirectory)
                 ? Directory.GetFiles(captureDirectory, "*.png")
                 : [];
-            var expectedCount = action is ScenarioAction.DoneWithEnter or ScenarioAction.DirtySave or ScenarioAction.DirtyExitSave or ScenarioAction.Pin or
-                ScenarioAction.QuickAccess or ScenarioAction.PerformanceBaseline ? 1 : 0;
+            var expectedCount = action is ScenarioAction.DoneWithEnter or ScenarioAction.PanToolbarRecovery or ScenarioAction.DirtySave or ScenarioAction.DirtyExitSave or ScenarioAction.Pin or
+                ScenarioAction.QuickAccess or ScenarioAction.QuickAccessDrag or ScenarioAction.PerformanceBaseline ? 1 : 0;
             if (captures.Length != expectedCount)
                 throw new InvalidOperationException($"{name}: expected {expectedCount} output file(s), got {captures.Length}.");
             var historyItems = process.HasExited ? PersistedHistoryItemCount(database) : HistoryItemCount(process.Id);
@@ -786,6 +828,35 @@ internal static class Program
         return screenshot;
     }
 
+    private static string ExerciseQuickAccessDrag(int processId, string root, string captureDirectory)
+    {
+        var quick = WaitForAutomationId(processId, "QuickAccessWindow");
+        var quickBounds = quick.Current.BoundingRectangle;
+        Native.SetCursorPos(
+            (int)Math.Round(quickBounds.Left + quickBounds.Width / 2),
+            (int)Math.Round(quickBounds.Top + quickBounds.Height / 2));
+        Thread.Sleep(350);
+        var dragAction = WaitForAutomationId(processId, "QuickAccessDrag");
+        var dragBounds = dragAction.Current.BoundingRectangle;
+        using var target = new NativeFileDropTarget();
+        var screenshot = Path.Combine(root, "quick-access-native-file-drag.png");
+        SaveDesktopScreenshot(screenshot);
+        Drag(
+            new Drawing.Point(
+                (int)Math.Round(dragBounds.Left + dragBounds.Width / 2),
+                (int)Math.Round(dragBounds.Top + dragBounds.Height / 2)),
+            target.DropPoint);
+
+        var dropped = target.WaitForDrop();
+        var expected = Path.GetFullPath(Directory.GetFiles(captureDirectory, "*.png").Single());
+        if (dropped.Length != 1 || !Path.GetFullPath(dropped[0]).Equals(expected, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(
+                $"Quick Access dropped [{string.Join(", ", dropped)}], expected {expected}.");
+        WaitUntil(() => FindVisibleByAutomationId(processId, "QuickAccessWindow") is null,
+            "Quick Access card did not close after a successful external file drop.");
+        return screenshot;
+    }
+
     private static void RequestUiTestExit(string executable, string root)
     {
         using var forwarder = Process.Start(new ProcessStartInfo(executable)
@@ -840,17 +911,19 @@ internal static class Program
             SaveScreenshots = true,
             CopyScreenshots = false,
             CopyAfterCapture = false,
-            ShowQuickAccess = action is ScenarioAction.QuickAccess or ScenarioAction.QuickAccessDelete,
+            ShowQuickAccess = action is ScenarioAction.QuickAccess or ScenarioAction.QuickAccessDrag or ScenarioAction.QuickAccessDelete,
             QuickAccessAutoDismissSeconds = 3,
             PauseQuickAccessOnHover = true,
             QuickAccessPosition = "BottomRight",
             QuickAccessActions = action switch
             {
                 ScenarioAction.QuickAccess => new[] { "Copy", "None", "Pin", "None", "None", "Close" },
+                ScenarioAction.QuickAccessDrag => new[] { "Drag", "None", "None", "None", "None", "Close" },
                 ScenarioAction.QuickAccessDelete => new[] { "Delete", "None", "None", "None", "None", "Close" },
                 _ => new[] { "Copy", "Save", "Pin", "Open", "Drag", "Close" }
             },
             ClipboardHistoryEnabled = false,
+            HistoryDefaultFilter = "Screenshot",
             ShortcutsEnabled = false,
             ExcludeOwnApplicationFromScreenshots = true,
             Language = "en-US"
@@ -925,6 +998,19 @@ internal static class Program
 
     private static void Invoke(AutomationElement element) =>
         ((InvokePattern)element.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
+
+    private static void PhysicalClick(AutomationElement element)
+    {
+        if (!element.TryGetClickablePoint(out var point))
+            throw new InvalidOperationException(
+                $"{element.Current.AutomationId} did not expose a clickable point.");
+        Native.SetThreadDpiAwarenessContext(new IntPtr(-4));
+        Native.SetCursorPos((int)Math.Round(point.X), (int)Math.Round(point.Y));
+        Thread.Sleep(90);
+        Native.mouse_event(Native.MouseLeftDown, 0, 0, 0, UIntPtr.Zero);
+        Native.mouse_event(Native.MouseLeftUp, 0, 0, 0, UIntPtr.Zero);
+        Thread.Sleep(220);
+    }
 
     private static void Drag(Drawing.Point start, Drawing.Point end, Action? duringDrag = null)
     {
@@ -1002,6 +1088,7 @@ internal static class Program
     private enum ScenarioAction
     {
         DoneWithEnter,
+        PanToolbarRecovery,
         CancelWithEscape,
         DirtyReturnAndDiscard,
         DirtySave,
@@ -1009,6 +1096,7 @@ internal static class Program
         DirtyExitSave,
         Pin,
         QuickAccess,
+        QuickAccessDrag,
         QuickAccessDelete,
         EditorRemoved,
         CopyRecovery,
@@ -1024,6 +1112,91 @@ internal static class Program
 
     private sealed record PinVerification(double WidthAt50, double WidthAt150, long ImageHitTest, long LockHitTest, string Screenshot);
     private sealed record QuickVerification(double ResumeSeconds, string Screenshot);
+
+    private sealed class NativeFileDropTarget : IDisposable
+    {
+        private readonly ManualResetEventSlim _ready = new();
+        private readonly ManualResetEventSlim _dropped = new();
+        private readonly Thread _thread;
+        private Forms.Form? _form;
+        private Exception? _failure;
+        private string[] _droppedFiles = [];
+
+        public NativeFileDropTarget()
+        {
+            _thread = new Thread(Run) { IsBackground = true };
+            _thread.SetApartmentState(ApartmentState.STA);
+            _thread.Start();
+            if (!_ready.Wait(UiTimeout)) throw new TimeoutException("Native file-drop target did not open.");
+            if (_failure is not null) throw new InvalidOperationException("Native file-drop target failed to open.", _failure);
+        }
+
+        public Drawing.Point DropPoint { get; private set; }
+
+        public string[] WaitForDrop()
+        {
+            if (!_dropped.Wait(UiTimeout)) throw new TimeoutException("Native file-drop target did not receive the Quick Access drag.");
+            if (_failure is not null) throw new InvalidOperationException("Native file-drop target failed.", _failure);
+            return _droppedFiles;
+        }
+
+        private void Run()
+        {
+            try
+            {
+                var screen = Forms.Screen.PrimaryScreen?.WorkingArea ?? new Drawing.Rectangle(0, 0, 1280, 720);
+                using var form = new Forms.Form
+                {
+                    Text = "ShotPaste Quick Access native drop target",
+                    StartPosition = Forms.FormStartPosition.Manual,
+                    Bounds = new Drawing.Rectangle(screen.Left + 70, screen.Top + 180, 440, 280),
+                    FormBorderStyle = Forms.FormBorderStyle.FixedDialog,
+                    MaximizeBox = false,
+                    MinimizeBox = false,
+                    TopMost = true,
+                    AllowDrop = true
+                };
+                _form = form;
+                form.DragEnter += (_, eventArgs) =>
+                {
+                    eventArgs.Effect = eventArgs.Data?.GetDataPresent(Forms.DataFormats.FileDrop) == true
+                        ? Forms.DragDropEffects.Copy
+                        : Forms.DragDropEffects.None;
+                };
+                form.DragDrop += (_, eventArgs) =>
+                {
+                    _droppedFiles = eventArgs.Data?.GetData(Forms.DataFormats.FileDrop) as string[] ?? [];
+                    eventArgs.Effect = _droppedFiles.Length > 0 ? Forms.DragDropEffects.Copy : Forms.DragDropEffects.None;
+                    _dropped.Set();
+                };
+                form.Shown += (_, _) =>
+                {
+                    DropPoint = form.PointToScreen(new Drawing.Point(form.ClientSize.Width / 2, form.ClientSize.Height / 2));
+                    _ready.Set();
+                };
+                Forms.Application.Run(form);
+            }
+            catch (Exception exception)
+            {
+                _failure = exception;
+                _ready.Set();
+                _dropped.Set();
+            }
+        }
+
+        public void Dispose()
+        {
+            try
+            {
+                if (_form is { IsDisposed: false, IsHandleCreated: true })
+                    _form.BeginInvoke(_form.Close);
+            }
+            catch (InvalidOperationException) { }
+            _thread.Join(TimeSpan.FromSeconds(5));
+            _ready.Dispose();
+            _dropped.Dispose();
+        }
+    }
     private sealed record Synthetic4KBenchmark(
         int Width,
         int Height,

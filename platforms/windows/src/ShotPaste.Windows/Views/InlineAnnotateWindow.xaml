@@ -180,11 +180,15 @@
                     Style="{StaticResource HudTextButton}" Click="OnSelectTool" ToolTip="平移画布（按住 Space）" Padding="8,3"/>
             <Button Content="适应" AutomationProperties.AutomationId="InlineZoomFit" Style="{StaticResource HudTextButton}"
                     Click="OnZoomFit" ToolTip="适应窗口" Padding="8,3" Margin="3,0,0,0"/>
+            <Button Content="−" AutomationProperties.AutomationId="InlineZoomOut" Style="{StaticResource HudTextButton}"
+                    Click="OnZoomOut" ToolTip="缩小（Ctrl+-）" Padding="8,3" Margin="3,0,0,0"/>
             <ComboBox x:Name="CanvasZoomPicker" AutomationProperties.AutomationId="InlineZoomPicker" Width="72" Height="28" Margin="4,0,0,0"
                       Style="{DynamicResource HudComboBox}" SelectionChanged="OnZoomPresetChanged">
               <ComboBoxItem Content="50%" Tag="0.5"/><ComboBoxItem Content="100%" Tag="1" IsSelected="True"/>
               <ComboBoxItem Content="200%" Tag="2"/><ComboBoxItem Content="400%" Tag="4"/>
             </ComboBox>
+            <Button Content="+" AutomationProperties.AutomationId="InlineZoomIn" Style="{StaticResource HudTextButton}"
+                    Click="OnZoomIn" ToolTip="放大（Ctrl++）" Padding="8,3" Margin="3,0,0,0"/>
             <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
             <Button Content="Selection" AutomationProperties.AutomationId="InlineToolSelection" ContentTemplate="{StaticResource AnnotationSelectionIcon}" Tag="Selection" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="选择"/>
             <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>

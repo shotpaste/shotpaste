@@ -29,7 +29,8 @@
           BorderThickness="1" Padding="10,6">
     <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="24" ShadowDepth="8" Opacity="0.48"/></Border.Effect>
     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-      <Grid Width="20" Height="20" Opacity="0.42" ToolTip="拖动工具栏">
+      <Grid Width="20" Height="20" Opacity="0.42" ToolTip="拖动工具栏"
+            AutomationProperties.AutomationId="RecordingToolbarDragHandle">
         <Path Data="M5,7 H15 M5,10 H15 M5,13 H15" Stroke="{DynamicResource HudTextBrush}" StrokeThickness="1.4"
               StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
       </Grid>

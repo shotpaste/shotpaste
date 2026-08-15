@@ -25,11 +25,18 @@ internal static class Program
     {
         try
         {
-            if (args.Length < 1) throw new ArgumentException("Usage: HistoryE2E <ShotPaste.exe> [output-root]");
+            if (args.Length < 1) throw new ArgumentException(
+                "Usage: HistoryE2E <ShotPaste.exe> [output-root] [--clipboard-only|--database-recovery-only]");
             var executable = Path.GetFullPath(args[0]);
             var outputRoot = Path.GetFullPath(args.ElementAtOrDefault(1) ?? Path.Combine("build", "e2e", "history-ui"));
             var clipboardOnly = args.Any(value => value.Equals("--clipboard-only", StringComparison.OrdinalIgnoreCase));
-            var result = RunAsync(executable, outputRoot, clipboardOnly).GetAwaiter().GetResult();
+            var databaseRecoveryOnly = args.Any(value =>
+                value.Equals("--database-recovery-only", StringComparison.OrdinalIgnoreCase));
+            var language = args.FirstOrDefault(value => value.StartsWith("--language=", StringComparison.OrdinalIgnoreCase))?
+                .Split('=', 2)[1] ?? "en-US";
+            var result = databaseRecoveryOnly
+                ? RunDatabaseRecoverySessionAsync(executable, outputRoot, language).GetAwaiter().GetResult()
+                : RunAsync(executable, outputRoot, clipboardOnly).GetAwaiter().GetResult();
             var summary = Path.Combine(outputRoot, "summary.json");
             Directory.CreateDirectory(outputRoot);
             File.WriteAllText(summary, JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
@@ -65,11 +72,11 @@ internal static class Program
             throw new InvalidOperationException($"History database changed during layout E2E: {countAfterFirstSession}/500 rows remain.");
         var persisted = JsonSerializer.Deserialize<AppSettings>(await File.ReadAllTextAsync(settingsFile)) ??
                         throw new InvalidOperationException("Persisted settings could not be read.");
-        if (persisted.HistoryExpandedLeft is null || persisted.HistoryExpandedTop is null)
-            throw new InvalidOperationException("History window position was not persisted.");
-
         var restart = await RunRestartSessionAsync(executable, dataRoot, outputRoot, persisted);
         var deletion = await RunDeletionSessionAsync(executable, outputRoot);
+        var clear = await RunClearSessionAsync(executable, outputRoot);
+        var settingsDeepLinks = await RunSettingsDeepLinkSessionAsync(executable, outputRoot);
+        var databaseRecovery = await RunDatabaseRecoverySessionAsync(executable, outputRoot, "en-US");
         var clipboard = await RunClipboardSessionAsync(executable, outputRoot);
         return new
         {
@@ -85,6 +92,9 @@ internal static class Program
             },
             RestartSession = restart,
             DeletionSession = deletion,
+            ClearSession = clear,
+            SettingsDeepLinks = settingsDeepLinks,
+            DatabaseRecovery = databaseRecovery,
             ClipboardSession = clipboard,
             ThumbnailCache = thumbnailCache
         };
@@ -265,8 +275,11 @@ internal static class Program
             var scale = Native.GetDpiForWindow(handle) / 96d;
             AssertNear(persisted.HistoryExpandedWidth, bounds.Width / scale, 12, "restored width");
             AssertNear(persisted.HistoryExpandedHeight, bounds.Height / scale, 12, "restored height");
-            AssertNear(persisted.HistoryExpandedLeft!.Value, bounds.Left / scale, 12, "restored left");
-            AssertNear(persisted.HistoryExpandedTop!.Value, bounds.Top / scale, 12, "restored top");
+            var workArea = Forms.Screen.FromHandle(handle).WorkingArea;
+            var expectedLeft = workArea.Left + (workArea.Width - bounds.Width) / 2;
+            var expectedTop = workArea.Top + 24 * scale;
+            AssertNear(expectedLeft, bounds.Left, 14, "top-centered left");
+            AssertNear(expectedTop, bounds.Top, 14, "top-centered top");
             var realized = VisibleListItems(expanded).Length;
             if (realized >= 500) throw new InvalidOperationException("Restarted grid lost virtualization.");
             var screenshot = Path.Combine(outputRoot, "history-expanded-restart.png");
@@ -396,7 +409,7 @@ internal static class Program
         Process.Start(new ProcessStartInfo(executable)
         {
             UseShellExecute = false,
-            ArgumentList = { "--ui-test", "--data-root", dataRoot, "--history" }
+            ArgumentList = { "--ui-test", "--ui-test-clipboard", "--data-root", dataRoot, "--history" }
         }) ?? throw new InvalidOperationException("Could not launch the product executable.");
 
     private static void StopExactProcess(Process process)
@@ -412,16 +425,21 @@ internal static class Program
         catch (InvalidOperationException) { }
     }
 
-    private static void WriteSettings(string path, string root, bool clipboardHistoryEnabled = false)
+    private static void WriteSettings(
+        string path,
+        string root,
+        bool clipboardHistoryEnabled = false,
+        string language = "en-US")
     {
         var settings = new AppSettings
         {
             SaveDirectory = Path.Combine(root, "Captures"),
             HistoryExpandedWidth = 980,
             HistoryExpandedHeight = 680,
-            Language = "en-US",
+            Language = language,
             ClipboardHistoryEnabled = clipboardHistoryEnabled,
             HistoryDefaultFilter = clipboardHistoryEnabled ? "Clipboard" : "Screenshot",
+            HistoryPosition = "TopCenter",
             ShortcutsEnabled = false,
             ShowQuickAccess = false
         };
@@ -804,6 +822,188 @@ internal static class Program
                 ConfirmedMovedFileToRecycleBin = true,
                 RemainingRows = CountHistoryRows(database),
                 ConfirmationScreenshot = confirmationScreenshot
+            };
+        }
+        finally { StopExactProcess(product); }
+    }
+
+    private static async Task<object> RunClearSessionAsync(string executable, string outputRoot)
+    {
+        var dataRoot = Path.Combine(outputRoot, "clear-data");
+        if (Directory.Exists(dataRoot)) Directory.Delete(dataRoot, true);
+        Directory.CreateDirectory(dataRoot);
+        var database = Path.Combine(dataRoot, "history.sqlite3");
+        SeedHistory(database, 2);
+        WriteSettings(Path.Combine(dataRoot, "settings.json"), dataRoot);
+        var files = new[]
+        {
+            Path.Combine(dataRoot, "history-fixtures", "fixture-0000.jpg"),
+            Path.Combine(dataRoot, "history-fixtures", "fixture-0001.jpg")
+        };
+        if (files.Any(path => !File.Exists(path)))
+            throw new InvalidOperationException("Clear-history fixture files were not created.");
+
+        using var product = Launch(executable, dataRoot);
+        try
+        {
+            var clear = await WaitForAutomationIdAsync(product.Id, "HistoryClearAll");
+            Invoke(clear);
+            var dialog = await WaitForAutomationIdAsync(product.Id, "ShotPasteDialog");
+            var confirmationScreenshot = Path.Combine(outputRoot, "history-clear-confirmation.png");
+            SaveWindowScreenshot(PhysicalBounds(dialog), confirmationScreenshot);
+            Invoke(await WaitForAutomationIdAsync(product.Id, "DialogSecondary"));
+            await WaitUntilAsync(() => FindByAutomationId(product.Id, "ShotPasteDialog") is null,
+                "Cancelling clear history did not close the confirmation.");
+            if (CountHistoryRows(database) != 2 || files.Any(path => !File.Exists(path)))
+                throw new InvalidOperationException("Cancelling clear history did not preserve every row and file.");
+
+            Invoke(await WaitForAutomationIdAsync(product.Id, "HistoryClearAll"));
+            await WaitForAutomationIdAsync(product.Id, "ShotPasteDialog");
+            Invoke(await WaitForAutomationIdAsync(product.Id, "DialogPrimary"));
+            await WaitUntilAsync(() => TryCountHistoryRows(database) == 0,
+                "Confirmed clear history did not remove every database row.");
+            await WaitUntilAsync(() => files.All(path => !File.Exists(path)),
+                "Confirmed clear history left saved capture files at their original paths.");
+            return new
+            {
+                CancelPreservedAllRowsAndFiles = true,
+                ConfirmedRecycledAllFiles = true,
+                RemainingRows = CountHistoryRows(database),
+                ConfirmationScreenshot = confirmationScreenshot
+            };
+        }
+        finally { StopExactProcess(product); }
+    }
+
+    private static async Task<object> RunSettingsDeepLinkSessionAsync(string executable, string outputRoot)
+    {
+        var shortcuts = await VerifySettingsDeepLinkAsync(
+            executable, outputRoot, "shortcuts", "SettingsShortcutsTab");
+        var capture = await VerifySettingsDeepLinkAsync(
+            executable, outputRoot, "capture", "SettingsCaptureRecordingTab");
+        return new { Shortcuts = shortcuts, Capture = capture };
+    }
+
+    private static async Task<object> VerifySettingsDeepLinkAsync(
+        string executable,
+        string outputRoot,
+        string requestedTab,
+        string expectedAutomationId)
+    {
+        var dataRoot = Path.Combine(outputRoot, "settings-deep-link-" + requestedTab);
+        if (Directory.Exists(dataRoot)) Directory.Delete(dataRoot, true);
+        Directory.CreateDirectory(dataRoot);
+        WriteSettings(Path.Combine(dataRoot, "settings.json"), dataRoot);
+        using var product = Process.Start(new ProcessStartInfo(executable)
+        {
+            UseShellExecute = false,
+            ArgumentList = { "--ui-test", "--data-root", dataRoot, $"--settings={requestedTab}" }
+        }) ?? throw new InvalidOperationException("Could not launch the settings deep-link fixture.");
+        try
+        {
+            var settings = await WaitForAutomationIdAsync(product.Id, "SettingsWindow");
+            var tab = await WaitForAutomationIdAsync(product.Id, expectedAutomationId);
+            if (tab.GetCurrentPattern(SelectionItemPattern.Pattern) is not SelectionItemPattern selection ||
+                !selection.Current.IsSelected)
+                throw new InvalidOperationException(
+                    $"--settings={requestedTab} did not select {expectedAutomationId} in the actual settings window.");
+            var screenshot = Path.Combine(outputRoot, $"settings-deep-link-{requestedTab}.png");
+            SaveWindowScreenshot(PhysicalBounds(settings), screenshot);
+            Invoke(await WaitForAutomationIdAsync(product.Id, "SettingsSave"));
+            await WaitUntilAsync(() => FindByAutomationId(product.Id, "SettingsWindow") is null,
+                $"The {requestedTab} deep-link settings window did not close.");
+            return new
+            {
+                Requested = requestedTab,
+                SelectedAutomationId = expectedAutomationId,
+                FinalPageSelected = true,
+                Screenshot = screenshot
+            };
+        }
+        finally { StopExactProcess(product); }
+    }
+
+    private static async Task<object> RunDatabaseRecoverySessionAsync(
+        string executable,
+        string outputRoot,
+        string language)
+    {
+        var dataRoot = Path.Combine(outputRoot, "database-recovery-data");
+        if (Directory.Exists(dataRoot)) Directory.Delete(dataRoot, true);
+        Directory.CreateDirectory(dataRoot);
+        WriteSettings(Path.Combine(dataRoot, "settings.json"), dataRoot, language: language);
+        var database = Path.Combine(dataRoot, "history.sqlite3");
+        var corruptBytes = "ShotPaste intentionally corrupt startup database"u8.ToArray();
+        await File.WriteAllBytesAsync(database, corruptBytes);
+        var capture = Path.Combine(dataRoot, "Captures", "preserve-capture.png");
+        var clipboardDirectory = Path.Combine(dataRoot, "ClipboardFiles");
+        Directory.CreateDirectory(clipboardDirectory);
+        var clipboard = Path.Combine(clipboardDirectory, "preserve-clipboard.txt");
+        await File.WriteAllTextAsync(capture, "capture must survive database reset");
+        await File.WriteAllTextAsync(clipboard, "clipboard must survive database reset");
+
+        using var product = Process.Start(new ProcessStartInfo(executable)
+        {
+            UseShellExecute = false,
+            ArgumentList = { "--ui-test", "--data-root", dataRoot, "--history" }
+        }) ?? throw new InvalidOperationException("Could not launch the corrupt-database recovery fixture.");
+        try
+        {
+            var firstDialog = await WaitForAutomationIdAsync(product.Id, "ShotPasteDialog");
+            var screenshot = Path.Combine(outputRoot, "database-recovery-startup.png");
+            SaveWindowScreenshot(PhysicalBounds(firstDialog), screenshot);
+            var visibleDialogText = string.Join("\n", firstDialog
+                .FindAll(TreeScope.Descendants, Condition.TrueCondition)
+                .Cast<AutomationElement>()
+                .Where(element => !element.Current.IsOffscreen)
+                .Select(element => element.Current.Name)
+                .Where(name => !string.IsNullOrWhiteSpace(name)));
+            if (language is "en-US" or "de-DE" or "fr-FR" or "es-ES" or "ru-RU" or "vi-VN" &&
+                System.Text.RegularExpressions.Regex.IsMatch(visibleDialogText, "[\\u3400-\\u9fff]"))
+                throw new InvalidOperationException(
+                    $"The {language} startup database recovery entry still contains Chinese text:\n{visibleDialogText}");
+            var repair = await WaitForAutomationIdAsync(product.Id, "DialogPrimary");
+            var repairLabel = LocalizationService.TranslatePhrase("尝试修复", language);
+            if (!repair.Current.Name.Contains(repairLabel, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("The startup database dialog did not offer repair first.");
+            Invoke(repair);
+            await Task.Delay(350);
+
+            var resetChoice = await WaitForAutomationIdAsync(product.Id, "DialogSecondary");
+            var resetLabel = LocalizationService.TranslatePhrase("重置数据库…", language).TrimEnd('…', '.');
+            if (!resetChoice.Current.Name.Contains(resetLabel, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("The failed repair flow did not retain the reset option.");
+            Invoke(resetChoice);
+            await WaitUntilAsync(() =>
+            {
+                var primary = FindByAutomationId(product.Id, "DialogPrimary");
+                return primary is not null &&
+                       primary.Current.Name.Contains(
+                           LocalizationService.TranslatePhrase("重置数据库", language),
+                           StringComparison.OrdinalIgnoreCase);
+            }, "The startup recovery flow did not show reset confirmation.");
+            Invoke(await WaitForAutomationIdAsync(product.Id, "DialogPrimary"));
+            await WaitForAutomationIdAsync(product.Id, "ExpandedHistoryGrid");
+
+            var archiveDirectory = Directory.GetDirectories(dataRoot, "DatabaseRecovery-*").SingleOrDefault()
+                ?? throw new InvalidOperationException("Database reset did not create a recovery archive.");
+            var archivedDatabase = Path.Combine(archiveDirectory, Path.GetFileName(database));
+            if (!File.Exists(archivedDatabase) ||
+                !File.ReadAllBytes(archivedDatabase).SequenceEqual(corruptBytes))
+                throw new InvalidOperationException("The corrupt database was not preserved byte-for-byte in the recovery archive.");
+            if (CountHistoryRows(database) != 0)
+                throw new InvalidOperationException("Database reset did not create a valid empty SQLite history database.");
+            if (!File.Exists(capture) || !File.Exists(clipboard))
+                throw new InvalidOperationException("Database reset removed capture or managed clipboard content.");
+            return new
+            {
+                RepairWasAttempted = true,
+                ResetWasConfirmed = true,
+                ArchivedDatabase = archivedDatabase,
+                FreshDatabaseIsValid = true,
+                CaptureFilePreserved = true,
+                ClipboardFilePreserved = true,
+                Screenshot = screenshot
             };
         }
         finally { StopExactProcess(product); }

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -46,6 +47,8 @@ public partial class MainWindow : Window
             settings.Current.HistoryScale,
             settings.Current.HistoryScale);
         ApplyHistoryBackgroundStyle();
+        ApplyMotionPreference();
+        SystemParameters.StaticPropertyChanged += OnSystemParametersChanged;
         UpdateKindPills();
         history.Items.CollectionChanged += (_, _) => Dispatcher.BeginInvoke(() => QueueFilter(TimeSpan.Zero));
         _persistSizeTimer.Tick += (_, _) =>
@@ -60,8 +63,20 @@ public partial class MainWindow : Window
             WindowAppearanceService.ConstrainToWorkingArea(this);
             PositionHistoryWindow();
         };
+        Closed += (_, _) => SystemParameters.StaticPropertyChanged -= OnSystemParametersChanged;
         QueueFilter(TimeSpan.Zero, resetScroll: true);
     }
+
+    private void OnSystemParametersChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is not null &&
+            !e.PropertyName.Equals(nameof(SystemParameters.ClientAreaAnimation), StringComparison.Ordinal)) return;
+        _ = Dispatcher.BeginInvoke(ApplyMotionPreference);
+    }
+
+    private void ApplyMotionPreference() => HistoryItems.ItemContainerStyle = AccessibilityPreferences.ReduceMotion
+        ? (Style)FindResource("ReducedMotionHistoryListBoxItem")
+        : null;
 
     public void RefreshLocalization()
     {
@@ -144,16 +159,10 @@ public partial class MainWindow : Window
         var area = CurrentWorkAreaInDips();
         const double gap = 24d;
         var centeredLeft = area.Left + (area.Width - Width) / 2;
-        var centeredTop = area.Top + (area.Height - Height) / 2;
         var (requestedLeft, requestedTop) = _settings.Current.HistoryPosition switch
         {
-            "TopLeft" => (area.Left + gap, area.Top + gap),
-            "TopRight" => (area.Right - Width - gap, area.Top + gap),
-            "BottomLeft" => (area.Left + gap, area.Bottom - Height - gap),
-            "BottomRight" => (area.Right - Width - gap, area.Bottom - Height - gap),
-            "Center" => (centeredLeft, centeredTop),
-            _ => (_settings.Current.HistoryExpandedLeft ?? centeredLeft,
-                  _settings.Current.HistoryExpandedTop ?? centeredTop)
+            "BottomCenter" => (centeredLeft, area.Bottom - Height - gap),
+            _ => (centeredLeft, area.Top + gap)
         };
         Left = Math.Clamp(requestedLeft, area.Left, Math.Max(area.Left, area.Right - Width));
         Top = Math.Clamp(requestedTop, area.Top, Math.Max(area.Top, area.Bottom - Height));
@@ -334,6 +343,31 @@ public partial class MainWindow : Window
         if ((sender as FrameworkElement)?.Tag is CaptureHistoryItem item) _controller.RestoreHistoryItem(item);
     }
 
+    private void OnRevealItem(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not CaptureHistoryItem item) return;
+        var path = item.ExistingFilePaths.FirstOrDefault() ?? item.FilePath;
+        if (string.IsNullOrWhiteSpace(path)) return;
+        try
+        {
+            var fullPath = Path.GetFullPath(path);
+            var start = new ProcessStartInfo("explorer.exe") { UseShellExecute = false };
+            if (File.Exists(fullPath))
+                start.ArgumentList.Add($"/select,{fullPath}");
+            else if (Directory.Exists(fullPath))
+                start.ArgumentList.Add(fullPath);
+            else
+                return;
+            Process.Start(start);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            LocalizedDialogService.Show(this,
+                LocalizationService.TranslatePhrase("无法在资源管理器中显示此项目：") + exception.Message,
+                "ShotPaste", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
     private void OnShowItemMenu(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { ContextMenu: { } menu } button) return;
@@ -347,7 +381,7 @@ public partial class MainWindow : Window
 
     private async void OnClearHistory(object sender, RoutedEventArgs e)
     {
-        if (LocalizedDialogService.Show(this, "清空剪贴板历史？已保存的截图和视频文件会保留。", "ShotPaste", MessageBoxButton.OKCancel, MessageBoxImage.Warning) == MessageBoxResult.OK)
+        if (LocalizedDialogService.Show(this, "清空全部历史？每条记录关联的截图、录屏和受管剪贴板文件会先移入 Windows 回收站；处理失败的记录会保留。", "ShotPaste", MessageBoxButton.OKCancel, MessageBoxImage.Warning) == MessageBoxResult.OK)
         {
             var result = await _history.ClearAsync();
             ShowRemovalFailures(result.Failures, result.RemovedCount, result.RequestedCount);

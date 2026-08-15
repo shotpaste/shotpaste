@@ -34,7 +34,11 @@ internal static class RecordingLifecycleE2E
         try
         {
             var firstToolbar = await StartRecordingAsync(product.Id);
+            var privacyExclusion = await VerifyDynamicPrivacyExclusionAsync(
+                executable, root, product.Id, firstToolbar);
+            firstToolbar = await WaitForAutomationIdAsync(product.Id, "RecordingToolbarWindow");
             var firstHandle = firstToolbar.Current.NativeWindowHandle;
+            var toolbarDragging = await VerifyToolbarDraggingAsync(product.Id, root);
 
             Invoke(await WaitForAutomationIdAsync(product.Id, "RecordingRestart"));
             var prompt = await WaitForAutomationIdAsync(product.Id, "ShotPasteDialog");
@@ -84,6 +88,8 @@ internal static class RecordingLifecycleE2E
                 ConfirmRestartCreatedNewWorkflow = true,
                 CancelDeletePreservedRecording = true,
                 ConfirmDeleteRecycledFiles = true,
+                PrivacyExclusion = privacyExclusion,
+                ToolbarDragging = toolbarDragging,
                 RestartPrompt = restartPrompt,
                 DeletePrompt = deletePrompt
             };
@@ -168,6 +174,167 @@ internal static class RecordingLifecycleE2E
         return toolbar;
     }
 
+    private static async Task<object> VerifyDynamicPrivacyExclusionAsync(
+        string executable,
+        string root,
+        int processId,
+        AutomationElement toolbar)
+    {
+        var toolbarHandle = new IntPtr(toolbar.Current.NativeWindowHandle);
+        await WaitUntilAsync(
+            () => ReadDisplayAffinity(toolbarHandle) == Native.WdaExcludeFromCapture,
+            "The recording toolbar was not continuously excluded from capture.");
+
+        RequestSettings(executable, root);
+        var settings = await WaitForAutomationIdAsync(processId, "SettingsWindow");
+        var settingsHandle = new IntPtr(settings.Current.NativeWindowHandle);
+        await WaitUntilAsync(
+            () => ReadDisplayAffinity(settingsHandle) == Native.WdaExcludeFromCapture,
+            "A settings window opened during recording was not dynamically excluded from capture.");
+
+        var recordingSubtab = await WaitForAutomationIdAsync(processId, "SettingsCaptureRecordingSubtab");
+        if (recordingSubtab.GetCurrentPattern(SelectionItemPattern.Pattern) is not SelectionItemPattern selection)
+            throw new InvalidOperationException("The recording settings subtab cannot be selected.");
+        selection.Select();
+        var include = await WaitForAutomationIdAsync(processId, "IncludeShotPasteInRecording");
+        if (include.GetCurrentPattern(TogglePattern.Pattern) is not TogglePattern toggle ||
+            toggle.Current.ToggleState != ToggleState.Off)
+            throw new InvalidOperationException("The privacy fixture did not start with ShotPaste excluded.");
+
+        toggle.Toggle();
+        await WaitUntilAsync(
+            () => ReadDisplayAffinity(toolbarHandle) == Native.WdaNone &&
+                  ReadDisplayAffinity(settingsHandle) == Native.WdaNone,
+            "Enabling ShotPaste inclusion did not restore live window capture.");
+
+        toggle.Toggle();
+        await WaitUntilAsync(
+            () => ReadDisplayAffinity(toolbarHandle) == Native.WdaExcludeFromCapture &&
+                  ReadDisplayAffinity(settingsHandle) == Native.WdaExcludeFromCapture,
+            "Disabling ShotPaste inclusion did not restore live privacy exclusion.");
+
+        var overlay = await WaitForAutomationIdAsync(processId, "RecordingRegionOverlayWindow");
+        if (!string.Equals(overlay.Current.ItemStatus, "Dimmed", StringComparison.Ordinal))
+            throw new InvalidOperationException("The recording overlay did not start with live dimming enabled.");
+        var dim = await WaitForAutomationIdAsync(processId, "DimNonSelectedRecordingArea");
+        if (dim.GetCurrentPattern(TogglePattern.Pattern) is not TogglePattern dimToggle ||
+            dimToggle.Current.ToggleState != ToggleState.On)
+            throw new InvalidOperationException("The recording dimming fixture did not start enabled.");
+        dimToggle.Toggle();
+        await WaitUntilAsync(
+            () => string.Equals(
+                FindByAutomationId(processId, "RecordingRegionOverlayWindow")?.Current.ItemStatus,
+                "OutlineOnly",
+                StringComparison.Ordinal),
+            "Disabling recording-area dimming did not update the active overlay.");
+        dimToggle.Toggle();
+        await WaitUntilAsync(
+            () => string.Equals(
+                FindByAutomationId(processId, "RecordingRegionOverlayWindow")?.Current.ItemStatus,
+                "Dimmed",
+                StringComparison.Ordinal),
+            "Enabling recording-area dimming did not update the active overlay.");
+
+        var showToolbar = await WaitForAutomationIdAsync(processId, "ShowRecordingToolbar");
+        if (showToolbar.GetCurrentPattern(TogglePattern.Pattern) is not TogglePattern toolbarToggle ||
+            toolbarToggle.Current.ToggleState != ToggleState.On)
+            throw new InvalidOperationException("The recording toolbar fixture did not start enabled.");
+        toolbarToggle.Toggle();
+        await WaitUntilAsync(
+            () => FindByAutomationId(processId, "RecordingToolbarWindow") is null,
+            "Disabling the recording toolbar did not hide the active toolbar.");
+        toolbarToggle.Toggle();
+        var reopenedToolbar = await WaitForAutomationIdAsync(processId, "RecordingToolbarWindow");
+        var reopenedToolbarHandle = new IntPtr(reopenedToolbar.Current.NativeWindowHandle);
+        await WaitUntilAsync(
+            () => ReadDisplayAffinity(reopenedToolbarHandle) == Native.WdaExcludeFromCapture,
+            "A toolbar shown again during recording was not excluded from capture.");
+
+        Invoke(await WaitForAutomationIdAsync(processId, "SettingsSave"));
+        await WaitUntilAsync(() => FindByAutomationId(processId, "SettingsWindow") is null,
+            "The privacy settings window did not close.");
+        return new
+        {
+            ToolbarExcludedAtStart = true,
+            LaterSettingsWindowExcluded = true,
+            IncludeToggleRestoredCapture = true,
+            ExcludeToggleRestoredPrivacy = true,
+            DimToggleAppliedLive = true,
+            ToolbarToggleAppliedLive = true
+        };
+    }
+
+    private static async Task<object> VerifyToolbarDraggingAsync(int processId, string root)
+    {
+        var toolbar = await WaitForAutomationIdAsync(processId, "RecordingToolbarWindow");
+        var before = toolbar.Current.BoundingRectangle;
+        var virtualScreen = Forms.SystemInformation.VirtualScreen;
+        var start = new Drawing.Point(
+            (int)Math.Round(before.Left + 20),
+            (int)Math.Round(before.Top + before.Height / 2));
+        var deltaX = before.Right + 180 < virtualScreen.Right ? 150 : -150;
+        var deltaY = before.Bottom + 120 < virtualScreen.Bottom ? 80 : -80;
+        var end = new Drawing.Point(start.X + deltaX, start.Y + deltaY);
+        await DragAsync(start, end);
+
+        var moved = before;
+        await WaitUntilAsync(() =>
+        {
+            var current = FindByAutomationId(processId, "RecordingToolbarWindow");
+            if (current is null) return false;
+            var bounds = current.Current.BoundingRectangle;
+            if (Math.Abs(bounds.Left - before.Left) < 40 || Math.Abs(bounds.Top - before.Top) < 25)
+                return false;
+            moved = bounds;
+            return true;
+        }, "Dragging the recording toolbar did not move the window.");
+
+        await Task.Delay(1100);
+        toolbar = await WaitForAutomationIdAsync(processId, "RecordingToolbarWindow");
+        var stable = toolbar.Current.BoundingRectangle;
+        if (Math.Abs(stable.Left - moved.Left) > 4 || Math.Abs(stable.Top - moved.Top) > 4)
+            throw new InvalidOperationException("The recording toolbar jumped back after it was dragged.");
+
+        AppSettings? persisted = null;
+        var settingsPath = Path.Combine(root, "settings.json");
+        await WaitUntilAsync(() =>
+        {
+            try
+            {
+                persisted = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(settingsPath));
+                return persisted?.RecordingToolbarLeft is { } left &&
+                       persisted.RecordingToolbarTop is { } top &&
+                       double.IsFinite(left) && double.IsFinite(top);
+            }
+            catch (Exception exception) when (exception is IOException or JsonException)
+            {
+                return false;
+            }
+        }, "The dragged recording toolbar position was not persisted.");
+
+        return new
+        {
+            Moved = true,
+            StayedAtDraggedPosition = true,
+            Persisted = true,
+            Before = new { before.Left, before.Top },
+            After = new { stable.Left, stable.Top },
+            Saved = new
+            {
+                Left = persisted!.RecordingToolbarLeft,
+                Top = persisted.RecordingToolbarTop
+            }
+        };
+    }
+
+    private static uint ReadDisplayAffinity(IntPtr handle)
+    {
+        if (!Native.GetWindowDisplayAffinity(handle, out var affinity))
+            throw new InvalidOperationException(
+                $"GetWindowDisplayAffinity failed for 0x{handle.ToInt64():X}: {Marshal.GetLastWin32Error()}.");
+        return affinity;
+    }
+
     private static void PrepareRoot(string root)
     {
         if (Directory.Exists(root)) Directory.Delete(root, true);
@@ -182,6 +349,7 @@ internal static class RecordingLifecycleE2E
             ShortcutsEnabled = false,
             ShowQuickAccess = false,
             ShowRecordingToolbar = true,
+            DimNonSelectedRecordingArea = true,
             RecordingOutputMode = RecordingOutputMode.Video,
             RecordingVideoCodec = "H264",
             RecordSystemAudio = false,
@@ -189,6 +357,7 @@ internal static class RecordingLifecycleE2E
             HighlightMouseClicks = false,
             ShowKeystrokes = false,
             CopyRecordings = false,
+            IncludeShotPasteInRecording = false,
             ShowCaptureNotifications = false
         };
         File.WriteAllText(Path.Combine(root, "settings.json"),
@@ -213,6 +382,20 @@ internal static class RecordingLifecycleE2E
         {
             forwarder.Kill(entireProcessTree: true);
             throw new TimeoutException("Exit command forwarder did not finish.");
+        }
+    }
+
+    private static void RequestSettings(string executable, string root)
+    {
+        using var forwarder = Process.Start(new ProcessStartInfo(executable)
+        {
+            UseShellExecute = false,
+            ArgumentList = { "--ui-test", "--data-root", root, "--settings=capture-recording" }
+        }) ?? throw new InvalidOperationException("Could not launch the settings command forwarder.");
+        if (!forwarder.WaitForExit(5000))
+        {
+            forwarder.Kill(entireProcessTree: true);
+            throw new TimeoutException("Settings command forwarder did not finish.");
         }
     }
 
@@ -316,6 +499,8 @@ internal static class RecordingLifecycleE2E
     {
         internal const uint MouseLeftDown = 0x0002;
         internal const uint MouseLeftUp = 0x0004;
+        internal const uint WdaNone = 0x00000000;
+        internal const uint WdaExcludeFromCapture = 0x00000011;
 
         [DllImport("user32.dll")]
         internal static extern IntPtr SetThreadDpiAwarenessContext(IntPtr value);
@@ -326,5 +511,9 @@ internal static class RecordingLifecycleE2E
 
         [DllImport("user32.dll")]
         internal static extern void mouse_event(uint flags, uint x, uint y, uint data, UIntPtr extraInfo);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetWindowDisplayAffinity(IntPtr hwnd, out uint affinity);
     }
 }

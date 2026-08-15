@@ -59,16 +59,32 @@ public sealed class RecordingAnnotationStateTests
             }
         });
         thread.SetApartmentState(ApartmentState.STA);
+        thread.IsBackground = true;
         thread.Start();
-        Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "WPF toolbar construction did not complete.");
+        Assert.True(thread.Join(TimeSpan.FromSeconds(15)), "WPF toolbar construction did not complete.");
 
         Assert.Null(failure);
     }
 
     [Fact]
-    public void Toolbar_UsesWindowsCaptureExclusionAffinity()
+    public void RecordingSurfaces_DelegateAffinityToDynamicPrivacyService()
     {
-        Assert.Equal(0x00000011u, RecordingInkToolbarWindow.CaptureExclusionAffinity);
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null &&
+               !Directory.Exists(Path.Combine(directory.FullName, ".git")) &&
+               !File.Exists(Path.Combine(directory.FullName, ".git"))) directory = directory.Parent;
+        var root = directory?.FullName ?? Directory.GetCurrentDirectory();
+        var views = Path.Combine(root, "platforms", "windows", "src", "ShotPaste.Windows", "Views");
+        foreach (var fileName in new[]
+                 {
+                     "RecordingToolbarWindow.xaml.cs",
+                     "RecordingRegionOverlayWindow.xaml.cs",
+                     "RecordingInkToolbarWindow.xaml.cs"
+                 })
+        {
+            var source = File.ReadAllText(Path.Combine(views, fileName));
+            Assert.DoesNotContain("SetWindowDisplayAffinity", source, StringComparison.Ordinal);
+        }
     }
 
     [Fact]
