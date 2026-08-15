@@ -109,6 +109,35 @@ final class ShotPasteConfigurationServiceTests: XCTestCase {
     )
   }
 
+  func testScreenshotCaptureIncludesShotPasteByDefault() throws {
+    let defaults = UserDefaultsFactory.make()
+    let exportedSource = ShotPasteConfigurationExporter.exportTOML(defaults: defaults)
+    let exportedDocument = try SimpleTOMLParser.parse(exportedSource)
+    let defaultDocument = try SimpleTOMLParser.parse(ShotPasteConfigurationDefaultDocument.toml())
+
+    XCTAssertEqual(
+      exportedDocument.value(at: "capture", "screenshot", "include_shotpaste")?.boolValue,
+      true
+    )
+    XCTAssertEqual(
+      defaultDocument.value(at: "capture", "screenshot", "include_shotpaste")?.boolValue,
+      true
+    )
+  }
+
+  func testScreenshotCapturePreservesExplicitOwnApplicationExclusion() throws {
+    let defaults = UserDefaultsFactory.make()
+    defaults.set(false, forKey: PreferencesKeys.screenshotIncludeOwnApp)
+
+    let source = ShotPasteConfigurationExporter.exportTOML(defaults: defaults)
+    let document = try SimpleTOMLParser.parse(source)
+
+    XCTAssertEqual(
+      document.value(at: "capture", "screenshot", "include_shotpaste")?.boolValue,
+      false
+    )
+  }
+
   func testEnsureConfigExistsDoesNotOverwriteExistingFile() throws {
     let homeDirectory = temporaryHomeDirectory()
     defer { try? FileManager.default.removeItem(at: homeDirectory) }

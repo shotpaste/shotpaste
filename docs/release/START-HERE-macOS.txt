@@ -3,6 +3,11 @@ ShotPaste @VERSION@ - macOS (Apple Silicon)
 
 This DMG is signed with ShotPaste's persistent self-signed certificate.
 
+INSTALL BEFORE FIRST LAUNCH:
+Drag "ShotPaste.app" onto "Applications" in the DMG window, then launch the
+installed copy from /Applications. Do not run ShotPaste directly from the DMG;
+macOS privacy permissions are tied to the installed app's identity and path.
+
 1. Download the DMG and SHA256SUMS.txt from the same GitHub Release.
 2. Run:
 
@@ -19,6 +24,11 @@ This DMG is signed with ShotPaste's persistent self-signed certificate.
 ----
 
 该 DMG 使用 ShotPaste 项目固定的自签名证书。
+
+首次启动前请先安装：
+在 DMG 窗口中，将“ShotPaste.app”拖到“Applications（应用程序）”，然后从
+/Applications 启动安装后的副本。请勿直接在 DMG 中运行；macOS 隐私权限会
+绑定到应用身份与安装路径。
 
 1. 从同一个 GitHub Release 下载 DMG 与 SHA256SUMS.txt。
 2. 运行上面的 shasum 命令，并与 SHA256SUMS.txt 中对应的 DMG 行核对。

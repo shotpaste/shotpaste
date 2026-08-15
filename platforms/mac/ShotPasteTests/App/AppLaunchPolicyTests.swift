@@ -57,4 +57,62 @@ final class AppLaunchPolicyTests: XCTestCase {
 
     XCTAssertTrue(policy.shouldStartInteractiveApplication)
   }
+
+  func testSingleInstanceProtection_requiresEnabledInfoPlistBoolean() {
+    XCTAssertTrue(
+      SingleInstanceProtection.isEnabled(in: [
+        SingleInstanceProtection.infoPlistKey: true,
+      ])
+    )
+    XCTAssertFalse(
+      SingleInstanceProtection.isEnabled(in: [
+        SingleInstanceProtection.infoPlistKey: false,
+      ])
+    )
+    XCTAssertFalse(SingleInstanceProtection.isEnabled(in: [:]))
+  }
+
+  func testApplicationReopenPolicy_opensPreferencesOnlyAfterLaunchCompletes() {
+    XCTAssertFalse(ApplicationReopenPolicy.shouldOpenPreferences(didFinishLaunching: false))
+    XCTAssertTrue(ApplicationReopenPolicy.shouldOpenPreferences(didFinishLaunching: true))
+  }
+
+  func testApplicationReopenPolicy_opensPreferencesForDefaultLaunch() {
+    XCTAssertTrue(
+      ApplicationReopenPolicy.shouldOpenPreferencesAfterLaunch(
+        isDefaultLaunch: true,
+        didSchedulePermissionGuide: false
+      )
+    )
+  }
+
+  func testApplicationReopenPolicy_doesNotInterruptNonDefaultOrPermissionGuideLaunch() {
+    XCTAssertFalse(
+      ApplicationReopenPolicy.shouldOpenPreferencesAfterLaunch(
+        isDefaultLaunch: true,
+        didSchedulePermissionGuide: true
+      )
+    )
+    XCTAssertFalse(
+      ApplicationReopenPolicy.shouldOpenPreferencesAfterLaunch(
+        isDefaultLaunch: false,
+        didSchedulePermissionGuide: false
+      )
+    )
+  }
+
+  func testRelaunchPlan_waitsForCurrentProcessAndDoesNotForceDuplicateInstance() {
+    let bundleURL = URL(fileURLWithPath: "/Applications/Shot Paste.app")
+
+    let plan = AppRelaunchPlan(bundleURL: bundleURL, processIdentifier: 42)
+
+    XCTAssertEqual(plan.executableURL.path, "/bin/sh")
+    XCTAssertEqual(plan.arguments[0], "-c")
+    XCTAssertEqual(plan.arguments[2], "shotpaste-relaunch")
+    XCTAssertEqual(plan.arguments[3], "42")
+    XCTAssertEqual(plan.arguments[4], bundleURL.path)
+    XCTAssertFalse(plan.arguments.contains("-n"))
+    XCTAssertTrue(plan.arguments[1].contains("kill -0 \"$1\""))
+    XCTAssertTrue(plan.arguments[1].contains("open \"$2\""))
+  }
 }
