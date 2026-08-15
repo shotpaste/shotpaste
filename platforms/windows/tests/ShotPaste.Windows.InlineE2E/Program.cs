@@ -54,6 +54,7 @@ internal static class Program
                 ("one_shot_scrolling_selection_move", ScenarioAction.OneShotScrollingSelectionMove, false),
                 ("one_shot_recording_selection_move", ScenarioAction.OneShotRecordingSelectionMove, false),
                 ("one_shot_toolbar_drag", ScenarioAction.OneShotToolbarDrag, false),
+                ("one_shot_own_app_exclusion", ScenarioAction.OneShotOwnAppExclusion, false),
                 ("performance_baseline", ScenarioAction.PerformanceBaseline, false)
             };
             var results = plans
@@ -103,18 +104,27 @@ internal static class Program
         if (File.Exists(database)) File.Delete(database);
 
         var startupClock = Stopwatch.StartNew();
+        var initialCommand = action == ScenarioAction.OneShotOwnAppExclusion ? "--history" : "--one-shot";
         using var process = Process.Start(new ProcessStartInfo(executable)
         {
             UseShellExecute = false,
             ArgumentList =
             {
-                "--ui-test", "--data-root", root, "--one-shot"
+                "--ui-test", "--data-root", root, initialCommand
             }
         }) ?? throw new InvalidOperationException("Failed to start ShotPaste.");
 
         try
         {
+            if (action == ScenarioAction.OneShotOwnAppExclusion)
+            {
+                WaitForAutomationId(process.Id, "HistoryWindow");
+                ForwardUiTestCommand(executable, root, "--one-shot");
+            }
             var overlay = WaitForAutomationId(process.Id, "InlineAnnotateWindow");
+            var privacyVerification = action == ScenarioAction.OneShotOwnAppExclusion
+                ? VerifyOneShotPrivacyReadiness(root)
+                : null;
             var firstFrameMilliseconds = startupClock.Elapsed.TotalMilliseconds;
             if (action == ScenarioAction.OneShotToolbarDrag)
             {
@@ -442,8 +452,8 @@ internal static class Program
                     SendKey(overlay, 0x0D);
                     WaitForCaptureCount(captureDirectory, 1);
                     var quickVerification = ExerciseQuickAccess(process.Id, root);
-                    screenshot = quickVerification.Screenshot;
-                    detail = $"Quick Access kept fixed action slots and resumed its saved countdown in {quickVerification.ResumeSeconds:0.00}s.";
+                    screenshot = quickVerification.PreviewScreenshot;
+                    detail = $"Quick Access rendered the asynchronously decoded screenshot thumbnail, kept fixed action slots, and resumed its saved countdown in {quickVerification.ResumeSeconds:0.00}s.";
                     break;
                 case ScenarioAction.QuickAccessDrag:
                     SendKey(overlay, 0x0D);
@@ -519,6 +529,12 @@ internal static class Program
                     WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
                         "One Shot overlay did not close after toolbar drag validation.");
                     detail = "One Shot mode switcher hid during selection, returned before commit, hid after commit, and both toolbars remained draggable.";
+                    break;
+                case ScenarioAction.OneShotOwnAppExclusion:
+                    Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
+                        "One Shot overlay did not close after own-application exclusion validation.");
+                    detail = $"One Shot applied native capture exclusion, hid {privacyVerification!.HiddenWindowCount} visible ShotPaste window(s), and observed zero visible or stale compositor probes before freezing the desktop.";
                     break;
                 case ScenarioAction.PerformanceBaseline:
                     var exportClock = Stopwatch.StartNew();
@@ -803,7 +819,11 @@ internal static class Program
     private static QuickVerification ExerciseQuickAccess(int processId, string root)
     {
         var quick = WaitForAutomationId(processId, "QuickAccessWindow");
-        Thread.Sleep(700);
+        WaitUntil(() => FindVisibleByAutomationId(processId, "QuickAccessTextPreview") is null,
+            "Quick Access kept its fallback surface after the screenshot thumbnail finished decoding.");
+        Thread.Sleep(180);
+        var previewScreenshot = Path.Combine(root, "quick-access-thumbnail.png");
+        SaveDesktopScreenshot(previewScreenshot);
         var bounds = quick.Current.BoundingRectangle;
         Native.SetCursorPos((int)Math.Round(bounds.Left + bounds.Width / 2), (int)Math.Round(bounds.Top + bounds.Height / 2));
         Thread.Sleep(2800);
@@ -817,8 +837,8 @@ internal static class Program
             FindVisibleByAutomationId(processId, "QuickAccessSave") is not null)
             throw new InvalidOperationException("Quick Access actions shifted after disabled actions were removed.");
 
-        var screenshot = Path.Combine(root, "quick-access-fixed-slots.png");
-        SaveDesktopScreenshot(screenshot);
+        var actionsScreenshot = Path.Combine(root, "quick-access-fixed-slots.png");
+        SaveDesktopScreenshot(actionsScreenshot);
         var screen = Forms.Screen.FromPoint(Forms.Cursor.Position).WorkingArea;
         Native.SetCursorPos(screen.Left + 12, screen.Top + 12);
         var stopwatch = Stopwatch.StartNew();
@@ -826,7 +846,7 @@ internal static class Program
             "Quick Access did not resume its countdown after hover ended.");
         if (stopwatch.Elapsed < TimeSpan.FromSeconds(1) || stopwatch.Elapsed > TimeSpan.FromSeconds(2.9))
             throw new InvalidOperationException($"Quick Access resumed with the wrong remaining time: {stopwatch.Elapsed.TotalSeconds:0.00}s.");
-        return new QuickVerification(stopwatch.Elapsed.TotalSeconds, screenshot);
+        return new QuickVerification(stopwatch.Elapsed.TotalSeconds, previewScreenshot, actionsScreenshot);
     }
 
     private static string ExerciseQuickAccessDelete(int processId, string root, string captureDirectory)
@@ -887,17 +907,42 @@ internal static class Program
     }
 
     private static void RequestUiTestExit(string executable, string root)
+        => ForwardUiTestCommand(executable, root, "--ui-test-exit");
+
+    private static void ForwardUiTestCommand(string executable, string root, string command)
     {
         using var forwarder = Process.Start(new ProcessStartInfo(executable)
         {
             UseShellExecute = false,
-            ArgumentList = { "--ui-test", "--data-root", root, "--ui-test-exit" }
-        }) ?? throw new InvalidOperationException("Could not start the UI-test exit forwarder.");
+            ArgumentList = { "--ui-test", "--data-root", root, command }
+        }) ?? throw new InvalidOperationException($"Could not start the UI-test {command} forwarder.");
         if (!forwarder.WaitForExit(5000))
         {
             forwarder.Kill(entireProcessTree: true);
-            throw new TimeoutException("UI-test exit command was not forwarded to the active product instance.");
+            throw new TimeoutException($"UI-test command {command} was not forwarded to the active product instance.");
         }
+    }
+
+    private static OneShotPrivacyVerification VerifyOneShotPrivacyReadiness(string root)
+    {
+        var path = Path.Combine(root, "capture-readiness.jsonl");
+        WaitUntil(() => File.Exists(path) && File.ReadLines(path).Any(line => !string.IsNullOrWhiteSpace(line)),
+            "One Shot did not write capture-readiness evidence.");
+        var line = File.ReadLines(path).Last(line => !string.IsNullOrWhiteSpace(line));
+        using var document = JsonDocument.Parse(line);
+        var evidence = document.RootElement;
+        var scenario = evidence.GetProperty("Scenario").GetString();
+        var hiddenWindowCount = evidence.GetProperty("HiddenWindowCount").GetInt32();
+        var remainingVisibleWindows = evidence.GetProperty("RemainingVisibleWindows").GetInt32();
+        var remainingStaleProbes = evidence.GetProperty("RemainingStaleProbes").GetInt32();
+        var nativeExclusionApplied = evidence.GetProperty("NativeExclusionApplied").GetBoolean();
+        var isReady = evidence.GetProperty("IsReady").GetBoolean();
+        if (scenario != "OneShotFrozenBackdrop" || hiddenWindowCount < 1 ||
+            remainingVisibleWindows != 0 || remainingStaleProbes != 0 ||
+            !nativeExclusionApplied || !isReady)
+            throw new InvalidOperationException(
+                $"One Shot own-app exclusion was not ready before capture: {line}");
+        return new OneShotPrivacyVerification(hiddenWindowCount);
     }
 
     private static int PersistedHistoryItemCount(string database)
@@ -1136,11 +1181,13 @@ internal static class Program
         OneShotScrollingSelectionMove,
         OneShotRecordingSelectionMove,
         OneShotToolbarDrag,
+        OneShotOwnAppExclusion,
         PerformanceBaseline
     }
 
     private sealed record PinVerification(double WidthAt50, double WidthAt150, long ImageHitTest, long LockHitTest, string Screenshot);
-    private sealed record QuickVerification(double ResumeSeconds, string Screenshot);
+    private sealed record QuickVerification(double ResumeSeconds, string PreviewScreenshot, string ActionsScreenshot);
+    private sealed record OneShotPrivacyVerification(int HiddenWindowCount);
 
     private sealed class NativeFileDropTarget : IDisposable
     {

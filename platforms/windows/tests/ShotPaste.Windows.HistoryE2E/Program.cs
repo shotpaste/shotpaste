@@ -26,17 +26,21 @@ internal static class Program
         try
         {
             if (args.Length < 1) throw new ArgumentException(
-                "Usage: HistoryE2E <ShotPaste.exe> [output-root] [--clipboard-only|--database-recovery-only]");
+                "Usage: HistoryE2E <ShotPaste.exe> [output-root] [--clipboard-only|--database-recovery-only|--direct-launch-only]");
             var executable = Path.GetFullPath(args[0]);
             var outputRoot = Path.GetFullPath(args.ElementAtOrDefault(1) ?? Path.Combine("build", "e2e", "history-ui"));
             var clipboardOnly = args.Any(value => value.Equals("--clipboard-only", StringComparison.OrdinalIgnoreCase));
             var databaseRecoveryOnly = args.Any(value =>
                 value.Equals("--database-recovery-only", StringComparison.OrdinalIgnoreCase));
+            var directLaunchOnly = args.Any(value =>
+                value.Equals("--direct-launch-only", StringComparison.OrdinalIgnoreCase));
             var language = args.FirstOrDefault(value => value.StartsWith("--language=", StringComparison.OrdinalIgnoreCase))?
                 .Split('=', 2)[1] ?? "en-US";
             var result = databaseRecoveryOnly
                 ? RunDatabaseRecoverySessionAsync(executable, outputRoot, language).GetAwaiter().GetResult()
-                : RunAsync(executable, outputRoot, clipboardOnly).GetAwaiter().GetResult();
+                : directLaunchOnly
+                    ? RunDirectExecutableLaunchSessionAsync(executable, outputRoot).GetAwaiter().GetResult()
+                    : RunAsync(executable, outputRoot, clipboardOnly).GetAwaiter().GetResult();
             var summary = Path.Combine(outputRoot, "summary.json");
             Directory.CreateDirectory(outputRoot);
             File.WriteAllText(summary, JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
@@ -76,6 +80,7 @@ internal static class Program
         var deletion = await RunDeletionSessionAsync(executable, outputRoot);
         var clear = await RunClearSessionAsync(executable, outputRoot);
         var settingsDeepLinks = await RunSettingsDeepLinkSessionAsync(executable, outputRoot);
+        var directExecutableLaunch = await RunDirectExecutableLaunchSessionAsync(executable, outputRoot);
         var databaseRecovery = await RunDatabaseRecoverySessionAsync(executable, outputRoot, "en-US");
         var clipboard = await RunClipboardSessionAsync(executable, outputRoot);
         return new
@@ -94,6 +99,7 @@ internal static class Program
             DeletionSession = deletion,
             ClearSession = clear,
             SettingsDeepLinks = settingsDeepLinks,
+            DirectExecutableLaunch = directExecutableLaunch,
             DatabaseRecovery = databaseRecovery,
             ClipboardSession = clipboard,
             ThumbnailCache = thumbnailCache
@@ -884,6 +890,117 @@ internal static class Program
         return new { Shortcuts = shortcuts, Capture = capture };
     }
 
+    private static async Task<object> RunDirectExecutableLaunchSessionAsync(string executable, string outputRoot)
+    {
+        var dataRoot = Path.Combine(outputRoot, "direct-executable-launch-data");
+        if (Directory.Exists(dataRoot)) Directory.Delete(dataRoot, true);
+        Directory.CreateDirectory(dataRoot);
+        var saveDirectory = Path.Combine(dataRoot, "Captures");
+        Directory.CreateDirectory(saveDirectory);
+        File.WriteAllText(Path.Combine(dataRoot, "settings.json"), JsonSerializer.Serialize(new
+        {
+            SaveDirectory = saveDirectory,
+            Language = "en-US",
+            ShortcutsEnabled = false,
+            ShowQuickAccess = false
+        }, new JsonSerializerOptions { WriteIndented = true }));
+        using var product = Process.Start(new ProcessStartInfo(executable)
+        {
+            UseShellExecute = false,
+            ArgumentList =
+            {
+                "--ui-test",
+                "--data-root",
+                dataRoot,
+                "--ui-test-direct-launch"
+            }
+        }) ?? throw new InvalidOperationException("Could not launch the direct executable fixture.");
+        try
+        {
+            var settings = await WaitForAutomationIdAsync(product.Id, "SettingsWindow");
+            var generalTab = await WaitForAutomationIdAsync(product.Id, "SettingsGeneralTab");
+            if (generalTab.GetCurrentPattern(SelectionItemPattern.Pattern) is not SelectionItemPattern selection ||
+                !selection.Current.IsSelected)
+                throw new InvalidOperationException(
+                    "A direct executable launch did not open the General page in the actual settings window.");
+            var screenshot = Path.Combine(outputRoot, "settings-direct-executable-launch.png");
+            SaveWindowScreenshot(PhysicalBounds(settings), screenshot);
+
+            using (var forwarded = Process.Start(new ProcessStartInfo(executable)
+                   {
+                       UseShellExecute = false,
+                       ArgumentList =
+                       {
+                           "--ui-test",
+                           "--data-root",
+                           dataRoot,
+                           "--settings=shortcuts"
+                       }
+                   }) ?? throw new InvalidOperationException("Could not launch the repeated settings fixture."))
+            {
+                if (!forwarded.WaitForExit(5000))
+                    throw new InvalidOperationException("The repeated settings request was not forwarded.");
+            }
+            var shortcutsTab = await WaitForAutomationIdAsync(product.Id, "SettingsShortcutsTab");
+            await WaitUntilAsync(() =>
+            {
+                if (shortcutsTab.GetCurrentPattern(SelectionItemPattern.Pattern) is not SelectionItemPattern selected ||
+                    !selected.Current.IsSelected) return false;
+                var settingsWindows = AutomationElement.RootElement.FindAll(
+                    TreeScope.Descendants,
+                    new AndCondition(
+                        new PropertyCondition(AutomationElement.ProcessIdProperty, product.Id),
+                        new PropertyCondition(AutomationElement.AutomationIdProperty, "SettingsWindow")));
+                return settingsWindows.Count == 1;
+            }, "A repeated settings request opened another window or did not navigate the existing window.");
+
+            var captureTab = await WaitForAutomationIdAsync(product.Id, "SettingsCaptureRecordingTab");
+            ((SelectionItemPattern)captureTab.GetCurrentPattern(SelectionItemPattern.Pattern)).Select();
+            var excludeOwnApplication = await WaitForAutomationIdAsync(
+                product.Id, "SettingsExcludeOwnApplication");
+            var ocrSuccessNotifications = await WaitForAutomationIdAsync(
+                product.Id, "SettingsOcrSuccessNotifications");
+            if (GetToggleState(excludeOwnApplication) != System.Windows.Automation.ToggleState.Off)
+                throw new InvalidOperationException(
+                    "A fresh settings profile enabled ShotPaste window exclusion by default.");
+            if (GetToggleState(ocrSuccessNotifications) != System.Windows.Automation.ToggleState.On)
+                throw new InvalidOperationException(
+                    "A fresh settings profile disabled OCR success notifications by default.");
+            ScrollIntoView(ocrSuccessNotifications);
+            await Task.Delay(180);
+            var captureDefaultsScreenshot = Path.Combine(outputRoot, "settings-default-capture-options.png");
+            SaveWindowScreenshot(PhysicalBounds(settings), captureDefaultsScreenshot);
+
+            var historyTab = await WaitForAutomationIdAsync(product.Id, "SettingsHistoryTab");
+            ((SelectionItemPattern)historyTab.GetCurrentPattern(SelectionItemPattern.Pattern)).Select();
+            var clipboardHistory = await WaitForAutomationIdAsync(
+                product.Id, "SettingsClipboardHistoryEnabled");
+            if (GetToggleState(clipboardHistory) != System.Windows.Automation.ToggleState.On)
+                throw new InvalidOperationException(
+                    "A fresh settings profile disabled clipboard history by default.");
+            var clipboardDefaultScreenshot = Path.Combine(outputRoot, "settings-default-clipboard-history.png");
+            SaveWindowScreenshot(PhysicalBounds(settings), clipboardDefaultScreenshot);
+
+            Invoke(await WaitForAutomationIdAsync(product.Id, "SettingsSave"));
+            await WaitUntilAsync(() => FindByAutomationId(product.Id, "SettingsWindow") is null,
+                "The direct-launch settings window did not close.");
+            return new
+            {
+                DirectLaunchOpenedSettings = true,
+                RepeatedRequestReusedWindow = true,
+                RepeatedRequestSelectedAutomationId = "SettingsShortcutsTab",
+                SelectedAutomationId = "SettingsGeneralTab",
+                ExcludeOwnApplicationDefault = false,
+                OcrSuccessNotificationsDefault = true,
+                ClipboardHistoryDefault = true,
+                Screenshot = screenshot,
+                CaptureDefaultsScreenshot = captureDefaultsScreenshot,
+                ClipboardDefaultScreenshot = clipboardDefaultScreenshot
+            };
+        }
+        finally { StopExactProcess(product); }
+    }
+
     private static async Task<object> VerifySettingsDeepLinkAsync(
         string executable,
         string outputRoot,
@@ -1037,6 +1154,15 @@ internal static class Program
 
     private static void Invoke(AutomationElement element) =>
         ((InvokePattern)element.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
+
+    private static System.Windows.Automation.ToggleState GetToggleState(AutomationElement element) =>
+        ((TogglePattern)element.GetCurrentPattern(TogglePattern.Pattern)).Current.ToggleState;
+
+    private static void ScrollIntoView(AutomationElement element)
+    {
+        if (element.TryGetCurrentPattern(ScrollItemPattern.Pattern, out var pattern))
+            ((ScrollItemPattern)pattern).ScrollIntoView();
+    }
 
     private static Drawing.Rectangle PhysicalBounds(AutomationElement element)
     {

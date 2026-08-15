@@ -17,7 +17,7 @@ public sealed class AppSettings
     public bool ShowCursorInScreenshots { get; set; }
     public bool HideDesktopIconsInScreenshots { get; set; }
     public bool HideDesktopWidgetsInScreenshots { get; set; }
-    public bool ExcludeOwnApplicationFromScreenshots { get; set; } = true;
+    public bool ExcludeOwnApplicationFromScreenshots { get; set; }
     public int ScreenshotScale { get; set; }
     public string ScreenshotColorSpace { get; set; } = "Auto";
     public bool ScreenshotMagnifierEnabled { get; set; } = true;
@@ -28,7 +28,7 @@ public sealed class AppSettings
     public double AnnotationCornerRadius { get; set; }
     public Dictionary<string, AnnotationToolSettings> AnnotationToolSettings { get; set; } = [];
     public bool ShowCaptureNotifications { get; set; } = true;
-    public bool ShowOcrSuccessNotifications { get; set; }
+    public bool ShowOcrSuccessNotifications { get; set; } = true;
     public bool ShowOcrLinkNotifications { get; set; } = true;
     public string OcrRecognitionLanguage { get; set; } = "Auto";
     public bool CopyRecordings { get; set; } = true;
@@ -210,4 +210,4 @@ public sealed record ScreenCaptureOptions(
     bool IncludeCursor = false,
     bool HideDesktopIcons = false,
     bool HideDesktopWidgets = false,
-    bool ExcludeOwnApplication = true);
+    bool ExcludeOwnApplication = false);

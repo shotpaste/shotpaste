@@ -11,9 +11,22 @@
           ToolTip="{Binding FilePath}" ToolTipService.InitialShowDelay="10000">
     <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="18" ShadowDepth="7" Opacity="0.48"/></Border.Effect>
     <Grid>
-      <Image x:Name="Preview" Stretch="UniformToFill"/>
-      <Grid x:Name="TextPreview" Background="{DynamicResource HudBrush}" Visibility="Collapsed">
-        <TextBlock x:Name="TextPreviewContent" Foreground="{DynamicResource HudTextBrush}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" Margin="14" FontSize="12" MaxHeight="88"/>
+      <Image x:Name="Preview" Source="{Binding PreviewSource}" Stretch="UniformToFill"
+             AutomationProperties.AutomationId="QuickAccessPreview" AutomationProperties.Name="截图预览"/>
+      <Grid x:Name="TextPreview" Background="{DynamicResource HudBrush}"
+            AutomationProperties.AutomationId="QuickAccessTextPreview">
+        <Grid.Style>
+          <Style TargetType="Grid">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding PreviewSource}" Value="{x:Null}">
+                <Setter Property="Visibility" Value="Visible"/>
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Grid.Style>
+        <TextBlock x:Name="TextPreviewContent" Text="{Binding PreviewText}" Foreground="{DynamicResource HudTextBrush}"
+                   TextWrapping="Wrap" TextTrimming="CharacterEllipsis" Margin="14" FontSize="12" MaxHeight="88"/>
       </Grid>
       <Border x:Name="HoverOverlay" Background="{DynamicResource HudOverlayBrush}" Opacity="0" IsHitTestVisible="False">
         <WrapPanel x:Name="Actions" HorizontalAlignment="Center" VerticalAlignment="Center" Width="176" ItemWidth="84">

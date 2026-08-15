@@ -53,15 +53,15 @@ public partial class App : System.Windows.Application
             if (args.ExceptionObject is Exception exception) WriteCrashLog(exception);
         };
         base.OnStartup(e);
+        var commandArguments = AppLaunchArguments.ResolveInitialCommandArguments(e.Args);
         var mutexName = UiTestMode
             ? $"{AppBuildIdentity.Current.SingleInstanceMutexName}.UiTest.{ScopeToken(_instanceScope!)}"
             : AppBuildIdentity.Current.SingleInstanceMutexName;
         _singleInstance = new Mutex(true, mutexName, out var createdNew);
         if (!createdNew)
         {
-            var forwarded = e.Args.Length > 0 ? e.Args : ["--history"];
             App.WriteQuickAccessLog("Secondary instance forwarding command.");
-            var sent = AppCommandService.SendAsync(forwarded, instanceScope: _instanceScope).GetAwaiter().GetResult();
+            var sent = AppCommandService.SendAsync(commandArguments, instanceScope: _instanceScope).GetAwaiter().GetResult();
             App.WriteQuickAccessLog($"Secondary instance forwarding completed sent={sent}; shutting down.");
             Shutdown();
             return;
@@ -72,7 +72,7 @@ public partial class App : System.Windows.Application
         _commandService = new AppCommandService(_instanceScope);
         _commandService.Start(arguments => Dispatcher.BeginInvoke(() => _controller?.HandleExternalCommand(arguments)));
         _controller.Start();
-        _controller.HandleExternalCommand(e.Args);
+        _controller.HandleExternalCommand(commandArguments);
         if (UiTestMode && e.Args.Any(argument => argument.Equals("--ui-test-toast", StringComparison.OrdinalIgnoreCase)))
         {
             _ = Dispatcher.BeginInvoke(() => ToastService.Show(

@@ -40,25 +40,10 @@ public partial class QuickAccessWindow : Window
         _item = item;
         _controller = controller;
         _settings = settings;
+        DataContext = item;
         _countdown = new Services.QuickAccessCountdown(TimeSpan.FromSeconds(
             Math.Clamp(settings.Current.QuickAccessAutoDismissSeconds, 3, 30)));
-        var preview = default(System.Windows.Media.Imaging.BitmapImage);
-        try
-        {
-            preview = item.PreviewSource;
-        }
-        catch
-        {
-            // 保持容错：缩略图加载失败时展示文字预览，不影响弹窗显示。
-        }
-        Preview.Source = preview;
         TitleText.Text = item.Title;
-        DataContext = item;
-        if (preview is null)
-        {
-            TextPreview.Visibility = Visibility.Visible;
-            TextPreviewContent.Text = item.PreviewText;
-        }
         var isTemporary = false;
         try
         {

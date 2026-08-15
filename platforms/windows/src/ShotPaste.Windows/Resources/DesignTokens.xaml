@@ -137,6 +137,8 @@
   <SolidColorBrush x:Key="Annotation.BlurSelectionBrush" Color="#18FFFFFF" />
   <SolidColorBrush x:Key="Pinned.BackgroundBrush" Color="#DD111113" />
   <SolidColorBrush x:Key="Pinned.BorderBrush" Color="#55FFFFFF" />
+  <SolidColorBrush x:Key="Pinned.ToolbarBackgroundBrush" Color="#D91A1A1E" />
+  <SolidColorBrush x:Key="Pinned.ToolbarBorderBrush" Color="#48FFFFFF" />
   <sys:String x:Key="Annotation.Stroke.Red">Stroke:#FFFF453A</sys:String>
   <sys:String x:Key="Annotation.Stroke.Orange">Stroke:#FFFF9F0A</sys:String>
   <sys:String x:Key="Annotation.Stroke.Yellow">Stroke:#FFFFD60A</sys:String>

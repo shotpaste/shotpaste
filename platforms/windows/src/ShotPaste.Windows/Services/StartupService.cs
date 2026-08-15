@@ -14,8 +14,10 @@ public static class StartupService
         {
             var executable = Environment.ProcessPath;
             if (!string.IsNullOrWhiteSpace(executable))
-                key.SetValue(AppBuildIdentity.Current.StartupRegistryValueName, $"\"{executable}\"");
+                key.SetValue(AppBuildIdentity.Current.StartupRegistryValueName, BuildRunCommand(executable));
         }
         else key.DeleteValue(AppBuildIdentity.Current.StartupRegistryValueName, throwOnMissingValue: false);
     }
+
+    internal static string BuildRunCommand(string executable) => $"\"{executable}\" {AppLaunchArguments.Background}";
 }

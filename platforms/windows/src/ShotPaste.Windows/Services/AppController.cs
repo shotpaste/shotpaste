@@ -52,6 +52,7 @@ public sealed class AppController : IDisposable
     private readonly Queue<IReadOnlyList<string>> _pendingCommands = new();
     private bool _ready;
     private bool _settingsWindowOpen;
+    private SettingsWindow? _settingsWindow;
     private string? _databaseRecoveryArchivePath;
 
     public AppController()
@@ -1130,7 +1131,22 @@ public sealed class AppController : IDisposable
 
     public void ShowSettings(string? tab = null)
     {
-        var window = new SettingsWindow(_settings, tab, ApplyLiveSettings) { Owner = _mainWindow?.IsVisible == true ? _mainWindow : null };
+        if (_settingsWindow is { } existing)
+        {
+            existing.NavigateToTab(tab);
+            if (existing.WindowState == WindowState.Minimized) existing.WindowState = WindowState.Normal;
+            existing.Activate();
+            existing.Focus();
+            var handle = new System.Windows.Interop.WindowInteropHelper(existing).Handle;
+            if (handle != IntPtr.Zero) NativeMethods.SetForegroundWindow(handle);
+            return;
+        }
+
+        var window = new SettingsWindow(_settings, tab, ApplyLiveSettings)
+        {
+            Owner = _mainWindow?.IsVisible == true ? _mainWindow : null
+        };
+        _settingsWindow = window;
         _hotkeys?.Suspend();
         _settingsWindowOpen = true;
         var saved = false;
@@ -1141,6 +1157,7 @@ public sealed class AppController : IDisposable
         }
         finally
         {
+            if (ReferenceEquals(_settingsWindow, window)) _settingsWindow = null;
             _settingsWindowOpen = false;
             _hotkeys?.RegisterConfigured(_settings.Current);
         }

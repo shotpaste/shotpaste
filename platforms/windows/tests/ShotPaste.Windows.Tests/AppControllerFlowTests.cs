@@ -440,6 +440,30 @@ public sealed class AppControllerFlowTests
     }
 
     [Fact]
+    public void OneShotOwnApplicationExclusionUsesNativeFilteringAndFailClosedReadiness()
+    {
+        var selection = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Services", "RegionSelectionService.cs"));
+
+        var privacyScope = selection.IndexOf("HideAndExcludeApplicationWindows()", StringComparison.Ordinal);
+        var readiness = selection.IndexOf("CaptureReadinessService.WaitAsync", StringComparison.Ordinal);
+        var frozenBackdrop = selection.IndexOf("CaptureFrozenBackdropAsync(options, trace)", StringComparison.Ordinal);
+        Assert.True(privacyScope >= 0 && readiness > privacyScope && frozenBackdrop > readiness,
+            "One Shot must complete own-window exclusion readiness before freezing the desktop.");
+        Assert.Contains("if (!readiness.IsReady)", selection, StringComparison.Ordinal);
+        Assert.Contains("WindowCaptureExclusionService", selection, StringComparison.Ordinal);
+
+        var implementation = selection[selection.IndexOf(
+            "public static WindowVisibilityScope HideAndExcludeApplicationWindows", StringComparison.Ordinal)..];
+        var probe = implementation.IndexOf("windows.Select(CreateProbe)", StringComparison.Ordinal);
+        var nativeFilter = implementation.IndexOf("exclusion.SetEnabled(true)", StringComparison.Ordinal);
+        var hide = implementation.IndexOf("window.Hide()", StringComparison.Ordinal);
+        Assert.True(probe >= 0 && nativeFilter > probe && hide > nativeFilter,
+            "Visible pixels must be probed before native filtering and window hiding change the compositor frame.");
+        Assert.Contains("_captureExclusion?.Dispose();", implementation, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void QuickAccessDragAndContextMenuFollowConfiguredActionSemantics()
     {
         var xaml = File.ReadAllText(FindRepositoryFile(
@@ -556,6 +580,23 @@ public sealed class AppControllerFlowTests
         Assert.Contains("GlobalHotkeyService.ProbeConfigured(_draft)", settingsCode, StringComparison.Ordinal);
         Assert.Contains("_hotkeys?.Suspend()", controller, StringComparison.Ordinal);
         Assert.Contains("if (!_settingsWindowOpen) _hotkeys?.RegisterConfigured", controller, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SettingsWindowIsSingleInstanceAndRepeatedRequestsNavigateExistingWindow()
+    {
+        var controller = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Services", "AppController.cs"));
+        var settingsWindow = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "SettingsWindow.xaml.cs"));
+
+        Assert.Contains("private SettingsWindow? _settingsWindow;", controller, StringComparison.Ordinal);
+        Assert.Contains("if (_settingsWindow is { } existing)", controller, StringComparison.Ordinal);
+        Assert.Contains("existing.NavigateToTab(tab);", controller, StringComparison.Ordinal);
+        Assert.Contains("NativeMethods.SetForegroundWindow(handle)", controller, StringComparison.Ordinal);
+        Assert.Contains("_settingsWindow = window;", controller, StringComparison.Ordinal);
+        Assert.Contains("ReferenceEquals(_settingsWindow, window)", controller, StringComparison.Ordinal);
+        Assert.Contains("public void NavigateToTab(string? tab)", settingsWindow, StringComparison.Ordinal);
     }
 
     private static string FindRepositoryFile(params string[] relativeParts)

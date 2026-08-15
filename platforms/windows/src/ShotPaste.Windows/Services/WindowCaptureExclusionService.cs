@@ -35,6 +35,9 @@ public sealed class WindowCaptureExclusionService : IDisposable
 
     public bool IsEnabled => _enabled;
 
+    internal bool IsHandleExcluded(IntPtr handle) =>
+        handle != IntPtr.Zero && _previousAffinities.ContainsKey(handle);
+
     public void SetEnabled(bool enabled)
     {
         if (_enabled == enabled)

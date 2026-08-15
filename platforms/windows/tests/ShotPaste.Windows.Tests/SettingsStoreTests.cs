@@ -91,6 +91,32 @@ public sealed class SettingsStoreTests
     }
 
     [Fact]
+    public void NewSettings_UseRequestedCaptureNotificationAndClipboardDefaults()
+    {
+        var settings = new AppSettings();
+
+        Assert.False(settings.ExcludeOwnApplicationFromScreenshots);
+        Assert.True(settings.ShowOcrSuccessNotifications);
+        Assert.True(settings.ClipboardHistoryEnabled);
+        Assert.False(new ScreenCaptureOptions().ExcludeOwnApplication);
+    }
+
+    [Fact]
+    public void ExplicitPersistedChoices_AreNotOverwrittenByNewDefaults()
+    {
+        var store = new SettingsStore(new AppSettings
+        {
+            ExcludeOwnApplicationFromScreenshots = true,
+            ShowOcrSuccessNotifications = false,
+            ClipboardHistoryEnabled = false
+        });
+
+        Assert.True(store.Current.ExcludeOwnApplicationFromScreenshots);
+        Assert.False(store.Current.ShowOcrSuccessNotifications);
+        Assert.False(store.Current.ClipboardHistoryEnabled);
+    }
+
+    [Fact]
     public void Constructor_ClampsPersistedHistorySizesToReachableRanges()
     {
         var store = new SettingsStore(new AppSettings

@@ -149,6 +149,11 @@ public partial class SettingsWindow : Window
         if (item is not null) item.IsSelected = true;
     }
 
+    public void NavigateToTab(string? tab)
+    {
+        if (!string.IsNullOrWhiteSpace(tab)) SelectInitialTab(tab);
+    }
+
     private void OnSettingsTabChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (!IsLoaded || !ReferenceEquals(e.Source, SettingsTabs)) return;

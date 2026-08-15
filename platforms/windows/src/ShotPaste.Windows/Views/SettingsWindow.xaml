@@ -150,7 +150,8 @@
                   <CheckBox Content="截图中包含鼠标指针" IsChecked="{Binding ShowCursorInScreenshots}" Margin="0,4,18,4"/>
                   <CheckBox Content="隐藏桌面图标与组件" IsChecked="{Binding HideDesktopIconsInScreenshots}" Margin="0,4,18,4"/>
                   <CheckBox Content="隐藏第三方桌面小组件" IsChecked="{Binding HideDesktopWidgetsInScreenshots}" Margin="0,4,18,4"/>
-                  <CheckBox Content="排除 ShotPaste 自身窗口" IsChecked="{Binding ExcludeOwnApplicationFromScreenshots}" Margin="0,4,18,4"/>
+                  <CheckBox Content="排除 ShotPaste 自身窗口" IsChecked="{Binding ExcludeOwnApplicationFromScreenshots}" Margin="0,4,18,4"
+                            AutomationProperties.AutomationId="SettingsExcludeOwnApplication"/>
                 </WrapPanel>
                 <Grid Margin="0,10,0,0">
                   <Grid.ColumnDefinitions><ColumnDefinition Width="140"/><ColumnDefinition Width="150"/><ColumnDefinition Width="160"/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
@@ -170,7 +171,8 @@
                 <TextBlock Text="通知与 OCR" Style="{StaticResource SectionTitle}"/>
                 <WrapPanel>
                   <CheckBox Content="捕获成功通知" IsChecked="{Binding ShowCaptureNotifications}" Margin="0,4,18,4"/>
-                  <CheckBox Content="OCR 成功通知" IsChecked="{Binding ShowOcrSuccessNotifications}" Margin="0,4,18,4"/>
+                  <CheckBox Content="OCR 成功通知" IsChecked="{Binding ShowOcrSuccessNotifications}" Margin="0,4,18,4"
+                            AutomationProperties.AutomationId="SettingsOcrSuccessNotifications"/>
                   <CheckBox Content="检测 OCR 结果中的链接并显示卡片" IsChecked="{Binding ShowOcrLinkNotifications}" Margin="0,4,18,4"/>
                 </WrapPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
@@ -460,7 +462,8 @@
             <Border Style="{StaticResource SettingsCard}">
               <StackPanel>
                 <TextBlock Text="剪贴板记录" Style="{StaticResource SectionTitle}"/>
-                <CheckBox Content="记录剪贴板图片、文件和文本" IsChecked="{Binding ClipboardHistoryEnabled}"/>
+                <CheckBox Content="记录剪贴板图片、文件和文本" IsChecked="{Binding ClipboardHistoryEnabled}"
+                          AutomationProperties.AutomationId="SettingsClipboardHistoryEnabled"/>
                 <TextBlock Text="记录后可在历史面板中按截图、长图、录屏或剪贴板筛选。" Style="{StaticResource SettingHint}" Margin="0,8,0,0"/>
               </StackPanel>
             </Border>

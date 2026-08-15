@@ -160,6 +160,52 @@ public sealed class UiDesignSystemTests
     }
 
     [Fact]
+    public void QuickAccessPreview_TracksAsynchronouslyDecodedThumbnail()
+    {
+        var sourceRoot = FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows");
+        var view = File.ReadAllText(Path.Combine(sourceRoot, "Views", "QuickAccessWindow.xaml"));
+        var code = File.ReadAllText(Path.Combine(sourceRoot, "Views", "QuickAccessWindow.xaml.cs"));
+
+        Assert.Contains("Source=\"{Binding PreviewSource}\"", view, StringComparison.Ordinal);
+        Assert.Contains("DataTrigger Binding=\"{Binding PreviewSource}\" Value=\"{x:Null}\"", view,
+            StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.AutomationId=\"QuickAccessTextPreview\"", view,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("Preview.Source = preview", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PinnedImageToolbar_RemainsReadableOverAWhiteScreenshot()
+    {
+        var sourceRoot = FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows");
+        var document = XDocument.Load(Path.Combine(sourceRoot, "Resources", "DesignTokens.xaml"));
+        var requiredBrushes = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "HudTextBrush", "Pinned.ToolbarBackgroundBrush"
+        };
+        var brushes = document.Root!.Elements()
+            .Where(element => element.Name.LocalName == "SolidColorBrush")
+            .Where(element => requiredBrushes.Contains(
+                element.Attributes().Single(attribute => attribute.Name.LocalName == "Key").Value))
+            .ToDictionary(
+                element => element.Attributes().Single(attribute => attribute.Name.LocalName == "Key").Value,
+                element => ParseArgb(element.Attribute("Color")!.Value));
+
+        var toolbarOverWhite = Composite(
+            brushes["Pinned.ToolbarBackgroundBrush"],
+            (1d, (1d, 1d, 1d)));
+        var ratio = Contrast(brushes["HudTextBrush"].Rgb, toolbarOverWhite);
+        Assert.True(ratio >= 4.5,
+            $"Pinned toolbar text over a white screenshot has {ratio:0.00}:1 contrast; expected at least 4.50:1.");
+
+        var view = File.ReadAllText(Path.Combine(sourceRoot, "Views", "PinnedImageWindow.xaml"));
+        Assert.Contains("AutomationProperties.AutomationId=\"PinnedToolbarChrome\"", view,
+            StringComparison.Ordinal);
+        Assert.Contains("Background=\"{DynamicResource Pinned.ToolbarBackgroundBrush}\"", view,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AccessibilityPreferences_UseSystemContrastAndReduceMotionSignals()
     {
         var sourceRoot = FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows");
