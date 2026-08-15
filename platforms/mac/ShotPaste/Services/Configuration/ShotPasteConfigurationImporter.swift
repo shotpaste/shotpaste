@@ -559,6 +559,20 @@ enum ShotPasteConfigurationImporter {
     defaults: UserDefaults,
     mutations: inout [() -> Void]
   ) {
+    let currentProtocol = AgentProviderConfiguration.current(defaults: defaults).apiProtocol
+    var importedProtocol: AgentProviderAPIProtocol?
+    if let rawProtocol = reader.string("agent", "api_protocol") {
+      if let value = AgentProviderAPIProtocol(rawValue: rawProtocol) {
+        importedProtocol = value
+      } else {
+        reader
+          .error(
+            "agent.api_protocol must be one of: \(AgentProviderAPIProtocol.allCases.map(\.rawValue).joined(separator: ", "))"
+          )
+      }
+    }
+    let effectiveProtocol = importedProtocol ?? currentProtocol
+
     if let enabled = reader.bool("agent", "enabled") {
       mutations.append {
         defaults.set(enabled, forKey: PreferencesKeys.agentModeEnabled)
@@ -567,13 +581,15 @@ enum ShotPasteConfigurationImporter {
         }
       }
     }
-    if let endpoint = reader.string("agent", "endpoint") {
+    let importedEndpoint = reader.string("agent", "endpoint")
+    if let endpoint = importedEndpoint {
       let candidate = AgentProviderConfiguration(
         endpoint: endpoint,
-        model: AgentProviderConfiguration.defaultModel,
+        model: AgentProviderConfiguration.defaultModel(for: effectiveProtocol),
         thinkingEnabled: true,
         sendsImages: true,
-        maxActions: 30
+        maxActions: 30,
+        apiProtocol: effectiveProtocol
       )
       if candidate.endpointURL == nil {
         reader.error("agent.endpoint must be HTTPS, or HTTP on localhost")
@@ -581,11 +597,35 @@ enum ShotPasteConfigurationImporter {
         mutations.append { defaults.set(endpoint, forKey: PreferencesKeys.agentProviderEndpoint) }
       }
     }
-    if let model = reader.string("agent", "model") {
+    let importedModel = reader.string("agent", "model")
+    if let model = importedModel {
       if model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
         reader.error("agent.model must not be empty")
       } else {
         mutations.append { defaults.set(model, forKey: PreferencesKeys.agentProviderModel) }
+      }
+    }
+    if let importedProtocol {
+      mutations.append {
+        let oldProtocol = defaults.string(forKey: PreferencesKeys.agentProviderProtocol)
+          .flatMap(AgentProviderAPIProtocol.init(rawValue:)) ?? .openAICompatible
+        let endpoint = defaults.string(forKey: PreferencesKeys.agentProviderEndpoint)
+          ?? AgentProviderConfiguration.defaultEndpoint(for: oldProtocol)
+        let model = defaults.string(forKey: PreferencesKeys.agentProviderModel)
+          ?? AgentProviderConfiguration.defaultModel(for: oldProtocol)
+        let values = AgentProviderConfiguration.connectionValues(
+          switchingFrom: oldProtocol,
+          to: importedProtocol,
+          endpoint: endpoint,
+          model: model
+        )
+        if importedEndpoint == nil {
+          defaults.set(values.endpoint, forKey: PreferencesKeys.agentProviderEndpoint)
+        }
+        if importedModel == nil {
+          defaults.set(values.model, forKey: PreferencesKeys.agentProviderModel)
+        }
+        defaults.set(importedProtocol.rawValue, forKey: PreferencesKeys.agentProviderProtocol)
       }
     }
     collectBool(&reader, "agent", "thinking_enabled", mutations: &mutations) {

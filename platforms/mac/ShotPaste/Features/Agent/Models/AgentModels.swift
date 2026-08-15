@@ -237,21 +237,60 @@ nonisolated struct AgentProviderCapabilities: Equatable, Sendable {
   let supportsToolCalls: Bool
 }
 
+/// Agent 模式支持的上游 API 协议。
+nonisolated enum AgentProviderAPIProtocol: String, Codable, CaseIterable, Sendable {
+  /// OpenAI 兼容的 Chat Completions 协议。
+  case openAICompatible = "openai"
+  /// Anthropic Messages 协议（POST /v1/messages）。
+  case anthropicMessages = "anthropic"
+}
+
 nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
   static let defaultEndpoint = "https://api3.wlai.vip/v1/chat/completions"
   static let defaultModel = "gpt-5.6-luna"
+  /// Anthropic 协议下的默认端点（官方 API 基地址）。
+  static let defaultAnthropicEndpoint = "https://api.anthropic.com"
+  /// Anthropic 协议下的默认模型。
+  static let defaultAnthropicModel = "claude-sonnet-5"
 
   let endpoint: String
   let model: String
   let thinkingEnabled: Bool
   let sendsImages: Bool
   let maxActions: Int
+  let apiProtocol: AgentProviderAPIProtocol
+
+  init(
+    endpoint: String,
+    model: String,
+    thinkingEnabled: Bool,
+    sendsImages: Bool,
+    maxActions: Int,
+    apiProtocol: AgentProviderAPIProtocol = .openAICompatible
+  ) {
+    self.endpoint = endpoint
+    self.model = model
+    self.thinkingEnabled = thinkingEnabled
+    self.sendsImages = sendsImages
+    self.maxActions = maxActions
+    self.apiProtocol = apiProtocol
+  }
 
   static func current(defaults: UserDefaults = .standard) -> AgentProviderConfiguration {
-    let endpoint = defaults.string(forKey: PreferencesKeys.agentProviderEndpoint)
-      ?? Self.defaultEndpoint
-    let model = defaults.string(forKey: PreferencesKeys.agentProviderModel)
-      ?? Self.defaultModel
+    let apiProtocol = defaults.string(forKey: PreferencesKeys.agentProviderProtocol)
+      .flatMap(AgentProviderAPIProtocol.init(rawValue:)) ?? .openAICompatible
+    let storedEndpoint = defaults.string(forKey: PreferencesKeys.agentProviderEndpoint)
+      ?? Self.defaultEndpoint(for: apiProtocol)
+    let storedModel = defaults.string(forKey: PreferencesKeys.agentProviderModel)
+      ?? Self.defaultModel(for: apiProtocol)
+    let otherProtocol: AgentProviderAPIProtocol = apiProtocol == .openAICompatible
+      ? .anthropicMessages : .openAICompatible
+    let hasStaleDefaultPair = storedEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+      == Self.defaultEndpoint(for: otherProtocol)
+      && storedModel.trimmingCharacters(in: .whitespacesAndNewlines)
+      == Self.defaultModel(for: otherProtocol)
+    let endpoint = hasStaleDefaultPair ? Self.defaultEndpoint(for: apiProtocol) : storedEndpoint
+    let model = hasStaleDefaultPair ? Self.defaultModel(for: apiProtocol) : storedModel
     let thinkingEnabled = defaults.object(forKey: PreferencesKeys.agentThinkingEnabled) as? Bool ?? true
     let sendsImages = defaults.object(forKey: PreferencesKeys.agentProviderSendsImages) as? Bool ?? true
     let storedMaxActions = defaults.integer(forKey: PreferencesKeys.agentMaxActions)
@@ -261,7 +300,41 @@ nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
       model: model,
       thinkingEnabled: thinkingEnabled,
       sendsImages: sendsImages,
-      maxActions: storedMaxActions > 0 ? min(max(storedMaxActions, 1), 100) : 30
+      maxActions: storedMaxActions > 0 ? min(max(storedMaxActions, 1), 100) : 30,
+      apiProtocol: apiProtocol
+    )
+  }
+
+  /// 各协议未填写路径时的默认端点（用于设置界面的占位提示）。
+  static func defaultEndpoint(for apiProtocol: AgentProviderAPIProtocol) -> String {
+    switch apiProtocol {
+    case .openAICompatible: defaultEndpoint
+    case .anthropicMessages: defaultAnthropicEndpoint
+    }
+  }
+
+  static func defaultModel(for apiProtocol: AgentProviderAPIProtocol) -> String {
+    switch apiProtocol {
+    case .openAICompatible: defaultModel
+    case .anthropicMessages: defaultAnthropicModel
+    }
+  }
+
+  /// 切换协议时只迁移旧协议的已知默认值；用户自定义的端点与模型分别保留。
+  static func connectionValues(
+    switchingFrom oldProtocol: AgentProviderAPIProtocol,
+    to newProtocol: AgentProviderAPIProtocol,
+    endpoint: String,
+    model: String
+  ) -> (endpoint: String, model: String) {
+    guard oldProtocol != newProtocol else { return (endpoint, model) }
+    let normalizedEndpoint = endpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+    let normalizedModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
+    return (
+      normalizedEndpoint == defaultEndpoint(for: oldProtocol)
+        ? defaultEndpoint(for: newProtocol) : endpoint,
+      normalizedModel == defaultModel(for: oldProtocol)
+        ? defaultModel(for: newProtocol) : model
     )
   }
 
@@ -276,8 +349,13 @@ nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
     else { return nil }
 
     let normalizedPath = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-    if normalizedPath.isEmpty {
-      components.path = "/chat/completions"
+    switch apiProtocol {
+    case .openAICompatible:
+      if normalizedPath.isEmpty {
+        components.path = "/" + Self.defaultRequestPath(for: .openAICompatible)
+      }
+    case .anthropicMessages:
+      components.path = "/" + Self.normalizedAnthropicPath(normalizedPath)
     }
     return components.url
   }
@@ -289,6 +367,37 @@ nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
 
   var isValid: Bool {
     endpointURL != nil && !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+  }
+
+  /// 端点只填到主机名时的默认请求路径。
+  private static func defaultRequestPath(for apiProtocol: AgentProviderAPIProtocol) -> String {
+    switch apiProtocol {
+    case .openAICompatible: "chat/completions"
+    case .anthropicMessages: "v1/messages"
+    }
+  }
+
+  /// Messages 端点路径规范化：空路径与任意网关前缀均补 /v1/messages；
+  /// 已带 /v1 或完整 /messages 的路径保持语义不变。误填 OpenAI 的
+  /// /chat/completions 后缀时先移除该后缀，再生成 Messages 路径。
+  static func normalizedAnthropicPath(_ path: String) -> String {
+    var segments = path.split(separator: "/").map(String.init)
+    guard !segments.isEmpty else { return defaultRequestPath(for: .anthropicMessages) }
+
+    if segments.last?.lowercased() == "messages" {
+      return segments.joined(separator: "/")
+    }
+    if segments.count >= 2,
+       segments[segments.count - 2].lowercased() == "chat",
+       segments.last?.lowercased() == "completions" {
+      segments.removeLast(2)
+    }
+    if segments.last?.lowercased() == "v1" {
+      segments.append("messages")
+    } else {
+      segments.append(contentsOf: ["v1", "messages"])
+    }
+    return segments.joined(separator: "/")
   }
 
   private static let localHosts: Set<String> = ["localhost", "127.0.0.1", "::1"]

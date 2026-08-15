@@ -5,6 +5,7 @@
 //  Local, model-independent safety policy for Agent Mode actions.
 //
 
+import CoreGraphics
 import Foundation
 
 nonisolated enum AgentApprovalScope: Equatable, Sendable {
@@ -23,6 +24,7 @@ nonisolated struct AgentApprovalRequest: Equatable, Sendable {
     case securitySettings
     case formSubmission
     case fileMovement
+    case unverifiedTarget
   }
 
   let risk: Risk
@@ -44,6 +46,9 @@ nonisolated struct AgentPolicyContext: Sendable {
   let action: AgentToolAction
   let accessibilityElements: [AgentAccessibilityElementSnapshot]
   let approvedApplicationBundleIdentifiers: Set<String>
+  /// The display the observation snapshot belongs to; coordinate actions
+  /// must land on this display to be hit-tested locally.
+  let observationDisplayID: CGDirectDisplayID
 }
 
 nonisolated struct AgentPolicyEngine: Sendable {
@@ -88,22 +93,103 @@ nonisolated struct AgentPolicyEngine: Sendable {
       guard action.clickCount == 1 || action.clickCount == 2 else {
         return .deny(reason: "Only single-click and double-click actions are supported.")
       }
-      if let element = targetElement(action.elementID, in: context) {
-        if !element.enabled {
-          return .deny(reason: "The requested accessibility element is disabled.")
+      // A coordinate fallback must not bypass semantic approval. Keep the
+      // requested element as a primary target, then add the element at the
+      // pointer landing point when the Driver will post a CGEvent.
+      var primaryTargetIDs: Set<String> = []
+      var targets: [AgentAccessibilityElementSnapshot] = []
+      var targetIDs: Set<String> = []
+      var requiresUnverifiedTargetApproval = false
+
+      func appendTargets(_ elements: [AgentAccessibilityElementSnapshot]) {
+        targets.append(contentsOf: elements.filter { targetIDs.insert($0.id).inserted })
+      }
+
+      if let elementID = action.elementID,
+         let element = targetElement(elementID, in: context) {
+        primaryTargetIDs.insert(element.id)
+        appendTargets([element])
+
+        if let frame = usableFrame(of: element) {
+          let hitElements = hitTestElements(at: frame.center, in: context)
+          appendTargets(hitElements)
+          if let pointerTarget = hitElements.min(by: Self.isSmallerFrame) {
+            primaryTargetIDs.insert(pointerTarget.id)
+          }
+        } else if let displayID = action.displayID, let point = action.point {
+          guard point.isValid else {
+            return .deny(reason: "The click coordinates are invalid.")
+          }
+          guard displayID == context.observationDisplayID else {
+            return .deny(reason: "The click falls back to coordinates on an unobserved display.")
+          }
+          let hitElements = hitTestElements(at: point, in: context)
+          appendTargets(hitElements)
+          if let pointerTarget = hitElements.min(by: Self.isSmallerFrame) {
+            primaryTargetIDs.insert(pointerTarget.id)
+          } else {
+            requiresUnverifiedTargetApproval = true
+          }
+        } else if action.button != .left || action.clickCount != 1 {
+          // Only a single left click can use AXPress without a pointer
+          // location. Right-click and double-click require a frame or explicit
+          // fallback coordinates in MacComputerDriver.
+          return .deny(reason: "The click target has no usable pointer location.")
         }
+      } else {
+        guard let displayID = action.displayID, let point = action.point else {
+          return .deny(reason: "The click target could not be resolved.")
+        }
+        guard point.isValid else {
+          return .deny(reason: "The click coordinates are invalid.")
+        }
+        guard displayID == context.observationDisplayID else {
+          return approval(
+            risk: .unverifiedTarget,
+            title: L10n.Agent.unverifiedTargetApprovalTitle,
+            detail: L10n.Agent.unverifiedTargetApprovalDetail
+          )
+        }
+        let hitElements = hitTestElements(at: point, in: context)
+        appendTargets(hitElements)
+        if let pointerTarget = hitElements.min(by: Self.isSmallerFrame) {
+          primaryTargetIDs.insert(pointerTarget.id)
+        } else {
+          requiresUnverifiedTargetApproval = true
+        }
+      }
+
+      // Both the explicitly requested semantic element and the innermost
+      // pointer target are primary. Neither may be disabled.
+      if targets.contains(where: { primaryTargetIDs.contains($0.id) && !$0.enabled }) {
+        return .deny(reason: "The requested accessibility element is disabled.")
+      }
+      // Scan every containing element so a text-less child cannot mask the
+      // risk carried by an ancestor such as Send, Delete, or a secure field.
+      for element in targets {
         let normalizedTarget = Self.normalize(element.policyText)
         if element.isSecure || Self.secretTokens.contains(where: { normalizedTarget.contains($0) }) {
           return .deny(reason: "Agent Mode does not interact with password or credential controls.")
         }
-        if isFileDeletionTarget(element.policyText, in: context) {
-          return .deny(reason: "Agent Mode does not delete files or folders.")
-        }
       }
-      return riskDecision(
-        for: targetElement(action.elementID, in: context)?.policyText ?? "",
+      let combinedPolicyText = targets.map(\.policyText).joined(separator: " ")
+      if isFileDeletionTarget(combinedPolicyText, in: context) {
+        return .deny(reason: "Agent Mode does not delete files or folders.")
+      }
+      if let decision = riskDecision(
+        for: combinedPolicyText,
         actionSummary: context.action.safeSummary
-      ) ?? .allow
+      ) {
+        return decision
+      }
+      if requiresUnverifiedTargetApproval {
+        return approval(
+          risk: .unverifiedTarget,
+          title: L10n.Agent.unverifiedTargetApprovalTitle,
+          detail: L10n.Agent.unverifiedTargetApprovalDetail
+        )
+      }
+      return .allow
 
     case .typeText:
       return .allow
@@ -255,6 +341,46 @@ nonisolated struct AgentPolicyEngine: Sendable {
   ) -> AgentAccessibilityElementSnapshot? {
     guard let elementID else { return nil }
     return context.accessibilityElements.first { $0.id == elementID }
+  }
+
+  /// Returns every accessibility element whose non-degenerate frame contains
+  /// the normalized point, so coordinate clicks inherit element-level policy
+  /// from all containing elements, not just the innermost one. Degenerate
+  /// frames (zero width or height) are excluded so they cannot distort the
+  /// disabled-element check.
+  private func hitTestElements(
+    at point: AgentNormalizedPoint,
+    in context: AgentPolicyContext
+  ) -> [AgentAccessibilityElementSnapshot] {
+    context.accessibilityElements
+      .filter { element in
+        guard let frame = element.normalizedFrame,
+              frame.width > 0, frame.height > 0
+        else { return false }
+        return point.x >= frame.x && point.x <= frame.x + frame.width
+          && point.y >= frame.y && point.y <= frame.y + frame.height
+      }
+  }
+
+  private func usableFrame(
+    of element: AgentAccessibilityElementSnapshot
+  ) -> AgentNormalizedRect? {
+    guard let frame = element.normalizedFrame,
+          frame.x.isFinite, frame.y.isFinite,
+          frame.width.isFinite, frame.height.isFinite,
+          frame.width > 0, frame.height > 0
+    else { return nil }
+    return frame
+  }
+
+  /// Orders elements by frame area so the innermost containing element wins.
+  private static func isSmallerFrame(
+    _ lhs: AgentAccessibilityElementSnapshot,
+    _ rhs: AgentAccessibilityElementSnapshot
+  ) -> Bool {
+    let lhsArea = lhs.normalizedFrame.map { $0.width * $0.height } ?? 0
+    let rhsArea = rhs.normalizedFrame.map { $0.width * $0.height } ?? 0
+    return lhsArea < rhsArea
   }
 
   private func riskDecision(

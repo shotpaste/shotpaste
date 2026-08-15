@@ -29,21 +29,46 @@ Escape remains the emergency stop while paused, and the menu bar always exposes
 
 ## Provider configuration
 
-The default adapter uses a configurable OpenAI-compatible Chat Completions endpoint:
+The Agent speaks two selectable upstream protocols (`api_protocol` in the TOML
+configuration file, or the **API protocol** picker in Agent preferences):
 
-```text
-endpoint = https://api3.wlai.vip/v1/chat/completions
-model = gpt-5.6-luna
-send_images = true
-```
+- `openai` — OpenAI-compatible Chat Completions (default):
 
-The endpoint, model, reasoning mode, and clean-image capability are editable, so
-the Agent is not tied to a named LLM vendor. HTTPS endpoints and localhost HTTP
-endpoints are accepted. The API token is stored directly in ShotPaste's application
-preferences and is displayed only as a masked prefix/suffix. It remains absent
-from TOML exports, diagnostics, and audit events. The settings UI can explicitly
-import `SHOTPASTE_LLM_API_KEY` from the login shell; ShotPaste never reads shell
-startup files as an implicit background action.
+  ```text
+  endpoint = https://api3.wlai.vip/v1/chat/completions
+  model = gpt-5.6-luna
+  send_images = true
+  ```
+
+- `anthropic` — Anthropic Messages API (`POST /v1/messages`, `x-api-key` /
+  `Authorization: Bearer` auth, `anthropic-version: 2023-06-01`):
+
+  ```text
+  endpoint = https://api.anthropic.com
+  model = claude-sonnet-5
+  send_images = true
+  ```
+
+  The endpoint may be a host, a versioned base, an arbitrary gateway prefix, or
+  a complete Messages URL. For example, `https://api.kimi.com/coding/` resolves
+  to `https://api.kimi.com/coding/v1/messages`, while an existing
+  `/v1/messages` suffix remains unchanged.
+
+When Anthropic thinking mode is enabled, ShotPaste requests adaptive thinking
+with high effort. If a compatible gateway explicitly rejects those modern
+fields with HTTP 400, ShotPaste retries once with the legacy token-budget shape;
+other bad requests are not retried as a different protocol. Turning thinking
+off sends an explicit disabled value. Parallel tool use is disabled, and a
+response containing more than one tool action is rejected locally.
+
+The protocol, endpoint, model, reasoning mode, and clean-image capability are
+editable, so the Agent is not tied to a named LLM vendor. HTTPS endpoints and
+localhost HTTP endpoints are accepted. The API token is stored directly in
+ShotPaste's application preferences and is displayed only as a masked
+prefix/suffix. It remains absent from TOML exports, diagnostics, and audit
+events. The settings UI can explicitly import `SHOTPASTE_LLM_API_KEY` from the
+login shell; ShotPaste never reads shell startup files as an implicit background
+action.
 
 The current default model accepts tool calls and vision input, so clean screenshot
 sending is on by default. It can be disabled for a text-only compatible provider;

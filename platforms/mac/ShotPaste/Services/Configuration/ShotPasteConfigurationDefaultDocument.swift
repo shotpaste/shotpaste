@@ -174,6 +174,7 @@ enum ShotPasteConfigurationDefaultDocument {
     writer.value("enabled", false)
     writer.value("endpoint", AgentProviderConfiguration.defaultEndpoint)
     writer.value("model", AgentProviderConfiguration.defaultModel)
+    writer.value("api_protocol", AgentProviderAPIProtocol.openAICompatible.rawValue)
     writer.value("thinking_enabled", true)
     writer.value("send_images", true)
     writer.value("max_actions", 30)

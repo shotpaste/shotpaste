@@ -40,6 +40,7 @@ nonisolated enum PreferencesKeys {
   static let agentShortcut = "agent.shortcut"
   static let agentProviderEndpoint = "agent.provider.endpoint"
   static let agentProviderModel = "agent.provider.model"
+  static let agentProviderProtocol = "agent.provider.protocol"
   static let agentProviderAPIKey = "agent.provider.apiKey"
   static let agentThinkingEnabled = "agent.provider.thinkingEnabled"
   static let agentProviderSendsImages = "agent.provider.sendsImages"

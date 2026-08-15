@@ -70,7 +70,7 @@ final class AgentSessionCoordinator: ObservableObject {
 
   convenience init(contextAssembler: AgentContextAssembler) {
     self.init(
-      provider: OpenAICompatibleLLMProvider(),
+      provider: AgentConfigurableLLMProvider(),
       credentialProvider: AgentCredentialStore.shared,
       contextAssembler: contextAssembler,
       policyEngine: AgentPolicyEngine(),
@@ -341,7 +341,8 @@ final class AgentSessionCoordinator: ObservableObject {
         currentApplication: assembly.observation.application,
         action: decision.action,
         accessibilityElements: assembly.observation.accessibilityElements,
-        approvedApplicationBundleIdentifiers: approvedApplicationBundleIdentifiers
+        approvedApplicationBundleIdentifiers: approvedApplicationBundleIdentifiers,
+        observationDisplayID: assembly.observation.display.displayID
       )
       switch policyEngine.evaluate(policyContext) {
       case .allow:
