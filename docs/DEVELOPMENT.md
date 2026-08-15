@@ -130,8 +130,11 @@ Each workflow runs the native tests and release build for only its platform,
 creates the matching package, verifies `SHA256SUMS.txt`, and publishes a
 non-draft platform-specific GitHub Release with the matching startup guide.
 Platform releases can therefore advance at different versions and on different
-schedules. Pull requests into `release` still run both platform validation jobs
-so the stable source branch remains buildable for both clients.
+schedules. After the required changes are pushed to `main`, the repository owner
+merges `main` directly into `release` through the release pull request. Do not
+create an intermediate promotion branch. Pull requests into `release` still run
+both platform validation jobs so the stable source branch remains buildable for
+both clients.
 
 The macOS workflow requires the repository Actions secrets
 `SELF_SIGNED_CERT_P12` and `SELF_SIGNED_CERT_PASSWORD`. It verifies the imported
