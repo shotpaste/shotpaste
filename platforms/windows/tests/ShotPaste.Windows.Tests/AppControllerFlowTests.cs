@@ -307,14 +307,32 @@ public sealed class AppControllerFlowTests
 
         Assert.Equal(
             [
-                "OneShotMoveToolbar", "InlineToolPan", "InlineZoomFit", "InlineZoomOut", "InlineZoomPicker", "InlineZoomIn",
-                "InlineToolSelection", "InlineToolRectangle",
+                "OneShotMoveToolbar", "InlineToolSelection", "InlineToolRectangle",
                 "InlineToolFilledRectangle", "InlineToolOval", "InlineToolArrow", "InlineToolLine",
                 "InlineToolText", "InlineToolHighlighter", "InlineToolBlur", "InlineToolSpotlight",
                 "InlineToolCounter", "InlineToolPencil", "InlineUndo", "InlineRedo", "OneShotOcr",
+                "InlineToolPan", "InlineZoomOut", "InlineZoomPicker", "InlineZoomFit", "InlineZoomIn",
                 "OneShotPin", "OneShotCopy", "OneShotCancel", "OneShotDone"
             ],
             orderedIds);
+        var toolScroller = Assert.Single(toolbar.Descendants(), element =>
+            string.Equals((string?)element.Attribute(x + "Name"), "AnnotationToolScroller", StringComparison.Ordinal));
+        var persistentActions = Assert.Single(toolbar.Descendants(), element =>
+            string.Equals((string?)element.Attribute(x + "Name"), "PersistentToolbarActions", StringComparison.Ordinal));
+        var scrolledIds = toolScroller.Descendants()
+            .Select(element => (string?)element.Attribute("AutomationProperties.AutomationId"))
+            .Where(value => value is not null)
+            .Select(value => value!)
+            .ToArray();
+        var persistentIds = persistentActions.Descendants()
+            .Select(element => (string?)element.Attribute("AutomationProperties.AutomationId"))
+            .Where(value => value is not null)
+            .Select(value => value!)
+            .ToArray();
+        Assert.DoesNotContain("OneShotCancel", scrolledIds);
+        Assert.DoesNotContain("OneShotDone", scrolledIds);
+        Assert.Contains("OneShotCancel", persistentIds);
+        Assert.Contains("OneShotDone", persistentIds);
         Assert.Contains("Content=\"Text\"", xaml, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource AnnotationTextIcon}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Content=\"Blur\"", xaml, StringComparison.Ordinal);
@@ -504,9 +522,15 @@ public sealed class AppControllerFlowTests
 
         Assert.Contains("InlineZoomOut", xaml, StringComparison.Ordinal);
         Assert.Contains("InlineZoomIn", xaml, StringComparison.Ordinal);
+        Assert.Contains("AnnotationPanIcon", xaml, StringComparison.Ordinal);
+        Assert.Contains("AnnotationZoomOutIcon", xaml, StringComparison.Ordinal);
+        Assert.Contains("AnnotationZoomInIcon", xaml, StringComparison.Ordinal);
         Assert.Contains("Key.OemMinus or Key.Subtract", code, StringComparison.Ordinal);
         Assert.Contains("Key.OemPlus or Key.Add", code, StringComparison.Ordinal);
         Assert.Contains("Key.D0 or Key.NumPad0", code, StringComparison.Ordinal);
+        Assert.Contains("SetCanvasPanMode(!_panToolActive)", code, StringComparison.Ordinal);
+        Assert.Contains("e.LeftButton != MouseButtonState.Pressed", code, StringComparison.Ordinal);
+        Assert.Contains("ReleaseTransientInputCapture();", code, StringComparison.Ordinal);
         Assert.Contains("!IsWithin(Toolbar, e.OriginalSource)", code, StringComparison.Ordinal);
         Assert.Contains("!IsWithin(PropertiesBar, e.OriginalSource)", code, StringComparison.Ordinal);
         Assert.Contains("!IsWithin(OneShotModePanel, e.OriginalSource)", code, StringComparison.Ordinal);

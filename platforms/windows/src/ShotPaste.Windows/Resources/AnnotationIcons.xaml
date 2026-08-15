@@ -148,6 +148,35 @@
     </Canvas></Viewbox>
   </DataTemplate>
 
+  <DataTemplate x:Key="AnnotationPanIcon">
+    <Viewbox Width="17" Height="17"><Grid Width="24" Height="24">
+      <Path Data="M7,14.8 L7,7.3 C7,6.2 7.8,5.5 8.7,5.5 C9.6,5.5 10.2,6.2 10.2,7.3 L10.2,10.2 L10.2,5.6 C10.2,4.5 11,3.8 11.9,3.8 C12.8,3.8 13.4,4.5 13.4,5.6 L13.4,10.2 L13.4,6.2 C13.4,5.1 14.2,4.4 15.1,4.4 C16,4.4 16.6,5.1 16.6,6.2 L16.6,12.3 C17.8,10.9 19.1,10.5 20,11.5 C20.7,12.3 20.2,13.6 19.5,14.8 L17.2,18.4 C16.2,20 14.5,21 12.4,21 L10.4,21 C8.2,21 6.6,19.8 5.6,18.1 L4.1,15.6 C3.5,14.5 4.2,13.4 5.2,13.4 C5.8,13.4 6.3,13.8 7,14.8 Z"
+            Fill="Transparent"
+            Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+            StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+    </Grid></Viewbox>
+  </DataTemplate>
+
+  <DataTemplate x:Key="AnnotationZoomOutIcon">
+    <Viewbox Width="17" Height="17"><Grid Width="24" Height="24">
+      <Ellipse Width="13" Height="13" Margin="2.5,2.5,8.5,8.5"
+               Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" StrokeThickness="1.9" />
+      <Path Data="M14.5,14.5 L21,21 M6.5,9 L12.5,9"
+            Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+            StrokeThickness="1.9" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+    </Grid></Viewbox>
+  </DataTemplate>
+
+  <DataTemplate x:Key="AnnotationZoomInIcon">
+    <Viewbox Width="17" Height="17"><Grid Width="24" Height="24">
+      <Ellipse Width="13" Height="13" Margin="2.5,2.5,8.5,8.5"
+               Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" StrokeThickness="1.9" />
+      <Path Data="M14.5,14.5 L21,21 M6.5,9 L12.5,9 M9.5,6 L9.5,12"
+            Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+            StrokeThickness="1.9" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+    </Grid></Viewbox>
+  </DataTemplate>
+
   <DataTemplate x:Key="AnnotationPinIcon">
     <Viewbox Width="17" Height="17"><Grid Width="24" Height="24">
       <Path Data="M8,3 L16,3 M10,3 L10,9 L6,13 L18,13 L14,9 L14,3 M12,13 L12,22"

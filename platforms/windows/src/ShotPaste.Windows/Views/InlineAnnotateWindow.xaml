@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         AutomationProperties.AutomationId="InlineAnnotateWindow" Title="ShotPaste · One Shot" WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" Topmost="True" Cursor="Cross"
-        PreviewKeyDown="OnPreviewKeyDown" PreviewKeyUp="OnPreviewKeyUp" Closing="OnClosing"
+        PreviewKeyDown="OnPreviewKeyDown" PreviewKeyUp="OnPreviewKeyUp" Closing="OnClosing" Deactivated="OnWindowDeactivated"
         PreviewMouseLeftButtonDown="OnWindowMouseDown" MouseMove="OnWindowMouseMove" MouseLeftButtonUp="OnWindowMouseUp">
   <Window.Resources>
     <Style x:Key="OneShotTabButton" TargetType="Button">
@@ -98,7 +98,8 @@
     <Canvas x:Name="OverlayCanvas">
       <Grid x:Name="SelectionHost" Visibility="Collapsed" Background="Transparent" ClipToBounds="False"
             SnapsToDevicePixels="True" UseLayoutRounding="True" IsManipulationEnabled="True"
-            PreviewMouseWheel="OnEditorMouseWheel" ManipulationDelta="OnEditorManipulationDelta">
+            PreviewMouseWheel="OnEditorMouseWheel" ManipulationDelta="OnEditorManipulationDelta"
+            LostMouseCapture="OnSelectionHostLostMouseCapture">
         <Viewbox x:Name="EditorViewbox" Stretch="Fill" ClipToBounds="True" SnapsToDevicePixels="True" RenderTransformOrigin="0,0">
           <Viewbox.RenderTransform>
             <TransformGroup>
@@ -167,51 +168,87 @@
       </Canvas>
 
       <Border x:Name="Toolbar" Visibility="Collapsed" Height="46" CornerRadius="{DynamicResource Radius.Toolbar}" Background="{DynamicResource HudBrush}"
-              BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="8,6">
+              BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="10,6">
         <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="24" ShadowDepth="8" Opacity="0.48"/></Border.Effect>
-        <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
-          <StackPanel x:Name="ToolbarContent" Orientation="Horizontal">
-            <Button x:Name="MoveButton" AutomationProperties.AutomationId="OneShotMoveToolbar" Style="{StaticResource HudTextButton}" ToolTip="移动选区（按住 Space）"
-                    PreviewMouseLeftButtonDown="OnMoveMouseDown" MouseMove="OnToolbarMoveMouseMove" MouseLeftButtonUp="OnToolbarMoveMouseUp">
-              <ContentControl x:Name="MoveIcon" Content="Move" ContentTemplate="{StaticResource AnnotationMoveIcon}" IsHitTestVisible="False"/>
-            </Button>
-            <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
-            <Button x:Name="PanButton" Content="手形" AutomationProperties.AutomationId="InlineToolPan" Tag="Pan"
-                    Style="{StaticResource HudTextButton}" Click="OnSelectTool" ToolTip="平移画布（按住 Space）" Padding="8,3"/>
-            <Button Content="适应" AutomationProperties.AutomationId="InlineZoomFit" Style="{StaticResource HudTextButton}"
-                    Click="OnZoomFit" ToolTip="适应窗口" Padding="8,3" Margin="3,0,0,0"/>
-            <Button Content="−" AutomationProperties.AutomationId="InlineZoomOut" Style="{StaticResource HudTextButton}"
-                    Click="OnZoomOut" ToolTip="缩小（Ctrl+-）" Padding="8,3" Margin="3,0,0,0"/>
-            <ComboBox x:Name="CanvasZoomPicker" AutomationProperties.AutomationId="InlineZoomPicker" Width="72" Height="28" Margin="4,0,0,0"
-                      Style="{DynamicResource HudComboBox}" SelectionChanged="OnZoomPresetChanged">
-              <ComboBoxItem Content="50%" Tag="0.5"/><ComboBoxItem Content="100%" Tag="1" IsSelected="True"/>
-              <ComboBoxItem Content="200%" Tag="2"/><ComboBoxItem Content="400%" Tag="4"/>
-            </ComboBox>
-            <Button Content="+" AutomationProperties.AutomationId="InlineZoomIn" Style="{StaticResource HudTextButton}"
-                    Click="OnZoomIn" ToolTip="放大（Ctrl++）" Padding="8,3" Margin="3,0,0,0"/>
-            <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
-            <Button Content="Selection" AutomationProperties.AutomationId="InlineToolSelection" ContentTemplate="{StaticResource AnnotationSelectionIcon}" Tag="Selection" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="选择"/>
-            <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
-            <Button Content="Rectangle" AutomationProperties.AutomationId="InlineToolRectangle" ContentTemplate="{StaticResource AnnotationRectangleIcon}" Tag="Rectangle" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="矩形"/>
-            <Button Content="FilledRectangle" AutomationProperties.AutomationId="InlineToolFilledRectangle" ContentTemplate="{StaticResource AnnotationFilledRectangleIcon}" Tag="FilledRectangle" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="填充矩形"/>
-            <Button Content="Oval" AutomationProperties.AutomationId="InlineToolOval" ContentTemplate="{StaticResource AnnotationOvalIcon}" Tag="Oval" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="椭圆形"/>
-            <Button Content="Arrow" AutomationProperties.AutomationId="InlineToolArrow" ContentTemplate="{StaticResource AnnotationArrowIcon}" Tag="Arrow" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="箭头"/>
-            <Button Content="Line" AutomationProperties.AutomationId="InlineToolLine" ContentTemplate="{StaticResource AnnotationLineIcon}" Tag="Line" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="直线"/>
-            <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
-            <Button Content="Text" AutomationProperties.AutomationId="InlineToolText" ContentTemplate="{StaticResource AnnotationTextIcon}" Tag="Text" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="文字"/>
-            <Button Content="Highlighter" AutomationProperties.AutomationId="InlineToolHighlighter" ContentTemplate="{StaticResource AnnotationHighlighterIcon}" Tag="Highlighter" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="荧光笔"/>
-            <Button Content="Blur" AutomationProperties.AutomationId="InlineToolBlur" ContentTemplate="{StaticResource AnnotationBlurIcon}" Tag="Blur" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="模糊"/>
-            <Button Content="Spotlight" AutomationProperties.AutomationId="InlineToolSpotlight" ContentTemplate="{StaticResource AnnotationSpotlightIcon}" Tag="Spotlight" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="聚光灯"/>
-            <Button Content="Counter" AutomationProperties.AutomationId="InlineToolCounter" ContentTemplate="{StaticResource AnnotationCounterIcon}" Tag="Counter" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="计数器"/>
-            <Button Content="Pencil" AutomationProperties.AutomationId="InlineToolPencil" ContentTemplate="{StaticResource AnnotationPencilIcon}" Tag="Pencil" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="铅笔"/>
+        <Grid x:Name="ToolbarContent" ClipToBounds="True">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+
+          <!-- Match macOS: only the tool palette scrolls; viewport and exit actions remain fixed and reachable. -->
+          <ScrollViewer x:Name="AnnotationToolScroller" Grid.Column="0"
+                        HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+                        PanningMode="HorizontalOnly" PreviewMouseWheel="OnToolbarToolsMouseWheel">
+            <StackPanel x:Name="AnnotationToolContent" Orientation="Horizontal">
+              <Button x:Name="MoveButton" Content="Move" ContentTemplate="{StaticResource AnnotationToolbarDragIcon}"
+                      AutomationProperties.AutomationId="OneShotMoveToolbar" Style="{StaticResource HudIconButton}"
+                      ToolTip="拖动以移动工具栏"
+                      PreviewMouseLeftButtonDown="OnMoveMouseDown" MouseMove="OnToolbarMoveMouseMove" MouseLeftButtonUp="OnToolbarMoveMouseUp"/>
+              <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
+              <Button Content="Selection" AutomationProperties.AutomationId="InlineToolSelection" ContentTemplate="{StaticResource AnnotationSelectionIcon}" Tag="Selection" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="选择"/>
+              <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
+              <Button Content="Rectangle" AutomationProperties.AutomationId="InlineToolRectangle" ContentTemplate="{StaticResource AnnotationRectangleIcon}" Tag="Rectangle" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="矩形"/>
+              <Button Content="FilledRectangle" AutomationProperties.AutomationId="InlineToolFilledRectangle" ContentTemplate="{StaticResource AnnotationFilledRectangleIcon}" Tag="FilledRectangle" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="填充矩形"/>
+              <Button Content="Oval" AutomationProperties.AutomationId="InlineToolOval" ContentTemplate="{StaticResource AnnotationOvalIcon}" Tag="Oval" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="椭圆形"/>
+              <Button Content="Arrow" AutomationProperties.AutomationId="InlineToolArrow" ContentTemplate="{StaticResource AnnotationArrowIcon}" Tag="Arrow" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="箭头"/>
+              <Button Content="Line" AutomationProperties.AutomationId="InlineToolLine" ContentTemplate="{StaticResource AnnotationLineIcon}" Tag="Line" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="直线"/>
+              <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
+              <Button Content="Text" AutomationProperties.AutomationId="InlineToolText" ContentTemplate="{StaticResource AnnotationTextIcon}" Tag="Text" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="文字"/>
+              <Button Content="Highlighter" AutomationProperties.AutomationId="InlineToolHighlighter" ContentTemplate="{StaticResource AnnotationHighlighterIcon}" Tag="Highlighter" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="荧光笔"/>
+              <Button Content="Blur" AutomationProperties.AutomationId="InlineToolBlur" ContentTemplate="{StaticResource AnnotationBlurIcon}" Tag="Blur" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="模糊"/>
+              <Button Content="Spotlight" AutomationProperties.AutomationId="InlineToolSpotlight" ContentTemplate="{StaticResource AnnotationSpotlightIcon}" Tag="Spotlight" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="聚光灯"/>
+              <Button Content="Counter" AutomationProperties.AutomationId="InlineToolCounter" ContentTemplate="{StaticResource AnnotationCounterIcon}" Tag="Counter" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="计数器"/>
+              <Button Content="Pencil" AutomationProperties.AutomationId="InlineToolPencil" ContentTemplate="{StaticResource AnnotationPencilIcon}" Tag="Pencil" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="铅笔"/>
+            </StackPanel>
+          </ScrollViewer>
+
+          <StackPanel x:Name="PersistentToolbarActions" Grid.Column="1" Orientation="Horizontal">
             <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
             <Button x:Name="UndoButton" AutomationProperties.AutomationId="InlineUndo" Content="Undo" ContentTemplate="{StaticResource AnnotationUndoIcon}" Style="{StaticResource HudIconButton}" Click="OnUndo" ToolTip="撤销"/>
             <Button x:Name="RedoButton" AutomationProperties.AutomationId="InlineRedo" Content="Redo" ContentTemplate="{StaticResource AnnotationRedoIcon}" Style="{StaticResource HudIconButton}" Click="OnRedo" ToolTip="重做"/>
+            <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
+            <Button Content="OCR" AutomationProperties.AutomationId="OneShotOcr" ContentTemplate="{StaticResource AnnotationOcrIcon}"
+                    Style="{StaticResource HudIconButton}" Click="OnOneShotOcr" ToolTip="提取文字"/>
+            <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
+            <Button x:Name="PanButton" Content="Pan" ContentTemplate="{StaticResource AnnotationPanIcon}"
+                    AutomationProperties.AutomationId="InlineToolPan" Tag="Pan" IsEnabled="False"
+                    Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="平移画布（按住 Space）"/>
+            <Button Content="ZoomOut" ContentTemplate="{StaticResource AnnotationZoomOutIcon}"
+                    AutomationProperties.AutomationId="InlineZoomOut" Style="{StaticResource HudIconButton}"
+                    Click="OnZoomOut" ToolTip="缩小（Ctrl+-）"/>
+            <Button x:Name="CanvasZoomPicker" AutomationProperties.AutomationId="InlineZoomPicker" AutomationProperties.Name="100%"
+                    Style="{StaticResource HudIconButton}" Width="64" Click="OnZoomMenuClick" ToolTip="缩放比例">
+              <StackPanel Orientation="Horizontal" IsHitTestVisible="False">
+                <TextBlock x:Name="CanvasZoomText" Text="100%" Width="42" TextAlignment="Right" VerticalAlignment="Center"
+                           FontFamily="Cascadia Mono, Consolas" FontSize="11" FontWeight="SemiBold"/>
+                <Path Width="7" Height="4" Margin="3,1,0,0" VerticalAlignment="Center"
+                      Data="M 0,0 L 3.5,3.5 L 7,0" Stretch="Fill" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                      StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+              </StackPanel>
+              <Button.ContextMenu>
+                <ContextMenu Placement="Bottom">
+                  <MenuItem Header="适应窗口" InputGestureText="Ctrl+0" AutomationProperties.AutomationId="InlineZoomFit" Click="OnZoomFit"/>
+                  <Separator/>
+                  <MenuItem Header="25%" Tag="0.25" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="50%" Tag="0.5" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="75%" Tag="0.75" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="100%" Tag="1" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="125%" Tag="1.25" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="150%" Tag="1.5" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="200%" Tag="2" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="300%" Tag="3" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="400%" Tag="4" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="600%" Tag="6" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="800%" Tag="8" Click="OnZoomPresetSelected"/>
+                </ContextMenu>
+              </Button.ContextMenu>
+            </Button>
+            <Button Content="ZoomIn" ContentTemplate="{StaticResource AnnotationZoomInIcon}"
+                    AutomationProperties.AutomationId="InlineZoomIn" Style="{StaticResource HudIconButton}"
+                    Click="OnZoomIn" ToolTip="放大（Ctrl++）"/>
+            <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
             <StackPanel x:Name="OneShotToolbarActions" Visibility="Collapsed" Orientation="Horizontal">
-              <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
-              <Button Content="OCR" AutomationProperties.AutomationId="OneShotOcr" ContentTemplate="{StaticResource AnnotationOcrIcon}"
-                      Style="{StaticResource HudIconButton}" Click="OnOneShotOcr" ToolTip="提取文字"/>
-              <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
               <Button Content="Pin" AutomationProperties.AutomationId="OneShotPin" ContentTemplate="{StaticResource AnnotationPinIcon}"
                       Style="{StaticResource HudIconButton}" Click="OnPin" ToolTip="贴到屏幕"/>
               <Button Content="Copy" AutomationProperties.AutomationId="OneShotCopy" ContentTemplate="{StaticResource AnnotationCopyIcon}"
@@ -222,7 +259,7 @@
                       Style="{StaticResource HudIconButton}" Tag="Selected" Click="OnDone" ToolTip="完成"/>
             </StackPanel>
           </StackPanel>
-        </ScrollViewer>
+        </Grid>
       </Border>
 
       <Border x:Name="PropertiesBar" Visibility="Collapsed" Height="38" CornerRadius="{DynamicResource Radius.Toolbar}" Background="{DynamicResource HudBrush}"

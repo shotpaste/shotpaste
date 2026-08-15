@@ -292,18 +292,35 @@ internal static class Program
             if (action == ScenarioAction.PanToolbarRecovery)
             {
                 var zoomPicker = WaitForAutomationId(process.Id, "InlineZoomPicker");
-                string SelectedZoom()
-                {
-                    var selected = ((SelectionPattern)zoomPicker.GetCurrentPattern(SelectionPattern.Pattern))
-                        .Current.GetSelection();
-                    return selected.SingleOrDefault()?.Current.Name ?? string.Empty;
-                }
+                string DisplayedZoom() => zoomPicker.Current.Name;
 
-                var zoomBefore = SelectedZoom();
-                PhysicalClick(WaitForAutomationId(process.Id, "InlineToolPan"));
+                var zoomBefore = DisplayedZoom();
                 PhysicalClick(WaitForAutomationId(process.Id, "InlineZoomIn"));
-                WaitUntil(() => !string.Equals(SelectedZoom(), zoomBefore, StringComparison.Ordinal),
-                    "Zoom In did not respond after the Pan tool was selected.");
+                WaitUntil(() => !string.Equals(DisplayedZoom(), zoomBefore, StringComparison.Ordinal),
+                    "Zoom In did not update the visible zoom percentage.");
+
+                PhysicalClick(zoomPicker);
+                PhysicalClick(WaitForAutomationId(process.Id, "InlineZoomFit"));
+                WaitUntil(() => string.Equals(DisplayedZoom(), zoomBefore, StringComparison.Ordinal),
+                    "Fit from the zoom percentage menu did not restore the fitted zoom level.");
+                if (WaitForAutomationId(process.Id, "InlineToolPan").Current.IsEnabled)
+                    throw new InvalidOperationException("The Pan tool remained enabled when the canvas no longer overflowed.");
+
+                PhysicalClick(WaitForAutomationId(process.Id, "InlineZoomIn"));
+                WaitUntil(() => !string.Equals(DisplayedZoom(), zoomBefore, StringComparison.Ordinal),
+                    "Zoom In did not recover after Fit was selected from the zoom menu.");
+
+                var pan = WaitForAutomationId(process.Id, "InlineToolPan");
+                if (!pan.Current.IsEnabled)
+                    throw new InvalidOperationException("The Pan tool did not become available after zooming in.");
+                PhysicalClick(pan);
+                Drag(
+                    new Drawing.Point(
+                        (int)Math.Round(selectionBounds.Left + selectionBounds.Width * 0.58),
+                        (int)Math.Round(selectionBounds.Top + selectionBounds.Height * 0.56)),
+                    new Drawing.Point(
+                        (int)Math.Round(selectionBounds.Left + selectionBounds.Width * 0.46),
+                        (int)Math.Round(selectionBounds.Top + selectionBounds.Height * 0.44)));
 
                 PhysicalClick(WaitForAutomationId(process.Id, "InlineToolRectangle"));
                 WaitUntil(
@@ -316,6 +333,16 @@ internal static class Program
                     (int)Math.Round(selectionBounds.Left + selectionBounds.Width * 0.62),
                     (int)Math.Round(selectionBounds.Top + selectionBounds.Height * 0.62));
                 Drag(drawStart, drawEnd);
+
+                foreach (var actionId in new[] { "OneShotCancel", "OneShotDone" })
+                {
+                    var toolbarAction = WaitForAutomationId(process.Id, actionId);
+                    var actionBounds = toolbarAction.Current.BoundingRectangle;
+                    if (toolbarAction.Current.IsOffscreen || actionBounds.IsEmpty ||
+                        !toolbarAction.TryGetClickablePoint(out _))
+                        throw new InvalidOperationException(
+                            $"{actionId} was clipped or did not expose a physical click target: action={actionBounds}.");
+                }
             }
 
             double? interactionMilliseconds = null;
@@ -339,9 +366,11 @@ internal static class Program
                     detail = "Enter confirmed the inline editor.";
                     break;
                 case ScenarioAction.PanToolbarRecovery:
-                    SendKey(overlay, 0x0D);
+                    PhysicalClick(WaitForAutomationId(process.Id, "OneShotDone"));
                     WaitForCaptureCount(captureDirectory, 1);
-                    detail = "After a physical Pan-tool click, Zoom In, Rectangle, drawing, and Enter completion all remained operable.";
+                    WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
+                        "The inline overlay did not close after the fixed Done action was clicked.");
+                    detail = "Zoom In enabled Pan; a physical pan, annotation-tool switch, drawing, and the fixed visible Done action all remained operable.";
                     break;
                 case ScenarioAction.CancelWithEscape:
                     SendKey(overlay, 0x1B);
