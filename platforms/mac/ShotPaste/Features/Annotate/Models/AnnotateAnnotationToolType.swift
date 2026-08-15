@@ -100,10 +100,6 @@ nonisolated enum AnnotationToolType: String, CaseIterable, Identifiable {
     }
   }
 
-  var supportsQuickFillColor: Bool {
-    false
-  }
-
   var supportsQuickStrokeWidth: Bool {
     switch self {
     case .rectangle, .filledRectangle, .oval, .arrow, .line, .highlighter, .blur, .counter, .pencil:

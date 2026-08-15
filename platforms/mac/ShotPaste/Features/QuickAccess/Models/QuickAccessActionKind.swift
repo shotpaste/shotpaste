@@ -7,11 +7,6 @@
 
 import Foundation
 
-enum QuickAccessActionDisplayStyle: String, Codable {
-  case primary
-  case corner
-}
-
 enum QuickAccessActionSurface: Equatable {
   case overlay
   case contextMenu
@@ -48,10 +43,6 @@ enum QuickAccessActionSlot: String, CaseIterable, Codable, Hashable, Identifiabl
     .topLeading: .delete,
     .bottomTrailing: .pinToScreen,
   ]
-
-  var isCenterSlot: Bool {
-    Self.centerSlots.contains(self)
-  }
 
   var settingsTitle: String {
     switch self {
@@ -92,15 +83,6 @@ enum QuickAccessActionKind: String, CaseIterable, Codable, Hashable, Identifiabl
 
   static let defaultEnabledActions = Set(defaultOrder)
 
-  var displayStyle: QuickAccessActionDisplayStyle {
-    switch self {
-    case .copy, .saveOrOpen:
-      .primary
-    case .dismiss, .delete, .pinToScreen:
-      .corner
-    }
-  }
-
   var settingsTitle: String {
     switch self {
     case .copy:
@@ -116,15 +98,6 @@ enum QuickAccessActionKind: String, CaseIterable, Codable, Hashable, Identifiabl
     }
   }
 
-  var settingsPlacementTitle: String {
-    switch displayStyle {
-    case .primary:
-      L10n.PreferencesQuickAccess.primaryActionBadge
-    case .corner:
-      L10n.PreferencesQuickAccess.cornerActionBadge
-    }
-  }
-
   var isContextMenuDestructiveGroup: Bool {
     switch self {
     case .dismiss, .delete:
@@ -132,12 +105,6 @@ enum QuickAccessActionKind: String, CaseIterable, Codable, Hashable, Identifiabl
     case .copy, .saveOrOpen, .pinToScreen:
       false
     }
-  }
-
-  static func contextMenuOrder(from actions: [QuickAccessActionKind]) -> [QuickAccessActionKind] {
-    let regularActions = actions.filter { !$0.isContextMenuDestructiveGroup }
-    let destructiveActions = actions.filter(\.isContextMenuDestructiveGroup)
-    return regularActions + destructiveActions
   }
 
   var systemImage: String {

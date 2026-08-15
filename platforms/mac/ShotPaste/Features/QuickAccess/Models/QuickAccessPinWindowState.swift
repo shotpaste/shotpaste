@@ -79,11 +79,6 @@ final class QuickAccessPinWindowState: ObservableObject {
     setZoomFactor(1)
   }
 
-  func applyZoomStep(_ step: CGFloat) -> CGSize {
-    guard step.isFinite, step != 0 else { return displaySize }
-    return setZoomFactor(zoomFactor + step)
-  }
-
   func update(url: URL, image: NSImage, thumbnail: NSImage, baseSize: CGSize, maxSize: CGSize) -> CGSize {
     self.url = url
     self.image = image

@@ -58,23 +58,6 @@ final class ShotPasteConfigurationPathsTests: XCTestCase {
     )
   }
 
-  func testCollapsingHomePathConvertsAbsolutePathToTilde() {
-    let home = URL(fileURLWithPath: "/Users/example", isDirectory: true)
-
-    XCTAssertEqual(
-      ShotPasteConfigurationPaths.collapsingHomePath("/Users/example/Desktop", homeDirectory: home),
-      "~/Desktop"
-    )
-    XCTAssertEqual(
-      ShotPasteConfigurationPaths.collapsingHomePath("/Users/example", homeDirectory: home),
-      "~"
-    )
-    XCTAssertEqual(
-      ShotPasteConfigurationPaths.collapsingHomePath("/tmp/shotpaste", homeDirectory: home),
-      "/tmp/shotpaste"
-    )
-  }
-
   func testExpandedUserPathUsesProvidedHomeDirectory() {
     let home = URL(fileURLWithPath: "/Users/example", isDirectory: true)
 
@@ -99,6 +82,6 @@ final class ShotPasteConfigurationPathsTests: XCTestCase {
     let expectedHome = URL(fileURLWithPath: String(cString: home), isDirectory: true)
     let expectedURL = ShotPasteConfigurationPaths.suggestedConfigURL(homeDirectory: expectedHome)
 
-    XCTAssertEqual(ShotPasteConfigurationService.shared.suggestedConfigURL.path, expectedURL.path)
+    XCTAssertEqual(ShotPasteConfigurationPaths.suggestedConfigURL.path, expectedURL.path)
   }
 }

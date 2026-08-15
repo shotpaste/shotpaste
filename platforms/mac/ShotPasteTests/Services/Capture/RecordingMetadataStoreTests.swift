@@ -68,18 +68,6 @@ final class RecordingMetadataStoreTests: XCTestCase {
     XCTAssertEqual(loaded, metadata)
   }
 
-  func testRecordingMetadataStore_moveAssociationPreservesMetadataForRenamedVideo() throws {
-    let oldURL = try makeVideoFile(named: "before.mov")
-    let newURL = try makeVideoFile(named: "after.mov")
-    let metadata = makeCurrentMetadata()
-
-    try RecordingMetadataStore.save(metadata, for: oldURL)
-    try RecordingMetadataStore.moveAssociation(from: oldURL, to: newURL)
-
-    XCTAssertNil(RecordingMetadataStore.load(for: oldURL))
-    XCTAssertEqual(RecordingMetadataStore.load(for: newURL), metadata)
-  }
-
   func testRecordingMetadataStore_deleteRemovesMetadata() throws {
     let videoURL = try makeVideoFile(named: "delete.mov")
     let metadata = makeCurrentMetadata()

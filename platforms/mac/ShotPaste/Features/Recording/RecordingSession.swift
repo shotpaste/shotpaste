@@ -103,13 +103,6 @@ final nonisolated class RecordingSession: @unchecked Sendable {
     }
   }
 
-  /// Thread-safe check if ready to write frames
-  func canWriteFrames() -> Bool {
-    lock.withLock {
-      _isCapturing && _assetWriter?.status == .writing
-    }
-  }
-
   func videoWriteStats() -> VideoWriteStats {
     lock.withLock {
       VideoWriteStats(

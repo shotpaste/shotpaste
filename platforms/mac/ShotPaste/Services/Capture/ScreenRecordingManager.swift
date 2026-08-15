@@ -91,16 +91,6 @@ enum VideoQuality: String, CaseIterable, Codable {
 }
 
 enum RecordingVideoEncodingSettings {
-  static func preferredCodec(format: VideoFormat, quality: VideoQuality) -> AVVideoCodecType {
-    guard format == .mov else { return .h264 }
-    guard quality == .high else { return .h264 }
-    #if arch(arm64)
-      return .hevc
-    #else
-      return .h264
-    #endif
-  }
-
   static func calculatedBitrate(
     width: Int,
     height: Int,
@@ -708,11 +698,6 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     label: "com.ahtcfg24.shotpaste.recording.audio",
     qos: .userInteractive
   )
-  private let microphoneProcessingQueue = DispatchQueue(
-    label: "com.ahtcfg24.shotpaste.recording.microphone",
-    qos: .userInteractive
-  )
-
   private struct RecordingAudioNormalizationResult {
     let outputURL: URL?
     let audioSourceURL: URL?
@@ -761,7 +746,7 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
       "fps": "\(fps)",
       "systemAudio": "\(captureSystemAudio)",
       "microphone": "\(captureMicrophone)",
-      "microphoneDevice": microphoneDeviceID ?? RecordingMicrophoneDevice.systemDefaultID,
+      "microphoneDevice": microphoneDeviceID ?? RecordingMicrophoneDeviceProvider.systemDefaultID,
       "showCursor": "\(showCursor)",
       "excludeOwnApp": "\(excludeOwnApplication)",
       "excludeDesktopIcons": "\(excludeDesktopIcons)",
@@ -913,7 +898,7 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
       "outputSize": "\(captureGeometry.outputWidth)x\(captureGeometry.outputHeight)",
     ])
 
-    // Generate output URL using user-configurable template (with legacy fallback).
+    // Generate the output URL from the user-configurable template with a safe fallback.
     let resolvedFileName = CaptureOutputNaming.resolveBaseName(
       customName: fileName,
       kind: .recording,
@@ -1073,7 +1058,7 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
       "format": videoFormat.rawValue,
       "systemAudio": "\(captureSystemAudio)",
       "microphone": "\(captureMicrophone)",
-      "microphoneDevice": microphoneDeviceID ?? RecordingMicrophoneDevice.systemDefaultID,
+      "microphoneDevice": microphoneDeviceID ?? RecordingMicrophoneDeviceProvider.systemDefaultID,
     ])
     startTime = Date()
     elapsedSeconds = 0

@@ -21,34 +21,6 @@ final class ScreenRecordingEncodingSettingsTests: XCTestCase {
     XCTAssertEqual(VideoFormat.mp4.displayName, "MP4")
   }
 
-  func testPreferredCodec_mp4AlwaysUsesH264() {
-    for quality in VideoQuality.allCases {
-      let codec = RecordingVideoEncodingSettings.preferredCodec(format: .mp4, quality: quality)
-      XCTAssertEqual(codec.rawValue, AVVideoCodecType.h264.rawValue)
-    }
-  }
-
-  func testPreferredCodec_movHighUsesPlatformPreferredCodec() {
-    let codec = RecordingVideoEncodingSettings.preferredCodec(format: .mov, quality: .high)
-
-    #if arch(arm64)
-      XCTAssertEqual(codec.rawValue, AVVideoCodecType.hevc.rawValue)
-    #else
-      XCTAssertEqual(codec.rawValue, AVVideoCodecType.h264.rawValue)
-    #endif
-  }
-
-  func testPreferredCodec_movMediumAndLowUseH264() {
-    XCTAssertEqual(
-      RecordingVideoEncodingSettings.preferredCodec(format: .mov, quality: .medium).rawValue,
-      AVVideoCodecType.h264.rawValue
-    )
-    XCTAssertEqual(
-      RecordingVideoEncodingSettings.preferredCodec(format: .mov, quality: .low).rawValue,
-      AVVideoCodecType.h264.rawValue
-    )
-  }
-
   func testCalculatedBitrate_smallCaptureClampsToQualityMinimum() {
     let bitrate = RecordingVideoEncodingSettings.calculatedBitrate(
       width: 100,

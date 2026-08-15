@@ -157,13 +157,6 @@ final class RecordingRegionOverlayWindow: NSPanel {
     overlayView.refreshCursor()
   }
 
-  /// Only update interaction state when it actually changes, to avoid
-  /// redundant invalidateCursorRects calls on every drag event.
-  func setInteractionEnabledIfNeeded(_ enabled: Bool) {
-    guard overlayView.isInteractionEnabled != enabled else { return }
-    setInteractionEnabled(enabled)
-  }
-
   override func close() {
     // Restore cursor to arrow before closing — the overlay may have set
     // a resize, openHand, or crosshair cursor that could persist if the

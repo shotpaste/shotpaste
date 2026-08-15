@@ -27,13 +27,6 @@ nonisolated enum ScrollingCaptureStitchSafety: Equatable {
   case confirmed
   case tentative(reason: String)
   case unsafe(reason: String)
-
-  var isUnsafe: Bool {
-    if case .unsafe = self {
-      return true
-    }
-    return false
-  }
 }
 
 nonisolated enum ScrollingCaptureAlignmentPath: String {

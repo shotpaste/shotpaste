@@ -24,18 +24,6 @@ final class RecordingEncodingSettingsTests: XCTestCase {
     XCTAssertGreaterThan(VideoQuality.medium.bitsPerPixelPerFrame, VideoQuality.low.bitsPerPixelPerFrame)
   }
 
-  // MARK: - preferredCodec
-
-  func testPreferredCodec_mp4_alwaysH264() {
-    let codec = RecordingVideoEncodingSettings.preferredCodec(format: .mp4, quality: .high)
-    XCTAssertEqual(codec, .h264)
-  }
-
-  func testPreferredCodec_mov_nonHigh_alwaysH264() {
-    let codec = RecordingVideoEncodingSettings.preferredCodec(format: .mov, quality: .medium)
-    XCTAssertEqual(codec, .h264)
-  }
-
   // MARK: - calculatedBitrate
 
   func testCalculatedBitrate_clampedByMin() {

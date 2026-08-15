@@ -164,11 +164,6 @@ final class BlurCacheManager {
     pendingRenders.removeAll()
   }
 
-  /// Check if cache exists for annotation.
-  func hasCachedBlur(for annotationId: UUID) -> Bool {
-    cache[annotationId] != nil
-  }
-
   private func cachedImage(
     for annotationId: UUID,
     descriptor: RenderDescriptor,

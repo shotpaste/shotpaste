@@ -87,37 +87,6 @@ enum TestImageFactory {
     return makeCGImage(width: width, height: height, bytesPerRow: bytesPerRow, pixels: pixels)
   }
 
-  /// Create an image that is a vertically shifted copy of a gradient.
-  /// Simulates scroll by shifting `shiftPixels` rows down and filling
-  /// the top with new content (incrementing gray values).
-  static func shiftedGradient(
-    width: Int,
-    height: Int,
-    topGray: UInt8 = 0,
-    bottomGray: UInt8 = 255,
-    shiftPixels: Int
-  ) -> CGImage? {
-    let bytesPerRow = width * 4
-    var pixels = [UInt8](repeating: 0, count: height * bytesPerRow)
-
-    for y in 0 ..< height {
-      // The shifted source row in the original gradient
-      let sourceY = y + shiftPixels
-      let t = height > 1 ? Double(sourceY) / Double(height - 1) : 0
-      let gray = UInt8(max(0, min(255, Int(Double(topGray) * (1 - t) + Double(bottomGray) * t))))
-
-      for x in 0 ..< width {
-        let offset = y * bytesPerRow + x * 4
-        pixels[offset] = gray
-        pixels[offset + 1] = gray
-        pixels[offset + 2] = gray
-        pixels[offset + 3] = 255
-      }
-    }
-
-    return makeCGImage(width: width, height: height, bytesPerRow: bytesPerRow, pixels: pixels)
-  }
-
   /// Create a frame for scrolling-capture tests where each row has a
   /// deterministic color signature based on its logical content position.
   /// Two frames with overlapping logical ranges produce pixel-perfect overlap,

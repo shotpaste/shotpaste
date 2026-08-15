@@ -1352,29 +1352,6 @@ final class ScrollingCaptureCoordinator {
     return request
   }
 
-  private func scheduleCommitRefreshAndWait(
-    reason: String,
-    expectedSignedDeltaPixelsOverride: Int? = nil
-  ) async -> ScrollingCaptureStitchUpdate? {
-    guard let commitScheduler else {
-      return await refreshPreview(
-        reason: reason,
-        expectedSignedDeltaPixelsOverride: expectedSignedDeltaPixelsOverride
-      )
-    }
-
-    guard let request = scheduleCommitRefresh(
-      reason: reason,
-      expectedSignedDeltaPixelsOverride: expectedSignedDeltaPixelsOverride
-    ) else {
-      return nil
-    }
-
-    await commitScheduler.waitForIdle()
-    guard lastScheduledCommitSequenceNumber >= request.sequenceNumber else { return nil }
-    return lastScheduledCommitUpdate
-  }
-
   private func beginFinalizing() {
     guard let sessionModel else { return }
 

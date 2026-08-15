@@ -399,15 +399,4 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     pendingDeepLinkURLs.removeAll()
     urls.forEach { coordinator.handleDeepLink($0) }
   }
-
-  #if DEBUG
-    var hasCoordinatorForTesting: Bool {
-      coordinator != nil
-    }
-
-    var didFinishLaunchingForTesting: Bool {
-      didFinishLaunching
-    }
-
-  #endif
 }

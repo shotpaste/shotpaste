@@ -109,7 +109,7 @@ struct AdvancedSettingsView: View {
   }
 
   private func performRestoreDefaults() {
-    let result = ShotPasteConfigurationService.shared.importTOML(
+    let result = ShotPasteConfigurationImporter.importTOML(
       ShotPasteConfigurationDefaultDocument.toml()
     )
     if result.hasErrors {

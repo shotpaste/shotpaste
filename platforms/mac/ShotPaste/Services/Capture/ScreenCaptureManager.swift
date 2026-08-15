@@ -208,20 +208,6 @@ final class ScreenCaptureManager: ObservableObject {
   private var lastLoggedAuthorizationSnapshot: ScreenRecordingAuthorizationLogSnapshot?
   private nonisolated static let minimumScreenshotOutputScaleFactor: CGFloat = 2.0
 
-  private var preferredScreenshotOutputScaleFactor: CGFloat {
-    switch UserDefaults.standard.integer(forKey: PreferencesKeys.screenshotScale) {
-    case 1:
-      1.0
-    case 2:
-      2.0
-    default:
-      max(
-        NSScreen.screens.map(\.backingScaleFactor).max() ?? Self.minimumScreenshotOutputScaleFactor,
-        Self.minimumScreenshotOutputScaleFactor
-      )
-    }
-  }
-
   private init() {
     screenParametersObserver = NotificationCenter.default.addObserver(
       forName: NSApplication.didChangeScreenParametersNotification,
@@ -333,40 +319,6 @@ final class ScreenCaptureManager: ObservableObject {
       for: cacheMode
     )
     return task
-  }
-
-  func captureFastDisplaySnapshot(
-    displayID: CGDirectDisplayID,
-    showCursor: Bool,
-    excludeDesktopIcons: Bool,
-    excludeDesktopWidgets: Bool,
-    excludeOwnApplication: Bool = false,
-    allowFastPathWhenOwnApplicationHidden: Bool = false
-  ) -> FrozenDisplaySnapshot? {
-    guard !excludeOwnApplication || allowFastPathWhenOwnApplicationHidden else { return nil }
-    guard !showCursor else { return nil }
-    guard !excludeDesktopIcons else { return nil }
-    guard !excludeDesktopWidgets else { return nil }
-    guard let screen = NSScreen.screens.first(where: { $0.displayID == displayID }) else {
-      return nil
-    }
-    guard let image = CGDisplayCreateImage(displayID) else {
-      return nil
-    }
-
-    let scaleFactor = Self.imageScaleFactor(
-      for: image,
-      screenFrame: screen.frame,
-      fallback: screen.backingScaleFactor
-    )
-
-    return FrozenDisplaySnapshot(
-      displayID: displayID,
-      screenFrame: screen.frame,
-      scaleFactor: scaleFactor,
-      colorSpaceName: preferredCaptureColorSpaceName(for: screen),
-      image: image
-    )
   }
 
   /// Off-main-thread variant — caller must resolve NSScreen data on main thread first,
@@ -528,7 +480,7 @@ final class ScreenCaptureManager: ObservableObject {
     defer { directoryAccess.stop() }
     let scopedDirectory = directoryAccess.url
 
-    // Resolve filename using user-configurable template (with legacy fallback).
+    // Resolve filename using the user-configurable template with a safe fallback.
     let baseName = CaptureOutputNaming.resolveBaseName(
       customName: fileName,
       kind: .screenshot,
@@ -1075,22 +1027,6 @@ final class ScreenCaptureManager: ObservableObject {
       pixelHeight: image.height,
       frame: screenFrame
     ) ?? max(fallback, 1)
-  }
-
-  private nonisolated static func promoteScreenshotImageIfNeeded(
-    _ image: CGImage,
-    logicalSize: CGSize,
-    sourceScaleFactor: CGFloat,
-    minimumOutputScaleFactor: CGFloat,
-    colorSpaceName: CFString?
-  ) -> (image: CGImage, scaleFactor: CGFloat) {
-    FrozenAreaCaptureSession.imageByPromotingScaleIfNeeded(
-      image,
-      logicalSize: logicalSize,
-      sourceScaleFactor: sourceScaleFactor,
-      minimumOutputScaleFactor: max(minimumOutputScaleFactor, minimumScreenshotOutputScaleFactor),
-      colorSpaceName: colorSpaceName
-    )
   }
 
   private nonisolated static func dimensionScale(

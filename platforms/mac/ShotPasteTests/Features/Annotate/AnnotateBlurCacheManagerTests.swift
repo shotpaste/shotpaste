@@ -118,49 +118,78 @@ final class AnnotateBlurCacheManagerTests: XCTestCase {
     // Poll until async render completes (avoids DispatchQueue.main.async + wait(for:)
     // run loop interaction issues on CI runners).
     let deadline = CFAbsoluteTimeGetCurrent() + 10.0
+    var rendered: CGImage?
     while CFAbsoluteTimeGetCurrent() < deadline {
-      if cache.hasCachedBlur(for: id) {
+      rendered = cache.getCachedBlur(
+        for: id,
+        bounds: bounds,
+        sourceImage: sourceImage,
+        blurType: .pixelated,
+        effectValue: 8,
+        renderSynchronously: false
+      )
+      if rendered != nil {
         break
       }
       RunLoop.current.run(mode: .default, before: Date(timeIntervalSinceNow: 0.05))
     }
-    XCTAssertTrue(cache.hasCachedBlur(for: id))
+    XCTAssertNotNil(rendered)
   }
 
-  func testInvalidate_removesCache() {
+  func testInvalidate_removesCache() throws {
     let id = UUID()
-    cache.getCachedBlur(
+    let first = try XCTUnwrap(cache.getCachedBlur(
       for: id,
       bounds: CGRect(x: 0, y: 0, width: 20, height: 20),
       sourceImage: sourceImage,
       blurType: .pixelated,
       effectValue: 8
-    )
-    XCTAssertTrue(cache.hasCachedBlur(for: id))
+    ))
     cache.invalidate(id: id)
-    XCTAssertFalse(cache.hasCachedBlur(for: id))
+    let second = try XCTUnwrap(cache.getCachedBlur(
+      for: id,
+      bounds: CGRect(x: 0, y: 0, width: 20, height: 20),
+      sourceImage: sourceImage,
+      blurType: .pixelated,
+      effectValue: 8
+    ))
+    XCTAssertFalse(first === second)
   }
 
-  func testClearAll_removesAllCache() {
+  func testClearAll_removesAllCache() throws {
     let id1 = UUID()
     let id2 = UUID()
-    cache.getCachedBlur(
+    let first = try XCTUnwrap(cache.getCachedBlur(
       for: id1,
       bounds: CGRect(x: 0, y: 0, width: 20, height: 20),
       sourceImage: sourceImage,
       blurType: .pixelated,
       effectValue: 8
-    )
-    cache.getCachedBlur(
+    ))
+    let second = try XCTUnwrap(cache.getCachedBlur(
       for: id2,
       bounds: CGRect(x: 0, y: 0, width: 20, height: 20),
       sourceImage: sourceImage,
       blurType: .pixelated,
       effectValue: 8
-    )
+    ))
     cache.clearAll()
-    XCTAssertFalse(cache.hasCachedBlur(for: id1))
-    XCTAssertFalse(cache.hasCachedBlur(for: id2))
+    let refreshedFirst = try XCTUnwrap(cache.getCachedBlur(
+      for: id1,
+      bounds: CGRect(x: 0, y: 0, width: 20, height: 20),
+      sourceImage: sourceImage,
+      blurType: .pixelated,
+      effectValue: 8
+    ))
+    let refreshedSecond = try XCTUnwrap(cache.getCachedBlur(
+      for: id2,
+      bounds: CGRect(x: 0, y: 0, width: 20, height: 20),
+      sourceImage: sourceImage,
+      blurType: .pixelated,
+      effectValue: 8
+    ))
+    XCTAssertFalse(first === refreshedFirst)
+    XCTAssertFalse(second === refreshedSecond)
   }
 
   func testGetCachedBlur_emptyBounds_returnsNil() {

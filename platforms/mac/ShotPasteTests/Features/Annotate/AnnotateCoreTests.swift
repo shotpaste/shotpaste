@@ -15,7 +15,6 @@ final class AnnotateCoreTests: XCTestCase {
   // Keep AnnotateState alive for the test process; XCTest scope cleanup can
   // crash while deinitializing this MainActor app-level ObservableObject.
   @MainActor private static var retainedAnnotateStates: [AnnotateState] = []
-  @MainActor private static var retainedCanvasPresetStores: [AnnotateCanvasPresetStore] = []
   @MainActor private static var retainedUserDefaults: [UserDefaults] = []
 
   @MainActor
@@ -31,22 +30,6 @@ final class AnnotateCoreTests: XCTestCase {
     Self.retainedUserDefaults.append(defaults)
     Self.retainedAnnotateStates.append(state)
     return state
-  }
-
-  @MainActor
-  private func makeCanvasPresetStore() -> (AnnotateCanvasPresetStore, UserDefaults) {
-    let defaults = UserDefaultsFactory.make()
-    let store = AnnotateCanvasPresetStore(defaults: defaults)
-    Self.retainedUserDefaults.append(defaults)
-    Self.retainedCanvasPresetStores.append(store)
-    return (store, defaults)
-  }
-
-  func testAnnotateCanvasDefaultsUseNoCornerRadius() {
-    XCTAssertEqual(AnnotateCanvasDefaults.cornerRadius, 0)
-    XCTAssertEqual(AnnotationCanvasEffects().cornerRadius, 0)
-    XCTAssertFalse(AnnotationCanvasEffects().isBlurredBackgroundEnabled)
-    XCTAssertEqual(AnnotationCanvasEffects().blurredBackgroundEffect, .soft)
   }
 
   func testInlineAreaControls_nearFullscreenSelectionUsesBottomInnerPlacement() {
@@ -774,93 +757,6 @@ final class AnnotateCoreTests: XCTestCase {
     XCTAssertEqual(softenedStripePixels, 0)
   }
 
-  func testAspectRatioOptionOriginalKeepsForegroundRatioWithMinimumPadding() {
-    let foregroundSize = CGSize(width: 1000, height: 600)
-
-    let canvasSize = AspectRatioOption.auto.canvasSize(
-      for: foregroundSize,
-      padding: 100,
-      alignmentSpace: 0
-    )
-
-    XCTAssertEqual(canvasSize.height, 800, accuracy: 0.0001)
-    XCTAssertEqual(canvasSize.width, 800 * (1000.0 / 600.0), accuracy: 0.0001)
-    XCTAssertEqual(canvasSize.width / canvasSize.height, 1000.0 / 600.0, accuracy: 0.0001)
-    XCTAssertGreaterThanOrEqual((canvasSize.width - foregroundSize.width) / 2, 100)
-    XCTAssertGreaterThanOrEqual((canvasSize.height - foregroundSize.height) / 2, 100)
-  }
-
-  func testAspectRatioOptionFreeKeepsPaddingOnlyCanvasSize() {
-    let canvasSize = AspectRatioOption.free.canvasSize(
-      for: CGSize(width: 1000, height: 600),
-      padding: 100,
-      alignmentSpace: 0
-    )
-
-    XCTAssertEqual(canvasSize, CGSize(width: 1200, height: 800))
-  }
-
-  func testAspectRatioOptionVerticalOrientationInvertsFixedRatio() {
-    let foregroundSize = CGSize(width: 1000, height: 600)
-
-    let canvasSize = AspectRatioOption.ratio16x9.canvasSize(
-      for: foregroundSize,
-      padding: 100,
-      alignmentSpace: 0,
-      orientation: .vertical
-    )
-
-    XCTAssertEqual(canvasSize.width, 1200, accuracy: 0.0001)
-    XCTAssertEqual(canvasSize.width / canvasSize.height, 9.0 / 16.0, accuracy: 0.0001)
-    XCTAssertGreaterThanOrEqual((canvasSize.width - foregroundSize.width) / 2, 100)
-    XCTAssertGreaterThanOrEqual((canvasSize.height - foregroundSize.height) / 2, 100)
-  }
-
-  @MainActor
-  func testAnnotateExporter_renderFinalImageUsesSelectedBackgroundAspectRatio() throws {
-    let state = makeAnnotateState()
-    let sourceImage = try makeRetinaPixelPatternImage(pixelWidth: 1000, pixelHeight: 600, scale: 1)
-    state.loadImage(sourceImage)
-    state.backgroundStyle = .solidColor(.white)
-    state.padding = 100
-    state.aspectRatio = .ratio16x9
-
-    let renderedImage = try XCTUnwrap(AnnotateExporter.renderFinalImage(state: state))
-
-    XCTAssertEqual(renderedImage.size.width / renderedImage.size.height, 16.0 / 9.0, accuracy: 0.0001)
-    XCTAssertGreaterThanOrEqual((renderedImage.size.width - sourceImage.size.width) / 2, 100)
-    XCTAssertGreaterThanOrEqual((renderedImage.size.height - sourceImage.size.height) / 2, 100)
-  }
-
-  @MainActor
-  func testAnnotateExporter_renderFinalImageUsesVerticalBackgroundAspectRatio() throws {
-    let state = makeAnnotateState()
-    let sourceImage = try makeRetinaPixelPatternImage(pixelWidth: 1000, pixelHeight: 600, scale: 1)
-    state.loadImage(sourceImage)
-    state.backgroundStyle = .solidColor(.white)
-    state.padding = 100
-    state.aspectRatio = .ratio16x9
-    state.aspectRatioOrientation = .vertical
-
-    let renderedImage = try XCTUnwrap(AnnotateExporter.renderFinalImage(state: state))
-
-    XCTAssertEqual(renderedImage.size.width / renderedImage.size.height, 9.0 / 16.0, accuracy: 0.0001)
-    XCTAssertGreaterThanOrEqual((renderedImage.size.width - sourceImage.size.width) / 2, 100)
-    XCTAssertGreaterThanOrEqual((renderedImage.size.height - sourceImage.size.height) / 2, 100)
-  }
-
-  func testCodableBackgroundStyle_roundTripsSupportedStyles() throws {
-    XCTAssertEqual(try XCTUnwrap(CodableBackgroundStyle(from: BackgroundStyle.none)).toBackgroundStyle(), .none)
-    XCTAssertEqual(
-      try XCTUnwrap(CodableBackgroundStyle(from: .gradient(.cyanBlue))).toBackgroundStyle(),
-      .gradient(.cyanBlue)
-    )
-
-    let solid = try XCTUnwrap(CodableBackgroundStyle(from: .solidColor(.red)))
-    XCTAssertEqual(solid.kind, .solidColor)
-    XCTAssertNotNil(solid.solidColorRGBA)
-  }
-
   func testRGBAColorClampsComponents() {
     let color = RGBAColor(red: -1, green: 0.25, blue: 2, alpha: 1.5)
 
@@ -870,293 +766,40 @@ final class AnnotateCoreTests: XCTestCase {
     XCTAssertEqual(color.alpha, 1)
   }
 
-  func testAnnotateCanvasPresetPayloadApproximatelyEqualsHonorsTolerance() throws {
-    let first = try AnnotateCanvasPresetPayload(
-      backgroundStyle: XCTUnwrap(CodableBackgroundStyle(from: .gradient(.bluePurple))),
-      padding: 40,
-      shadowIntensity: 0.3,
-      cornerRadius: 12
-    )
-    let close = try AnnotateCanvasPresetPayload(
-      backgroundStyle: XCTUnwrap(CodableBackgroundStyle(from: .gradient(.bluePurple))),
-      padding: 40.00005,
-      shadowIntensity: 0.30005,
-      cornerRadius: 12.00005
-    )
-    let different = try AnnotateCanvasPresetPayload(
-      backgroundStyle: XCTUnwrap(CodableBackgroundStyle(from: .gradient(.orangeRed))),
-      padding: 40,
-      shadowIntensity: 0.3,
-      cornerRadius: 12
-    )
-
-    XCTAssertTrue(first.approximatelyEquals(close))
-    XCTAssertFalse(first.approximatelyEquals(different))
-  }
-
-  func testAnnotateCanvasPresetPayloadDefaultsMissingAspectRatioToOriginal() throws {
-    let data = Data("""
-    {
-      "backgroundStyle": {
-        "kind": "gradient",
-        "gradientPresetRawValue": "bluePurple"
-      },
-      "padding": 40,
-      "shadowIntensity": 0.3,
-      "cornerRadius": 12
-    }
-    """.utf8)
-
-    let payload = try JSONDecoder().decode(AnnotateCanvasPresetPayload.self, from: data)
-
-    XCTAssertEqual(payload.aspectRatio, .auto)
-    XCTAssertEqual(payload.aspectRatioOrientation, .horizontal)
-    XCTAssertFalse(payload.isBlurredBackgroundEnabled)
-    XCTAssertEqual(payload.blurredBackgroundEffect, .soft)
-  }
-
-  func testAnnotateCanvasPresetPayloadApproximatelyEqualsIncludesBlurredBackgroundEffect() throws {
-    let soft = try AnnotateCanvasPresetPayload(
-      backgroundStyle: XCTUnwrap(CodableBackgroundStyle(from: .solidColor(.blue))),
-      isBlurredBackgroundEnabled: true,
-      blurredBackgroundEffect: .soft,
-      padding: 40,
-      shadowIntensity: 0.3,
-      cornerRadius: 12
-    )
-    let vivid = try AnnotateCanvasPresetPayload(
-      backgroundStyle: XCTUnwrap(CodableBackgroundStyle(from: .solidColor(.blue))),
-      isBlurredBackgroundEnabled: true,
-      blurredBackgroundEffect: .vivid,
-      padding: 40,
-      shadowIntensity: 0.3,
-      cornerRadius: 12
-    )
-
-    XCTAssertFalse(soft.approximatelyEquals(vivid))
-  }
-
-  func testAnnotateCanvasPresetPayloadApproximatelyEqualsIncludesBlurredBackgroundEnabled() throws {
-    let disabled = try AnnotateCanvasPresetPayload(
-      backgroundStyle: XCTUnwrap(CodableBackgroundStyle(from: .solidColor(.blue))),
-      isBlurredBackgroundEnabled: false,
-      blurredBackgroundEffect: .soft,
-      padding: 40,
-      shadowIntensity: 0.3,
-      cornerRadius: 12
-    )
-    let enabled = try AnnotateCanvasPresetPayload(
-      backgroundStyle: XCTUnwrap(CodableBackgroundStyle(from: .solidColor(.blue))),
-      isBlurredBackgroundEnabled: true,
-      blurredBackgroundEffect: .soft,
-      padding: 40,
-      shadowIntensity: 0.3,
-      cornerRadius: 12
-    )
-
-    XCTAssertFalse(disabled.approximatelyEquals(enabled))
-  }
-
-  func testAnnotateCanvasPresetPayloadApproximatelyEqualsIgnoresBlurredEffectForNonBlurredBackgrounds() throws {
-    let soft = try AnnotateCanvasPresetPayload(
-      backgroundStyle: XCTUnwrap(CodableBackgroundStyle(from: .gradient(.bluePurple))),
-      isBlurredBackgroundEnabled: false,
-      blurredBackgroundEffect: .soft,
-      padding: 40,
-      shadowIntensity: 0.3,
-      cornerRadius: 12
-    )
-    let vivid = try AnnotateCanvasPresetPayload(
-      backgroundStyle: XCTUnwrap(CodableBackgroundStyle(from: .gradient(.bluePurple))),
-      isBlurredBackgroundEnabled: false,
-      blurredBackgroundEffect: .vivid,
-      padding: 40,
-      shadowIntensity: 0.3,
-      cornerRadius: 12
-    )
-
-    XCTAssertTrue(soft.approximatelyEquals(vivid))
-  }
-
-  func testAnnotateCanvasPresetPayloadApproximatelyEqualsIncludesAspectRatio() throws {
-    let originalRatio = try AnnotateCanvasPresetPayload(
-      backgroundStyle: XCTUnwrap(CodableBackgroundStyle(from: .gradient(.bluePurple))),
-      padding: 40,
-      shadowIntensity: 0.3,
-      cornerRadius: 12,
-      aspectRatio: .auto
-    )
-    let fixedRatio = try AnnotateCanvasPresetPayload(
-      backgroundStyle: XCTUnwrap(CodableBackgroundStyle(from: .gradient(.bluePurple))),
-      padding: 40,
-      shadowIntensity: 0.3,
-      cornerRadius: 12,
-      aspectRatio: .ratio16x9
-    )
-
-    XCTAssertFalse(originalRatio.approximatelyEquals(fixedRatio))
-  }
-
-  func testAnnotateCanvasPresetPayloadApproximatelyEqualsIncludesAspectRatioOrientation() throws {
-    let horizontalRatio = try AnnotateCanvasPresetPayload(
-      backgroundStyle: XCTUnwrap(CodableBackgroundStyle(from: .gradient(.bluePurple))),
-      padding: 40,
-      shadowIntensity: 0.3,
-      cornerRadius: 12,
-      aspectRatio: .ratio16x9,
-      aspectRatioOrientation: .horizontal
-    )
-    let verticalRatio = try AnnotateCanvasPresetPayload(
-      backgroundStyle: XCTUnwrap(CodableBackgroundStyle(from: .gradient(.bluePurple))),
-      padding: 40,
-      shadowIntensity: 0.3,
-      cornerRadius: 12,
-      aspectRatio: .ratio16x9,
-      aspectRatioOrientation: .vertical
-    )
-
-    XCTAssertFalse(horizontalRatio.approximatelyEquals(verticalRatio))
-  }
-
-  @MainActor
-  func testAnnotateCanvasPresetStoreClearsInvalidDefaultPreset() throws {
-    let (store, defaults) = makeCanvasPresetStore()
-    let preset = try AnnotateCanvasPreset(
-      name: "Share",
-      payload: AnnotateCanvasPresetPayload(
-        backgroundStyle: XCTUnwrap(CodableBackgroundStyle(from: .gradient(.bluePurple))),
-        padding: 40,
-        shadowIntensity: 0.3,
-        cornerRadius: 12
-      )
-    )
-
-    store.savePresets([preset])
-    store.saveDefaultPresetId(preset.id)
-    XCTAssertEqual(store.loadDefaultPresetId(validating: [preset]), preset.id)
-
-    store.savePresets([])
-
-    XCTAssertNil(store.loadDefaultPresetId(validating: []))
-    XCTAssertNil(defaults.string(forKey: PreferencesKeys.annotateDefaultCanvasPresetId))
-  }
-
-  @MainActor
-  func testAnnotateCanvasPresetStoreClearsMalformedDefaultPresetId() {
-    let (store, defaults) = makeCanvasPresetStore()
-    defaults.set("not-a-uuid", forKey: PreferencesKeys.annotateDefaultCanvasPresetId)
-
-    XCTAssertNil(store.loadDefaultPresetId(validating: []))
-    XCTAssertNil(defaults.string(forKey: PreferencesKeys.annotateDefaultCanvasPresetId))
-  }
-
-  @MainActor
-  func testAnnotateStateAppliesDefaultCanvasPresetToNewImageWithoutDirtyFlag() throws {
-    let (store, _) = makeCanvasPresetStore()
-    let preset = try AnnotateCanvasPreset(
-      name: "Default Share",
-      payload: AnnotateCanvasPresetPayload(
-        backgroundStyle: XCTUnwrap(CodableBackgroundStyle(from: .gradient(.orangeRed))),
-        padding: 48,
-        shadowIntensity: 0.35,
-        cornerRadius: 16
-      )
-    )
-    store.savePresets([preset])
-    store.saveDefaultPresetId(preset.id)
-
-    let state = AnnotateState(canvasPresetStore: store)
-    state.loadImage(NSImage(size: NSSize(width: 20, height: 20)))
-    Self.retainedAnnotateStates.append(state)
-
-    XCTAssertEqual(state.defaultCanvasPresetId, preset.id)
-    XCTAssertEqual(state.selectedCanvasPresetId, preset.id)
-    XCTAssertEqual(state.backgroundStyle, .gradient(.orangeRed))
-    XCTAssertEqual(state.padding, 48)
-    XCTAssertEqual(state.shadowIntensity, 0.35)
-    XCTAssertEqual(state.cornerRadius, 16)
-    XCTAssertFalse(state.hasUnsavedChanges)
-    XCTAssertTrue(state.isDefaultCanvasPresetAutoApplied)
-    XCTAssertTrue(state.requiresRenderedOutputForSharing)
-
-    state.applyCanvasPreset(preset)
-
-    XCTAssertFalse(state.hasUnsavedChanges)
-    XCTAssertTrue(state.isDefaultCanvasPresetAutoApplied)
-    XCTAssertTrue(state.requiresRenderedOutputForSharing)
-  }
-
-  @MainActor
-  func testAnnotateStateCanOptOutOfDefaultCanvasPresetApplication() throws {
-    let (store, _) = makeCanvasPresetStore()
-    let preset = try AnnotateCanvasPreset(
-      name: "Default Share",
-      payload: AnnotateCanvasPresetPayload(
-        backgroundStyle: XCTUnwrap(CodableBackgroundStyle(from: .gradient(.orangeRed))),
-        padding: 48,
-        shadowIntensity: 0.35,
-        cornerRadius: 16
-      )
-    )
-    store.savePresets([preset])
-    store.saveDefaultPresetId(preset.id)
-
-    let state = AnnotateState(
-      canvasPresetStore: store,
-      appliesDefaultCanvasPresetOnNewImages: false
-    )
-    state.loadImage(NSImage(size: NSSize(width: 20, height: 20)))
-    Self.retainedAnnotateStates.append(state)
-
-    XCTAssertEqual(state.defaultCanvasPresetId, preset.id)
-    XCTAssertNil(state.selectedCanvasPresetId)
-    XCTAssertEqual(state.backgroundStyle, .none)
-    XCTAssertFalse(state.isDefaultCanvasPresetAutoApplied)
-    XCTAssertFalse(state.requiresRenderedOutputForSharing)
-  }
-
   func testAnnotationToolTypeQuickPropertiesAreScoped() {
     XCTAssertFalse(AnnotationToolType.selection.supportsQuickPropertiesBar)
     XCTAssertTrue(AnnotationToolType.rectangle.supportsQuickPropertiesBar)
     XCTAssertTrue(AnnotationToolType.filledRectangle.supportsQuickStrokeColor)
-    XCTAssertFalse(AnnotationToolType.filledRectangle.supportsQuickFillColor)
-    XCTAssertFalse(AnnotationToolType.rectangle.supportsQuickFillColor)
     XCTAssertTrue(AnnotationToolType.rectangle.supportsQuickCornerRadius)
     XCTAssertFalse(AnnotationToolType.oval.supportsQuickCornerRadius)
   }
 
   @MainActor
-  func testFilledRectangleQuickColorUpdatesStrokeAndFill() throws {
+  func testFilledRectangleQuickColorUpdatesStroke() throws {
     let state = makeAnnotateState()
     let annotation = AnnotationItem(
       type: .filledRectangle,
       bounds: CGRect(x: 0, y: 0, width: 80, height: 40),
-      properties: AnnotationProperties(strokeColor: .red, fillColor: .green)
+      properties: AnnotationProperties(strokeColor: .red)
     )
     state.annotations = [annotation]
     state.setSelectedAnnotationIds([annotation.id])
-
-    XCTAssertFalse(state.quickPropertiesSupportsFill)
 
     state.quickStrokeColorBinding.wrappedValue = .blue
 
     let updated = try XCTUnwrap(state.annotations.first)
     XCTAssertEqual(updated.properties.strokeColor, .blue)
-    XCTAssertEqual(updated.properties.fillColor, .blue)
   }
 
   @MainActor
-  func testFilledRectangleDefaultColorAppliesToStrokeAndFill() {
+  func testFilledRectangleDefaultColorUsesSharedStrokeColor() {
     let state = makeAnnotateState()
     state.activateTool(.filledRectangle)
-
-    XCTAssertFalse(state.quickPropertiesSupportsFill)
 
     state.quickStrokeColorBinding.wrappedValue = .purple
 
     let properties = state.annotationCreationProperties(for: .filledRectangle)
     XCTAssertEqual(properties.strokeColor, .purple)
-    XCTAssertEqual(properties.fillColor, .purple)
   }
 
   @MainActor
@@ -1170,7 +813,6 @@ final class AnnotateCoreTests: XCTestCase {
     assertColorsMatch(state.annotationCreationProperties(for: .arrow).strokeColor, .blue)
     assertColorsMatch(state.annotationCreationProperties(for: .text).strokeColor, .blue)
     assertColorsMatch(state.annotationCreationProperties(for: .filledRectangle).strokeColor, .blue)
-    assertColorsMatch(state.annotationCreationProperties(for: .filledRectangle).fillColor, .blue)
 
     state.activateTool(.arrow)
     assertColorsMatch(state.quickStrokeColorBinding.wrappedValue, .blue)
@@ -1189,7 +831,6 @@ final class AnnotateCoreTests: XCTestCase {
 
     assertColorsMatch(reloadedState.quickStrokeColorBinding.wrappedValue, .purple)
     assertColorsMatch(reloadedState.annotationCreationProperties(for: .filledRectangle).strokeColor, .purple)
-    assertColorsMatch(reloadedState.annotationCreationProperties(for: .filledRectangle).fillColor, .purple)
   }
 
   @MainActor
@@ -1198,7 +839,7 @@ final class AnnotateCoreTests: XCTestCase {
     let annotation = AnnotationItem(
       type: .rectangle,
       bounds: CGRect(x: 0, y: 0, width: 80, height: 40),
-      properties: AnnotationProperties(strokeColor: .red, fillColor: .clear)
+      properties: AnnotationProperties(strokeColor: .red)
     )
     state.annotations = [annotation]
     state.setSelectedAnnotationIds([annotation.id])
@@ -1208,7 +849,6 @@ final class AnnotateCoreTests: XCTestCase {
     let updated = try XCTUnwrap(state.annotations.first)
     assertColorsMatch(updated.properties.strokeColor, .green)
     assertColorsMatch(state.annotationCreationProperties(for: .line).strokeColor, .green)
-    assertColorsMatch(state.annotationCreationProperties(for: .filledRectangle).fillColor, .green)
   }
 
   @MainActor
@@ -1293,48 +933,6 @@ final class AnnotateCoreTests: XCTestCase {
     state.undo()
 
     XCTAssertEqual(try XCTUnwrap(state.annotations.first).properties.strokeWidth, 3)
-    XCTAssertFalse(state.canUndo)
-  }
-
-  @MainActor
-  func testPropertySliderGestureRecordsSingleUndoCheckpoint() throws {
-    let state = makeAnnotateState()
-    let annotation = AnnotationItem(
-      type: .text("Sized text"),
-      bounds: CGRect(x: 20, y: 20, width: 180, height: 32),
-      properties: AnnotationProperties(fontSize: 18)
-    )
-    state.annotations = [annotation]
-    state.selectedAnnotationId = annotation.id
-
-    state.setPropertySliderGestureEditing(true)
-    state.updateAnnotationProperties(id: annotation.id, fontSize: 24, recordsUndo: true)
-    state.updateAnnotationProperties(id: annotation.id, fontSize: 36, recordsUndo: true)
-    state.updateAnnotationProperties(id: annotation.id, fontSize: 48, recordsUndo: true)
-    state.setPropertySliderGestureEditing(false)
-
-    XCTAssertEqual(try XCTUnwrap(state.annotations.first).properties.fontSize, 48)
-
-    state.undo()
-
-    XCTAssertEqual(try XCTUnwrap(state.annotations.first).properties.fontSize, 18)
-    XCTAssertFalse(state.canUndo)
-  }
-
-  @MainActor
-  func testPropertySliderGestureWithoutChangeRecordsNoUndo() {
-    let state = makeAnnotateState()
-    let annotation = AnnotationItem(
-      type: .text("Sized text"),
-      bounds: CGRect(x: 20, y: 20, width: 180, height: 32),
-      properties: AnnotationProperties(fontSize: 18)
-    )
-    state.annotations = [annotation]
-    state.selectedAnnotationId = annotation.id
-
-    state.setPropertySliderGestureEditing(true)
-    state.setPropertySliderGestureEditing(false)
-
     XCTAssertFalse(state.canUndo)
   }
 
@@ -1519,7 +1117,6 @@ final class AnnotateCoreTests: XCTestCase {
     XCTAssertNotNil(item)
     XCTAssertEqual(item?.type, .spotlight)
     XCTAssertEqual(item?.bounds, CGRect(x: 10, y: 10, width: 90, height: 90))
-    XCTAssertEqual(item?.properties.spotlightOpacity, 0.5)
     XCTAssertEqual(item?.properties.cornerRadius, 14)
   }
 
@@ -1559,58 +1156,5 @@ final class AnnotateCoreTests: XCTestCase {
       state: state
     )
     XCTAssertEqual(item?.properties.cornerRadius, 14)
-  }
-
-  @MainActor
-  func testSpotlightOpacityStoredPerItem() throws {
-    // Verifies the opacity-source fix: per-item spotlightOpacity is what gets persisted
-    // and read by the compositor, not the global state.spotlightOpacity.
-    let defaults = UserDefaultsFactory.make()
-    let state = makeAnnotateState(defaults: defaults)
-
-    // Change global opacity before creating the item
-    state.spotlightOpacity = 0.8
-
-    let item = AnnotationFactory.createAnnotation(
-      tool: .spotlight,
-      from: CGPoint(x: 0, y: 0),
-      to: CGPoint(x: 100, y: 100),
-      path: [],
-      state: state
-    )
-    let unwrapped = try XCTUnwrap(item)
-    // Item must carry the opacity at creation time, not the default 0.5
-    XCTAssertEqual(unwrapped.properties.spotlightOpacity, 0.8, accuracy: 0.001)
-  }
-
-  @MainActor
-  func testSpotlightOpacityClamp() {
-    XCTAssertEqual(AnnotationProperties.clampedSpotlightOpacity(0.0), 0.1, accuracy: 0.001)
-    XCTAssertEqual(AnnotationProperties.clampedSpotlightOpacity(1.0), 0.9, accuracy: 0.001)
-    XCTAssertEqual(AnnotationProperties.clampedSpotlightOpacity(0.5), 0.5, accuracy: 0.001)
-  }
-
-  @MainActor
-  func testSpotlightRegionCarriesOpacity() {
-    // SpotlightRegion must carry opacity so the compositor can source it per-item.
-    let region = SpotlightRegion(rect: CGRect(x: 0, y: 0, width: 100, height: 100), cornerRadius: 14, opacity: 0.75)
-    XCTAssertEqual(region.opacity, 0.75, accuracy: 0.001)
-  }
-
-  @MainActor
-  func testSpotlightOpacityPersistence() {
-    let defaults = UserDefaultsFactory.make()
-    let firstState = makeAnnotateState(defaults: defaults)
-    firstState.activateTool(.spotlight)
-
-    // Change the spotlight opacity (darkness) tool default property
-    firstState.quickSpotlightOpacityBinding.wrappedValue = 0.75
-
-    // Re-initialize state with the same defaults to simulate reload/reopen
-    let reloadedState = makeAnnotateState(defaults: defaults)
-
-    // Assert that the default spotlight opacity for the spotlight tool has persisted
-    let spotlightProperties = reloadedState.annotationCreationProperties(for: .spotlight)
-    XCTAssertEqual(spotlightProperties.spotlightOpacity, 0.75, accuracy: 0.001)
   }
 }

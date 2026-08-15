@@ -8,12 +8,6 @@
 import Foundation
 
 enum HistoryFormatterCache {
-  static let relativeFull: RelativeDateTimeFormatter = {
-    let formatter = RelativeDateTimeFormatter()
-    formatter.unitsStyle = .full
-    return formatter
-  }()
-
   static let relativeShort: RelativeDateTimeFormatter = {
     let formatter = RelativeDateTimeFormatter()
     formatter.unitsStyle = .short

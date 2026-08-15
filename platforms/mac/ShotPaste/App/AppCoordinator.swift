@@ -97,18 +97,7 @@ final class AppCoordinator {
     if defaults.object(forKey: "history.floating.position") == nil {
       defaults.set("topCenter", forKey: "history.floating.position")
     }
-    // Remove preferences that belonged exclusively to the deleted compact
-    // Clipboard History interface.
-    for obsoleteKey in [
-      "history.floating.enabled",
-      "history.floating.maxDisplayedItems",
-      "history.toggleModeShortcut",
-      "history.isToggleModeShortcutEnabled",
-    ] {
-      defaults.removeObject(forKey: obsoleteKey)
-    }
-    let configurationAutoImportResult = applyUserConfigurationIfNeeded()
-    startConfigurationSync(after: configurationAutoImportResult)
+    applyUserConfigurationIfNeeded()
 
     LogCleanupScheduler.shared.start()
     RecordingMetadataCleanupScheduler.shared.start()
@@ -155,14 +144,12 @@ final class AppCoordinator {
   }
 
   func applicationWillTerminate() {
-    flushConfigurationSyncBeforeTermination()
     DiagnosticLogger.shared.log(.info, .lifecycle, "App terminated normally")
     CrashSentinel.shared.markTerminated()
     LogCleanupScheduler.shared.stop()
     RecordingMetadataCleanupScheduler.shared.stop()
     MediaClipboardMonitor.shared.stop()
     ShotPasteMCPServer.shared.stop()
-    ShotPasteConfigurationSyncCoordinator.shared.stop()
   }
 
   func handleDeepLink(_ url: URL) {
@@ -170,7 +157,7 @@ final class AppCoordinator {
       .handle(url)
   }
 
-  private func applyUserConfigurationIfNeeded() -> ShotPasteConfigurationAutoImportResult {
+  private func applyUserConfigurationIfNeeded() {
     let result = ShotPasteConfigurationAutoImporter.applyIfNeededOnLaunch()
     let context = [
       "file": result.fileURL.path,
@@ -205,41 +192,12 @@ final class AppCoordinator {
         "TOML configuration auto-apply skipped; file missing",
         context: ["file": result.fileURL.path]
       )
-    case .skippedPermissionRequired:
-      DiagnosticLogger.shared.log(
-        .debug,
-        .preferences,
-        "TOML configuration auto-apply skipped; folder access required",
-        context: ["file": result.fileURL.path]
-      )
     case .skippedUnchanged:
       DiagnosticLogger.shared.log(
         .debug,
         .preferences,
         "TOML configuration auto-apply skipped; file unchanged",
         context: ["file": result.fileURL.path]
-      )
-    }
-
-    return result
-  }
-
-  private func startConfigurationSync(after autoImportResult: ShotPasteConfigurationAutoImportResult) {
-    let coordinator = ShotPasteConfigurationSyncCoordinator.shared
-    coordinator.start()
-
-    guard autoImportResult.status != .applied else { return }
-    coordinator.scheduleSync(reason: .appLaunch)
-  }
-
-  private func flushConfigurationSyncBeforeTermination() {
-    do {
-      try ShotPasteConfigurationSyncCoordinator.shared.flushPendingSync(reason: .appTerminate)
-    } catch {
-      DiagnosticLogger.shared.logError(
-        .preferences,
-        error,
-        "TOML configuration sync before termination failed"
       )
     }
   }

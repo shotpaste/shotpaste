@@ -19,25 +19,21 @@ final class PostCaptureActionHandler {
   static let shared = PostCaptureActionHandler(
     preferences: PreferencesManager.shared,
     quickAccess: QuickAccessManager.shared,
-    fileAccess: SandboxFileAccessManager.shared,
-    screenshotPresetAutoApplier: ScreenshotPresetAutoApplier.shared
+    fileAccess: SandboxFileAccessManager.shared
   )
 
   private let preferences: PreferencesProviding
   private let quickAccess: QuickAccessManaging
   private let fileAccess: SandboxFileAccessing
-  private let screenshotPresetAutoApplier: ScreenshotPresetAutoApplier
 
   init(
     preferences: PreferencesProviding,
     quickAccess: QuickAccessManaging,
-    fileAccess: SandboxFileAccessing,
-    screenshotPresetAutoApplier: ScreenshotPresetAutoApplier
+    fileAccess: SandboxFileAccessing
   ) {
     self.preferences = preferences
     self.quickAccess = quickAccess
     self.fileAccess = fileAccess
-    self.screenshotPresetAutoApplier = screenshotPresetAutoApplier
   }
 
   // MARK: - Public API
@@ -261,9 +257,6 @@ final class PostCaptureActionHandler {
       .info(
         "Executing post-capture actions for \(captureType == .screenshot ? "screenshot" : "recording"): \(url.lastPathComponent)"
       )
-    if captureType == .screenshot {
-      _ = screenshotPresetAutoApplier.applyDefaultPresetIfNeeded(to: url)
-    }
     let isTempCapture = TempCaptureManager.shared.isTempFile(url)
     let locationLabel = isTempCapture ? "temp" : "export"
     let typeLabel = captureType == .screenshot ? "screenshot" : "recording"

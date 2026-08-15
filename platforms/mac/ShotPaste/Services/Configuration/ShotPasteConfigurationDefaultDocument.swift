@@ -64,7 +64,6 @@ enum ShotPasteConfigurationDefaultDocument {
     writer.value("show_cursor", false)
     writer.value("magnifier_enabled", true)
     writer.value("magnifier_zoom", 1)
-    writer.value("output_scale", 0)
     writer.value("color_space", "auto")
     writer.value("lossy_quality", 90)
     writer.value("success_notification", true)

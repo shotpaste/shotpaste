@@ -107,15 +107,6 @@ final class QuickAccessPanelController {
     QuickAccessSound.appear.play(reduceMotion: reduceMotion)
   }
 
-  /// Update panel content with new SwiftUI view
-  func updateContent(_ content: some View) {
-    guard let panel else { return }
-    let hostingView = NSHostingView(rootView: content)
-    hostingView.frame = panel.contentView?.bounds ?? .zero
-    panel.contentView = hostingView
-    panel.updatePassthroughRegion(itemCount: visibleItemCount, scale: overlayScale)
-  }
-
   func updateInteractionMetrics(itemCount: Int, scale: CGFloat) {
     visibleItemCount = itemCount
     overlayScale = scale

@@ -51,287 +51,6 @@ nonisolated enum BlurType: String, CaseIterable, Identifiable, Equatable {
   }
 }
 
-nonisolated enum TextPresentation: String, CaseIterable, Identifiable, Equatable {
-  case plain
-  case label
-  case callout
-
-  var id: String {
-    rawValue
-  }
-
-  var icon: String {
-    switch self {
-    case .plain: "textformat"
-    case .label: "rectangle.fill"
-    case .callout: "text.bubble.fill"
-    }
-  }
-
-  var helpText: String {
-    switch self {
-    case .plain: L10n.AnnotateUI.transparentText
-    case .label: L10n.AnnotateUI.textLabel
-    case .callout: L10n.AnnotateUI.calloutLabel
-    }
-  }
-}
-
-/// Shared proportions for label and callout text. Keeping these in one place
-/// makes the editing overlay, on-canvas preview, and exported image agree.
-nonisolated enum TextBubbleGeometry {
-  private enum TailSide {
-    case minX
-    case maxX
-    case minY
-    case maxY
-  }
-
-  private struct TailGeometry {
-    let side: TailSide
-    let target: CGPoint
-    let entry: CGPoint
-    let exit: CGPoint
-    let tangent: CGPoint
-    let rootHalfWidth: CGFloat
-  }
-
-  static func contentInsets(for presentation: TextPresentation, fontSize: CGFloat) -> CGSize {
-    guard presentation != .plain else { return CGSize(width: 4, height: 4) }
-    return CGSize(
-      width: max(9, min(fontSize * 0.55, 18)),
-      height: max(5, min(fontSize * 0.32, 10))
-    )
-  }
-
-  static func cornerRadius(in bounds: CGRect, fontSize: CGFloat) -> CGFloat {
-    min(max(4, fontSize * 0.16), min(bounds.width, bounds.height) * 0.12)
-  }
-
-  static func defaultTailTarget(for bounds: CGRect, fontSize _: CGFloat) -> CGPoint {
-    CGPoint(
-      x: bounds.minX + bounds.width * 0.795,
-      y: bounds.minY - bounds.height * 0.35
-    )
-  }
-
-  static func isDefaultTail(_ target: CGPoint, for bounds: CGRect, fontSize: CGFloat) -> Bool {
-    let expected = defaultTailTarget(for: bounds, fontSize: fontSize)
-    return hypot(target.x - expected.x, target.y - expected.y) < 1
-  }
-
-  static func resolvedTailTarget(in rect: CGRect, requestedTarget: CGPoint, fontSize: CGFloat) -> CGPoint {
-    guard requestedTarget.x.isFinite, requestedTarget.y.isFinite else {
-      return defaultTailTarget(for: rect, fontSize: fontSize)
-    }
-    return requestedTarget
-  }
-
-  static func bubblePath(
-    in rect: CGRect,
-    cornerRadius: CGFloat,
-    tailTarget: CGPoint?,
-    fontSize: CGFloat
-  ) -> CGPath {
-    let rect = rect.standardized
-    guard rect.width > 0, rect.height > 0 else { return CGMutablePath() }
-    guard let tailTarget,
-          let tail = tailGeometry(in: rect, requestedTarget: tailTarget, fontSize: fontSize) else {
-      return CGPath(roundedRect: rect, cornerWidth: cornerRadius * 2, cornerHeight: cornerRadius * 2, transform: nil)
-    }
-
-    let radius = min(max(0, cornerRadius), min(rect.width, rect.height) / 2)
-    let path = CGMutablePath()
-
-    let topLeft = CGPoint(x: rect.minX + radius, y: rect.maxY)
-    let topRight = CGPoint(x: rect.maxX - radius, y: rect.maxY)
-    let rightTop = CGPoint(x: rect.maxX, y: rect.maxY - radius)
-    let rightBottom = CGPoint(x: rect.maxX, y: rect.minY + radius)
-    let bottomRight = CGPoint(x: rect.maxX - radius, y: rect.minY)
-    let bottomLeft = CGPoint(x: rect.minX + radius, y: rect.minY)
-    let leftBottom = CGPoint(x: rect.minX, y: rect.minY + radius)
-    let leftTop = CGPoint(x: rect.minX, y: rect.maxY - radius)
-
-    path.move(to: topLeft)
-    appendEdge(from: topLeft, to: topRight, side: .maxY, tail: tail, path: path)
-    path.addArc(
-      center: CGPoint(x: rect.maxX - radius, y: rect.maxY - radius),
-      radius: radius,
-      startAngle: .pi / 2,
-      endAngle: 0,
-      clockwise: true
-    )
-    appendEdge(from: rightTop, to: rightBottom, side: .maxX, tail: tail, path: path)
-    path.addArc(
-      center: CGPoint(x: rect.maxX - radius, y: rect.minY + radius),
-      radius: radius,
-      startAngle: 0,
-      endAngle: -.pi / 2,
-      clockwise: true
-    )
-    appendEdge(from: bottomRight, to: bottomLeft, side: .minY, tail: tail, path: path)
-    path.addArc(
-      center: CGPoint(x: rect.minX + radius, y: rect.minY + radius),
-      radius: radius,
-      startAngle: -.pi / 2,
-      endAngle: -.pi,
-      clockwise: true
-    )
-    appendEdge(from: leftBottom, to: leftTop, side: .minX, tail: tail, path: path)
-    path.addArc(
-      center: CGPoint(x: rect.minX + radius, y: rect.maxY - radius),
-      radius: radius,
-      startAngle: .pi,
-      endAngle: .pi / 2,
-      clockwise: true
-    )
-    path.closeSubpath()
-    return path
-  }
-
-  static func tailPath(in rect: CGRect, to requestedTarget: CGPoint, fontSize: CGFloat) -> CGPath {
-    let rect = rect.standardized
-    guard let tail = tailGeometry(in: rect, requestedTarget: requestedTarget, fontSize: fontSize) else {
-      return CGMutablePath()
-    }
-
-    let path = CGMutablePath()
-    path.move(to: tail.entry)
-    appendTail(tail, to: path)
-    path.closeSubpath()
-    return path
-  }
-
-  private static func tailGeometry(
-    in rect: CGRect,
-    requestedTarget: CGPoint,
-    fontSize: CGFloat
-  ) -> TailGeometry? {
-    guard rect.width > 0, rect.height > 0 else { return nil }
-
-    let target = resolvedTailTarget(in: rect, requestedTarget: requestedTarget, fontSize: fontSize)
-    // Bringing the target into the label restores the plain rounded rectangle.
-    guard !rect.contains(target) else { return nil }
-    let side = attachmentSide(for: target, in: rect)
-    let baseHalfWidth = max(5, min(fontSize * 0.44, min(rect.width, rect.height) * 0.2))
-    let anchor = attachmentPoint(for: target, on: side, in: rect, baseHalfWidth: baseHalfWidth)
-    let basis = basis(for: side)
-    let distance = hypot(target.x - anchor.x, target.y - anchor.y)
-    guard distance > 1 else { return nil }
-
-    // The root width stays compact while dragging; the visual transition from
-    // short label point to long guide comes from the same pair of Bezier walls.
-    let shortTailLimit = max(fontSize * 1.25, min(rect.width, rect.height) * 0.55)
-    let rootHalfWidth = baseHalfWidth * (distance > shortTailLimit ? 1.1 : 1)
-    return TailGeometry(
-      side: side,
-      target: target,
-      entry: anchor - basis.tangent * rootHalfWidth,
-      exit: anchor + basis.tangent * rootHalfWidth,
-      tangent: basis.tangent,
-      rootHalfWidth: rootHalfWidth
-    )
-  }
-
-  private static func appendEdge(
-    from _: CGPoint,
-    to end: CGPoint,
-    side: TailSide,
-    tail: TailGeometry,
-    path: CGMutablePath
-  ) {
-    guard tail.side == side else {
-      path.addLine(to: end)
-      return
-    }
-    path.addLine(to: tail.entry)
-    appendTail(tail, to: path)
-    path.addLine(to: end)
-  }
-
-  private static func appendTail(_ tail: TailGeometry, to path: CGMutablePath) {
-    let intoTip = normalized(tail.target - tail.entry)
-    let outOfTip = normalized(tail.exit - tail.target)
-    let tipInset = min(
-      max(tail.rootHalfWidth * 0.7, 2),
-      hypot(tail.target.x - tail.entry.x, tail.target.y - tail.entry.y) * 0.24
-    )
-    let rootControl = min(
-      tail.rootHalfWidth * 0.9,
-      hypot(tail.target.x - tail.entry.x, tail.target.y - tail.entry.y) * 0.3
-    )
-
-    path.addCurve(
-      to: tail.target,
-      control1: tail.entry + tail.tangent * rootControl,
-      control2: tail.target - intoTip * tipInset
-    )
-    path.addCurve(
-      to: tail.exit,
-      control1: tail.target + outOfTip * tipInset,
-      control2: tail.exit - tail.tangent * rootControl
-    )
-  }
-
-  private static func attachmentSide(for target: CGPoint, in rect: CGRect) -> TailSide {
-    let normalizedX = (target.x - rect.midX) / max(rect.width / 2, 1)
-    let normalizedY = (target.y - rect.midY) / max(rect.height / 2, 1)
-    if abs(normalizedX) > abs(normalizedY) {
-      return normalizedX < 0 ? .minX : .maxX
-    }
-    return normalizedY < 0 ? .minY : .maxY
-  }
-
-  private static func attachmentPoint(
-    for target: CGPoint,
-    on side: TailSide,
-    in rect: CGRect,
-    baseHalfWidth: CGFloat
-  ) -> CGPoint {
-    let inset = min(
-      max(baseHalfWidth + 2, cornerRadius(in: rect, fontSize: baseHalfWidth * 2)),
-      min(rect.width, rect.height) * 0.42
-    )
-    switch side {
-    case .minX:
-      return CGPoint(x: rect.minX, y: min(max(target.y, rect.minY + inset), rect.maxY - inset))
-    case .maxX:
-      return CGPoint(x: rect.maxX, y: min(max(target.y, rect.minY + inset), rect.maxY - inset))
-    case .minY:
-      return CGPoint(x: min(max(target.x, rect.minX + inset), rect.maxX - inset), y: rect.minY)
-    case .maxY:
-      return CGPoint(x: min(max(target.x, rect.minX + inset), rect.maxX - inset), y: rect.maxY)
-    }
-  }
-
-  private static func basis(for side: TailSide) -> (outward: CGPoint, tangent: CGPoint) {
-    switch side {
-    case .minX: (CGPoint(x: -1, y: 0), CGPoint(x: 0, y: 1))
-    case .maxX: (CGPoint(x: 1, y: 0), CGPoint(x: 0, y: -1))
-    case .minY: (CGPoint(x: 0, y: -1), CGPoint(x: -1, y: 0))
-    case .maxY: (CGPoint(x: 0, y: 1), CGPoint(x: 1, y: 0))
-    }
-  }
-}
-
-private nonisolated func + (lhs: CGPoint, rhs: CGPoint) -> CGPoint {
-  CGPoint(x: lhs.x + rhs.x, y: lhs.y + rhs.y)
-}
-
-private nonisolated func - (lhs: CGPoint, rhs: CGPoint) -> CGPoint {
-  CGPoint(x: lhs.x - rhs.x, y: lhs.y - rhs.y)
-}
-
-private nonisolated func * (lhs: CGPoint, rhs: CGFloat) -> CGPoint {
-  CGPoint(x: lhs.x * rhs, y: lhs.y * rhs)
-}
-
-private nonisolated func normalized(_ point: CGPoint) -> CGPoint {
-  let length = hypot(point.x, point.y)
-  guard length > 0.0001 else { return .zero }
-  return point * (1 / length)
-}
-
 nonisolated enum ArrowStyle: String, CaseIterable, Identifiable, Equatable {
   case straight
   case curvedRight
@@ -361,14 +80,6 @@ nonisolated enum ArrowStyle: String, CaseIterable, Identifiable, Equatable {
     case .straight: "arrow.up.right"
     case .curvedRight: "arrowshape.turn.up.right"
     case .curvedLeft: "arrowshape.turn.up.left"
-    }
-  }
-
-  var helperText: String {
-    switch self {
-    case .straight: L10n.AnnotateUI.straightArrowHelp
-    case .curvedRight: L10n.AnnotateUI.curvedRightArrowHelp
-    case .curvedLeft: L10n.AnnotateUI.curvedLeftArrowHelp
     }
   }
 
@@ -511,11 +222,6 @@ nonisolated struct ArrowGeometry: Equatable {
     let outlineWidth: CGFloat
     /// How far the head base is pulled back along the tangent (barb depth).
     let sweepBack: CGFloat
-
-    /// Max half-width used for hit testing / selection padding.
-    var maxHalfWidth: CGFloat {
-      max(shaftBaseWidth, headWidth) / 2
-    }
   }
 
   /// Shared dimension model so geometry, rendering, and hit-testing stay in sync.
@@ -982,35 +688,6 @@ nonisolated struct ArrowGeometry: Equatable {
     }
   }
 
-  private static func inferredBendDirection(
-    start: CGPoint,
-    end: CGPoint,
-    style: ArrowStyle,
-    controlPoint: CGPoint?
-  ) -> ArrowBendDirection {
-    guard style.supportsBendDirection,
-          let controlPoint else {
-      return .primary
-    }
-
-    switch style {
-    case .straight:
-      return .primary
-
-    case .curvedRight, .curvedLeft:
-      let dx = end.x - start.x
-      let dy = end.y - start.y
-      let length = hypot(dx, dy)
-      guard length > 0.0001 else { return .primary }
-
-      let mid = CGPoint(x: (start.x + end.x) / 2, y: (start.y + end.y) / 2)
-      let normal = CGPoint(x: -dy / length, y: dx / length)
-      let offsetFromMidpoint = CGPoint(x: controlPoint.x - mid.x, y: controlPoint.y - mid.y)
-      let side = offsetFromMidpoint.x * normal.x + offsetFromMidpoint.y * normal.y
-      return side < 0 ? .alternate : .primary
-    }
-  }
-
   private static func defaultCurveControlPoint(
     start: CGPoint,
     end: CGPoint,
@@ -1027,12 +704,6 @@ nonisolated struct ArrowGeometry: Equatable {
       x: mid.x + normal.x * offset,
       y: mid.y + normal.y * offset
     )
-  }
-
-  private static func distanceSquared(from lhs: CGPoint, to rhs: CGPoint) -> CGFloat {
-    let dx = lhs.x - rhs.x
-    let dy = lhs.y - rhs.y
-    return dx * dx + dy * dy
   }
 
   private static func mirroredControlPoint(_ controlPoint: CGPoint, start: CGPoint, end: CGPoint) -> CGPoint {
@@ -1120,7 +791,7 @@ nonisolated struct AnnotationItem: Identifiable, Equatable {
 
 extension AnnotationItem {
   /// Returns a copy resized/moved to `newBounds`, remapping embedded geometry
-  /// (arrow/line/path/highlight points, counter diameter, callout tail) exactly
+  /// (arrow/line/path/highlight points and counter diameter) exactly
   /// as an interactive bounds change would. Pure: no side effects, so the canvas
   /// can preview gestures on local copies and commit through `AnnotateState`.
   func applyingResizeBounds(_ newBounds: CGRect) -> AnnotationItem {
@@ -1128,21 +799,6 @@ extension AnnotationItem {
     let oldBounds = resizeBounds
     let normalizedBounds = newBounds.standardized
 
-    if case .text = copy.type,
-       copy.properties.textPresentation == .callout,
-       let tailTarget = copy.properties.calloutTailTarget {
-      if TextBubbleGeometry.isDefaultTail(tailTarget, for: oldBounds, fontSize: copy.properties.fontSize) {
-        copy.properties.calloutTailTarget = TextBubbleGeometry.defaultTailTarget(
-          for: normalizedBounds,
-          fontSize: copy.properties.fontSize
-        )
-      } else if oldBounds.size == normalizedBounds.size {
-        copy.properties.calloutTailTarget = CGPoint(
-          x: tailTarget.x + normalizedBounds.minX - oldBounds.minX,
-          y: tailTarget.y + normalizedBounds.minY - oldBounds.minY
-        )
-      }
-    }
     copy.bounds = normalizedBounds
 
     // Also remap embedded coordinates for arrows/lines/paths
@@ -1274,10 +930,6 @@ nonisolated enum AnnotationType: Equatable {
     supportsQuickPropertiesBar && toolType.supportsQuickStrokeColor
   }
 
-  var supportsQuickFillColor: Bool {
-    supportsQuickPropertiesBar && toolType.supportsQuickFillColor
-  }
-
   var supportsQuickStrokeWidth: Bool {
     supportsQuickPropertiesBar && toolType.supportsQuickStrokeWidth
   }
@@ -1286,37 +938,23 @@ nonisolated enum AnnotationType: Equatable {
 /// Visual properties for an annotation
 nonisolated struct AnnotationProperties: Equatable {
   static let controlValueRange: ClosedRange<CGFloat> = 1 ... 20
+  static let spotlightOverlayOpacity: CGFloat = 0.5
 
   var strokeColor: Color
-  var fillColor: Color
   var strokeWidth: CGFloat
   var cornerRadius: CGFloat
   var fontSize: CGFloat
-  var fontName: String
-  var spotlightOpacity: CGFloat
-  var textPresentation: TextPresentation
-  var calloutTailTarget: CGPoint?
 
   init(
     strokeColor: Color = .red,
-    fillColor: Color = .clear,
     strokeWidth: CGFloat = 3,
     cornerRadius: CGFloat = 0,
-    fontSize: CGFloat = 16,
-    fontName: String = "SF Pro",
-    spotlightOpacity: CGFloat = 0.5,
-    textPresentation: TextPresentation = .plain,
-    calloutTailTarget: CGPoint? = nil
+    fontSize: CGFloat = 16
   ) {
     self.strokeColor = strokeColor
-    self.fillColor = fillColor
     self.strokeWidth = strokeWidth
     self.cornerRadius = cornerRadius
     self.fontSize = fontSize
-    self.fontName = fontName
-    self.spotlightOpacity = spotlightOpacity
-    self.textPresentation = textPresentation
-    self.calloutTailTarget = calloutTailTarget
   }
 
   static func clampedControlValue(_ value: CGFloat) -> CGFloat {
@@ -1362,10 +1000,6 @@ nonisolated struct AnnotationProperties: Equatable {
   static func washiPatternSpacing(for controlValue: CGFloat) -> CGFloat {
     8 + clampedControlValue(controlValue) * 2
   }
-
-  static func clampedSpotlightOpacity(_ value: CGFloat) -> CGFloat {
-    min(max(value, 0.1), 0.9)
-  }
 }
 
 // MARK: - Hit Testing
@@ -1406,20 +1040,7 @@ extension AnnotationItem {
     } else {
       max(6, properties.strokeWidth / 2)
     }
-    var result = resizeBounds.insetBy(dx: -padding, dy: -padding)
-    if case .text = type,
-       properties.textPresentation == .callout,
-       let tailTarget = properties.calloutTailTarget {
-      let tailBounds = TextBubbleGeometry.tailPath(
-        in: bounds,
-        to: tailTarget,
-        fontSize: properties.fontSize
-      ).boundingBoxOfPath
-      if !tailBounds.isNull {
-        result = result.union(tailBounds.insetBy(dx: -padding, dy: -padding))
-      }
-    }
-    return result
+    return resizeBounds.insetBy(dx: -padding, dy: -padding)
   }
 
   var selectionDecorationBounds: CGRect {
@@ -1459,20 +1080,7 @@ extension AnnotationItem {
       return distanceToPolyline(point, points: points) <= adjustedTolerance
 
     case .text:
-      if bounds.contains(point) {
-        return true
-      }
-      if properties.textPresentation == .callout,
-         let tailTarget = properties.calloutTailTarget {
-        return bounds.union(
-          TextBubbleGeometry.tailPath(
-            in: bounds,
-            to: tailTarget,
-            fontSize: properties.fontSize
-          ).boundingBoxOfPath.insetBy(dx: -tolerance, dy: -tolerance)
-        ).contains(point)
-      }
-      return false
+      return bounds.contains(point)
 
     case .counter:
       let counterBounds = bounds.isEmpty ? Self.counterBounds(center: bounds.origin, properties: properties) : bounds

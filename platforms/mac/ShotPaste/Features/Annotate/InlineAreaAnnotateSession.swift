@@ -89,7 +89,7 @@ final class InlineAreaAnnotateSession: ObservableObject {
   @Published private(set) var activePrompt: InlineAreaOverlayPrompt?
   @Published private(set) var activePromptDisplayID: CGDirectDisplayID?
 
-  let state = AnnotateState(appliesDefaultCanvasPresetOnNewImages: false)
+  let state = AnnotateState()
   let desktopFrame: CGRect
   let displays: [InlineAreaAnnotateDisplay]
 
@@ -402,16 +402,6 @@ final class InlineAreaAnnotateSession: ObservableObject {
       )
     }
     return result
-  }
-
-  func toggleOneShotScrollingHelp() {
-    oneShotState.toggleScrollingHelp()
-    DiagnosticLogger.shared.log(
-      .info,
-      .action,
-      "One Shot scrolling help toggled",
-      context: ["visible": oneShotState.showsScrollingHelp ? "true" : "false"]
-    )
   }
 
   func startOneShotScrollingCapture() {

@@ -507,7 +507,7 @@ final class CaptureOutputNamingTests: XCTestCase {
 
   func testResolveBaseName_appNameTokens() {
     defaults.set("App_{appName}", forKey: PreferencesKeys.screenshotFileNameTemplate)
-    let context = CaptureContext(appName: "Safari", windowTitle: nil)
+    let context = CaptureContext(appName: "Safari")
 
     let result = CaptureOutputNaming.resolveBaseName(
       customName: nil,
@@ -521,7 +521,7 @@ final class CaptureOutputNamingTests: XCTestCase {
 
   func testResolveBaseName_appNameTokens_aliases() {
     defaults.set("App_{app_name}", forKey: PreferencesKeys.screenshotFileNameTemplate)
-    let context = CaptureContext(appName: "Finder", windowTitle: nil)
+    let context = CaptureContext(appName: "Finder")
 
     let result = CaptureOutputNaming.resolveBaseName(
       customName: nil,
@@ -535,7 +535,7 @@ final class CaptureOutputNamingTests: XCTestCase {
 
   func testResolveBaseName_appNameTokens_missing() {
     defaults.set("App_{appName}", forKey: PreferencesKeys.screenshotFileNameTemplate)
-    let context = CaptureContext(appName: nil, windowTitle: nil)
+    let context = CaptureContext(appName: nil)
 
     let result = CaptureOutputNaming.resolveBaseName(
       customName: nil,
