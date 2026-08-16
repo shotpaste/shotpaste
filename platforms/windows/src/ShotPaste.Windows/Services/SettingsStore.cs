@@ -148,7 +148,7 @@ public sealed class SettingsStore
         settings.HistoryBackgroundStyle = settings.HistoryBackgroundStyle is "Hud" or "Solid"
             ? settings.HistoryBackgroundStyle
             : "Hud";
-        settings.HistoryDefaultFilter = settings.HistoryDefaultFilter is "All" or "Screenshot" or "Scrolling" or "Recording" or "Clipboard"
+        settings.HistoryDefaultFilter = settings.HistoryDefaultFilter is "Screenshot" or "Scrolling" or "Recording" or "Clipboard"
             ? settings.HistoryDefaultFilter
             : "Clipboard";
         settings.HistoryPosition = settings.HistoryPosition switch
@@ -227,9 +227,6 @@ public sealed class SettingsStore
             policy.ClearSeconds = Math.Clamp(policy.ClearSeconds, 1, 3600);
             policy.MaximumCount = Math.Clamp(policy.MaximumCount, 1, 200);
         }
-        settings.ScrollingAutoScrollIntervalMs = Math.Clamp(settings.ScrollingAutoScrollIntervalMs, 40, 500);
-        settings.ScrollingMaxHeight = Math.Clamp(settings.ScrollingMaxHeight, 1024, 100000);
-        settings.ScrollingPreviewMaxHeight = Math.Clamp(settings.ScrollingPreviewMaxHeight, 120, 1200);
         settings.QuickAccessActions ??= ["Copy", "SaveOrOpen", "Close", "Delete", "Pin", "None"];
         var supportedQuickAccessActions = new HashSet<string>(
             ["Copy", "SaveOrOpen", "Pin", "Drag", "Delete", "Close", "None"],

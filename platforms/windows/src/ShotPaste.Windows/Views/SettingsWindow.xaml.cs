@@ -115,7 +115,6 @@ public partial class SettingsWindow : Window
         RecordingHevcItem.ToolTip = support.HevcEncoderAvailable
             ? $"Windows 已检测到 {support.HevcEncoderCount} 个 HEVC 编码器。"
             : "当前系统没有可用的 HEVC 编码器；选择或导入 HEVC 时会安全回退到 H.264。";
-        RecordingMovItem.ToolTip = "ScreenRecorderLib 6.6 仅输出 ISO MP4；导入 MOV 偏好时 Windows 会安全输出 MP4。";
         RecordingFormatStatus.Text = decision.UsedFallback
             ? $"当前偏好将实际输出 {decision.ActualContainer.ToUpperInvariant()} / {DisplayRecordingCodec(decision.ActualCodec)}。{support.Detail}"
             : $"可用：{decision.ActualContainer.ToUpperInvariant()} / {DisplayRecordingCodec(decision.ActualCodec)}。{support.Detail}";
@@ -142,7 +141,7 @@ public partial class SettingsWindow : Window
             "history" => HistoryTab,
             "shortcuts-appearance" => ShortcutsTab,
             "scrolling" or "screenshot" => CaptureRecordingTab,
-            "appearance" => AppearanceTab,
+            "appearance" => GeneralTab,
             "advanced" => AdvancedTab,
             _ => null
         };
@@ -663,8 +662,6 @@ public partial class SettingsWindow : Window
     }
 
     private void OnRefreshHotkeyStatus(object sender, RoutedEventArgs e) => RefreshHotkeyStatuses();
-
-    private void OnOpenKeyboardSettings(object sender, RoutedEventArgs e) => OpenTarget("ms-settings:easeofaccess-keyboard");
 
     private void RefreshHotkeyStatuses()
     {

@@ -85,7 +85,7 @@ public sealed class UiDesignSystemTests
             Assert.Contains($"x:Key=\"{icon}\"", icons, StringComparison.Ordinal);
 
         Assert.Contains("x:Name=\"KindFilterGroup\"", history, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"剪贴板\"", history, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"剪贴板历史\"", history, StringComparison.Ordinal);
         Assert.DoesNotContain("HistoryFloatingIconButton", history, StringComparison.Ordinal);
         Assert.DoesNotContain("HistoryModeToggle", history, StringComparison.Ordinal);
         Assert.DoesNotContain("StaticResource HistoryPill", history, StringComparison.Ordinal);
@@ -172,6 +172,24 @@ public sealed class UiDesignSystemTests
         Assert.Contains("AutomationProperties.AutomationId=\"QuickAccessTextPreview\"", view,
             StringComparison.Ordinal);
         Assert.DoesNotContain("Preview.Source = preview", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void QuickAccessCard_MatchesMacGeometryCountdownAndGestureFeedback()
+    {
+        var sourceRoot = FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows");
+        var view = File.ReadAllText(Path.Combine(sourceRoot, "Views", "QuickAccessWindow.xaml"));
+        var code = File.ReadAllText(Path.Combine(sourceRoot, "Views", "QuickAccessWindow.xaml.cs"));
+
+        Assert.Contains("Width=\"180\" Height=\"112\"", view, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"CountdownProgress\"", view, StringComparison.Ordinal);
+        Assert.Contains("MouseDoubleClick=\"OnWindowMouseDoubleClick\"", view, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"CardSwipeRotate\"", view, StringComparison.Ordinal);
+        Assert.Contains("SystemParameters.MinimumHorizontalDragDistance", code, StringComparison.Ordinal);
+        Assert.Contains("ExecuteConfiguredActionAsync(\"SaveOrOpen\")", code, StringComparison.Ordinal);
+        Assert.Contains("CompleteSwipeAsync", code, StringComparison.Ordinal);
+        Assert.Contains("Width + 50d", code, StringComparison.Ordinal);
+        Assert.Contains("TimeSpan.FromMilliseconds(400)", code, StringComparison.Ordinal);
     }
 
     [Fact]

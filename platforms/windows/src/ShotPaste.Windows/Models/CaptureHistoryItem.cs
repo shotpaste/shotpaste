@@ -38,19 +38,40 @@ public sealed class CaptureHistoryItem : INotifyPropertyChanged
             : [];
 
     [JsonIgnore]
-    public string Title => Kind switch
+    public string Title
     {
-        CaptureKind.Screenshot => LocalizationService.TranslatePhrase("截图"),
-        CaptureKind.ScrollingScreenshot => LocalizationService.TranslatePhrase("滚动截屏"),
-        CaptureKind.Recording => LocalizationService.TranslatePhrase("录屏"),
-        CaptureKind.Gif => "GIF",
-        CaptureKind.ClipboardImage => LocalizationService.TranslatePhrase("剪贴板图片"),
-        CaptureKind.ClipboardText => LocalizationService.TranslatePhrase("剪贴板文本"),
-        CaptureKind.ClipboardFile => LocalizationService.TranslatePhrase("剪贴板文件"),
-        CaptureKind.ClipboardGif => LocalizationService.TranslatePhrase("剪贴板 GIF"),
-        CaptureKind.ClipboardVideo => LocalizationService.TranslatePhrase("剪贴板视频"),
-        _ => LocalizationService.TranslatePhrase("记录")
-    };
+        get
+        {
+            var storedPath = !string.IsNullOrWhiteSpace(FilePath)
+                ? FilePath
+                : FilePaths.FirstOrDefault(path => !string.IsNullOrWhiteSpace(path));
+            if (!string.IsNullOrWhiteSpace(storedPath))
+            {
+                var fileName = Path.GetFileName(storedPath);
+                if (!string.IsNullOrWhiteSpace(fileName)) return fileName;
+            }
+
+            if (Kind == CaptureKind.ClipboardText && !string.IsNullOrWhiteSpace(Text))
+            {
+                var firstLine = Text.Replace('\r', ' ').Replace('\n', ' ').Trim();
+                return firstLine.Length > 80 ? firstLine[..80] + "…" : firstLine;
+            }
+
+            return Kind switch
+            {
+                CaptureKind.Screenshot => LocalizationService.TranslatePhrase("截图"),
+                CaptureKind.ScrollingScreenshot => LocalizationService.TranslatePhrase("滚动截屏"),
+                CaptureKind.Recording => LocalizationService.TranslatePhrase("录屏"),
+                CaptureKind.Gif => "GIF",
+                CaptureKind.ClipboardImage => LocalizationService.TranslatePhrase("剪贴板图片"),
+                CaptureKind.ClipboardText => LocalizationService.TranslatePhrase("剪贴板文本"),
+                CaptureKind.ClipboardFile => LocalizationService.TranslatePhrase("剪贴板文件"),
+                CaptureKind.ClipboardGif => LocalizationService.TranslatePhrase("剪贴板 GIF"),
+                CaptureKind.ClipboardVideo => LocalizationService.TranslatePhrase("剪贴板视频"),
+                _ => LocalizationService.TranslatePhrase("记录")
+            };
+        }
+    }
 
     [JsonIgnore]
     public string Subtitle => CreatedAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss");

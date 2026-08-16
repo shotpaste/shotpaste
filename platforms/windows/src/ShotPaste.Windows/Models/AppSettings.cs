@@ -18,6 +18,12 @@ public sealed class AppSettings
     public bool HideDesktopIconsInScreenshots { get; set; }
     public bool HideDesktopWidgetsInScreenshots { get; set; }
     public bool ExcludeOwnApplicationFromScreenshots { get; set; }
+    [JsonIgnore]
+    public bool IncludeOwnApplicationInScreenshots
+    {
+        get => !ExcludeOwnApplicationFromScreenshots;
+        set => ExcludeOwnApplicationFromScreenshots = !value;
+    }
     public int ScreenshotScale { get; set; }
     public string ScreenshotColorSpace { get; set; } = "Auto";
     public bool ScreenshotMagnifierEnabled { get; set; } = true;

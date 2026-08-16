@@ -56,15 +56,15 @@
   <Thickness x:Key="ToggleSwitch.ContentMargin">9,0,0,0</Thickness>
   <Thickness x:Key="ComboBox.ItemPadding">10,7</Thickness>
   <Thickness x:Key="ComboBox.PopupPadding">4</Thickness>
-  <Thickness x:Key="Menu.ItemPadding">10,7</Thickness>
-  <Thickness x:Key="Menu.PopupPadding">5</Thickness>
+  <Thickness x:Key="Menu.ItemPadding">12,9</Thickness>
+  <Thickness x:Key="Menu.PopupPadding">7</Thickness>
   <Thickness x:Key="Toast.Padding">14,10</Thickness>
   <Thickness x:Key="ToolTip.Padding">9,6</Thickness>
-  <Thickness x:Key="Settings.TabPadding">11,8</Thickness>
+  <Thickness x:Key="Settings.TabPadding">10,9</Thickness>
   <Thickness x:Key="Settings.TabMargin">2,0</Thickness>
-  <Thickness x:Key="Settings.CardPadding">16</Thickness>
-  <Thickness x:Key="Settings.CardMargin">0,0,0,12</Thickness>
-  <Thickness x:Key="Settings.SectionMargin">0,0,0,8</Thickness>
+  <Thickness x:Key="Settings.CardPadding">18</Thickness>
+  <Thickness x:Key="Settings.CardMargin">0,0,0,18</Thickness>
+  <Thickness x:Key="Settings.SectionMargin">4,0,0,10</Thickness>
 
   <!-- Motion and shadow metrics. -->
   <Duration x:Key="Animation.Fast">0:0:0.15</Duration>

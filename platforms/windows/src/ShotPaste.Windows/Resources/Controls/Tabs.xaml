@@ -12,11 +12,12 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="{x:Type TabItem}">
-          <Border x:Name="Chrome" CornerRadius="{DynamicResource Radius.Lg}" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
-            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-              <ContentControl Content="{TemplateBinding Tag}" ContentTemplate="{StaticResource Icon.Template}" Margin="0,0,7,0" IsHitTestVisible="False" />
-              <ContentPresenter Grid.Column="1" ContentSource="Header" VerticalAlignment="Center" />
-            </Grid>
+          <Border x:Name="Chrome" MinWidth="82" CornerRadius="{DynamicResource Radius.Lg}" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+            <StackPanel HorizontalAlignment="Center">
+              <ContentControl Content="{TemplateBinding Tag}" ContentTemplate="{StaticResource Icon.Template}"
+                              Width="22" Height="22" HorizontalAlignment="Center" Margin="0,0,0,5" IsHitTestVisible="False" />
+              <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" />
+            </StackPanel>
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBackgroundBrush}" /></Trigger>
@@ -29,13 +30,16 @@
     </Setter>
   </Style>
   <Style x:Key="SettingsTabControl" TargetType="{x:Type TabControl}">
-    <Setter Property="ItemsPanel"><Setter.Value><ItemsPanelTemplate><UniformGrid Rows="2" /></ItemsPanelTemplate></Setter.Value></Setter>
+    <Setter Property="ItemsPanel"><Setter.Value><ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate></Setter.Value></Setter>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="{x:Type TabControl}">
           <Grid KeyboardNavigation.TabNavigation="Local">
             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-            <ItemsPresenter Grid.Row="0" KeyboardNavigation.TabIndex="1" />
+            <Border Grid.Row="0" Background="{DynamicResource TitleBarBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="0,0,0,1" Padding="10,8,10,10">
+              <ItemsPresenter KeyboardNavigation.TabIndex="1" HorizontalAlignment="Center" />
+            </Border>
             <ContentPresenter x:Name="PART_SelectedContentHost" Grid.Row="1" ContentSource="SelectedContent"
                               KeyboardNavigation.TabNavigation="Local" Opacity="1" />
           </Grid>

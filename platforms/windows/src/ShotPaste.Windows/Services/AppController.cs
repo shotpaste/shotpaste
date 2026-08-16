@@ -463,7 +463,7 @@ public sealed class AppController : IDisposable
                 if (!shouldStart || discard) return;
 
                 outline.SetScrollingAppearance(capturing: true);
-                window.BeginCapture(_settings.Current.ScrollingAutoScrollEnabled);
+                window.BeginCapture(true);
                 window.PositionNear(region);
                 await window.Dispatcher.InvokeAsync(
                     window.UpdateLayout,
@@ -483,8 +483,7 @@ public sealed class AppController : IDisposable
                     wheelMonitor,
                     progress,
                     cancellation.Token,
-                    () => Volatile.Read(ref autoScrollState) == 1 &&
-                          _settings.Current.ScrollingAutoScrollEnabled,
+                    () => Volatile.Read(ref autoScrollState) == 1,
                     () => discard,
                     () => Volatile.Read(ref finishState) == 1);
             }
@@ -1540,12 +1539,7 @@ public sealed class AppController : IDisposable
 
     private ScrollingCaptureService CreateScrollingCaptureService() => new(
         _capture,
-        _settings.Current.ScrollingMaxHeight,
-        _settings.Current.ScrollingPreviewMaxHeight,
-        _settings.Current.ScrollingAutoScrollIntervalMs,
-        _settings.Current.ScrollingDetectFixedBars,
-        _settings.Current.ScrollingSafetyGuardEnabled,
-        () => new ScreenCaptureOptions(
+        captureOptionsProvider: () => new ScreenCaptureOptions(
             IncludeCursor: false,
             HideDesktopIcons: false,
             HideDesktopWidgets: false,

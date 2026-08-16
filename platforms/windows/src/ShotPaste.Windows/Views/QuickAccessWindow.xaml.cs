@@ -18,8 +18,10 @@ public partial class QuickAccessWindow : Window
     private readonly Services.AppController _controller;
     private readonly Services.SettingsStore _settings;
     private readonly DispatcherTimer _timer = new();
+    private readonly DispatcherTimer _progressTimer = new() { Interval = TimeSpan.FromMilliseconds(80) };
     private readonly DispatcherTimer _hoverProbeTimer = new() { Interval = TimeSpan.FromMilliseconds(120) };
     private readonly Services.QuickAccessCountdown _countdown;
+    private readonly TimeSpan _countdownDuration;
     private Vector _manipulationTranslation;
     private int _maximumManipulators;
     private double _horizontalWheelDistance;
@@ -27,6 +29,7 @@ public partial class QuickAccessWindow : Window
     private bool _isPointerOver;
     private readonly bool _isTemporary;
     private bool _keyboardMode;
+    private System.Windows.Point? _externalDragOrigin;
     private bool AutoDismissEnabled => _settings.Current.QuickAccessAutoDismissEnabled;
 
     public CaptureHistoryItem Item => _item;
@@ -41,8 +44,8 @@ public partial class QuickAccessWindow : Window
         _controller = controller;
         _settings = settings;
         DataContext = item;
-        _countdown = new Services.QuickAccessCountdown(TimeSpan.FromSeconds(
-            Math.Clamp(settings.Current.QuickAccessAutoDismissSeconds, 3, 30)));
+        _countdownDuration = TimeSpan.FromSeconds(Math.Clamp(settings.Current.QuickAccessAutoDismissSeconds, 3, 30));
+        _countdown = new Services.QuickAccessCountdown(_countdownDuration);
         TitleText.Text = item.Title;
         var isTemporary = false;
         try
@@ -64,38 +67,38 @@ public partial class QuickAccessWindow : Window
         ConfigureActions(isTemporary);
         var cardScale = Math.Clamp(settings.Current.QuickAccessScale, 0.75, 1.5);
         Card.LayoutTransform = new ScaleTransform(cardScale, cardScale);
-        Width = 204 * cardScale;
-        Height = 128 * cardScale;
+        Width = 180 * cardScale;
+        Height = 112 * cardScale;
         Loaded += (_, _) =>
         {
             if (AutoDismissEnabled) ResetCountdown();
+            CountdownTrack.Visibility = AutoDismissEnabled ? Visibility.Visible : Visibility.Collapsed;
             if (Services.AccessibilityPreferences.ReduceMotion)
             {
                 Card.Opacity = 1;
-                Card.RenderTransform = Transform.Identity;
+                ResetCardTransform();
             }
             else if (_settings.Current.QuickAccessAnimationStyle.Equals("Scale", StringComparison.OrdinalIgnoreCase))
             {
                 Card.Opacity = 0;
-                Card.RenderTransformOrigin = new System.Windows.Point(0.5, 0.5);
-                var transform = new ScaleTransform(0.88, 0.88);
-                Card.RenderTransform = transform;
-                var duration = TimeSpan.FromMilliseconds(190);
-                transform.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(1, duration));
-                transform.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(1, duration));
+                CardScaleTransform.ScaleX = CardScaleTransform.ScaleY = 0.88;
+                var duration = TimeSpan.FromMilliseconds(250);
+                var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
+                CardScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(1, duration) { EasingFunction = easing });
+                CardScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(1, duration) { EasingFunction = easing });
                 Card.BeginAnimation(OpacityProperty, new DoubleAnimation(1, duration));
             }
             else
             {
                 Card.Opacity = 0;
                 var start = Services.QuickAccessService.NormalizePosition(_settings.Current.QuickAccessPosition) == "BottomLeft"
-                    ? -28d
-                    : 28d;
-                var transform = new TranslateTransform(start, 0);
-                Card.RenderTransform = transform;
-                var duration = TimeSpan.FromMilliseconds(190);
-                transform.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, duration));
-                Card.BeginAnimation(OpacityProperty, new DoubleAnimation(1, duration));
+                    ? -(Width + 50d)
+                    : Width + 50d;
+                CardTranslateTransform.X = start;
+                var duration = TimeSpan.FromMilliseconds(400);
+                var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
+                CardTranslateTransform.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, duration) { EasingFunction = easing });
+                Card.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(240)));
             }
             App.WriteQuickAccessLog($"Loaded shown={IsVisible} left={Left} top={Top} width={Width} height={Height} dpi={VisualTreeHelper.GetDpi(this).PixelsPerDip}");
         };
@@ -105,6 +108,7 @@ public partial class QuickAccessWindow : Window
             if (_countdown.Remaining(DateTimeOffset.UtcNow) <= TimeSpan.Zero) Close();
             else ArmCountdown(_countdown.Remaining(DateTimeOffset.UtcNow));
         };
+        _progressTimer.Tick += (_, _) => UpdateCountdownProgress();
         _hoverProbeTimer.Tick += (_, _) =>
         {
             // Native ShowWindow/SetWindowPos calls can occasionally suppress the
@@ -122,6 +126,7 @@ public partial class QuickAccessWindow : Window
         Closed += (_, _) =>
         {
             _timer.Stop();
+            _progressTimer.Stop();
             _hoverProbeTimer.Stop();
             _windowSource?.RemoveHook(WindowProcedure);
             _windowSource = null;
@@ -299,6 +304,7 @@ public partial class QuickAccessWindow : Window
         if (!AutoDismissEnabled) return;
         _countdown.Pause(DateTimeOffset.UtcNow);
         _timer.Stop();
+        UpdateCountdownProgress();
         _hoverProbeTimer.Start();
     }
 
@@ -316,6 +322,34 @@ public partial class QuickAccessWindow : Window
         _timer.Stop();
         _timer.Interval = remaining < TimeSpan.FromMilliseconds(10) ? TimeSpan.FromMilliseconds(10) : remaining;
         _timer.Start();
+        _progressTimer.Start();
+        UpdateCountdownProgress();
+    }
+
+    private void UpdateCountdownProgress()
+    {
+        if (!AutoDismissEnabled)
+        {
+            CountdownTrack.Visibility = Visibility.Collapsed;
+            _progressTimer.Stop();
+            return;
+        }
+        var ratio = Math.Clamp(_countdown.Remaining(DateTimeOffset.UtcNow).TotalMilliseconds /
+                               _countdownDuration.TotalMilliseconds, 0d, 1d);
+        CountdownScale.ScaleX = ratio;
+        if (ratio <= 0d) _progressTimer.Stop();
+    }
+
+    private void ResetCardTransform()
+    {
+        CardScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        CardScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        CardTranslateTransform.BeginAnimation(TranslateTransform.XProperty, null);
+        CardSwipeRotate.BeginAnimation(RotateTransform.AngleProperty, null);
+        CardScaleTransform.ScaleX = CardScaleTransform.ScaleY = 1;
+        CardTranslateTransform.X = CardTranslateTransform.Y = 0;
+        CardSwipeRotate.Angle = 0;
+        Card.Opacity = 1;
     }
 
     private void ConfigureActions(bool isTemporary)
@@ -395,32 +429,93 @@ public partial class QuickAccessWindow : Window
         if (e.OriginalSource is DependencyObject source &&
             (Actions.IsAncestorOf(source) || PinButton.IsAncestorOf(source) || CloseButton.IsAncestorOf(source))) return;
         if (e.ChangedButton == System.Windows.Input.MouseButton.Left && _settings.Current.QuickAccessEnableDrag)
-        {
-            BeginExternalDrag();
-            e.Handled = true;
-        }
+            _externalDragOrigin = e.GetPosition(this);
+    }
+
+    private void OnWindowMouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e) => _externalDragOrigin = null;
+
+    private void OnWindowMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (_externalDragOrigin is not { } origin || e.LeftButton != MouseButtonState.Pressed) return;
+        var point = e.GetPosition(this);
+        if (Math.Abs(point.X - origin.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(point.Y - origin.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+        _externalDragOrigin = null;
+        BeginExternalDrag();
+    }
+
+    private void OnWindowMouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Left ||
+            e.OriginalSource is DependencyObject source && Actions.IsAncestorOf(source)) return;
+        _externalDragOrigin = null;
+        _ = ExecuteConfiguredActionAsync("SaveOrOpen");
+        e.Handled = true;
     }
 
     private void OnManipulationDelta(object sender, System.Windows.Input.ManipulationDeltaEventArgs e)
     {
         _manipulationTranslation = e.CumulativeManipulation.Translation;
         _maximumManipulators = Math.Max(_maximumManipulators, e.Manipulators.Count());
+        if (!_settings.Current.QuickAccessTwoFingerSwipeEnabled || _maximumManipulators < 2) return;
+        CardTranslateTransform.BeginAnimation(TranslateTransform.XProperty, null);
+        CardTranslateTransform.X = _manipulationTranslation.X;
+        CardSwipeRotate.Angle = Math.Clamp(_manipulationTranslation.X / Math.Max(1d, ActualWidth) * 4d, -4d, 4d);
+        Card.Opacity = Math.Clamp(1d - Math.Abs(_manipulationTranslation.X) / Math.Max(1d, ActualWidth * 1.5d), 0.35d, 1d);
+        e.Handled = true;
     }
 
     private void OnManipulationCompleted(object sender, System.Windows.Input.ManipulationCompletedEventArgs e)
     {
         var manipulatorCount = Math.Max(_maximumManipulators, e.Manipulators.Count());
         _maximumManipulators = 0;
-        if (!_settings.Current.QuickAccessTwoFingerSwipeEnabled || manipulatorCount < 2) return;
+        if (!_settings.Current.QuickAccessTwoFingerSwipeEnabled || manipulatorCount < 2)
+        {
+            ResetSwipeVisual();
+            return;
+        }
         var translation = _manipulationTranslation;
         _manipulationTranslation = default;
         if (_settings.Current.QuickAccessTrackpadSwipeMode.Equals("Inverted", StringComparison.OrdinalIgnoreCase))
             translation.X *= -1;
         var threshold = 80d / Math.Max(0.5d, _settings.Current.QuickAccessSwipeSensitivity);
         if (Math.Abs(translation.X) >= threshold && Math.Abs(translation.X) > Math.Abs(translation.Y))
-            _ = ExecuteConfiguredActionAsync(translation.X < 0
+            _ = CompleteSwipeAsync(translation.X < 0
                 ? _settings.Current.QuickAccessSwipeLeftAction
-                : _settings.Current.QuickAccessSwipeRightAction);
+                : _settings.Current.QuickAccessSwipeRightAction, Math.Sign(translation.X));
+        else
+            ResetSwipeVisual(animated: true);
+    }
+
+    private async Task CompleteSwipeAsync(string action, int direction)
+    {
+        if (!Services.AccessibilityPreferences.ReduceMotion)
+        {
+            var completion = new TaskCompletionSource();
+            var animation = new DoubleAnimation(direction * (ActualWidth + 50d), TimeSpan.FromMilliseconds(180))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+            };
+            animation.Completed += (_, _) => completion.TrySetResult();
+            CardTranslateTransform.BeginAnimation(TranslateTransform.XProperty, animation);
+            Card.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(160)));
+            await completion.Task;
+        }
+        await ExecuteConfiguredActionAsync(action);
+        if (IsVisible) ResetSwipeVisual();
+    }
+
+    private void ResetSwipeVisual(bool animated = false)
+    {
+        var duration = animated && !Services.AccessibilityPreferences.ReduceMotion
+            ? TimeSpan.FromMilliseconds(180)
+            : TimeSpan.Zero;
+        var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
+        CardTranslateTransform.BeginAnimation(TranslateTransform.XProperty,
+            new DoubleAnimation(0, duration) { EasingFunction = easing });
+        CardSwipeRotate.BeginAnimation(RotateTransform.AngleProperty,
+            new DoubleAnimation(0, duration) { EasingFunction = easing });
+        Card.BeginAnimation(OpacityProperty, new DoubleAnimation(1, duration));
     }
     private async Task ExecuteConfiguredActionAsync(string? action)
     {

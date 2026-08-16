@@ -138,6 +138,7 @@ public sealed class TrayIconService : IDisposable
     private WpfContextMenu BuildMenu(AppSettings settings)
     {
         var menu = new WpfContextMenu { StaysOpen = false };
+        menu.SetResourceReference(FrameworkElement.StyleProperty, "TrayContextMenu");
         _recordingItem = CreateMenuItem("停止录制", null, "Icon.Stop", settings,
             () => RecordingRequested?.Invoke(this, EventArgs.Empty));
         _recordingItem.Visibility = _isRecording ? Visibility.Visible : Visibility.Collapsed;
@@ -183,6 +184,7 @@ public sealed class TrayIconService : IDisposable
             InputGestureText = settings.ShortcutsEnabled ? shortcut ?? string.Empty : string.Empty,
             Icon = CreateIcon(iconKey)
         };
+        item.SetResourceReference(FrameworkElement.StyleProperty, "TrayMenuItem");
         item.Click += (_, _) => action();
         return item;
     }

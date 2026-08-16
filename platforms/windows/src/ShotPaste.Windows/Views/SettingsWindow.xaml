@@ -38,6 +38,24 @@
       <Setter Property="FontSize" Value="{DynamicResource FontSize.Label.Medium}"/>
       <Setter Property="TextWrapping" Value="Wrap"/>
     </Style>
+    <Style x:Key="SettingRowIcon" TargetType="ContentControl">
+      <Setter Property="ContentTemplate" Value="{StaticResource Icon.Template}"/>
+      <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
+      <Setter Property="Width" Value="20"/>
+      <Setter Property="Height" Value="20"/>
+      <Setter Property="Margin" Value="0,0,14,0"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style x:Key="SettingRowTitle" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="{DynamicResource FontSize.Body}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    </Style>
+    <Style x:Key="SettingDivider" TargetType="Border">
+      <Setter Property="Height" Value="1"/>
+      <Setter Property="Background" Value="{DynamicResource MenuSeparatorBrush}"/>
+      <Setter Property="Margin" Value="34,14,0,14"/>
+    </Style>
   </Window.Resources>
 
   <Grid Background="{DynamicResource WindowBackdropBrush}">
@@ -48,52 +66,106 @@
     <TabControl x:Name="SettingsTabs" Margin="20,16,20,0" Background="Transparent" BorderThickness="0" TabStripPlacement="Top"
                 Style="{StaticResource SettingsTabControl}" SelectionChanged="OnSettingsTabChanged">
       <TabItem x:Name="GeneralTab" Header="通用" Tag="{StaticResource Icon.Settings}" Style="{StaticResource SettingsTabItem}" AutomationProperties.AutomationId="SettingsGeneralTab">
-        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,16,0,0">
-          <StackPanel Margin="2,0,8,12">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly" Margin="0,14,0,0">
+          <StackPanel Margin="22,0,22,20">
+            <TextBlock Text="启动" Style="{StaticResource SectionTitle}"/>
             <Border Style="{StaticResource SettingsCard}">
               <StackPanel>
-                <TextBlock Text="启动与声音" Style="{StaticResource SectionTitle}"/>
-                <CheckBox Content="登录 Windows 后自动启动" IsChecked="{Binding LaunchAtStartup}"/>
-                <CheckBox Content="播放截图、录屏与历史提示音" IsChecked="{Binding PlaySounds}"/>
-                <CheckBox Content="显示系统托盘图标" IsChecked="{Binding ShowTrayIcon}"/>
-              </StackPanel>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-              <StackPanel>
-                <TextBlock Text="自动化" Style="{StaticResource SectionTitle}"/>
-                <CheckBox x:Name="UrlSchemeCheckBox" Content="允许 shotpaste:// 自动化链接" IsChecked="{Binding UrlSchemeEnabled}"/>
-                <TextBlock Text="支持 One Shot、截图、滚动截屏、OCR、录屏、历史与设置页面；关闭后会注销协议。" Style="{StaticResource SettingHint}" Margin="24,2,0,0"/>
-                <Grid Margin="0,12,0,0">
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="76"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                  <CheckBox Content="启用本机 MCP Server" IsChecked="{Binding McpServerEnabled}" AutomationProperties.AutomationId="SettingsMcpEnabled"/>
-                  <TextBox Grid.Column="1" Text="{Binding McpServerPort}" ToolTip="1024–65535" Margin="8,0" AutomationProperties.Name="MCP Server 端口"/>
-                  <Button Grid.Column="2" Content="复制连接配置" Click="OnCopyMcpConfiguration"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <ContentControl Content="{StaticResource Icon.Refresh}" Style="{StaticResource SettingRowIcon}"/>
+                  <StackPanel Grid.Column="1"><TextBlock Text="登录时启动" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="登录 Windows 后自动启动 ShotPaste" Style="{StaticResource SettingHint}"/></StackPanel>
+                  <CheckBox Grid.Column="2" IsChecked="{Binding LaunchAtStartup}" AutomationProperties.Name="登录时启动"/>
                 </Grid>
-                <TextBlock x:Name="McpServerStatusText" Text="仅监听 127.0.0.1，并要求 Bearer Token。" Style="{StaticResource SettingHint}" Margin="24,4,0,0"/>
-              </StackPanel>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-              <StackPanel>
-                <TextBlock Text="软件更新" Style="{StaticResource SectionTitle}"/>
-                <CheckBox Content="启动时检查更新" IsChecked="{Binding CheckForUpdatesAutomatically}"/>
-                <Grid Margin="0,10,0,0">
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                  <TextBlock x:Name="UpdateStatus" VerticalAlignment="Center" Style="{StaticResource SettingHint}" TextWrapping="Wrap"/>
-                  <Button x:Name="CheckForUpdatesButton" Grid.Column="1" Content="检查更新" Click="OnCheckForUpdates" Margin="8,0,0,0"/>
-                  <Button x:Name="OpenUpdatePageButton" Grid.Column="2" Content="前往 GitHub" Click="OnOpenUpdatePage" Margin="8,0,0,0" Visibility="Collapsed"/>
+                <Border Style="{StaticResource SettingDivider}"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <ContentControl Content="{StaticResource Icon.Recording}" Style="{StaticResource SettingRowIcon}"/>
+                  <StackPanel Grid.Column="1"><TextBlock Text="播放声音" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="截图、录屏与历史记录完成时播放提示音" Style="{StaticResource SettingHint}"/></StackPanel>
+                  <CheckBox Grid.Column="2" IsChecked="{Binding PlaySounds}" AutomationProperties.Name="播放声音"/>
+                </Grid>
+                <Border Style="{StaticResource SettingDivider}"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <ContentControl Content="{StaticResource Icon.QuickAccess}" Style="{StaticResource SettingRowIcon}"/>
+                  <StackPanel Grid.Column="1"><TextBlock Text="显示系统托盘图标" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="从 Windows 系统托盘访问 ShotPaste" Style="{StaticResource SettingHint}"/></StackPanel>
+                  <CheckBox Grid.Column="2" IsChecked="{Binding ShowTrayIcon}" AutomationProperties.Name="显示系统托盘图标"/>
                 </Grid>
               </StackPanel>
             </Border>
+
+            <TextBlock Text="外观" Style="{StaticResource SectionTitle}"/>
             <Border Style="{StaticResource SettingsCard}">
               <StackPanel>
-                <TextBlock Text="帮助" Style="{StaticResource SectionTitle}"/>
-                <TextBlock x:Name="PreviousCrashNotice" Text="检测到上次异常退出日志。导出诊断包可一并保存 crash.log，便于排查。"
-                           Style="{StaticResource SettingHint}" Foreground="{DynamicResource WarningBrush}" TextWrapping="Wrap"
-                           Visibility="Collapsed" Margin="0,0,0,10"/>
-                <StackPanel Orientation="Horizontal">
-                  <Button Content="导出诊断包…" Click="OnExportDiagnosticBundle" Margin="0,0,8,0"/>
-                  <Button Content="报告问题…" Click="OnOpenReportPage"/>
-                </StackPanel>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <ContentControl Content="{StaticResource Icon.Keyboard}" Style="{StaticResource SettingRowIcon}"/>
+                  <StackPanel Grid.Column="1"><TextBlock Text="应用语言" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="选择 ShotPaste 中使用的语言" Style="{StaticResource SettingHint}"/></StackPanel>
+                  <ComboBox Grid.Column="2" SelectedValue="{Binding Language}" SelectedValuePath="Tag" Width="170">
+                    <ComboBoxItem Content="跟随系统" Tag="System"/><ComboBoxItem Content="简体中文" Tag="zh-CN"/><ComboBoxItem Content="繁體中文" Tag="zh-TW"/><ComboBoxItem Content="English" Tag="en-US"/><ComboBoxItem Content="日本語" Tag="ja-JP"/><ComboBoxItem Content="한국어" Tag="ko-KR"/><ComboBoxItem Content="Deutsch" Tag="de-DE"/><ComboBoxItem Content="Français" Tag="fr-FR"/><ComboBoxItem Content="Español" Tag="es-ES"/><ComboBoxItem Content="Русский" Tag="ru-RU"/><ComboBoxItem Content="Tiếng Việt" Tag="vi-VN"/>
+                  </ComboBox>
+                </Grid>
+                <Border Style="{StaticResource SettingDivider}"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <ContentControl Content="{StaticResource Icon.Advanced}" Style="{StaticResource SettingRowIcon}"/>
+                  <StackPanel Grid.Column="1"><TextBlock Text="主题" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="选择偏好的应用外观" Style="{StaticResource SettingHint}"/></StackPanel>
+                  <ComboBox Grid.Column="2" SelectedValue="{Binding Theme}" SelectedValuePath="Tag" Width="130"><ComboBoxItem Content="跟随系统" Tag="System"/><ComboBoxItem Content="浅色" Tag="Light"/><ComboBoxItem Content="深色" Tag="Dark"/></ComboBox>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <TextBlock Text="存储" Style="{StaticResource SectionTitle}"/>
+            <Border Style="{StaticResource SettingsCard}">
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <ContentControl Content="{StaticResource Icon.Save}" Style="{StaticResource SettingRowIcon}"/>
+                <StackPanel Grid.Column="1"><TextBlock Text="保存位置" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="{Binding SaveDirectory}" Style="{StaticResource SettingHint}" TextTrimming="CharacterEllipsis"/></StackPanel>
+                <Button Grid.Column="2" Content="选择…" Click="OnChooseDirectory"/>
+              </Grid>
+            </Border>
+
+            <TextBlock Text="自动化" Style="{StaticResource SectionTitle}"/>
+            <Border Style="{StaticResource SettingsCard}">
+              <StackPanel>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <ContentControl Content="{StaticResource Icon.Open}" Style="{StaticResource SettingRowIcon}"/>
+                  <StackPanel Grid.Column="1"><TextBlock Text="URL Scheme 集成" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="允许通过 shotpaste:// URL 进行外部触发" Style="{StaticResource SettingHint}"/></StackPanel>
+                  <CheckBox x:Name="UrlSchemeCheckBox" Grid.Column="2" IsChecked="{Binding UrlSchemeEnabled}" AutomationProperties.Name="URL Scheme 集成"/>
+                </Grid>
+                <Border Style="{StaticResource SettingDivider}"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="76"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <ContentControl Content="{StaticResource Icon.Advanced}" Style="{StaticResource SettingRowIcon}"/>
+                  <StackPanel Grid.Column="1"><TextBlock Text="MCP Server" Style="{StaticResource SettingRowTitle}"/><TextBlock x:Name="McpServerStatusText" Text="仅监听 127.0.0.1，并要求 Bearer Token。" Style="{StaticResource SettingHint}" TextTrimming="CharacterEllipsis"/></StackPanel>
+                  <TextBox Grid.Column="2" Text="{Binding McpServerPort}" ToolTip="1024–65535" Margin="8,0" AutomationProperties.Name="MCP Server 端口"/>
+                  <Button Grid.Column="3" Content="复制连接配置" Click="OnCopyMcpConfiguration" Margin="8,0"/>
+                  <CheckBox Grid.Column="4" IsChecked="{Binding McpServerEnabled}" AutomationProperties.AutomationId="SettingsMcpEnabled" AutomationProperties.Name="启用本机 MCP Server"/>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <TextBlock Text="软件更新" Style="{StaticResource SectionTitle}"/>
+            <Border Style="{StaticResource SettingsCard}">
+              <StackPanel>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <ContentControl Content="{StaticResource Icon.Refresh}" Style="{StaticResource SettingRowIcon}"/>
+                  <StackPanel Grid.Column="1"><TextBlock Text="自动检查" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="启动时检查更新" Style="{StaticResource SettingHint}"/></StackPanel>
+                  <CheckBox Grid.Column="2" IsChecked="{Binding CheckForUpdatesAutomatically}" AutomationProperties.Name="启动时检查更新"/>
+                </Grid>
+                <Border Style="{StaticResource SettingDivider}"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <ContentControl Content="{StaticResource Icon.Info}" Style="{StaticResource SettingRowIcon}"/>
+                  <TextBlock x:Name="UpdateStatus" Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource SettingHint}" TextWrapping="Wrap"/>
+                  <Button x:Name="CheckForUpdatesButton" Grid.Column="2" Content="检查更新" Click="OnCheckForUpdates" Margin="8,0,0,0"/>
+                  <Button x:Name="OpenUpdatePageButton" Grid.Column="3" Content="前往 GitHub" Click="OnOpenUpdatePage" Margin="8,0,0,0" Visibility="Collapsed"/>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <TextBlock Text="帮助" Style="{StaticResource SectionTitle}"/>
+            <Border Style="{StaticResource SettingsCard}">
+              <StackPanel>
+                <TextBlock x:Name="PreviousCrashNotice" Text="检测到上次异常退出日志。导出诊断包可一并保存 crash.log，便于排查。" Style="{StaticResource SettingHint}" Foreground="{DynamicResource WarningBrush}" Visibility="Collapsed" Margin="34,0,0,12"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <ContentControl Content="{StaticResource Icon.Info}" Style="{StaticResource SettingRowIcon}"/>
+                  <StackPanel Grid.Column="1"><TextBlock Text="报告问题" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="导出诊断信息或前往 GitHub 问题页面" Style="{StaticResource SettingHint}"/></StackPanel>
+                  <Button Grid.Column="2" Content="导出诊断包…" Click="OnExportDiagnosticBundle" Margin="8,0"/>
+                  <Button Grid.Column="3" Content="报告问题…" Click="OnOpenReportPage"/>
+                </Grid>
               </StackPanel>
             </Border>
           </StackPanel>
@@ -104,109 +176,151 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,16,0,0">
           <StackPanel Margin="2,0,8,12">
             <TabControl Background="Transparent" BorderThickness="0" Style="{StaticResource SettingsSubTabControl}" AutomationProperties.Name="捕获类型">
-              <TabItem Header="截图" Style="{StaticResource SettingsSubTabItem}" AutomationProperties.AutomationId="SettingsCaptureScreenshotSubtab">
+              <TabItem Header="通用" Style="{StaticResource SettingsSubTabItem}" AutomationProperties.AutomationId="SettingsCaptureGeneralSubtab">
                 <StackPanel Margin="0,12,0,0">
-            <Border Style="{StaticResource SettingsCard}">
-              <StackPanel>
-                <TextBlock Text="保存与截图后操作" Style="{StaticResource SectionTitle}"/>
-                <Grid>
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                  <TextBox Text="{Binding SaveDirectory, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
-                  <Button Grid.Column="1" Content="选择…" Margin="8,0,0,0" Click="OnChooseDirectory"/>
-                </Grid>
-                <WrapPanel Margin="0,10,0,0">
-                  <CheckBox Content="保存截图" IsChecked="{Binding SaveScreenshots}" Margin="0,5,20,5"/>
-                  <CheckBox Content="复制到剪贴板" IsChecked="{Binding CopyScreenshots}" Margin="0,5,20,5"/>
-                  <CheckBox Content="显示 Quick Access" IsChecked="{Binding ShowQuickAccessForScreenshots}" Margin="0,5,20,5"/>
-                </WrapPanel>
-              </StackPanel>
-            </Border>
-
-            <Border Style="{StaticResource SettingsCard}">
-              <StackPanel>
-                <TextBlock Text="图片格式与命名" Style="{StaticResource SectionTitle}"/>
-                <StackPanel Orientation="Horizontal">
-                  <ComboBox SelectedValue="{Binding ScreenshotFormat}" SelectedValuePath="Tag" Width="110" Padding="8,6" Margin="0,0,12,0">
-                    <ComboBoxItem Content="PNG" Tag="Png"/><ComboBoxItem Content="JPEG" Tag="Jpeg"/><ComboBoxItem Content="WebP" Tag="WebP"/>
-                  </ComboBox>
-                  <TextBlock Text="质量" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                  <TextBox Text="{Binding JpegQuality}" Width="64" ToolTip="JPEG / WebP 质量（1–100）"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                  <TextBlock Text="色彩空间" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                  <ComboBox SelectedValue="{Binding ScreenshotColorSpace}" SelectedValuePath="Tag" Width="130">
-                    <ComboBoxItem Content="自动" Tag="Auto"/><ComboBoxItem Content="sRGB" Tag="Srgb"/><ComboBoxItem Content="Display P3" Tag="DisplayP3"/>
-                  </ComboBox>
-                </StackPanel>
-                <TextBox Text="{Binding ScreenshotNameTemplate}" Margin="0,10,0,0" ToolTip="支持 {datetime}、{date}、{time}、{ms}、{type}"/>
-                <TextBlock Text="可在命名中使用日期、时间、毫秒和截图类型占位符。" Style="{StaticResource SettingHint}" Margin="0,7,0,0"/>
-              </StackPanel>
-            </Border>
-
-            <Border Style="{StaticResource SettingsCard}">
-              <StackPanel>
-                <TextBlock Text="选区与截图内容" Style="{StaticResource SectionTitle}"/>
-                <WrapPanel>
-                  <CheckBox Content="截图中包含鼠标指针" IsChecked="{Binding ShowCursorInScreenshots}" Margin="0,4,18,4"/>
-                  <CheckBox Content="隐藏桌面图标与组件" IsChecked="{Binding HideDesktopIconsInScreenshots}" Margin="0,4,18,4"/>
-                  <CheckBox Content="隐藏第三方桌面小组件" IsChecked="{Binding HideDesktopWidgetsInScreenshots}" Margin="0,4,18,4"/>
-                  <CheckBox Content="排除 ShotPaste 自身窗口" IsChecked="{Binding ExcludeOwnApplicationFromScreenshots}" Margin="0,4,18,4"
-                            AutomationProperties.AutomationId="SettingsExcludeOwnApplication"/>
-                </WrapPanel>
-                <Grid Margin="0,10,0,0">
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="140"/><ColumnDefinition Width="150"/><ColumnDefinition Width="160"/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
-                  <TextBlock Text="输出倍率" VerticalAlignment="Center"/>
-                  <ComboBox Grid.Column="1" SelectedValue="{Binding ScreenshotScale}" SelectedValuePath="Tag"><ComboBoxItem Content="自动" Tag="0"/><ComboBoxItem Content="1×" Tag="1"/><ComboBoxItem Content="2×" Tag="2"/></ComboBox>
-                  <CheckBox Grid.Column="2" Content="显示选区放大镜" IsChecked="{Binding ScreenshotMagnifierEnabled}" Margin="14,0,0,0"/>
-                  <ComboBox Grid.Column="3" SelectedValue="{Binding ScreenshotMagnifierZoom}" SelectedValuePath="Tag" AutomationProperties.Name="放大镜像素缩放">
-                    <ComboBoxItem Content="1 px" Tag="1"/><ComboBoxItem Content="2 px" Tag="2"/><ComboBoxItem Content="4 px" Tag="4"/><ComboBoxItem Content="8 px" Tag="8"/>
-                  </ComboBox>
-                </Grid>
-                <TextBlock Text="放大镜显示像素网格、坐标和 HEX/RGB；Shift 切换格式，Ctrl+C 复制当前颜色。" Style="{StaticResource SettingHint}" Margin="0,8,0,0"/>
-              </StackPanel>
-            </Border>
-
-            <Border Style="{StaticResource SettingsCard}">
-              <StackPanel>
-                <TextBlock Text="通知与 OCR" Style="{StaticResource SectionTitle}"/>
-                <WrapPanel>
-                  <CheckBox Content="捕获成功通知" IsChecked="{Binding ShowCaptureNotifications}" Margin="0,4,18,4"/>
-                  <CheckBox Content="OCR 成功通知" IsChecked="{Binding ShowOcrSuccessNotifications}" Margin="0,4,18,4"
-                            AutomationProperties.AutomationId="SettingsOcrSuccessNotifications"/>
-                  <CheckBox Content="检测 OCR 结果中的链接并显示卡片" IsChecked="{Binding ShowOcrLinkNotifications}" Margin="0,4,18,4"/>
-                </WrapPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                  <TextBlock Text="OCR 识别语言" Width="140" VerticalAlignment="Center"/>
-                  <ComboBox SelectedValue="{Binding OcrRecognitionLanguage}" SelectedValuePath="Tag" Width="210" AutomationProperties.AutomationId="SettingsOcrLanguage">
-                    <ComboBoxItem Content="跟随应用语言" Tag="Auto"/><ComboBoxItem Content="简体中文" Tag="zh-CN"/><ComboBoxItem Content="繁體中文" Tag="zh-TW"/><ComboBoxItem Content="English" Tag="en-US"/><ComboBoxItem Content="日本語" Tag="ja-JP"/><ComboBoxItem Content="한국어" Tag="ko-KR"/><ComboBoxItem Content="Deutsch" Tag="de-DE"/><ComboBoxItem Content="Français" Tag="fr-FR"/><ComboBoxItem Content="Español" Tag="es-ES"/><ComboBoxItem Content="Русский" Tag="ru-RU"/><ComboBoxItem Content="Tiếng Việt" Tag="vi-VN"/>
-                  </ComboBox>
-                </StackPanel>
-              </StackPanel>
-            </Border>
+                  <TextBlock Text="输出命名" Style="{StaticResource SectionTitle}"/>
+                  <Border Style="{StaticResource SettingsCard}">
+                    <StackPanel>
+                      <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                        <TextBlock Text="截图模板" Style="{StaticResource SettingRowTitle}" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1" Text="{Binding ScreenshotNameTemplate}" VerticalContentAlignment="Center"/>
+                        <TextBlock Grid.Row="1" Text="录屏命名模板" Style="{StaticResource SettingRowTitle}" VerticalAlignment="Center" Margin="0,12,0,0"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding RecordingNameTemplate}" VerticalContentAlignment="Center" Margin="0,12,0,0"/>
+                      </Grid>
+                      <TextBlock Text="可在命名中使用日期、时间、毫秒和截图类型占位符。" Style="{StaticResource SettingHint}" Margin="0,12,0,0"/>
+                    </StackPanel>
+                  </Border>
+                  <TextBlock Text="保存与截图后操作" Style="{StaticResource SectionTitle}"/>
+                  <Border Style="{StaticResource SettingsCard}">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="120"/><ColumnDefinition Width="120"/></Grid.ColumnDefinitions>
+                      <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                      <TextBlock Grid.Column="1" Text="截图" HorizontalAlignment="Center" Style="{StaticResource SettingHint}"/>
+                      <TextBlock Grid.Column="2" Text="屏幕录制" HorizontalAlignment="Center" Style="{StaticResource SettingHint}"/>
+                      <TextBlock Grid.Row="1" Text="显示快速访问面板" Style="{StaticResource SettingRowTitle}" Margin="0,12,0,0"/>
+                      <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding ShowQuickAccessForScreenshots}" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                      <CheckBox Grid.Row="1" Grid.Column="2" IsChecked="{Binding ShowQuickAccessForRecordings}" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                      <TextBlock Grid.Row="2" Text="复制文件" Style="{StaticResource SettingRowTitle}" Margin="0,12,0,0"/>
+                      <CheckBox Grid.Row="2" Grid.Column="1" IsChecked="{Binding CopyScreenshots}" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                      <CheckBox Grid.Row="2" Grid.Column="2" IsChecked="{Binding CopyRecordings}" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                      <TextBlock Grid.Row="3" Text="保存" Style="{StaticResource SettingRowTitle}" Margin="0,12,0,0"/>
+                      <CheckBox Grid.Row="3" Grid.Column="1" IsChecked="{Binding SaveScreenshots}" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                      <CheckBox Grid.Row="3" Grid.Column="2" IsChecked="{Binding SaveRecordings}" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                    </Grid>
+                  </Border>
                 </StackPanel>
               </TabItem>
-              <TabItem Header="录屏" Style="{StaticResource SettingsSubTabItem}" AutomationProperties.AutomationId="SettingsCaptureRecordingSubtab">
+              <TabItem Header="截图" Style="{StaticResource SettingsSubTabItem}" AutomationProperties.AutomationId="SettingsCaptureScreenshotSubtab">
+                <StackPanel Margin="0,12,0,0">
+                  <TextBlock Text="应用程序窗口" Style="{StaticResource SectionTitle}"/>
+                  <Border Style="{StaticResource SettingsCard}">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <ContentControl Content="{StaticResource Icon.QuickAccess}" Style="{StaticResource SettingRowIcon}"/>
+                      <StackPanel Grid.Column="1"><TextBlock Text="包含在屏幕截图中" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="在截取画面中显示 ShotPaste 窗口" Style="{StaticResource SettingHint}"/></StackPanel>
+                      <CheckBox Grid.Column="2" IsChecked="{Binding IncludeOwnApplicationInScreenshots}" AutomationProperties.AutomationId="SettingsExcludeOwnApplication" AutomationProperties.Name="包含 ShotPaste 窗口"/>
+                    </Grid>
+                  </Border>
+
+                  <TextBlock Text="桌面" Style="{StaticResource SectionTitle}"/>
+                  <Border Style="{StaticResource SettingsCard}"><StackPanel>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <ContentControl Content="{StaticResource Icon.Screenshot}" Style="{StaticResource SettingRowIcon}"/>
+                      <StackPanel Grid.Column="1"><TextBlock Text="隐藏桌面图标" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="截屏或录屏时暂时隐藏桌面图标" Style="{StaticResource SettingHint}"/></StackPanel>
+                      <CheckBox Grid.Column="2" IsChecked="{Binding HideDesktopIconsInScreenshots}"/>
+                    </Grid>
+                    <Border Style="{StaticResource SettingDivider}"/>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <ContentControl Content="{StaticResource Icon.CompactTemplate}" Style="{StaticResource SettingRowIcon}"/>
+                      <StackPanel Grid.Column="1"><TextBlock Text="隐藏桌面小组件" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="截屏或录屏时暂时隐藏桌面小组件" Style="{StaticResource SettingHint}"/></StackPanel>
+                      <CheckBox Grid.Column="2" IsChecked="{Binding HideDesktopWidgetsInScreenshots}"/>
+                    </Grid>
+                  </StackPanel></Border>
+
+                  <TextBlock Text="格式" Style="{StaticResource SectionTitle}"/>
+                  <Border Style="{StaticResource SettingsCard}"><StackPanel>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <ContentControl Content="{StaticResource Icon.ArrowClassic}" Style="{StaticResource SettingRowIcon}"/>
+                      <StackPanel Grid.Column="1"><TextBlock Text="显示光标" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="在截图中包含鼠标指针" Style="{StaticResource SettingHint}"/></StackPanel>
+                      <CheckBox Grid.Column="2" IsChecked="{Binding ShowCursorInScreenshots}"/>
+                    </Grid>
+                    <Border Style="{StaticResource SettingDivider}"/>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <ContentControl Content="{StaticResource Icon.Search}" Style="{StaticResource SettingRowIcon}"/>
+                      <StackPanel Grid.Column="1"><TextBlock Text="像素放大镜" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="选择时显示放大的像素和颜色值" Style="{StaticResource SettingHint}"/></StackPanel>
+                      <CheckBox Grid.Column="2" IsChecked="{Binding ScreenshotMagnifierEnabled}"/>
+                    </Grid>
+                    <Border Style="{StaticResource SettingDivider}"/>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <ContentControl Content="{StaticResource Icon.Expand}" Style="{StaticResource SettingRowIcon}"/>
+                      <StackPanel Grid.Column="1"><TextBlock Text="初始放大倍率" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="放大镜初始倍率（1–8 px）" Style="{StaticResource SettingHint}"/></StackPanel>
+                      <ComboBox Grid.Column="2" SelectedValue="{Binding ScreenshotMagnifierZoom}" SelectedValuePath="Tag" Width="110" AutomationProperties.Name="放大镜像素缩放"><ComboBoxItem Content="1×" Tag="1"/><ComboBoxItem Content="2×" Tag="2"/><ComboBoxItem Content="4×" Tag="4"/><ComboBoxItem Content="8×" Tag="8"/></ComboBox>
+                    </Grid>
+                    <Border Style="{StaticResource SettingDivider}"/>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <ContentControl Content="{StaticResource Icon.Screenshot}" Style="{StaticResource SettingRowIcon}"/>
+                      <StackPanel Grid.Column="1"><TextBlock Text="图像格式" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="屏幕截图的导出格式" Style="{StaticResource SettingHint}"/></StackPanel>
+                      <StackPanel Grid.Column="2" Orientation="Horizontal"><ComboBox SelectedValue="{Binding ScreenshotFormat}" SelectedValuePath="Tag" Width="100"><ComboBoxItem Content="PNG" Tag="Png"/><ComboBoxItem Content="JPEG" Tag="Jpeg"/><ComboBoxItem Content="WebP" Tag="WebP"/></ComboBox><TextBox Text="{Binding JpegQuality}" Width="54" Margin="8,0,0,0" ToolTip="JPEG / WebP 质量（1–100）"/></StackPanel>
+                    </Grid>
+                    <Border Style="{StaticResource SettingDivider}"/>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <ContentControl Content="{StaticResource Icon.Expand}" Style="{StaticResource SettingRowIcon}"/>
+                      <StackPanel Grid.Column="1"><TextBlock Text="输出缩放" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="自动和 1× 保留原生像素；2× 可放大" Style="{StaticResource SettingHint}"/></StackPanel>
+                      <ComboBox Grid.Column="2" SelectedValue="{Binding ScreenshotScale}" SelectedValuePath="Tag" Width="110"><ComboBoxItem Content="自动" Tag="0"/><ComboBoxItem Content="1×" Tag="1"/><ComboBoxItem Content="2×" Tag="2"/></ComboBox>
+                    </Grid>
+                    <Border Style="{StaticResource SettingDivider}"/>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <ContentControl Content="{StaticResource Icon.Circle}" Style="{StaticResource SettingRowIcon}"/>
+                      <StackPanel Grid.Column="1"><TextBlock Text="色彩空间" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="自动匹配显示器，或使用 sRGB / Display P3" Style="{StaticResource SettingHint}"/></StackPanel>
+                      <ComboBox Grid.Column="2" SelectedValue="{Binding ScreenshotColorSpace}" SelectedValuePath="Tag" Width="130"><ComboBoxItem Content="自动" Tag="Auto"/><ComboBoxItem Content="sRGB" Tag="Srgb"/><ComboBoxItem Content="Display P3" Tag="DisplayP3"/></ComboBox>
+                    </Grid>
+                  </StackPanel></Border>
+
+                  <TextBlock Text="滚动截屏" Style="{StaticResource SectionTitle}"/>
+                  <Border Style="{StaticResource SettingsCard}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <ContentControl Content="{StaticResource Icon.Info}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="显示会话提示" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="开始滚动截屏会话时保持操作提示可见" Style="{StaticResource SettingHint}"/></StackPanel><CheckBox Grid.Column="2" IsChecked="{Binding ScrollingShowHints}"/>
+                  </Grid></Border>
+
+                  <TextBlock Text="OCR（文本识别）" Style="{StaticResource SectionTitle}"/>
+                  <Border Style="{StaticResource SettingsCard}"><StackPanel>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><ContentControl Content="{StaticResource Icon.Check}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="捕获成功通知" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="截图或录屏保存后显示通知" Style="{StaticResource SettingHint}"/></StackPanel><CheckBox Grid.Column="2" IsChecked="{Binding ShowCaptureNotifications}"/></Grid>
+                    <Border Style="{StaticResource SettingDivider}"/>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><ContentControl Content="{StaticResource Icon.Info}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="成功通知" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="当文本复制到剪贴板时显示提示" Style="{StaticResource SettingHint}"/></StackPanel><CheckBox Grid.Column="2" IsChecked="{Binding ShowOcrSuccessNotifications}" AutomationProperties.AutomationId="SettingsOcrSuccessNotifications"/></Grid>
+                    <Border Style="{StaticResource SettingDivider}"/>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><ContentControl Content="{StaticResource Icon.Open}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="检测链接" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="提示打开捕获文本中发现的网页链接" Style="{StaticResource SettingHint}"/></StackPanel><CheckBox Grid.Column="2" IsChecked="{Binding ShowOcrLinkNotifications}"/></Grid>
+                    <Border Style="{StaticResource SettingDivider}"/>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><ContentControl Content="{StaticResource Icon.Ocr}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="OCR 语言" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="用于文本识别的语言配置" Style="{StaticResource SettingHint}"/></StackPanel><ComboBox Grid.Column="2" SelectedValue="{Binding OcrRecognitionLanguage}" SelectedValuePath="Tag" Width="210" AutomationProperties.AutomationId="SettingsOcrLanguage"><ComboBoxItem Content="跟随应用语言" Tag="Auto"/><ComboBoxItem Content="简体中文" Tag="zh-CN"/><ComboBoxItem Content="繁體中文" Tag="zh-TW"/><ComboBoxItem Content="English" Tag="en-US"/><ComboBoxItem Content="日本語" Tag="ja-JP"/><ComboBoxItem Content="한국어" Tag="ko-KR"/><ComboBoxItem Content="Deutsch" Tag="de-DE"/><ComboBoxItem Content="Français" Tag="fr-FR"/><ComboBoxItem Content="Español" Tag="es-ES"/><ComboBoxItem Content="Русский" Tag="ru-RU"/><ComboBoxItem Content="Tiếng Việt" Tag="vi-VN"/></ComboBox></Grid>
+                  </StackPanel></Border>
+                </StackPanel>
+              </TabItem>
+              <TabItem Header="屏幕录制" Style="{StaticResource SettingsSubTabItem}" AutomationProperties.AutomationId="SettingsCaptureRecordingSubtab">
                 <StackPanel Margin="0,12,0,0">
 
             <Border Style="{StaticResource SettingsCard}">
               <StackPanel>
-                <TextBlock Text="录屏" Style="{StaticResource SectionTitle}"/>
+                <TextBlock Text="录屏格式" Style="{StaticResource SectionTitle}"/>
+                <Grid>
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="170"/><ColumnDefinition Width="96"/><ColumnDefinition Width="190"/></Grid.ColumnDefinitions>
+                  <TextBlock Text="视频格式" VerticalAlignment="Center"/>
+                  <ComboBox Grid.Column="1" SelectedValue="{Binding RecordingVideoFormat}" SelectedValuePath="Tag" SelectionChanged="OnRecordingFormatChanged" AutomationProperties.AutomationId="RecordingVideoFormat"><ComboBoxItem Content="MP4" Tag="Mp4"/></ComboBox>
+                  <TextBlock Grid.Column="2" Text="视频编码器" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                  <ComboBox Grid.Column="3" SelectedValue="{Binding RecordingVideoCodec}" SelectedValuePath="Tag" SelectionChanged="OnRecordingFormatChanged" AutomationProperties.AutomationId="RecordingVideoCodec"><ComboBoxItem Content="H.264" Tag="H264"/><ComboBoxItem x:Name="RecordingHevcItem" Content="HEVC / H.265" Tag="Hevc"/></ComboBox>
+                </Grid>
+                <TextBlock x:Name="RecordingFormatStatus" Style="{StaticResource SettingHint}" Margin="0,5,0,0" AutomationProperties.AutomationId="RecordingFormatStatus" Text="正在检查 Windows 媒体编码能力…"/>
+                <TextBlock Text="录屏质量" Style="{StaticResource SectionTitle}" Margin="0,14,0,8"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="150"/><ColumnDefinition Width="96"/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions><TextBlock Text="帧率" VerticalAlignment="Center"/><ComboBox Grid.Column="1" SelectedValue="{Binding RecordingFps}" SelectedValuePath="Tag"><ComboBoxItem Content="15 FPS" Tag="15"/><ComboBoxItem Content="30 FPS" Tag="30"/><ComboBoxItem Content="60 FPS" Tag="60"/></ComboBox><TextBlock Grid.Column="2" Text="GIF 帧率" Margin="12,0,0,0" VerticalAlignment="Center"/><ComboBox Grid.Column="3" SelectedValue="{Binding RecordingGifFps}" SelectedValuePath="Tag"><ComboBoxItem Content="10 FPS" Tag="10"/><ComboBoxItem Content="15 FPS" Tag="15"/><ComboBoxItem Content="20 FPS" Tag="20"/><ComboBoxItem Content="30 FPS" Tag="30"/></ComboBox></Grid>
+                <TextBlock Text="记录行为" Style="{StaticResource SectionTitle}" Margin="0,14,0,8"/>
                 <WrapPanel>
-                  <CheckBox Content="保存录屏" IsChecked="{Binding SaveRecordings}" Margin="0,5,20,5"/>
-                  <CheckBox Content="复制录屏文件" IsChecked="{Binding CopyRecordings}" Margin="0,5,20,5"/>
-                  <CheckBox Content="显示 Quick Access" IsChecked="{Binding ShowQuickAccessForRecordings}"/>
-                </WrapPanel>
-                <TextBox Text="{Binding RecordingNameTemplate}" Margin="0,8,0,8" ToolTip="录屏命名模板"/>
-                <WrapPanel>
-                  <CheckBox Content="包含鼠标指针" IsChecked="{Binding IncludeCursorInRecording}" Margin="0,5,20,5"/>
-                  <CheckBox Content="高亮鼠标点击" IsChecked="{Binding HighlightMouseClicks}" Margin="0,5,20,5"/>
+                  <CheckBox Content="显示光标" IsChecked="{Binding IncludeCursorInRecording}" Margin="0,5,20,5"/>
+                  <CheckBox Content="突出显示鼠标点击" IsChecked="{Binding HighlightMouseClicks}" Margin="0,5,20,5"/>
                   <CheckBox Content="显示按键" IsChecked="{Binding ShowKeystrokes}" Margin="0,5,20,5"/>
-                  <CheckBox Content="录制中包含 ShotPaste" IsChecked="{Binding IncludeShotPasteInRecording}" Margin="0,5,20,5"
+                  <CheckBox Content="在录屏画面中包含" IsChecked="{Binding IncludeShotPasteInRecording}" Margin="0,5,20,5"
                             AutomationProperties.AutomationId="IncludeShotPasteInRecording"/>
                   <CheckBox Content="暗化未选区域" IsChecked="{Binding DimNonSelectedRecordingArea}" Margin="0,5,20,5"
                             AutomationProperties.AutomationId="DimNonSelectedRecordingArea"/>
-                  <CheckBox Content="系统声音" IsChecked="{Binding RecordSystemAudio}" Margin="0,5,20,5"/>
-                  <CheckBox Content="麦克风" IsChecked="{Binding RecordMicrophone}" Margin="0,5,20,5"/>
+                  <CheckBox Content="显示悬浮控件" IsChecked="{Binding ShowRecordingToolbar}" Margin="0,5,20,5" AutomationProperties.AutomationId="ShowRecordingToolbar"/>
+                  <CheckBox Content="在菜单栏显示计时器" IsChecked="{Binding ShowRecordingDurationInTray}" Margin="0,5,20,5"/>
                 </WrapPanel>
                 <Border Margin="0,9,0,0" Padding="10" CornerRadius="{DynamicResource Radius.Md}"
                         Background="{DynamicResource SurfaceSecondaryBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
@@ -266,45 +380,14 @@
                     <TextBlock Text="预览使用与 MP4/GIF 成片相同的光圈和按键叠加层。" Style="{StaticResource SettingHint}" Margin="0,7,0,0"/>
                   </StackPanel>
                 </Border>
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                  <TextBlock Text="帧率" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                  <ComboBox SelectedValue="{Binding RecordingFps}" SelectedValuePath="Tag" Width="120" Padding="8,6">
-                    <ComboBoxItem Content="15 FPS" Tag="15"/><ComboBoxItem Content="30 FPS" Tag="30"/><ComboBoxItem Content="60 FPS" Tag="60"/>
-                  </ComboBox>
-                </StackPanel>
-                <Grid Margin="0,8,0,0">
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="170"/><ColumnDefinition Width="96"/><ColumnDefinition Width="190"/></Grid.ColumnDefinitions>
-                  <TextBlock Text="视频容器" VerticalAlignment="Center"/>
-                  <ComboBox Grid.Column="1" SelectedValue="{Binding RecordingVideoFormat}" SelectedValuePath="Tag" SelectionChanged="OnRecordingFormatChanged"
-                            AutomationProperties.AutomationId="RecordingVideoFormat">
-                    <ComboBoxItem Content="MP4（Windows 推荐）" Tag="Mp4"/>
-                    <ComboBoxItem x:Name="RecordingMovItem" Content="MOV（Windows 不可用）" Tag="Mov" IsEnabled="False"/>
-                  </ComboBox>
-                  <TextBlock Grid.Column="2" Text="视频编码" VerticalAlignment="Center" Margin="12,0,0,0"/>
-                  <ComboBox Grid.Column="3" SelectedValue="{Binding RecordingVideoCodec}" SelectedValuePath="Tag" SelectionChanged="OnRecordingFormatChanged"
-                            AutomationProperties.AutomationId="RecordingVideoCodec">
-                    <ComboBoxItem Content="H.264（兼容优先）" Tag="H264"/>
-                    <ComboBoxItem x:Name="RecordingHevcItem" Content="HEVC / H.265" Tag="Hevc"/>
-                  </ComboBox>
-                </Grid>
-                <TextBlock x:Name="RecordingFormatStatus" Style="{StaticResource SettingHint}" Margin="0,5,0,0"
-                           AutomationProperties.AutomationId="RecordingFormatStatus"
-                           Text="正在检查 Windows 媒体编码能力…"/>
+                <TextBlock Text="音频" Style="{StaticResource SectionTitle}" Margin="0,14,0,8"/>
+                <WrapPanel><CheckBox Content="系统音频" IsChecked="{Binding RecordSystemAudio}" Margin="0,5,20,5"/><CheckBox Content="麦克风" IsChecked="{Binding RecordMicrophone}" Margin="0,5,20,5"/></WrapPanel>
                 <Grid Margin="0,8,0,0">
                   <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="170"/><ColumnDefinition Width="96"/><ColumnDefinition Width="170"/></Grid.ColumnDefinitions>
                   <TextBlock Text="系统声音音量" VerticalAlignment="Center"/><Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding RecordingSystemAudioVolume}"/>
                   <TextBlock Grid.Column="2" Text="麦克风音量" VerticalAlignment="Center" Margin="12,0,0,0"/><Slider Grid.Column="3" Minimum="0" Maximum="1" Value="{Binding RecordingMicrophoneVolume}"/>
                 </Grid>
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                  <TextBlock Text="GIF 帧率" Width="96" VerticalAlignment="Center"/>
-                  <ComboBox SelectedValue="{Binding RecordingGifFps}" SelectedValuePath="Tag" Width="120">
-                    <ComboBoxItem Content="10 FPS" Tag="10"/><ComboBoxItem Content="15 FPS" Tag="15"/><ComboBoxItem Content="20 FPS" Tag="20"/><ComboBoxItem Content="30 FPS" Tag="30"/>
-                  </ComboBox>
-                  <CheckBox Content="显示录屏控制条" IsChecked="{Binding ShowRecordingToolbar}" Margin="22,0,0,0"
-                            AutomationProperties.AutomationId="ShowRecordingToolbar"/>
-                  <CheckBox Content="托盘显示录屏时长" IsChecked="{Binding ShowRecordingDurationInTray}" Margin="18,0,0,0"/>
-                </StackPanel>
-                <TextBlock Text="录屏实时标注" Style="{StaticResource SectionTitle}" Margin="0,14,0,8"/>
+                <TextBlock Text="实时标注" Style="{StaticResource SectionTitle}" Margin="0,14,0,8"/>
                 <WrapPanel>
                   <TextBlock Text="颜色" VerticalAlignment="Center" Margin="0,0,8,0"/>
                   <TextBox Text="{Binding RecordingAnnotationColor}" Width="90" Margin="0,0,12,0"/>
@@ -348,18 +431,6 @@
             </Border>
                 </StackPanel>
               </TabItem>
-              <TabItem Header="滚动截屏" Style="{StaticResource SettingsSubTabItem}" AutomationProperties.AutomationId="SettingsCaptureScrollingSubtab">
-                <StackPanel Margin="0,12,0,0">
-                  <Border Style="{StaticResource SettingsCard}">
-                    <StackPanel>
-                      <TextBlock Text="滚动捕获" Style="{StaticResource SectionTitle}"/>
-                      <CheckBox Content="允许自动滚动（鼠标需停留在选区内）" IsChecked="{Binding ScrollingAutoScrollEnabled}"/>
-                      <CheckBox Content="首次使用当前版本时显示操作提示" IsChecked="{Binding ScrollingShowHints}"/>
-                      <TextBlock Text="控制 HUD 与长图预览轨道分别停靠在选区旁，暂停后仍可继续或反向补齐。" Style="{StaticResource SettingHint}" Margin="0,8,0,0"/>
-                    </StackPanel>
-                  </Border>
-                </StackPanel>
-              </TabItem>
             </TabControl>
           </StackPanel>
         </ScrollViewer>
@@ -370,26 +441,27 @@
           <StackPanel Margin="2,0,8,12">
             <Border Style="{StaticResource SettingsCard}">
               <StackPanel>
-                <TextBlock Text="Quick Access 浮动卡片" Style="{StaticResource SectionTitle}"/>
-                <CheckBox Content="启用 Quick Access" IsChecked="{Binding ShowQuickAccess}"/>
-                <TextBlock Text="截图或录屏后在屏幕边缘显示预览卡片，操作与 macOS 版保持一致。" Style="{StaticResource SettingHint}" Margin="0,4,0,14"/>
+                <TextBlock Text="预览" Style="{StaticResource SectionTitle}"/>
                 <Grid>
                   <Grid.ColumnDefinitions><ColumnDefinition Width="140"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                  <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                  <TextBlock Text="显示位置" VerticalAlignment="Center"/>
-                  <ComboBox Grid.Column="1" SelectedValue="{Binding QuickAccessPosition}" SelectedValuePath="Tag" Width="180" HorizontalAlignment="Left" Padding="8,6">
+                  <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                  <TextBlock Grid.ColumnSpan="2" Text="快速操作" Style="{StaticResource SectionTitle}"/>
+                  <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Text="位置与外观" Style="{StaticResource SectionTitle}"/>
+                  <TextBlock Grid.Row="6" Grid.ColumnSpan="2" Text="行为" Style="{StaticResource SectionTitle}"/>
+                  <TextBlock Grid.Row="4" Text="屏幕边缘" VerticalAlignment="Center"/>
+                  <ComboBox Grid.Row="4" Grid.Column="1" SelectedValue="{Binding QuickAccessPosition}" SelectedValuePath="Tag" Width="180" HorizontalAlignment="Left" Padding="8,6">
                     <ComboBoxItem Content="屏幕左侧" Tag="BottomLeft"/><ComboBoxItem Content="屏幕右侧" Tag="BottomRight"/>
                   </ComboBox>
-                  <TextBlock Grid.Row="1" Text="自动关闭" VerticalAlignment="Center" Margin="0,12,0,0"/>
-                  <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,12,0,0">
+                  <TextBlock Grid.Row="8" Text="自动关闭" VerticalAlignment="Center" Margin="0,12,0,0"/>
+                  <StackPanel Grid.Row="8" Grid.Column="1" Orientation="Horizontal" Margin="0,12,0,0">
                     <CheckBox Content="启用" IsChecked="{Binding QuickAccessAutoDismissEnabled}" Margin="0,0,12,0"/>
                     <TextBox Text="{Binding QuickAccessAutoDismissSeconds}" Width="56" ToolTip="3–30 秒"/>
                     <TextBlock Text="秒（3–30）" Margin="7,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
                   </StackPanel>
-                  <TextBlock Grid.Row="2" Text="悬停行为" VerticalAlignment="Center" Margin="0,12,0,0"/>
-                  <CheckBox Grid.Row="2" Grid.Column="1" Content="鼠标悬停时暂停倒计时" IsChecked="{Binding PauseQuickAccessOnHover}" Margin="0,12,0,0"/>
-                  <TextBlock Grid.Row="3" Text="卡片动作与槽位" VerticalAlignment="Top" Margin="0,15,0,0"/>
-                  <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,12,0,0">
+                  <TextBlock Grid.Row="11" Text="悬停行为" VerticalAlignment="Center" Margin="0,12,0,0"/>
+                  <CheckBox Grid.Row="11" Grid.Column="1" Content="鼠标悬停时暂停倒计时" IsChecked="{Binding PauseQuickAccessOnHover}" Margin="0,12,0,0"/>
+                  <TextBlock Grid.Row="1" Text="卡片动作与槽位" VerticalAlignment="Top" Margin="0,15,0,0"/>
+                  <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,12,0,0">
                     <Border CornerRadius="{DynamicResource Radius.Lg}" Padding="12" Background="{DynamicResource SurfaceSecondaryBrush}"
                             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                             AutomationProperties.Name="Quick Access 实时卡片预览">
@@ -421,19 +493,20 @@
                       <TextBlock Text="拖动编号手柄可排序；键盘可用 Alt 加方向键；选择“停用”会保留该槽位。" Style="{StaticResource SettingHint}" VerticalAlignment="Center"/>
                     </DockPanel>
                   </StackPanel>
-                  <TextBlock Grid.Row="4" Text="卡片缩放" VerticalAlignment="Center" Margin="0,12,0,0"/>
-                  <Slider Grid.Row="4" Grid.Column="1" Minimum="0.75" Maximum="1.5" TickFrequency="0.25" IsSnapToTickEnabled="True" Value="{Binding QuickAccessScale}" Width="150" HorizontalAlignment="Left" Margin="0,12,0,0"/>
-                  <CheckBox Grid.Row="5" Grid.Column="1" Content="允许从卡片拖出文件" IsChecked="{Binding QuickAccessEnableDrag}" Margin="0,12,0,0"/>
-                  <TextBlock Grid.Row="6" Text="动画样式" VerticalAlignment="Center" Margin="0,12,0,0"/>
-                  <ComboBox Grid.Row="6" Grid.Column="1" SelectedValue="{Binding QuickAccessAnimationStyle}" SelectedValuePath="Tag" Width="130" HorizontalAlignment="Left" Margin="0,12,0,0">
+                  <TextBlock Grid.Row="5" Text="浮层尺寸" VerticalAlignment="Center" Margin="0,12,0,0"/>
+                  <Slider Grid.Row="5" Grid.Column="1" Minimum="0.75" Maximum="1.5" TickFrequency="0.25" IsSnapToTickEnabled="True" Value="{Binding QuickAccessScale}" Width="150" HorizontalAlignment="Left" Margin="0,12,0,0"/>
+                  <CheckBox Grid.Row="7" Grid.Column="1" Content="显示浮动卡片" IsChecked="{Binding ShowQuickAccess}" Margin="0,12,0,0"/>
+                  <CheckBox Grid.Row="12" Grid.Column="1" Content="允许从卡片拖出文件" IsChecked="{Binding QuickAccessEnableDrag}" Margin="0,12,0,0"/>
+                  <TextBlock Grid.Row="10" Text="动画样式" VerticalAlignment="Center" Margin="0,12,0,0"/>
+                  <ComboBox Grid.Row="10" Grid.Column="1" SelectedValue="{Binding QuickAccessAnimationStyle}" SelectedValuePath="Tag" Width="130" HorizontalAlignment="Left" Margin="0,12,0,0">
                     <ComboBoxItem Content="滑入" Tag="Slide"/><ComboBoxItem Content="缩放" Tag="Scale"/>
                   </ComboBox>
-                  <CheckBox Grid.Row="7" Grid.Column="1" Content="启用双指滑动关闭卡片" IsChecked="{Binding QuickAccessTwoFingerSwipeEnabled}" Margin="0,12,0,0"/>
-                  <TextBlock Grid.Row="8" Text="滑动灵敏度" VerticalAlignment="Center" Margin="0,12,0,0"/>
-                  <Slider Grid.Row="8" Grid.Column="1" Minimum="0.5" Maximum="3" Value="{Binding QuickAccessSwipeSensitivity}" Width="150" HorizontalAlignment="Left" Margin="0,12,0,0"/>
-                  <CheckBox Grid.Row="9" Grid.Column="1" Content="打开对应贴图窗口时隐藏此卡片" IsChecked="{Binding QuickAccessHideCardWhenWindowOpen}" Margin="0,12,0,0"/>
-                  <TextBlock Grid.Row="10" Text="触控板方向" VerticalAlignment="Center" Margin="0,12,0,0"/>
-                  <ComboBox Grid.Row="10" Grid.Column="1" SelectedValue="{Binding QuickAccessTrackpadSwipeMode}" SelectedValuePath="Tag" Width="130" HorizontalAlignment="Left" Margin="0,12,0,0">
+                  <CheckBox Grid.Row="13" Grid.Column="1" Content="双指轻扫" IsChecked="{Binding QuickAccessTwoFingerSwipeEnabled}" Margin="0,12,0,0"/>
+                  <TextBlock Grid.Row="14" Text="轻扫灵敏度" VerticalAlignment="Center" Margin="0,12,0,0"/>
+                  <Slider Grid.Row="14" Grid.Column="1" Minimum="0.5" Maximum="3" Value="{Binding QuickAccessSwipeSensitivity}" Width="150" HorizontalAlignment="Left" Margin="0,12,0,0"/>
+                  <CheckBox Grid.Row="9" Grid.Column="1" Content="窗口打开时隐藏" IsChecked="{Binding QuickAccessHideCardWhenWindowOpen}" Margin="0,12,0,0"/>
+                  <TextBlock Grid.Row="15" Text="触控板滑动方向" VerticalAlignment="Center" Margin="0,12,0,0"/>
+                  <ComboBox Grid.Row="15" Grid.Column="1" SelectedValue="{Binding QuickAccessTrackpadSwipeMode}" SelectedValuePath="Tag" Width="160" HorizontalAlignment="Left" Margin="0,12,0,0">
                     <ComboBoxItem Content="自然" Tag="Natural"/><ComboBoxItem Content="反向" Tag="Inverted"/>
                   </ComboBox>
                 </Grid>
@@ -459,67 +532,51 @@
       <TabItem x:Name="HistoryTab" Header="剪贴板历史" Tag="{StaticResource Icon.History}" Style="{StaticResource SettingsTabItem}" AutomationProperties.AutomationId="SettingsHistoryTab">
         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,16,0,0">
           <StackPanel Margin="2,0,8,12">
+            <TextBlock Text="剪贴板历史" Style="{StaticResource SectionTitle}"/>
+            <Border Style="{StaticResource SettingsCard}">
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <ContentControl Content="{StaticResource Icon.Clipboard}" Style="{StaticResource SettingRowIcon}"/>
+                <StackPanel Grid.Column="1"><TextBlock Text="归档复制的文本、图像和视频" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="即使原始文件被移动或删除，也保留剪贴板内容" Style="{StaticResource SettingHint}"/></StackPanel>
+                <CheckBox Grid.Column="2" IsChecked="{Binding ClipboardHistoryEnabled}" AutomationProperties.AutomationId="SettingsClipboardHistoryEnabled"/>
+              </Grid>
+            </Border>
+
+            <TextBlock Text="显示" Style="{StaticResource SectionTitle}"/>
             <Border Style="{StaticResource SettingsCard}">
               <StackPanel>
-                <TextBlock Text="剪贴板记录" Style="{StaticResource SectionTitle}"/>
-                <CheckBox Content="记录剪贴板图片、文件和文本" IsChecked="{Binding ClipboardHistoryEnabled}"
-                          AutomationProperties.AutomationId="SettingsClipboardHistoryEnabled"/>
-                <TextBlock Text="记录后可在历史面板中按截图、长图、录屏或剪贴板筛选。" Style="{StaticResource SettingHint}" Margin="0,8,0,0"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><ContentControl Content="{StaticResource Icon.Expand}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="面板位置" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="选择悬浮面板在屏幕上的出现位置" Style="{StaticResource SettingHint}"/></StackPanel><ComboBox Grid.Column="2" SelectedValue="{Binding HistoryPosition}" SelectedValuePath="Tag" Width="150"><ComboBoxItem Content="顶部居中" Tag="TopCenter"/><ComboBoxItem Content="底部居中" Tag="BottomCenter"/></ComboBox></Grid>
+                <Border Style="{StaticResource SettingDivider}"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><ContentControl Content="{StaticResource Icon.History}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="默认筛选" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="打开悬浮面板时显示的筛选方式" Style="{StaticResource SettingHint}"/></StackPanel><ComboBox Grid.Column="2" SelectedValue="{Binding HistoryDefaultFilter}" SelectedValuePath="Tag" Width="150"><ComboBoxItem Content="屏幕截图" Tag="Screenshot"/><ComboBoxItem Content="滚动截屏" Tag="Scrolling"/><ComboBoxItem Content="屏幕录制" Tag="Recording"/><ComboBoxItem Content="剪贴板历史" Tag="Clipboard"/></ComboBox></Grid>
+                <Border Style="{StaticResource SettingDivider}"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><ContentControl Content="{StaticResource Icon.CompactTemplate}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="背景样式" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="适用于剪贴板历史窗口和悬浮面板" Style="{StaticResource SettingHint}"/></StackPanel><ComboBox Grid.Column="2" SelectedValue="{Binding HistoryBackgroundStyle}" SelectedValuePath="Tag" Width="150" AutomationProperties.AutomationId="SettingsHistoryBackground"><ComboBoxItem Content="HUD" Tag="Hud"/><ComboBoxItem Content="纯色" Tag="Solid"/></ComboBox></Grid>
+                <Border Style="{StaticResource SettingDivider}"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="190"/></Grid.ColumnDefinitions><ContentControl Content="{StaticResource Icon.Expand}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="面板大小" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="调整悬浮面板及其预览卡片的大小" Style="{StaticResource SettingHint}"/></StackPanel><Slider Grid.Column="2" Minimum="0.75" Maximum="1.5" TickFrequency="0.25" IsSnapToTickEnabled="True" Value="{Binding HistoryScale}" AutomationProperties.Name="历史面板界面缩放"/></Grid>
               </StackPanel>
             </Border>
+
+            <TextBlock Text="保留时间" Style="{StaticResource SectionTitle}"/>
             <Border Style="{StaticResource SettingsCard}">
               <StackPanel>
-                <TextBlock Text="面板行为" Style="{StaticResource SectionTitle}"/>
-                <Grid>
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition Width="180"/><ColumnDefinition Width="140"/><ColumnDefinition Width="160"/></Grid.ColumnDefinitions>
-                  <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                  <TextBlock Text="默认筛选" VerticalAlignment="Center"/>
-                  <ComboBox Grid.Column="1" SelectedValue="{Binding HistoryDefaultFilter}" SelectedValuePath="Tag">
-                    <ComboBoxItem Content="全部" Tag="All"/><ComboBoxItem Content="截图" Tag="Screenshot"/><ComboBoxItem Content="滚动截屏" Tag="Scrolling"/><ComboBoxItem Content="录屏" Tag="Recording"/><ComboBoxItem Content="剪贴板" Tag="Clipboard"/>
-                  </ComboBox>
-                  <TextBlock Grid.Column="2" Text="打开位置" Margin="14,0,0,0" VerticalAlignment="Center"/>
-                  <ComboBox Grid.Column="3" SelectedValue="{Binding HistoryPosition}" SelectedValuePath="Tag">
-                    <ComboBoxItem Content="顶部居中" Tag="TopCenter"/><ComboBoxItem Content="底部居中" Tag="BottomCenter"/>
-                  </ComboBox>
-                  <TextBlock Grid.Row="1" Text="界面缩放" Margin="0,12,0,0" VerticalAlignment="Center"/>
-                  <Slider Grid.Row="1" Grid.Column="1" Minimum="0.75" Maximum="1.5" TickFrequency="0.25" IsSnapToTickEnabled="True"
-                          Value="{Binding HistoryScale}" Margin="0,12,0,0" AutomationProperties.Name="历史面板界面缩放"/>
-                  <CheckBox Grid.Row="2" Grid.ColumnSpan="4" Content="保持打开（失焦时不自动隐藏）"
-                            IsChecked="{Binding HistoryKeepOpen}" Margin="0,12,0,0"/>
-                </Grid>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="180"/><ColumnDefinition Width="64"/></Grid.ColumnDefinitions><ContentControl Content="{StaticResource Icon.Refresh}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="自动删除" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="0 表示永久保留截屏和录屏" Style="{StaticResource SettingHint}"/></StackPanel><Slider Grid.Column="2" Minimum="0" Maximum="90" TickFrequency="1" Value="{Binding HistoryRetentionDays}"/><TextBox Grid.Column="3" Text="{Binding HistoryRetentionDays}" Margin="8,0,0,0"/></Grid>
+                <Border Style="{StaticResource SettingDivider}"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="180"/><ColumnDefinition Width="64"/></Grid.ColumnDefinitions><ContentControl Content="{StaticResource Icon.History}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="剪贴板历史最多保存条数" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="0 表示剪贴板历史中保存的截屏和录屏数量无上限" Style="{StaticResource SettingHint}"/></StackPanel><Slider Grid.Column="2" Minimum="0" Maximum="1000" TickFrequency="10" Value="{Binding HistoryMaxCount}"/><TextBox Grid.Column="3" Text="{Binding HistoryMaxCount}" Margin="8,0,0,0"/></Grid>
               </StackPanel>
             </Border>
+
+            <TextBlock Text="存储" Style="{StaticResource SectionTitle}"/>
             <Border Style="{StaticResource SettingsCard}">
               <StackPanel>
-                <TextBlock Text="存储管理" Style="{StaticResource SectionTitle}"/>
                 <Grid>
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                  <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                  <TextBlock Text="自动清理天数（0 为关闭）" VerticalAlignment="Center"/>
-                  <TextBox Grid.Column="1" Text="{Binding HistoryRetentionDays}" Width="80" HorizontalAlignment="Left"/>
-                  <TextBlock Grid.Row="1" Text="最大记录数（0 为无限）" VerticalAlignment="Center" Margin="0,12,0,0"/>
-                  <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding HistoryMaxCount}" Width="80" HorizontalAlignment="Left" Margin="0,12,0,0"/>
-                </Grid>
-                <Grid Margin="0,12,0,0">
                   <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                   <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
                   <TextBlock x:Name="CaptureStorageUsageText" Text="正在计算截图与录屏目录占用…" Style="{StaticResource SettingHint}" VerticalAlignment="Center"/>
-                  <Button Grid.Column="1" Content="打开截图与录屏目录" Click="OnOpenCaptureDirectory" Margin="8,0,0,0"/>
+                  <Button Grid.Column="1" Content="捕获" AutomationProperties.Name="打开截图与录屏目录" Click="OnOpenCaptureDirectory" Margin="8,0,0,0"/>
                   <TextBlock x:Name="ClipboardStorageUsageText" Grid.Row="1" Text="正在计算媒体剪贴板目录占用…" Style="{StaticResource SettingHint}" VerticalAlignment="Center" Margin="0,8,0,0"/>
                   <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="8,8,0,0">
                     <Button Content="刷新占用" Click="OnRefreshHistoryStorage" Margin="0,0,8,0"/>
-                    <Button Content="打开媒体剪贴板目录" Click="OnOpenClipboardDirectory"/>
+                    <Button Content="剪贴板" AutomationProperties.Name="打开媒体剪贴板目录" Click="OnOpenClipboardDirectory"/>
                   </StackPanel>
                 </Grid>
-                <TextBlock Text="剪贴板历史窗口支持搜索、类型 / 时间筛选、多选以及 Ctrl+A、Ctrl+C、Delete 和 Enter。" Style="{StaticResource SettingHint}" Margin="0,14,0,0"/>
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                  <TextBlock Text="剪贴板历史背景样式" Width="180" VerticalAlignment="Center"/>
-                  <ComboBox SelectedValue="{Binding HistoryBackgroundStyle}" SelectedValuePath="Tag" Width="150"
-                            AutomationProperties.AutomationId="SettingsHistoryBackground">
-                    <ComboBoxItem Content="HUD 材质" Tag="Hud"/><ComboBoxItem Content="纯色" Tag="Solid"/>
-                  </ComboBox>
-                </StackPanel>
-                <TextBlock Text="默认作为失焦自动隐藏的临时面板；可在这里或面板顶部切换“保持打开”。" Style="{StaticResource SettingHint}" Margin="0,9,0,0"/>
               </StackPanel>
             </Border>
           </StackPanel>
@@ -529,129 +586,44 @@
       <TabItem x:Name="ShortcutsTab" Header="快捷键" Tag="{StaticResource Icon.Keyboard}" Style="{StaticResource SettingsTabItem}" AutomationProperties.AutomationId="SettingsShortcutsTab">
         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,16,0,0">
           <StackPanel Margin="2,0,8,12">
+            <TextBlock Text="系统快捷键" Style="{StaticResource SectionTitle}"/>
             <Border Style="{StaticResource SettingsCard}">
-              <StackPanel>
-                <TextBlock Text="全局快捷键" Style="{StaticResource SectionTitle}"/>
-                <CheckBox Content="启用全局快捷键" IsChecked="{Binding ShortcutsEnabled}"/>
-                <TextBlock Text="单击快捷键框后，直接按下 Ctrl、Alt、Shift、Win 与一个普通按键的组合。One Shot 是唯一的闲置捕获入口。" Style="{StaticResource SettingHint}" Margin="0,3,0,12"/>
-                <Grid>
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="155"/><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                  <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                  <TextBlock Text="One Shot" VerticalAlignment="Center"/><TextBox Grid.Column="1" Text="{Binding OneShotHotkey}" Tag="OneShotHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3" AutomationProperties.AutomationId="SettingsOneShotHotkey"/><TextBlock x:Name="OneShotHotkeyStatus" Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                  <TextBlock Grid.Row="1" Text="剪贴板历史" VerticalAlignment="Center"/><TextBox Grid.Row="1" Grid.Column="1" Text="{Binding HistoryHotkey}" Tag="HistoryHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3"/><TextBlock x:Name="HistoryHotkeyStatus" Grid.Row="1" Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                  <TextBlock Grid.Row="2" Text="录屏暂停/继续" VerticalAlignment="Center"/><TextBox Grid.Row="2" Grid.Column="1" Text="{Binding RecordingPauseHotkey}" Tag="RecordingPauseHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3"/><TextBlock x:Name="RecordingPauseHotkeyStatus" Grid.Row="2" Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                  <TextBlock Grid.Row="3" Text="录屏标注开关" VerticalAlignment="Center"/><TextBox Grid.Row="3" Grid.Column="1" Text="{Binding RecordingAnnotationHotkey}" Tag="RecordingAnnotationHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3"/><TextBlock x:Name="RecordingAnnotationHotkeyStatus" Grid.Row="3" Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                  <TextBlock Grid.Row="4" Text="重新录制" VerticalAlignment="Center"/><TextBox Grid.Row="4" Grid.Column="1" Text="{Binding RecordingRestartHotkey}" Tag="RecordingRestartHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3"/><TextBlock x:Name="RecordingRestartHotkeyStatus" Grid.Row="4" Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                  <TextBlock Grid.Row="5" Text="删除当前录屏" VerticalAlignment="Center"/><TextBox Grid.Row="5" Grid.Column="1" Text="{Binding RecordingDeleteHotkey}" Tag="RecordingDeleteHotkey" Style="{StaticResource HotkeyRecorder}" Margin="0,3"/><TextBlock x:Name="RecordingDeleteHotkeyStatus" Grid.Row="5" Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                </Grid>
-                <TextBlock x:Name="HotkeySummaryText" Text="正在检查快捷键注册状态…" Style="{StaticResource SettingHint}" Margin="155,8,0,0" TextWrapping="Wrap"/>
-                <WrapPanel Margin="155,10,0,0" HorizontalAlignment="Left">
-                  <Button Content="恢复默认" Click="OnResetHotkeys" Margin="0,0,8,8"/>
-                  <Button Content="清除全部" Click="OnClearHotkeys" Margin="0,0,8,8"/>
-                  <Button Content="刷新状态" Click="OnRefreshHotkeyStatus" Margin="0,0,8,8"/>
-                  <Button Content="打开 Windows 键盘设置" Click="OnOpenKeyboardSettings" Margin="0,0,0,8"/>
-                </WrapPanel>
-              </StackPanel>
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <ContentControl Content="{StaticResource Icon.Check}" Style="{StaticResource SettingRowIcon}" Foreground="{DynamicResource SuccessBrush}"/>
+                <StackPanel Grid.Column="1"><TextBlock Text="快捷键状态" Style="{StaticResource SettingRowTitle}"/><TextBlock x:Name="HotkeySummaryText" Text="正在检查快捷键注册状态…" Style="{StaticResource SettingHint}"/></StackPanel>
+                <Button Grid.Column="2" Content="刷新" AutomationProperties.Name="刷新状态" Click="OnRefreshHotkeyStatus"/>
+              </Grid>
             </Border>
-          </StackPanel>
-        </ScrollViewer>
-      </TabItem>
 
-      <TabItem x:Name="ScrollingTab" Header="滚动截屏" Visibility="Collapsed" Tag="{StaticResource Icon.Scroll}" Style="{StaticResource SettingsTabItem}" AutomationProperties.AutomationId="SettingsScrollingTab">
-        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,16,0,0">
-          <StackPanel Margin="2,0,8,12">
-            <Border Style="{StaticResource SettingsCard}">
-              <StackPanel>
-                <TextBlock Text="滚动捕获" Style="{StaticResource SectionTitle}"/>
-                <CheckBox Content="允许自动滚动（需要鼠标停留在选区内）" IsChecked="{Binding ScrollingAutoScrollEnabled}"/>
-                <CheckBox Content="开始滚动截屏时显示操作提示" IsChecked="{Binding ScrollingShowHints}"/>
-                <Grid Margin="0,10,0,0">
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="170"/><ColumnDefinition Width="100"/><ColumnDefinition Width="170"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions>
-                  <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                  <TextBlock Text="自动滚动间隔（毫秒）" VerticalAlignment="Center"/><TextBox Grid.Column="1" Text="{Binding ScrollingAutoScrollIntervalMs}"/>
-                  <TextBlock Grid.Column="2" Text="最大输出高度" VerticalAlignment="Center" Margin="12,0,0,0"/><TextBox Grid.Column="3" Text="{Binding ScrollingMaxHeight}"/>
-                  <TextBlock Grid.Row="1" Text="实时预览最大高度" VerticalAlignment="Center" Margin="0,9,0,0"/><TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ScrollingPreviewMaxHeight}" Margin="0,9,0,0"/>
-                  <CheckBox Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Content="识别固定页头 / 页尾 / 侧栏" IsChecked="{Binding ScrollingDetectFixedBars}" Margin="12,9,0,0"/>
-                  <CheckBox Grid.Row="2" Grid.ColumnSpan="4" Content="启用匹配失败恢复与减速提示" IsChecked="{Binding ScrollingSafetyGuardEnabled}" Margin="0,9,0,0"/>
-                </Grid>
-              </StackPanel>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-              <TextBlock Text="滚动截屏会锁定首帧，按滚动事件提交新帧；对齐不可靠时预览会标记为需减速，最终只保存已确认的拼接内容。" Style="{StaticResource SettingHint}"/>
-            </Border>
-          </StackPanel>
-        </ScrollViewer>
-      </TabItem>
+            <TextBlock Text="全局快捷键" Style="{StaticResource SectionTitle}"/>
+            <Border Style="{StaticResource SettingsCard}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><ContentControl Content="{StaticResource Icon.Keyboard}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="启用快捷键" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="可在任意前台应用中使用快捷键截屏" Style="{StaticResource SettingHint}"/></StackPanel><CheckBox Grid.Column="2" IsChecked="{Binding ShortcutsEnabled}"/></Grid></Border>
 
-      <TabItem x:Name="ScreenshotTab" Header="截图选项" Visibility="Collapsed" Tag="{StaticResource Icon.Screenshot}" Style="{StaticResource SettingsTabItem}" AutomationProperties.AutomationId="SettingsScreenshotTab">
-        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,16,0,0">
-          <StackPanel Margin="2,0,8,12">
-            <Border Style="{StaticResource SettingsCard}">
-              <StackPanel>
-                <TextBlock Text="捕获内容" Style="{StaticResource SectionTitle}"/>
-                <CheckBox Content="截图中包含鼠标指针" IsChecked="{Binding ShowCursorInScreenshots}"/>
-                <CheckBox Content="隐藏桌面图标与桌面组件" IsChecked="{Binding HideDesktopIconsInScreenshots}"/>
-                <CheckBox Content="隐藏桌面小组件（兼容第三方桌面控件）" IsChecked="{Binding HideDesktopWidgetsInScreenshots}"/>
-                <CheckBox Content="捕获时排除 ShotPaste 自身窗口" IsChecked="{Binding ExcludeOwnApplicationFromScreenshots}"/>
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                  <TextBlock Text="输出倍率" Width="140" VerticalAlignment="Center"/>
-                  <ComboBox SelectedValue="{Binding ScreenshotScale}" SelectedValuePath="Tag" Width="150">
-                    <ComboBoxItem Content="自动" Tag="0"/><ComboBoxItem Content="1×" Tag="1"/><ComboBoxItem Content="2×" Tag="2"/>
-                  </ComboBox>
-                </StackPanel>
-                <TextBlock Text="自动与 1× 都保留显示器原生物理像素；2× 仅用于需要放大交付的场景。" Style="{StaticResource SettingHint}" Margin="0,8,0,0"/>
-              </StackPanel>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-              <StackPanel>
-                <TextBlock Text="输出" Style="{StaticResource SectionTitle}"/>
-                <StackPanel Orientation="Horizontal">
-                  <TextBlock Text="色彩空间" Width="140" VerticalAlignment="Center"/>
-                  <ComboBox SelectedValue="{Binding ScreenshotColorSpace}" SelectedValuePath="Tag" Width="150">
-                    <ComboBoxItem Content="自动" Tag="Auto"/><ComboBoxItem Content="sRGB" Tag="Srgb"/><ComboBoxItem Content="Display P3" Tag="DisplayP3"/>
-                  </ComboBox>
-                </StackPanel>
-              </StackPanel>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-              <StackPanel>
-                <TextBlock Text="通知与 OCR" Style="{StaticResource SectionTitle}"/>
-                <CheckBox Content="截图和录屏成功后显示通知" IsChecked="{Binding ShowCaptureNotifications}"/>
-                <CheckBox Content="OCR 成功后显示通知" IsChecked="{Binding ShowOcrSuccessNotifications}"/>
-                <CheckBox Content="识别到链接时显示提示" IsChecked="{Binding ShowOcrLinkNotifications}"/>
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                  <TextBlock Text="OCR 识别语言" Width="140" VerticalAlignment="Center"/>
-                  <ComboBox SelectedValue="{Binding OcrRecognitionLanguage}" SelectedValuePath="Tag" Width="210">
-                    <ComboBoxItem Content="跟随应用语言" Tag="Auto"/><ComboBoxItem Content="简体中文" Tag="zh-CN"/><ComboBoxItem Content="繁體中文" Tag="zh-TW"/><ComboBoxItem Content="English" Tag="en-US"/><ComboBoxItem Content="日本語" Tag="ja-JP"/><ComboBoxItem Content="한국어" Tag="ko-KR"/><ComboBoxItem Content="Deutsch" Tag="de-DE"/><ComboBoxItem Content="Français" Tag="fr-FR"/><ComboBoxItem Content="Español" Tag="es-ES"/><ComboBoxItem Content="Русский" Tag="ru-RU"/><ComboBoxItem Content="Tiếng Việt" Tag="vi-VN"/>
-                  </ComboBox>
-                </StackPanel>
-              </StackPanel>
-            </Border>
-          </StackPanel>
-        </ScrollViewer>
-      </TabItem>
+            <TextBlock Text="截屏快捷键" Style="{StaticResource SectionTitle}"/>
+            <Border Style="{StaticResource SettingsCard}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="220"/><ColumnDefinition Width="130"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="一键 Shot" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="选择一个共享区域，然后截图、滚动截屏、录屏或打开剪贴板历史" Style="{StaticResource SettingHint}"/></StackPanel><TextBox Grid.Column="1" Text="{Binding OneShotHotkey}" Tag="OneShotHotkey" Style="{StaticResource HotkeyRecorder}" Margin="8,0" AutomationProperties.AutomationId="SettingsOneShotHotkey"/><TextBlock x:Name="OneShotHotkeyStatus" Grid.Column="2" VerticalAlignment="Center"/></Grid></Border>
 
-      <TabItem x:Name="AppearanceTab" Header="外观" Tag="{StaticResource Icon.Settings}" Style="{StaticResource SettingsTabItem}" AutomationProperties.AutomationId="SettingsAppearanceTab">
-        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,16,0,0">
-          <StackPanel Margin="2,0,8,12">
-            <Border Style="{StaticResource SettingsCard}">
-              <StackPanel>
-                <TextBlock Text="外观与语言" Style="{StaticResource SectionTitle}"/>
-                <Grid>
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="140"/><ColumnDefinition Width="220"/></Grid.ColumnDefinitions>
-                  <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                  <TextBlock Text="语言" VerticalAlignment="Center"/>
-                  <ComboBox Grid.Column="1" SelectedValue="{Binding Language}" SelectedValuePath="Tag" Width="210" HorizontalAlignment="Left">
-                    <ComboBoxItem Content="跟随系统" Tag="System"/><ComboBoxItem Content="简体中文" Tag="zh-CN"/><ComboBoxItem Content="繁體中文" Tag="zh-TW"/><ComboBoxItem Content="English" Tag="en-US"/><ComboBoxItem Content="日本語" Tag="ja-JP"/><ComboBoxItem Content="한국어" Tag="ko-KR"/><ComboBoxItem Content="Deutsch" Tag="de-DE"/><ComboBoxItem Content="Français" Tag="fr-FR"/><ComboBoxItem Content="Español" Tag="es-ES"/><ComboBoxItem Content="Русский" Tag="ru-RU"/><ComboBoxItem Content="Tiếng Việt" Tag="vi-VN"/>
-                  </ComboBox>
-                  <TextBlock Grid.Row="1" Text="主题" VerticalAlignment="Center" Margin="0,10,0,0"/>
-                  <ComboBox Grid.Row="1" Grid.Column="1" SelectedValue="{Binding Theme}" SelectedValuePath="Tag" Width="150" HorizontalAlignment="Left" Margin="0,10,0,0">
-                    <ComboBoxItem Content="跟随系统" Tag="System"/><ComboBoxItem Content="浅色" Tag="Light"/><ComboBoxItem Content="深色" Tag="Dark"/>
-                  </ComboBox>
-                </Grid>
-                <TextBlock Text="高对比度与减少动画会自动跟随 Windows 辅助功能设置。" Style="{StaticResource SettingHint}" Margin="0,12,0,0"/>
-              </StackPanel>
-            </Border>
+            <TextBlock Text="录屏快捷键" Style="{StaticResource SectionTitle}"/>
+            <Border Style="{StaticResource SettingsCard}"><Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="220"/><ColumnDefinition Width="130"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+              <TextBlock Text="暂停 / 恢复录制" Style="{StaticResource SettingRowTitle}" VerticalAlignment="Center"/><TextBox Grid.Column="1" Text="{Binding RecordingPauseHotkey}" Tag="RecordingPauseHotkey" Style="{StaticResource HotkeyRecorder}" Margin="8,3"/><TextBlock x:Name="RecordingPauseHotkeyStatus" Grid.Column="2" VerticalAlignment="Center"/>
+              <TextBlock Grid.Row="1" Text="切换画笔 / 注释" Style="{StaticResource SettingRowTitle}" VerticalAlignment="Center"/><TextBox Grid.Row="1" Grid.Column="1" Text="{Binding RecordingAnnotationHotkey}" Tag="RecordingAnnotationHotkey" Style="{StaticResource HotkeyRecorder}" Margin="8,3"/><TextBlock x:Name="RecordingAnnotationHotkeyStatus" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center"/>
+              <TextBlock Grid.Row="2" Text="重新录制 / 重新开始" Style="{StaticResource SettingRowTitle}" VerticalAlignment="Center"/><TextBox Grid.Row="2" Grid.Column="1" Text="{Binding RecordingRestartHotkey}" Tag="RecordingRestartHotkey" Style="{StaticResource HotkeyRecorder}" Margin="8,3"/><TextBlock x:Name="RecordingRestartHotkeyStatus" Grid.Row="2" Grid.Column="2" VerticalAlignment="Center"/>
+              <TextBlock Grid.Row="3" Text="删除 / 取消" Style="{StaticResource SettingRowTitle}" VerticalAlignment="Center"/><TextBox Grid.Row="3" Grid.Column="1" Text="{Binding RecordingDeleteHotkey}" Tag="RecordingDeleteHotkey" Style="{StaticResource HotkeyRecorder}" Margin="8,3"/><TextBlock x:Name="RecordingDeleteHotkeyStatus" Grid.Row="3" Grid.Column="2" VerticalAlignment="Center"/>
+            </Grid></Border>
+
+            <TextBlock Text="剪贴板历史快捷键" Style="{StaticResource SectionTitle}"/>
+            <Border Style="{StaticResource SettingsCard}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="220"/><ColumnDefinition Width="130"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="打开剪贴板历史" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="打开剪贴板历史浏览器" Style="{StaticResource SettingHint}"/></StackPanel><TextBox Grid.Column="1" Text="{Binding HistoryHotkey}" Tag="HistoryHotkey" Style="{StaticResource HotkeyRecorder}" Margin="8,0"/><TextBlock x:Name="HistoryHotkeyStatus" Grid.Column="2" VerticalAlignment="Center"/></Grid></Border>
+
+            <TextBlock Text="注释参考" Style="{StaticResource SectionTitle}"/>
+            <Border Style="{StaticResource SettingsCard}"><StackPanel>
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="保存（完成）" Style="{StaticResource SettingRowTitle}"/><TextBlock Grid.Column="1" Text="Ctrl + S"/></Grid><Border Style="{StaticResource SettingDivider}"/>
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="撤销" Style="{StaticResource SettingRowTitle}"/><TextBlock Grid.Column="1" Text="Ctrl + Z"/></Grid><Border Style="{StaticResource SettingDivider}"/>
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="重做" Style="{StaticResource SettingRowTitle}"/><TextBlock Grid.Column="1" Text="Ctrl + Shift + Z"/></Grid><Border Style="{StaticResource SettingDivider}"/>
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="删除注释" Style="{StaticResource SettingRowTitle}"/><TextBlock Grid.Column="1" Text="Delete"/></Grid><Border Style="{StaticResource SettingDivider}"/>
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="取消 / 取消选择" Style="{StaticResource SettingRowTitle}"/><TextBlock Grid.Column="1" Text="Esc"/></Grid><Border Style="{StaticResource SettingDivider}"/>
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="微移注释" Style="{StaticResource SettingRowTitle}"/><TextBlock Grid.Column="1" Text="← ↑ → ↓"/></Grid><Border Style="{StaticResource SettingDivider}"/>
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="微移 10px" Style="{StaticResource SettingRowTitle}"/><TextBlock Grid.Column="1" Text="Shift + ← ↑ → ↓"/></Grid>
+            </StackPanel></Border>
+            <WrapPanel HorizontalAlignment="Right"><Button Content="恢复默认" Click="OnResetHotkeys" Margin="0,0,8,8"/><Button Content="清除全部" Click="OnClearHotkeys" Margin="0,0,8,8"/></WrapPanel>
           </StackPanel>
         </ScrollViewer>
       </TabItem>
@@ -660,44 +632,23 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,16,0,0">
           <StackPanel Margin="2,0,8,12">
             <Border Style="{StaticResource SettingsCard}">
-              <StackPanel>
-                <TextBlock Text="恢复默认设置" Style="{StaticResource SectionTitle}"/>
-                <TextBlock Text="恢复全部应用设置，包括全局快捷键。" Style="{StaticResource SettingHint}" Margin="0,0,0,10"/>
-                <Button Content="恢复默认…" Click="OnRestoreDefaults" HorizontalAlignment="Left"/>
-              </StackPanel>
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><ContentControl Content="{StaticResource Icon.Restore}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="恢复默认设置" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="重置所有设置" Style="{StaticResource SettingHint}"/></StackPanel><Button Grid.Column="2" Content="恢复" Click="OnRestoreDefaults"/></Grid>
             </Border>
+
+            <TextBlock Text="诊断" Style="{StaticResource SectionTitle}"/>
             <Border Style="{StaticResource SettingsCard}">
               <StackPanel>
-                <TextBlock Text="实验性滚动算法" Style="{StaticResource SectionTitle}"/>
-                <TextBlock Text="仅在排查特殊网页拼接问题时调整；普通使用请保留默认值。" Style="{StaticResource SettingHint}" Margin="0,0,0,10"/>
-                <Grid>
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="170"/><ColumnDefinition Width="100"/><ColumnDefinition Width="170"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions>
-                  <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                  <TextBlock Text="自动滚动间隔（毫秒）" VerticalAlignment="Center"/><TextBox Grid.Column="1" Text="{Binding ScrollingAutoScrollIntervalMs}"/>
-                  <TextBlock Grid.Column="2" Text="最大输出高度" VerticalAlignment="Center" Margin="12,0,0,0"/><TextBox Grid.Column="3" Text="{Binding ScrollingMaxHeight}"/>
-                  <TextBlock Grid.Row="1" Text="预览最大高度" VerticalAlignment="Center" Margin="0,9,0,0"/><TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ScrollingPreviewMaxHeight}" Margin="0,9,0,0"/>
-                  <CheckBox Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Content="识别固定页头 / 页尾 / 侧栏" IsChecked="{Binding ScrollingDetectFixedBars}" Margin="12,9,0,0"/>
-                  <CheckBox Grid.Row="2" Grid.ColumnSpan="4" Content="启用匹配失败恢复与减速提示" IsChecked="{Binding ScrollingSafetyGuardEnabled}" Margin="0,9,0,0"/>
-                </Grid>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><ContentControl Content="{StaticResource Icon.Info}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="诊断日志" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="保存用于应用、截图、录屏和崩溃诊断的本地日志" Style="{StaticResource SettingHint}"/></StackPanel><CheckBox Grid.Column="2" IsChecked="{Binding DiagnosticsEnabled}"/></Grid>
+                <Border Style="{StaticResource SettingDivider}"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions><ContentControl Content="{StaticResource Icon.History}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="日志保留时间" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="每天一个诊断日志文件" Style="{StaticResource SettingHint}"/></StackPanel><TextBox Grid.Column="2" Text="{Binding DiagnosticsRetentionDays}" AutomationProperties.AutomationId="SettingsDiagnosticsRetention"/></Grid>
+                <Border Style="{StaticResource SettingDivider}"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><ContentControl Content="{StaticResource Icon.Open}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="日志文件" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="打开 ShotPaste 本地日志目录" Style="{StaticResource SettingHint}"/></StackPanel><Button Grid.Column="2" Content="打开文件夹" Click="OnOpenLogDirectory"/></Grid>
               </StackPanel>
             </Border>
+
+            <TextBlock Text="法律信息" Style="{StaticResource SectionTitle}"/>
             <Border Style="{StaticResource SettingsCard}">
-              <StackPanel>
-                <TextBlock Text="诊断" Style="{StaticResource SectionTitle}"/>
-                <CheckBox Content="启用本地诊断日志" IsChecked="{Binding DiagnosticsEnabled}"/>
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                  <TextBlock Text="日志保留天数" Width="140" VerticalAlignment="Center"/>
-                  <TextBox Text="{Binding DiagnosticsRetentionDays}" Width="70" AutomationProperties.AutomationId="SettingsDiagnosticsRetention"/>
-                  <TextBlock Text="1–30 天" Style="{StaticResource SettingHint}" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                </StackPanel>
-                <Button Content="打开日志文件夹" Click="OnOpenLogDirectory" HorizontalAlignment="Left" Margin="0,12,0,0"/>
-              </StackPanel>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-              <StackPanel>
-                <TextBlock Text="法律信息" Style="{StaticResource SectionTitle}"/>
-                <Button Content="查看开源许可证" Click="OnOpenLegalNotices" HorizontalAlignment="Left"/>
-              </StackPanel>
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><ContentControl Content="{StaticResource Icon.Open}" Style="{StaticResource SettingRowIcon}"/><StackPanel Grid.Column="1"><TextBlock Text="开源许可证" Style="{StaticResource SettingRowTitle}"/><TextBlock Text="版权、许可、免责声明和专利声明" Style="{StaticResource SettingHint}"/></StackPanel><Button Grid.Column="2" Content="打开" Click="OnOpenLegalNotices"/></Grid>
             </Border>
           </StackPanel>
         </ScrollViewer>

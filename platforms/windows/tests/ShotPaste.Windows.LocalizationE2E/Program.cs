@@ -123,13 +123,12 @@ internal static class Program
             var pages = new[]
             {
                 (Name: "general", Top: "SettingsGeneralTab", Inner: (string?)null),
+                (Name: "capture-general", Top: "SettingsCaptureRecordingTab", Inner: "SettingsCaptureGeneralSubtab"),
                 (Name: "capture-screenshot", Top: "SettingsCaptureRecordingTab", Inner: "SettingsCaptureScreenshotSubtab"),
                 (Name: "capture-recording", Top: "SettingsCaptureRecordingTab", Inner: "SettingsCaptureRecordingSubtab"),
-                (Name: "capture-scrolling", Top: "SettingsCaptureRecordingTab", Inner: "SettingsCaptureScrollingSubtab"),
                 (Name: "quick-access", Top: "SettingsQuickAccessTab", Inner: (string?)null),
                 (Name: "history", Top: "SettingsHistoryTab", Inner: (string?)null),
                 (Name: "shortcuts", Top: "SettingsShortcutsTab", Inner: (string?)null),
-                (Name: "appearance", Top: "SettingsAppearanceTab", Inner: (string?)null),
                 (Name: "advanced", Top: "SettingsAdvancedTab", Inner: (string?)null)
             };
             var pageEvidence = new List<object>();

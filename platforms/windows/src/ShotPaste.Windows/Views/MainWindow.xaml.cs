@@ -20,7 +20,7 @@ public partial class MainWindow : Window
     private readonly SettingsStore _settings;
     private CancellationTokenSource? _filterCancellation;
     private bool _allowClose;
-    private string _selectedKind = "All";
+    private string _selectedKind = "Clipboard";
     private int _openHistoryMenus;
     private readonly System.Windows.Threading.DispatcherTimer _persistSizeTimer = new()
     {
@@ -41,7 +41,7 @@ public partial class MainWindow : Window
         {
             "Scrolling" => "ScrollingScreenshot",
             "Screenshot" or "Recording" or "Clipboard" => settings.Current.HistoryDefaultFilter,
-            _ => "All"
+            _ => "Clipboard"
         };
         RootBackground.LayoutTransform = new ScaleTransform(
             settings.Current.HistoryScale,
@@ -102,7 +102,7 @@ public partial class MainWindow : Window
         {
             "Scrolling" => "ScrollingScreenshot",
             "Screenshot" or "Recording" or "Clipboard" => _settings.Current.HistoryDefaultFilter,
-            _ => "All"
+            _ => "Clipboard"
         };
         SearchBox.Clear();
         TimeFilter.SelectedIndex = 0;
@@ -119,7 +119,7 @@ public partial class MainWindow : Window
             "scrolling" => "ScrollingScreenshot",
             "recording" => "Recording",
             "clipboard" => "Clipboard",
-            _ => "All"
+            _ => "Clipboard"
         };
         SearchBox.Clear();
         TimeFilter.SelectedIndex = 0;
@@ -219,6 +219,8 @@ public partial class MainWindow : Window
 
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
     {
+        if (SearchPlaceholder is not null)
+            SearchPlaceholder.Visibility = string.IsNullOrWhiteSpace(SearchBox?.Text) ? Visibility.Visible : Visibility.Collapsed;
         if (ClearSearchButton is not null)
             ClearSearchButton.Visibility = string.IsNullOrWhiteSpace(SearchBox?.Text) ? Visibility.Collapsed : Visibility.Visible;
         QueueFilter(TimeSpan.FromMilliseconds(150), resetScroll: true);
@@ -304,8 +306,6 @@ public partial class MainWindow : Window
     }
 
     private void OnClearSearch(object sender, RoutedEventArgs e) => SearchBox.Clear();
-    private void OnSettings(object sender, RoutedEventArgs e) => _controller.ShowSettings();
-
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (sender is not ListBox list || !ReferenceEquals(list, HistoryItems)) return;
