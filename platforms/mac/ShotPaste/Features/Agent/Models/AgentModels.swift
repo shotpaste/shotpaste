@@ -460,6 +460,12 @@ nonisolated struct AgentAuditEvent: Codable, Equatable, Sendable {
 
 nonisolated struct AgentExecutionResult: Equatable, Sendable {
   let summary: String
+  let metadata: [String: String]
+
+  init(summary: String, metadata: [String: String] = [:]) {
+    self.summary = summary
+    self.metadata = metadata
+  }
 }
 
 nonisolated enum AgentProviderError: LocalizedError, Equatable {

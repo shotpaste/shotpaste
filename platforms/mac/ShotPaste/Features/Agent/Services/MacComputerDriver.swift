@@ -11,9 +11,50 @@ import Carbon.HIToolbox
 import CoreGraphics
 import Foundation
 
+nonisolated enum AgentClickInputMethod: String, Equatable, Sendable {
+  case accessibilityPress = "accessibility_press"
+  case elementCenterCGEvent = "element_center_cg_event"
+  case coordinateCGEvent = "coordinate_cg_event"
+}
+
+/// AXPress is reliable for native semantic controls, but custom-rendered rows,
+/// groups, and labels can report success without running the app's pointer hit
+/// testing. Prefer a real pointer event for those frame-backed surfaces.
+nonisolated enum AgentClickDispatchPolicy {
+  private static let pointerHitTestRoles: Set<String> = [
+    "AXCell",
+    "AXGroup",
+    "AXImage",
+    "AXList",
+    "AXOutline",
+    "AXRow",
+    "AXScrollArea",
+    "AXStaticText",
+    "AXTable",
+    "AXTextArea",
+    "AXTextField",
+    "AXUnknown",
+    "AXWebArea",
+  ]
+
+  static func prefersAccessibilityPress(
+    button: AgentMouseButton,
+    clickCount: Int,
+    role: String?,
+    hasUsableFrame: Bool
+  ) -> Bool {
+    guard button == .left, clickCount == 1 else { return false }
+    guard hasUsableFrame else { return true }
+    return role.map(pointerHitTestRoles.contains) != true
+  }
+}
+
 @MainActor
 protocol ComputerDriver: AnyObject {
-  func updateAccessibilityElements(_ elements: [String: AXUIElement])
+  func updateAccessibilityElements(
+    _ elements: [String: AXUIElement],
+    snapshots: [AgentAccessibilityElementSnapshot]
+  )
   func execute(_ action: AgentToolAction) async throws -> AgentExecutionResult
   func cancelPendingInput()
 }
@@ -23,6 +64,7 @@ final class MacComputerDriver: ComputerDriver {
   static let syntheticEventMarker: Int64 = 0x5348_5041_4745_4E54 // "SHPAGENT"
 
   private var accessibilityElements: [String: AXUIElement] = [:]
+  private var accessibilitySnapshots: [String: AgentAccessibilityElementSnapshot] = [:]
   private let eventSource: CGEventSource?
   private var isDragging = false
 
@@ -31,8 +73,12 @@ final class MacComputerDriver: ComputerDriver {
     eventSource?.userData = Self.syntheticEventMarker
   }
 
-  func updateAccessibilityElements(_ elements: [String: AXUIElement]) {
+  func updateAccessibilityElements(
+    _ elements: [String: AXUIElement],
+    snapshots: [AgentAccessibilityElementSnapshot]
+  ) {
     accessibilityElements = elements
+    accessibilitySnapshots = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.id, $0) })
   }
 
   func execute(_ action: AgentToolAction) async throws -> AgentExecutionResult {
@@ -46,8 +92,11 @@ final class MacComputerDriver: ComputerDriver {
       return AgentExecutionResult(summary: actionSummary(action))
 
     case .click(let action):
-      try await click(action)
-      return AgentExecutionResult(summary: AgentToolAction.click(action).safeSummary)
+      let inputMethod = try await click(action)
+      return AgentExecutionResult(
+        summary: AgentToolAction.click(action).safeSummary,
+        metadata: ["inputMethod": inputMethod.rawValue]
+      )
 
     case .typeText(let action):
       try await typeText(action)
@@ -128,24 +177,36 @@ final class MacComputerDriver: ComputerDriver {
     _ = AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue)
   }
 
-  private func click(_ action: AgentClickAction) async throws {
-    if action.button == .left,
-       action.clickCount == 1,
-       let elementID = action.elementID,
-       let element = accessibilityElements[elementID] {
+  private func click(_ action: AgentClickAction) async throws -> AgentClickInputMethod {
+    let element = action.elementID.flatMap { accessibilityElements[$0] }
+    let elementSnapshot = action.elementID.flatMap { accessibilitySnapshots[$0] }
+    let elementFrame: CGRect? = if elementSnapshot?.normalizedFrame != nil {
+      element.flatMap(AgentContextAssembler.frame(of:))
+    } else {
+      nil
+    }
+    let prefersAccessibilityPress = AgentClickDispatchPolicy.prefersAccessibilityPress(
+      button: action.button,
+      clickCount: action.clickCount,
+      role: elementSnapshot?.role,
+      hasUsableFrame: elementFrame != nil
+    )
+
+    if prefersAccessibilityPress, let element {
       let status = AXUIElementPerformAction(element, kAXPressAction as CFString)
       if status == .success {
-        return
+        return .accessibilityPress
       }
     }
 
     let point: CGPoint
-    if let elementID = action.elementID,
-       let element = accessibilityElements[elementID],
-       let frame = AgentContextAssembler.frame(of: element) {
+    let inputMethod: AgentClickInputMethod
+    if let frame = elementFrame {
       point = CGPoint(x: frame.midX, y: frame.midY)
+      inputMethod = .elementCenterCGEvent
     } else if let displayID = action.displayID, let normalizedPoint = action.point {
       point = try screenPoint(displayID: displayID, normalized: normalizedPoint)
+      inputMethod = .coordinateCGEvent
     } else {
       throw AgentDriverError.elementUnavailable
     }
@@ -176,6 +237,7 @@ final class MacComputerDriver: ComputerDriver {
         try await Task.sleep(nanoseconds: 90_000_000)
       }
     }
+    return inputMethod
   }
 
   private func typeText(_ action: AgentTypeTextAction) async throws {
