@@ -753,5 +753,15 @@
   "切换画笔 / 注释": "Toggle Pen / Annotations",
   "每天一个诊断日志文件": "One diagnostic log file per day",
   "打开 ShotPaste 本地日志目录": "Open the local ShotPaste log folder",
-  "成功通知": "Success Notification"
+  "成功通知": "Success Notification",
+  "还原": "Restore",
+  "复制失败": "Copy Failed",
+  "MCP Server 启动失败": "MCP Server Startup Failed",
+  "删除失败": "Delete Failed",
+  "原始格式|*": "Original Format|*",
+  "同步中": "Syncing",
+  "渐变": "Gradient",
+  "JPEG / WebP 质量（1–100）": "JPEG / WebP Quality (1–100)",
+  "启用": "Enable",
+  "清除全部": "Clear All"
 }
