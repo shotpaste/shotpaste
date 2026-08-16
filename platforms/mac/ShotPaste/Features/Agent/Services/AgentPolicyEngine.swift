@@ -93,9 +93,10 @@ nonisolated struct AgentPolicyEngine: Sendable {
       guard action.clickCount == 1 || action.clickCount == 2 else {
         return .deny(reason: "Only single-click and double-click actions are supported.")
       }
-      // A coordinate fallback must not bypass semantic approval. Keep the
-      // requested element as a primary target, then add the element at the
-      // pointer landing point when the Driver will post a CGEvent.
+      // A pointer dispatch must not bypass semantic approval. Keep the
+      // requested element as a primary target, then add the element at its
+      // center because custom frame-backed surfaces use a CGEvent directly and
+      // other element clicks can still fall back to the same pointer location.
       var primaryTargetIDs: Set<String> = []
       var targets: [AgentAccessibilityElementSnapshot] = []
       var targetIDs: Set<String> = []

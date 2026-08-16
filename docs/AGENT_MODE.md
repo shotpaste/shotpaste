@@ -86,7 +86,7 @@ flowchart LR
   C --> D["AgentContextAssembler<br/>OCR, AX, app, coordinates"]
   D --> E["LLMProvider<br/>one tool decision"]
   E --> F["AgentPolicyEngine<br/>local approval gate"]
-  F --> G["MacComputerDriver<br/>AX first, CGEvent fallback"]
+  F --> G["MacComputerDriver<br/>role-aware AX / CGEvent dispatch"]
   G --> B
 ```
 
@@ -108,8 +108,14 @@ boundaries.
 Allowed model tools are limited to activating a running app/window, click,
 double-click, right-click, text input, key chords, scroll, drag, wait, ask the
 user, and report completion. Accessibility actions are preferred; normalized
-coordinate CGEvents are a fallback and are marked so the user-activity monitor
-can distinguish Agent input from physical input.
+coordinate CGEvents are a fallback. For frame-backed custom surfaces such as
+rows, groups, and static labels, the driver uses the Accessibility element for
+semantic targeting and policy evaluation, then dispatches a pointer CGEvent so
+the application runs the same hit-testing path as a physical mouse. Native
+semantic controls such as buttons continue to prefer AXPress. CGEvents are
+marked so the user-activity monitor can distinguish Agent input from physical
+input. An action result acknowledges input dispatch only; the planning model
+must verify the expected state in the next fresh observation.
 
 The local client blocks secure-field and password entry. It asks for explicit
 approval before crossing into another application or performing actions that

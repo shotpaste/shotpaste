@@ -263,7 +263,10 @@ final class AgentSessionCoordinator: ObservableObject {
         applicationHint: applicationHint
       )
       applicationHint = nil
-      driver.updateAccessibilityElements(assembly.accessibilityElements)
+      driver.updateAccessibilityElements(
+        assembly.accessibilityElements,
+        snapshots: assembly.observation.accessibilityElements
+      )
       let observationEvent = AgentAuditEvent(
         kind: .observation,
         message: "Observed \(assembly.observation.application.applicationName).",
@@ -400,10 +403,13 @@ final class AgentSessionCoordinator: ObservableObject {
         executionTask = pendingExecution
         let result = try await pendingExecution.value
         executionTask = nil
+        var resultMetadata = result.metadata
+        resultMetadata["tool"] = decision.action.auditName
+        resultMetadata["status"] = "success"
         try await record(AgentAuditEvent(
           kind: .actionResult,
           message: result.summary,
-          metadata: ["tool": decision.action.auditName, "status": "success"]
+          metadata: resultMetadata
         ), sessionID: intent.sessionID)
         consecutiveFailures = 0
       } catch is CancellationError {

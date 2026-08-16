@@ -193,6 +193,7 @@ enum AgentLLMPromptBuilder {
   - Use ask_user when intent, target, or a consequential choice is ambiguous.
   - Use report_complete only when the task is actually complete.
   - After each action the client will provide a fresh observation; do not emit multiple actions at once.
+  - An action result confirms only that input was dispatched. Verify the expected UI state in the fresh observation before continuing. If a click did not change the expected state, do not repeat the same element_id; choose a grounded coordinate fallback or use ask_user.
   """
 
   /// 把意图、观察、辅助功能、OCR 与审计上下文拼装为一段纯文本。
