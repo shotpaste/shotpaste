@@ -112,7 +112,8 @@ public sealed class AppController : IDisposable
             _tray = new TrayIconService(
                 _settings.Current,
                 () => _recording.Elapsed,
-                () => _quickAccess?.HasVisibleItems == true);
+                () => _quickAccess?.HasVisibleItems == true,
+                () => _settingsWindow?.IsVisible == true ? _settingsWindow : null);
         }
         if (!App.UiTestMode || App.UiTestClipboardMonitorEnabled)
             _clipboard = new ClipboardMonitorService(_history, _settings);

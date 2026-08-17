@@ -23,6 +23,7 @@ public sealed class TrayIconService : IDisposable
     private readonly Forms.Timer _recordingTimer = new() { Interval = 250 };
     private readonly Func<TimeSpan>? _recordingElapsed;
     private readonly Func<bool>? _hasVisibleQuickAccess;
+    private readonly Func<FrameworkElement?>? _menuPlacementTarget;
     private Icon? _ownedIcon;
     private WpfContextMenu? _menu;
     private WpfMenuItem? _recordingItem;
@@ -33,6 +34,7 @@ public sealed class TrayIconService : IDisposable
     private AppSettings _settings;
     private bool _isRecording;
     private bool _isPaused;
+    private bool _menuRefreshPending;
     private DateTimeOffset _recordingClickHandledUntil;
 
     public event EventHandler? RecordingRequested;
@@ -46,11 +48,13 @@ public sealed class TrayIconService : IDisposable
     public TrayIconService(
         AppSettings settings,
         Func<TimeSpan>? recordingElapsed = null,
-        Func<bool>? hasVisibleQuickAccess = null)
+        Func<bool>? hasVisibleQuickAccess = null,
+        Func<FrameworkElement?>? menuPlacementTarget = null)
     {
         _settings = settings;
         _recordingElapsed = recordingElapsed;
         _hasVisibleQuickAccess = hasVisibleQuickAccess;
+        _menuPlacementTarget = menuPlacementTarget;
         _icon = new Forms.NotifyIcon { Text = AppBuildIdentity.Current.DisplayName, Visible = settings.ShowTrayIcon };
         try
         {
@@ -102,9 +106,25 @@ public sealed class TrayIconService : IDisposable
     {
         _settings = settings;
         _icon.Visible = settings.ShowTrayIcon;
-        if (_menu is not null) _menu.IsOpen = false;
-        _menu = BuildMenu(settings);
+        if (_menu?.IsOpen == true)
+        {
+            _menuRefreshPending = true;
+            UpdateTooltip();
+            return;
+        }
+        RebuildMenu();
         UpdateTooltip();
+    }
+
+    private void RebuildMenu()
+    {
+        if (_menu?.IsOpen == true)
+        {
+            _menuRefreshPending = true;
+            return;
+        }
+        _menu = BuildMenu(_settings);
+        _menuRefreshPending = false;
     }
 
     public void UpdateRecordingState(bool isRecording, bool isPaused)
@@ -132,13 +152,20 @@ public sealed class TrayIconService : IDisposable
 
     private void OnTrayMouseUp(object? sender, Forms.MouseEventArgs e)
     {
-        if (e.Button != Forms.MouseButtons.Right || _menu is null) return;
+        if (e.Button != Forms.MouseButtons.Right) return;
+        OpenMenu();
+    }
+
+    private void OpenMenu()
+    {
+        if (_menu is null) return;
         var menu = _menu;
         var dispatcher = WpfApplication.Current?.Dispatcher;
         if (dispatcher is null) return;
         _ = dispatcher.BeginInvoke(() =>
         {
             menu.Placement = PlacementMode.MousePoint;
+            menu.PlacementTarget = _menuPlacementTarget?.Invoke();
             menu.IsOpen = false;
             menu.IsOpen = true;
         });
@@ -149,6 +176,12 @@ public sealed class TrayIconService : IDisposable
         var menu = new WpfContextMenu { StaysOpen = false };
         menu.SetResourceReference(FrameworkElement.StyleProperty, "TrayContextMenu");
         menu.Opened += (_, _) => UpdateQuickAccessMenuVisibility();
+        menu.Closed += (_, _) =>
+        {
+            menu.PlacementTarget = null;
+            if (_menuRefreshPending && ReferenceEquals(_menu, menu))
+                _ = menu.Dispatcher.BeginInvoke(RebuildMenu);
+        };
         _recordingItem = CreateMenuItem("停止录制", null, "Icon.Stop", settings,
             () => RecordingRequested?.Invoke(this, EventArgs.Empty));
         _recordingItem.Visibility = _isRecording ? Visibility.Visible : Visibility.Collapsed;

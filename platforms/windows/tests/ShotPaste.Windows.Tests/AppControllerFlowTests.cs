@@ -596,6 +596,8 @@ public sealed class AppControllerFlowTests
         Assert.Contains("NativeMethods.SetForegroundWindow(handle)", controller, StringComparison.Ordinal);
         Assert.Contains("_settingsWindow = window;", controller, StringComparison.Ordinal);
         Assert.Contains("ReferenceEquals(_settingsWindow, window)", controller, StringComparison.Ordinal);
+        Assert.Contains("() => _settingsWindow?.IsVisible == true ? _settingsWindow : null", controller,
+            StringComparison.Ordinal);
         Assert.Contains("public void NavigateToTab(string? tab)", settingsWindow, StringComparison.Ordinal);
     }
 

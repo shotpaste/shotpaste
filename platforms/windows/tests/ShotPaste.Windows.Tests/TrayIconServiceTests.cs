@@ -46,7 +46,16 @@ public sealed class TrayIconServiceTests
         var method = source[start..end];
         Assert.Contains("OneShotRequested", method, StringComparison.Ordinal);
         Assert.Contains("HistoryRequested", method, StringComparison.Ordinal);
-        Assert.Contains("menu.Opened += (_, _) => UpdateQuickAccessMenuVisibility();", method, StringComparison.Ordinal);
+        Assert.Contains("UpdateQuickAccessMenuVisibility();", method, StringComparison.Ordinal);
+        Assert.Contains("menu.PlacementTarget = null;", method, StringComparison.Ordinal);
+        Assert.Contains("menu.PlacementTarget = _menuPlacementTarget?.Invoke();", source, StringComparison.Ordinal);
+        Assert.Contains("if (_menu?.IsOpen == true)", source, StringComparison.Ordinal);
+        Assert.Contains("_menuRefreshPending = true;", source, StringComparison.Ordinal);
+        Assert.Contains("menu.Dispatcher.BeginInvoke(RebuildMenu)", method, StringComparison.Ordinal);
+        var updateStart = source.IndexOf("public void UpdateShortcuts(AppSettings settings)", StringComparison.Ordinal);
+        var updateEnd = source.IndexOf("public void UpdateRecordingState", updateStart, StringComparison.Ordinal);
+        Assert.True(updateStart >= 0 && updateEnd > updateStart, "UpdateShortcuts method was not found.");
+        Assert.DoesNotContain("_menu.IsOpen = false", source[updateStart..updateEnd], StringComparison.Ordinal);
         Assert.Contains("InvokeAfterMenuClosesAsync(menu", method, StringComparison.Ordinal);
         Assert.Contains("TryCreateMenuProbe(menu)", method, StringComparison.Ordinal);
         Assert.Contains("NativeMethods.ShowWindow(probe.Handle, NativeMethods.SwHide)", method, StringComparison.Ordinal);
