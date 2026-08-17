@@ -16,6 +16,7 @@ public sealed class QuickAccessService(AppController controller, SettingsStore s
     private bool _suspended;
 
     internal bool IsSuspended => _suspended;
+    internal bool HasVisibleItems => _windows.Any(window => window.IsVisible);
 
     public void Show(CaptureHistoryItem item)
     {

@@ -1,9 +1,12 @@
 using System.Drawing;
 using System.Windows;
 using System.Windows.Controls.Primitives;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using ShotPaste.Windows.Interop;
 using ShotPaste.Windows.Models;
+using Drawing = System.Drawing;
 using Forms = System.Windows.Forms;
 using WpfApplication = System.Windows.Application;
 using WpfContextMenu = System.Windows.Controls.ContextMenu;
@@ -19,11 +22,13 @@ public sealed class TrayIconService : IDisposable
     private readonly Forms.NotifyIcon _icon;
     private readonly Forms.Timer _recordingTimer = new() { Interval = 250 };
     private readonly Func<TimeSpan>? _recordingElapsed;
+    private readonly Func<bool>? _hasVisibleQuickAccess;
     private Icon? _ownedIcon;
     private WpfContextMenu? _menu;
     private WpfMenuItem? _recordingItem;
     private WpfMenuItem? _oneShotItem;
     private WpfMenuItem? _pauseRecordingItem;
+    private WpfMenuItem? _focusQuickAccessItem;
     private WpfSeparator? _recordingSeparator;
     private AppSettings _settings;
     private bool _isRecording;
@@ -38,10 +43,14 @@ public sealed class TrayIconService : IDisposable
     public event EventHandler? ExitRequested;
     public event EventHandler? FocusQuickAccessRequested;
 
-    public TrayIconService(AppSettings settings, Func<TimeSpan>? recordingElapsed = null)
+    public TrayIconService(
+        AppSettings settings,
+        Func<TimeSpan>? recordingElapsed = null,
+        Func<bool>? hasVisibleQuickAccess = null)
     {
         _settings = settings;
         _recordingElapsed = recordingElapsed;
+        _hasVisibleQuickAccess = hasVisibleQuickAccess;
         _icon = new Forms.NotifyIcon { Text = AppBuildIdentity.Current.DisplayName, Visible = settings.ShowTrayIcon };
         try
         {
@@ -139,6 +148,7 @@ public sealed class TrayIconService : IDisposable
     {
         var menu = new WpfContextMenu { StaysOpen = false };
         menu.SetResourceReference(FrameworkElement.StyleProperty, "TrayContextMenu");
+        menu.Opened += (_, _) => UpdateQuickAccessMenuVisibility();
         _recordingItem = CreateMenuItem("停止录制", null, "Icon.Stop", settings,
             () => RecordingRequested?.Invoke(this, EventArgs.Empty));
         _recordingItem.Visibility = _isRecording ? Visibility.Visible : Visibility.Collapsed;
@@ -155,20 +165,91 @@ public sealed class TrayIconService : IDisposable
         menu.Items.Add(_recordingSeparator);
 
         _oneShotItem = CreateMenuItem("一键 Shot", settings.OneShotHotkey, "Icon.OneShot", settings,
-            () => OneShotRequested?.Invoke(this, EventArgs.Empty));
+            () => _ = InvokeAfterMenuClosesAsync(menu, () => OneShotRequested?.Invoke(this, EventArgs.Empty)));
         _oneShotItem.IsEnabled = !_isRecording;
         menu.Items.Add(_oneShotItem);
         menu.Items.Add(CreateSeparator());
         menu.Items.Add(CreateMenuItem("剪贴板历史", settings.HistoryHotkey, "Icon.History", settings,
             () => HistoryRequested?.Invoke(this, EventArgs.Empty)));
-        menu.Items.Add(CreateMenuItem("聚焦 Quick Access", null, "Icon.QuickAccess", settings,
-            () => FocusQuickAccessRequested?.Invoke(this, EventArgs.Empty)));
+        _focusQuickAccessItem = CreateMenuItem("聚焦 Quick Access", null, "Icon.QuickAccess", settings,
+            () => FocusQuickAccessRequested?.Invoke(this, EventArgs.Empty));
+        menu.Items.Add(_focusQuickAccessItem);
+        UpdateQuickAccessMenuVisibility();
         menu.Items.Add(CreateMenuItem("设置", null, "Icon.Settings", settings,
             () => SettingsRequested?.Invoke(this, EventArgs.Empty)));
         menu.Items.Add(CreateSeparator());
         menu.Items.Add(CreateMenuItem("退出 ShotPaste", null, "Icon.Exit", settings,
             () => ExitRequested?.Invoke(this, EventArgs.Empty)));
         return menu;
+    }
+
+    private void UpdateQuickAccessMenuVisibility()
+    {
+        if (_focusQuickAccessItem is not null)
+            _focusQuickAccessItem.Visibility = QuickAccessMenuVisibility(_hasVisibleQuickAccess?.Invoke() == true);
+    }
+
+    internal static Visibility QuickAccessMenuVisibility(bool hasVisibleQuickAccess) =>
+        hasVisibleQuickAccess ? Visibility.Visible : Visibility.Collapsed;
+
+    private async Task InvokeAfterMenuClosesAsync(WpfContextMenu menu, Action action)
+    {
+        try
+        {
+            var probe = TryCreateMenuProbe(menu);
+            var closed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            void OnClosed(object sender, RoutedEventArgs eventArgs)
+            {
+                menu.Closed -= OnClosed;
+                closed.TrySetResult(true);
+            }
+            menu.Closed += OnClosed;
+            menu.IsOpen = false;
+            if (probe is { Handle: not 0 } && NativeMethods.IsWindowVisible(probe.Handle))
+                NativeMethods.ShowWindow(probe.Handle, NativeMethods.SwHide);
+
+            if (!closed.Task.IsCompleted)
+                await Task.WhenAny(closed.Task, Task.Delay(TimeSpan.FromMilliseconds(250)));
+            menu.Closed -= OnClosed;
+
+            var hiddenState = probe is null
+                ? CaptureHideState.Empty
+                : new CaptureHideState([probe]);
+            var readiness = await CaptureReadinessService.WaitAsync(
+                "TrayMenuDismissBeforeOneShot",
+                hiddenState,
+                timeout: TimeSpan.FromMilliseconds(750));
+            App.WriteQuickAccessLog(
+                $"Tray menu dismissal ready={readiness.IsReady} probe={(probe is null ? "none" : $"0x{probe.Handle:X}")} visible={readiness.RemainingVisibleWindows} stale={readiness.RemainingStaleProbes} totalMs={readiness.TotalMilliseconds:0.###}");
+
+            if (!readiness.IsReady)
+            {
+                ShowMessage("操作失败", DefaultBalloonMessage, Forms.ToolTipIcon.Warning);
+                return;
+            }
+            action();
+        }
+        catch (Exception exception)
+        {
+            App.WriteQuickAccessLog($"Tray menu dismissal failed: {exception}");
+            ShowMessage("操作失败", DefaultBalloonMessage, Forms.ToolTipIcon.Warning);
+        }
+    }
+
+    private static CaptureHideProbe? TryCreateMenuProbe(WpfContextMenu menu)
+    {
+        var handle = (PresentationSource.FromVisual(menu) as HwndSource)?.Handle ?? IntPtr.Zero;
+        if (handle == IntPtr.Zero && NativeMethods.GetCursorPos(out var cursor))
+        {
+            handle = NativeMethods.GetAncestor(NativeMethods.WindowFromPoint(cursor), NativeMethods.GaRoot);
+            NativeMethods.GetWindowThreadProcessId(handle, out var processId);
+            if (processId != (uint)Environment.ProcessId) handle = IntPtr.Zero;
+        }
+        if (handle == IntPtr.Zero || !NativeMethods.GetWindowRect(handle, out var bounds)) return null;
+        var rectangle = Drawing.Rectangle.FromLTRB(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
+        return rectangle.Width > 0 && rectangle.Height > 0
+            ? CaptureReadinessService.CreateProbe(handle, rectangle)
+            : null;
     }
 
     private static WpfMenuItem CreateMenuItem(

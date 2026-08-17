@@ -109,7 +109,10 @@ public sealed class AppController : IDisposable
         if (!App.UiTestMode)
         {
             _hotkeys = new GlobalHotkeyService();
-            _tray = new TrayIconService(_settings.Current, () => _recording.Elapsed);
+            _tray = new TrayIconService(
+                _settings.Current,
+                () => _recording.Elapsed,
+                () => _quickAccess?.HasVisibleItems == true);
         }
         if (!App.UiTestMode || App.UiTestClipboardMonitorEnabled)
             _clipboard = new ClipboardMonitorService(_history, _settings);

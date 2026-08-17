@@ -119,6 +119,7 @@ public partial class MainWindow : Window
             "scrolling" => "ScrollingScreenshot",
             "recording" => "Recording",
             "clipboard" => "Clipboard",
+            "all" => "Clipboard",
             _ => "Clipboard"
         };
         SearchBox.Clear();
@@ -200,17 +201,21 @@ public partial class MainWindow : Window
             !(item.Text?.Contains(text, StringComparison.CurrentCultureIgnoreCase) ?? false) &&
             !(item.FilePath?.Contains(text, StringComparison.CurrentCultureIgnoreCase) ?? false) &&
             !item.FilePaths.Any(path => path.Contains(text, StringComparison.CurrentCultureIgnoreCase))) return false;
-        var typeMatches = selectedKind switch
-        {
-            "Screenshot" => item.Kind == CaptureKind.Screenshot,
-            "ScrollingScreenshot" => item.Kind == CaptureKind.ScrollingScreenshot,
-            "Recording" => item.Kind is CaptureKind.Recording or CaptureKind.Gif,
-            "Clipboard" => ClipboardFileClassifier.IsClipboardKind(item.Kind),
-            _ => true
-        };
+        var typeMatches = MatchesHistoryKind(item.Kind, selectedKind);
         if (!typeMatches) return false;
         return threshold is null || item.CreatedAt >= threshold.Value;
     }
+
+    internal static bool MatchesHistoryKind(CaptureKind kind, string selectedKind) => selectedKind switch
+        {
+            "Screenshot" => kind == CaptureKind.Screenshot,
+            "ScrollingScreenshot" => kind == CaptureKind.ScrollingScreenshot,
+            "Recording" => kind is CaptureKind.Recording or CaptureKind.Gif,
+            // Clipboard History is the aggregate product history. The other
+            // three pills narrow that collection to capture-specific subsets.
+            "Clipboard" => true,
+            _ => true
+        };
 
     private void OnFilterChanged(object sender, EventArgs e)
     {

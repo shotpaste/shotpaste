@@ -1,3 +1,6 @@
+using ShotPaste.Windows.Models;
+using ShotPaste.Windows.Views;
+
 namespace ShotPaste.Windows.Tests;
 
 public sealed class HistoryLayoutTests
@@ -37,10 +40,38 @@ public sealed class HistoryLayoutTests
         Assert.Contains("_selectedKind = \"Clipboard\";", codeBehind, StringComparison.Ordinal);
         Assert.Contains("HistoryExpandedHeight", codeBehind, StringComparison.Ordinal);
         Assert.Contains("PositionHistoryWindow", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("\"Clipboard\" => ClipboardFileClassifier.IsClipboardKind(item.Kind)", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("\"Clipboard\" => true", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("\"all\" => \"Clipboard\"", codeBehind, StringComparison.Ordinal);
         Assert.DoesNotContain("HistoryCompact", codeBehind, StringComparison.Ordinal);
         Assert.DoesNotContain("ToggleHistoryMode", codeBehind, StringComparison.Ordinal);
         Assert.DoesNotContain("FontWeightProperty", codeBehind, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(CaptureKind.Screenshot)]
+    [InlineData(CaptureKind.ScrollingScreenshot)]
+    [InlineData(CaptureKind.Recording)]
+    [InlineData(CaptureKind.Gif)]
+    [InlineData(CaptureKind.ClipboardImage)]
+    [InlineData(CaptureKind.ClipboardText)]
+    [InlineData(CaptureKind.ClipboardFile)]
+    [InlineData(CaptureKind.ClipboardGif)]
+    [InlineData(CaptureKind.ClipboardVideo)]
+    public void ClipboardHistoryFilter_IsTheAggregateHistoryView(CaptureKind kind)
+    {
+        Assert.True(MainWindow.MatchesHistoryKind(kind, "Clipboard"));
+    }
+
+    [Fact]
+    public void CaptureTypeFilters_RemainNarrowSubsetsOfClipboardHistory()
+    {
+        Assert.True(MainWindow.MatchesHistoryKind(CaptureKind.Screenshot, "Screenshot"));
+        Assert.False(MainWindow.MatchesHistoryKind(CaptureKind.ClipboardImage, "Screenshot"));
+        Assert.True(MainWindow.MatchesHistoryKind(CaptureKind.ScrollingScreenshot, "ScrollingScreenshot"));
+        Assert.False(MainWindow.MatchesHistoryKind(CaptureKind.Screenshot, "ScrollingScreenshot"));
+        Assert.True(MainWindow.MatchesHistoryKind(CaptureKind.Recording, "Recording"));
+        Assert.True(MainWindow.MatchesHistoryKind(CaptureKind.Gif, "Recording"));
+        Assert.False(MainWindow.MatchesHistoryKind(CaptureKind.ClipboardVideo, "Recording"));
     }
 
     [Fact]
