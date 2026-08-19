@@ -69,13 +69,13 @@ final class ScrollingCaptureMetricsTests: XCTestCase {
   func testRecordRefreshSuccess_appendedOutcome_tracksDelta() {
     var metrics = ScrollingCaptureSessionMetrics()
     let debug = ScrollingCaptureAlignmentDebugInfo(
-      path: .fastGuided,
-      usedVisionEstimate: false,
+      path: .guidedBands,
       confidence: 0.95,
-      pixelScore: 2.1,
-      totalScore: 3.0,
+      peakCorrelation: 0.98,
+      peakToSecondRatio: 1.4,
       appendDeltaY: 42,
-      visionAgreementCount: 0
+      horizontalShift: 0,
+      confidentBandCount: 6
     )
     metrics.recordRefreshSuccess(
       reason: "scroll",
@@ -90,7 +90,7 @@ final class ScrollingCaptureMetricsTests: XCTestCase {
     XCTAssertEqual(metrics.appendedCount, 1)
     XCTAssertEqual(metrics.appendedDeltaTotalPixels, 42)
     XCTAssertEqual(metrics.appendedDeltaMaxPixels, 42)
-    XCTAssertEqual(metrics.fastGuidedMatchCount, 1)
+    XCTAssertEqual(metrics.guidedBandMatchCount, 1)
     XCTAssertEqual(metrics.matcherConfidenceCount, 1)
     XCTAssertEqual(metrics.matcherConfidenceTotal, 0.95, accuracy: 0.001)
   }
@@ -158,16 +158,16 @@ final class ScrollingCaptureMetricsTests: XCTestCase {
     XCTAssertEqual(metrics.reachedHeightLimitCount, 1)
   }
 
-  func testRecordRefreshSuccess_visionEstimateTracking() {
+  func testRecordRefreshSuccess_recoveryBandTracking() {
     var metrics = ScrollingCaptureSessionMetrics()
     let debug = ScrollingCaptureAlignmentDebugInfo(
-      path: .guidedVision,
-      usedVisionEstimate: true,
+      path: .recoveryBands,
       confidence: 0.9,
-      pixelScore: nil,
-      totalScore: nil,
+      peakCorrelation: 0.93,
+      peakToSecondRatio: 1.2,
       appendDeltaY: 30,
-      visionAgreementCount: 5
+      horizontalShift: 1,
+      confidentBandCount: 5
     )
     metrics.recordRefreshSuccess(
       reason: "scroll",
@@ -179,20 +179,19 @@ final class ScrollingCaptureMetricsTests: XCTestCase {
       alignmentDebug: debug
     )
 
-    XCTAssertEqual(metrics.visionEstimateCount, 1)
-    XCTAssertEqual(metrics.guidedVisionMatchCount, 1)
+    XCTAssertEqual(metrics.recoveryBandMatchCount, 1)
   }
 
   func testRecordRefreshSuccess_duplicateBoundaryTracking() {
     var metrics = ScrollingCaptureSessionMetrics()
     let debug = ScrollingCaptureAlignmentDebugInfo(
       path: .duplicateBoundary,
-      usedVisionEstimate: false,
       confidence: 1.0,
-      pixelScore: nil,
-      totalScore: nil,
+      peakCorrelation: nil,
+      peakToSecondRatio: nil,
       appendDeltaY: nil,
-      visionAgreementCount: 0
+      horizontalShift: 0,
+      confidentBandCount: 0
     )
     metrics.recordRefreshSuccess(
       reason: "scroll",
@@ -345,8 +344,8 @@ final class ScrollingCaptureMetricsTests: XCTestCase {
       "captureAvgMs", "stitchAvgMs", "previewPublishAvgMs", "refreshReasons",
       "initialized", "appended", "ignoredNoMovement", "likelyBoundaryNoMovement",
       "ignoredAlignmentFailed", "alignmentFailureStreakMax", "heightLimitHits",
-      "fastGuidedMatches", "guidedVisionMatches", "recoveryVisionMatches",
-      "visionEstimates", "matcherConfidenceAvg", "appendDeltaAvgPx", "appendDeltaMaxPx",
+      "guidedBandMatches", "recoveryBandMatches", "matcherConfidenceAvg",
+      "appendDeltaAvgPx", "appendDeltaMaxPx",
       "livePreviewStarts", "livePreviewStartFailures", "livePreviewFallbacks",
       "livePreviewFailures", "livePreviewFrames", "commitSchedules", "commitCoalesced",
       "streamCommitFrames", "stillFallbackCommitFrames", "duplicateCommitFrames",
@@ -397,8 +396,9 @@ final class ScrollingCaptureMetricsTests: XCTestCase {
 
     for delta in deltas {
       let debug = ScrollingCaptureAlignmentDebugInfo(
-        path: .fastGuided, usedVisionEstimate: false, confidence: 0.9,
-        pixelScore: nil, totalScore: nil, appendDeltaY: delta, visionAgreementCount: 0
+        path: .guidedBands, confidence: 0.9,
+        peakCorrelation: 0.95, peakToSecondRatio: 1.3, appendDeltaY: delta,
+        horizontalShift: 0, confidentBandCount: 6
       )
       metrics.recordRefreshSuccess(
         reason: "scroll", captureDurationMs: 0, stitchDurationMs: 0,

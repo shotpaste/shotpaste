@@ -491,5 +491,9 @@
   "粗细": "Grosor",
   "启用": "Activar",
   "暂停 / 恢复录制": "Pausar / continuar la grabación",
-  "清除全部": "Borrar todo"
+  "清除全部": "Borrar todo",
+  "检测到滚动方向变化，正在按当前位置继续拼接": "La dirección de desplazamiento cambió; se seguirá uniendo desde la posición actual.",
+  "暂未检测到新内容，可继续向任一方向滚动": "Aún no se detectó contenido nuevo. Puede seguir desplazándose en cualquier dirección.",
+  "暂时无法对齐，请放慢滚动速度": "No se puede alinear por ahora. Desplácese más despacio.",
+  "首帧锁定后可缓慢向上或向下滚动；停下不会结束。": "Cuando se bloquee el primer fotograma, desplácese lentamente hacia arriba o abajo. Detenerse no finaliza la captura."
 }

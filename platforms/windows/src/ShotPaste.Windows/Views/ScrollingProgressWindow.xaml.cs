@@ -111,7 +111,7 @@ public partial class ScrollingProgressWindow : Window
         AutoScrollButton.Visibility = autoScrollAvailable ? Visibility.Visible : Visibility.Collapsed;
         AutoScrollButton.IsEnabled = false;
         ProgressText.Text = "正在锁定首帧…";
-        GuidanceText.Text = "首帧锁定后保持单一方向平稳滚动；停下不会结束。";
+        GuidanceText.Text = "首帧锁定后可缓慢向上或向下滚动；停下不会结束。";
         TruthBadge.Text = "同步中";
     }
 
@@ -173,6 +173,8 @@ public partial class ScrollingProgressWindow : Window
         _saveRecovery = new TaskCompletionSource<ScrollingSaveRecoveryAction>(
             TaskCreationOptions.RunContinuationsAsynchronously);
         SetNoActivate(false);
+        if (_previewWindow?.IsVisible != true) _previewWindow?.Show();
+        if (!IsVisible) Show();
         Activate();
         RetrySaveButton.Focus();
         return _saveRecovery.Task;

@@ -763,5 +763,9 @@
   "渐变": "Gradient",
   "JPEG / WebP 质量（1–100）": "JPEG / WebP Quality (1–100)",
   "启用": "Enable",
-  "清除全部": "Clear All"
+  "清除全部": "Clear All",
+  "检测到滚动方向变化，正在按当前位置继续拼接": "Scroll direction changed; continuing to stitch from the current position.",
+  "暂未检测到新内容，可继续向任一方向滚动": "No new content detected yet. You can continue scrolling in either direction.",
+  "暂时无法对齐，请放慢滚动速度": "Unable to align for now. Please scroll more slowly.",
+  "首帧锁定后可缓慢向上或向下滚动；停下不会结束。": "After the first frame locks, scroll slowly up or down. Stopping does not finish capture."
 }

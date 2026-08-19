@@ -252,6 +252,7 @@ enum ScrollingCaptureAutoScrollStitchAction: Equatable {
 enum ScrollingCaptureAutoScrollPolicy {
   static let hoverPadding: CGFloat = 16
   static let alignmentFailureStopThreshold = 3
+  static let boundaryConfirmationCount = 3
 
   static func canToggle(
     phase: ScrollingCapturePhase,
@@ -270,6 +271,10 @@ enum ScrollingCaptureAutoScrollPolicy {
     let hoverRect = selectedRect.insetBy(dx: -hoverPadding, dy: -hoverPadding)
     guard hoverRect.contains(mouseLocation) else { return nil }
     return mouseLocation
+  }
+
+  static func shouldConfirmBoundary(acceptedFrameCount: Int, stationaryUpdateCount: Int) -> Bool {
+    acceptedFrameCount > 1 && stationaryUpdateCount >= boundaryConfirmationCount
   }
 
   static func stitchAction(for update: ScrollingCaptureStitchUpdate) -> ScrollingCaptureAutoScrollStitchAction {

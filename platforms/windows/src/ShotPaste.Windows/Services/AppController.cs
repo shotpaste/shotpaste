@@ -437,6 +437,12 @@ public sealed class AppController : IDisposable
         {
             if (Interlocked.Exchange(ref finishState, 1) != 0) return;
             window.BeginFinalizing();
+            // The incremental canvas is already the product. Exit capture UI
+            // immediately while the tail fence, final crop, encoding, and
+            // history insertion continue in the protected workflow.
+            window.Hide();
+            preview.Hide();
+            outline.Hide();
         };
         window.CancelRequested += (_, _) =>
         {
@@ -497,7 +503,13 @@ public sealed class AppController : IDisposable
             }
 
             using var capturedResult = captured;
-            using var result = capturedResult is null ? null : PrepareScreenshot(capturedResult);
+            // The scrolling canvas already owns the final 32-bpp bitmap. Avoid
+            // cloning the entire long image at the default 1x scale; only create
+            // a second bitmap when the user explicitly requests 2x output.
+            using var scaledResult = capturedResult is not null && _settings.Current.ScreenshotScale == 2
+                ? PrepareScreenshot(capturedResult)
+                : null;
+            var result = scaledResult ?? capturedResult;
             if (discard || result is null) return;
 
             await SaveScrollingResultWithRecoveryAsync(window, result);

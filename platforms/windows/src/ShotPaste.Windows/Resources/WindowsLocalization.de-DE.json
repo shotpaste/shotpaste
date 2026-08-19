@@ -491,5 +491,9 @@
   "粗细": "Stärke",
   "启用": "Aktivieren",
   "暂停 / 恢复录制": "Aufnahme pausieren / fortsetzen",
-  "清除全部": "Alle löschen"
+  "清除全部": "Alle löschen",
+  "检测到滚动方向变化，正在按当前位置继续拼接": "Die Scrollrichtung hat sich geändert; die Zusammenfügung wird an der aktuellen Position fortgesetzt.",
+  "暂未检测到新内容，可继续向任一方向滚动": "Es wurden noch keine neuen Inhalte erkannt. Sie können in beide Richtungen weiter scrollen.",
+  "暂时无法对齐，请放慢滚动速度": "Die Ausrichtung ist derzeit nicht möglich. Scrollen Sie bitte langsamer.",
+  "首帧锁定后可缓慢向上或向下滚动；停下不会结束。": "Nachdem das erste Bild fixiert ist, scrollen Sie langsam nach oben oder unten. Anhalten beendet die Aufnahme nicht."
 }

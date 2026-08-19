@@ -101,16 +101,16 @@ enum TestImageFactory {
 
     for y in 0 ..< height {
       let logicalY = logicalYOffset + y
-      // Deterministic, high-variation row color
-      let r = UInt8(logicalY % 256)
-      let g = UInt8((logicalY * 47) % 256)
-      let b = UInt8((logicalY * 113) % 256)
-
       for x in 0 ..< width {
+        // Vary both axes so repeated row colors cannot create a false NCC peak.
+        let value = UInt64(logicalY) &* 1_103_515_245
+          &+ UInt64(x) &* 2_654_435_761
+          &+ 0x9E37_79B9_7F4A_7C15
+        let mixed = value ^ (value >> 29) ^ (value >> 47)
         let offset = y * bytesPerRow + x * 4
-        pixels[offset] = r
-        pixels[offset + 1] = g
-        pixels[offset + 2] = b
+        pixels[offset] = UInt8(truncatingIfNeeded: mixed)
+        pixels[offset + 1] = UInt8(truncatingIfNeeded: mixed >> 11)
+        pixels[offset + 2] = UInt8(truncatingIfNeeded: mixed >> 23)
         pixels[offset + 3] = 255
       }
     }

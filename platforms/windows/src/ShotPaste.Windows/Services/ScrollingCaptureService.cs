@@ -104,9 +104,7 @@ public sealed class ScrollingCaptureService(
         var lastNegativeWheelEvents = 0L;
         var lastCumulativeWheelDelta = 0L;
         var direction = 0;
-        var wheelDirectionAnchor = 0;
         var hasAcceptedMovement = false;
-        var reversalReported = false;
         var forceCapture = false;
         var retriedNoMatch = false;
         var wheelDriven = wheelMonitor?.IsActive == true;
@@ -116,7 +114,8 @@ public sealed class ScrollingCaptureService(
             (captureRegion, _) => CaptureFrame(captureRegion),
             region,
             captureOptionsProvider,
-            cancellationToken);
+            cancellationToken,
+            continuous: true);
         var startsInAutomaticMode = autoScrollEnabled?.Invoke() == true;
         Action? armFrameStream = wheelDriven && !startsInAutomaticMode
             ? frameStream.ArmForBurst
@@ -215,33 +214,14 @@ public sealed class ScrollingCaptureService(
 
                     if (mixedDirections)
                     {
+                        direction = 0;
                         duplicateStreak = 0;
                         boundaryReported = false;
                         progress?.Report(new ScrollingCaptureProgress(
                             frames, stitcher.OutputHeight, null,
-                            "检测到滚动方向来回变化，本次滚动未拼接；请保持单一方向",
-                            ScrollingCaptureSafety.Tentative, ScrollingPreviewTruth.PausedRecovery));
-                        continue;
+                            "检测到滚动方向变化，正在按当前位置继续拼接",
+                            ScrollingCaptureSafety.Tentative, ScrollingPreviewTruth.LiveAhead));
                     }
-
-                    if (wheelDirectionAnchor != 0 && direction != 0 && direction != wheelDirectionAnchor)
-                    {
-                        duplicateStreak = 0;
-                        boundaryReported = false;
-                        // Reversal after the direction was locked: scrolling back over
-                        // already-stitched content must not capture or append anything
-                        // (macOS stops refreshing when the scroll direction changes).
-                        if (!reversalReported)
-                        {
-                            reversalReported = true;
-                            progress?.Report(new ScrollingCaptureProgress(
-                                frames, stitcher.OutputHeight, null,
-                                "方向已反转，不会拼接新内容；请保持原方向或点击完成保存",
-                                ScrollingCaptureSafety.Tentative, ScrollingPreviewTruth.PausedRecovery));
-                        }
-                        continue;
-                    }
-                    reversalReported = false;
                 }
                 else
                 {
@@ -338,8 +318,6 @@ public sealed class ScrollingCaptureService(
                     autoBoundaryStreak = 0;
                     boundaryReported = false;
                     retriedNoMatch = false;
-                    if (wheelDriven && wheelDirectionAnchor == 0 && direction != 0)
-                        wheelDirectionAnchor = direction;
                     using var preview = stitcher.CreatePreviewBitmap(220, _previewMaxHeight);
                     if (preview is not null)
                     {
@@ -382,7 +360,7 @@ public sealed class ScrollingCaptureService(
                         }
                         else if (!boundaryReported)
                         {
-                            ReportSnapshot("暂未检测到新内容，请继续保持原方向滚动");
+                            ReportSnapshot("暂未检测到新内容，可继续向任一方向滚动");
                         }
                     }
                     else if (duplicateStreak == FallbackDuplicateGate && !boundaryReported)
@@ -420,7 +398,7 @@ public sealed class ScrollingCaptureService(
                             stitcher.OutputHeight,
                             null,
                             _safetyGuardEnabled
-                                ? "暂时无法对齐，请放慢速度并保持同一滚动方向"
+                                ? "暂时无法对齐，请放慢滚动速度"
                                 : "正在继续尝试对齐，建议放慢滚动速度",
                             safety,
                             truth));
@@ -700,7 +678,9 @@ public sealed class ScrollingCaptureService(
 
     internal sealed class CaptureFrameStream : IDisposable
     {
-        private const int StreamIntervalMs = 16;
+        // GDI capture is substantially more expensive than DXGI duplication;
+        // 30 fps keeps motion samples dense without monopolizing a CPU core.
+        private const int StreamIntervalMs = 33;
         private const int DefaultBurstWindowMs = 360;
         private const int MinimumCapacity = 6;
         private const int MaximumCapacity = 64;
@@ -715,6 +695,7 @@ public sealed class ScrollingCaptureService(
         private readonly object _captureGate = new();
         private readonly Task _producer;
         private readonly int _capacity;
+        private readonly bool _continuous;
         private long _armedUntil;
         private ulong? _lastQueuedSignature;
         private int _stopped;
@@ -723,12 +704,14 @@ public sealed class ScrollingCaptureService(
             Func<Drawing.Rectangle, ScreenCaptureOptions?, Drawing.Bitmap> captureFrame,
             Drawing.Rectangle region,
             Func<ScreenCaptureOptions>? optionsProvider,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            bool continuous = false)
         {
             _captureFrame = captureFrame;
             _region = region;
             _optionsProvider = optionsProvider;
             _capacity = ResolveCapacity(region);
+            _continuous = continuous;
             _cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _producer = Task.Run(ProduceAsync);
         }
@@ -738,6 +721,7 @@ public sealed class ScrollingCaptureService(
         internal void ArmForBurst(int durationMs)
         {
             if (Volatile.Read(ref _stopped) != 0) return;
+            if (_continuous) return;
             var until = Environment.TickCount64 + Math.Clamp(durationMs, StreamIntervalMs, 2000);
             long observed;
             do
@@ -799,14 +783,15 @@ public sealed class ScrollingCaptureService(
             {
                 try
                 {
-                    await _armSignal.WaitAsync(_cancellation.Token);
+                    if (!_continuous)
+                        await _armSignal.WaitAsync(_cancellation.Token);
                     while (!_cancellation.IsCancellationRequested &&
-                           Environment.TickCount64 < Volatile.Read(ref _armedUntil))
+                           (_continuous || Environment.TickCount64 < Volatile.Read(ref _armedUntil)))
                     {
                         lock (_captureGate)
                         {
                             if (_cancellation.IsCancellationRequested ||
-                                Environment.TickCount64 >= Volatile.Read(ref _armedUntil))
+                                !_continuous && Environment.TickCount64 >= Volatile.Read(ref _armedUntil))
                                 break;
 
                             var frame = _captureFrame(_region, _optionsProvider?.Invoke());

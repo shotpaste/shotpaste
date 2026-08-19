@@ -491,5 +491,9 @@
   "粗细": "Độ dày",
   "启用": "Bật",
   "暂停 / 恢复录制": "Tạm dừng / tiếp tục ghi",
-  "清除全部": "Xóa tất cả"
+  "清除全部": "Xóa tất cả",
+  "检测到滚动方向变化，正在按当前位置继续拼接": "Hướng cuộn đã thay đổi; tiếp tục ghép từ vị trí hiện tại.",
+  "暂未检测到新内容，可继续向任一方向滚动": "Chưa phát hiện nội dung mới. Bạn có thể tiếp tục cuộn theo bất kỳ hướng nào.",
+  "暂时无法对齐，请放慢滚动速度": "Hiện chưa thể căn chỉnh. Vui lòng cuộn chậm hơn.",
+  "首帧锁定后可缓慢向上或向下滚动；停下不会结束。": "Sau khi khóa khung hình đầu tiên, hãy cuộn chậm lên hoặc xuống. Dừng lại không kết thúc quá trình chụp."
 }

@@ -491,5 +491,9 @@
   "粗细": "Épaisseur",
   "启用": "Activer",
   "暂停 / 恢复录制": "Suspendre / reprendre l’enregistrement",
-  "清除全部": "Tout effacer"
+  "清除全部": "Tout effacer",
+  "检测到滚动方向变化，正在按当前位置继续拼接": "Le sens de défilement a changé ; l’assemblage continue depuis la position actuelle.",
+  "暂未检测到新内容，可继续向任一方向滚动": "Aucun nouveau contenu détecté pour le moment. Vous pouvez continuer à faire défiler dans les deux sens.",
+  "暂时无法对齐，请放慢滚动速度": "Alignement impossible pour le moment. Faites défiler plus lentement.",
+  "首帧锁定后可缓慢向上或向下滚动；停下不会结束。": "Une fois la première image verrouillée, faites défiler lentement vers le haut ou le bas. L’arrêt ne termine pas la capture."
 }

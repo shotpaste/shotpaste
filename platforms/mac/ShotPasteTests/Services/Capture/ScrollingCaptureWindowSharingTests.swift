@@ -154,6 +154,27 @@ final class ScrollingCaptureAutoScrollPolicyTests: XCTestCase {
     )
   }
 
+  func testAutoScrollPolicy_requiresMovementAndSustainedStationaryUpdatesForBoundary() {
+    XCTAssertFalse(
+      ScrollingCaptureAutoScrollPolicy.shouldConfirmBoundary(
+        acceptedFrameCount: 1,
+        stationaryUpdateCount: 3
+      )
+    )
+    XCTAssertFalse(
+      ScrollingCaptureAutoScrollPolicy.shouldConfirmBoundary(
+        acceptedFrameCount: 2,
+        stationaryUpdateCount: 2
+      )
+    )
+    XCTAssertTrue(
+      ScrollingCaptureAutoScrollPolicy.shouldConfirmBoundary(
+        acceptedFrameCount: 2,
+        stationaryUpdateCount: 3
+      )
+    )
+  }
+
   func testAutoScrollPolicy_stopsAfterRepeatedAlignmentFailures() {
     XCTAssertEqual(
       ScrollingCaptureAutoScrollPolicy.stitchAction(

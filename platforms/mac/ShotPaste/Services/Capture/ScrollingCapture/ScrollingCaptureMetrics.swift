@@ -47,10 +47,8 @@ nonisolated struct ScrollingCaptureSessionMetrics {
   private(set) var ignoredAlignmentFailedCount = 0
   private(set) var reachedHeightLimitCount = 0
   private(set) var alignmentFailureStreakMax = 0
-  private(set) var fastGuidedMatchCount = 0
-  private(set) var guidedVisionMatchCount = 0
-  private(set) var recoveryVisionMatchCount = 0
-  private(set) var visionEstimateCount = 0
+  private(set) var guidedBandMatchCount = 0
+  private(set) var recoveryBandMatchCount = 0
   private(set) var unsafeStitchCount = 0
   private(set) var tentativeStitchCount = 0
   private(set) var matcherConfidenceTotal = 0.0
@@ -199,21 +197,13 @@ nonisolated struct ScrollingCaptureSessionMetrics {
     }
 
     if let alignmentDebug {
-      if alignmentDebug.path == .duplicateBoundary {
-        likelyBoundaryNoMovementCount += 1
-      }
-
-      if alignmentDebug.usedVisionEstimate {
-        visionEstimateCount += 1
-      }
-
       switch alignmentDebug.path {
-      case .fastGuided:
-        fastGuidedMatchCount += 1
-      case .guidedVision:
-        guidedVisionMatchCount += 1
-      case .recoveryVision:
-        recoveryVisionMatchCount += 1
+      case .duplicateBoundary:
+        likelyBoundaryNoMovementCount += 1
+      case .guidedBands:
+        guidedBandMatchCount += 1
+      case .recoveryBands:
+        recoveryBandMatchCount += 1
       default:
         break
       }
@@ -289,10 +279,8 @@ nonisolated struct ScrollingCaptureSessionMetrics {
       "ignoredAlignmentFailed": "\(ignoredAlignmentFailedCount)",
       "alignmentFailureStreakMax": "\(alignmentFailureStreakMax)",
       "heightLimitHits": "\(reachedHeightLimitCount)",
-      "fastGuidedMatches": "\(fastGuidedMatchCount)",
-      "guidedVisionMatches": "\(guidedVisionMatchCount)",
-      "recoveryVisionMatches": "\(recoveryVisionMatchCount)",
-      "visionEstimates": "\(visionEstimateCount)",
+      "guidedBandMatches": "\(guidedBandMatchCount)",
+      "recoveryBandMatches": "\(recoveryBandMatchCount)",
       "matcherConfidenceAvg": Self.averageString(total: matcherConfidenceTotal, count: matcherConfidenceCount),
       "appendDeltaAvgPx": Self.averageString(total: appendedDeltaTotalPixels, count: appendedCount),
       "appendDeltaMaxPx": "\(appendedDeltaMaxPixels)",
