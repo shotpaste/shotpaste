@@ -139,24 +139,6 @@ final class HistoryThumbnailGenerator {
     return existingThumbnailURL(for: record, identity: identity)
   }
 
-  /// Total size of all cached thumbnails in bytes
-  func totalThumbnailSize() -> Int64 {
-    let fm = FileManager.default
-    guard let contents = try? fm.contentsOfDirectory(
-      at: thumbnailsDirectory,
-      includingPropertiesForKeys: [.fileSizeKey]
-    ) else { return 0 }
-
-    var total: Int64 = 0
-    for url in contents {
-      if let attrs = try? fm.attributesOfItem(atPath: url.path),
-         let size = attrs[.size] as? Int64 {
-        total += size
-      }
-    }
-    return total
-  }
-
   /// Delete all cached thumbnails and clear thumbnail paths in database
   func clearAllThumbnails() {
     let fm = FileManager.default
@@ -196,17 +178,6 @@ final class HistoryThumbnailGenerator {
         "All history thumbnails cleared",
         context: ["thumbnailCount": "\(contents.count)"]
       )
-    }
-  }
-
-  /// Delete thumbnail for a specific record ID
-  func deleteThumbnail(for recordId: UUID) {
-    deleteThumbnailFiles(for: recordId)
-    let keys = stateQueue.sync {
-      Array(memoryCacheKeysByRecordId.removeValue(forKey: recordId) ?? [])
-    }
-    for key in keys {
-      memoryCache.removeObject(forKey: NSString(string: key))
     }
   }
 

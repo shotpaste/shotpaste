@@ -157,16 +157,6 @@ enum RecordingMetadataStore {
     return destinationURL
   }
 
-  static func moveAssociation(from oldURL: URL, to newURL: URL) throws {
-    let location = try requiredStoreLocation()
-    var index = loadIndex(from: location)
-    guard let resolved = resolveEntry(for: oldURL, index: index) else { return }
-
-    let entry = try makeEntry(id: resolved.entry.id, for: newURL)
-    index.entries[resolved.index] = entry
-    try saveIndex(index, to: location)
-  }
-
   static func delete(for videoURL: URL) throws {
     let location = try requiredStoreLocation()
     var index = loadIndex(from: location)

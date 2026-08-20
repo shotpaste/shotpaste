@@ -18,14 +18,18 @@ public partial class QuickAccessWindow : Window
     private readonly Services.AppController _controller;
     private readonly Services.SettingsStore _settings;
     private readonly DispatcherTimer _timer = new();
+    private readonly DispatcherTimer _progressTimer = new() { Interval = TimeSpan.FromMilliseconds(80) };
     private readonly DispatcherTimer _hoverProbeTimer = new() { Interval = TimeSpan.FromMilliseconds(120) };
     private readonly Services.QuickAccessCountdown _countdown;
+    private readonly TimeSpan _countdownDuration;
     private Vector _manipulationTranslation;
     private int _maximumManipulators;
     private double _horizontalWheelDistance;
     private HwndSource? _windowSource;
     private bool _isPointerOver;
     private readonly bool _isTemporary;
+    private bool _keyboardMode;
+    private System.Windows.Point? _externalDragOrigin;
     private bool AutoDismissEnabled => _settings.Current.QuickAccessAutoDismissEnabled;
 
     public CaptureHistoryItem Item => _item;
@@ -39,25 +43,10 @@ public partial class QuickAccessWindow : Window
         _item = item;
         _controller = controller;
         _settings = settings;
-        _countdown = new Services.QuickAccessCountdown(TimeSpan.FromSeconds(
-            Math.Clamp(settings.Current.QuickAccessAutoDismissSeconds, 3, 30)));
-        var preview = default(System.Windows.Media.Imaging.BitmapImage);
-        try
-        {
-            preview = item.PreviewSource;
-        }
-        catch
-        {
-            // 保持容错：缩略图加载失败时展示文字预览，不影响弹窗显示。
-        }
-        Preview.Source = preview;
-        TitleText.Text = item.Title;
         DataContext = item;
-        if (preview is null)
-        {
-            TextPreview.Visibility = Visibility.Visible;
-            TextPreviewContent.Text = item.PreviewText;
-        }
+        _countdownDuration = TimeSpan.FromSeconds(Math.Clamp(settings.Current.QuickAccessAutoDismissSeconds, 3, 30));
+        _countdown = new Services.QuickAccessCountdown(_countdownDuration);
+        TitleText.Text = item.Title;
         var isTemporary = false;
         try
         {
@@ -78,33 +67,38 @@ public partial class QuickAccessWindow : Window
         ConfigureActions(isTemporary);
         var cardScale = Math.Clamp(settings.Current.QuickAccessScale, 0.75, 1.5);
         Card.LayoutTransform = new ScaleTransform(cardScale, cardScale);
-        Width = 204 * cardScale;
-        Height = 128 * cardScale;
+        Width = 180 * cardScale;
+        Height = 112 * cardScale;
         Loaded += (_, _) =>
         {
             if (AutoDismissEnabled) ResetCountdown();
-            if (_settings.Current.QuickAccessAnimationStyle.Equals("Scale", StringComparison.OrdinalIgnoreCase))
+            CountdownTrack.Visibility = AutoDismissEnabled ? Visibility.Visible : Visibility.Collapsed;
+            if (Services.AccessibilityPreferences.ReduceMotion)
+            {
+                Card.Opacity = 1;
+                ResetCardTransform();
+            }
+            else if (_settings.Current.QuickAccessAnimationStyle.Equals("Scale", StringComparison.OrdinalIgnoreCase))
             {
                 Card.Opacity = 0;
-                Card.RenderTransformOrigin = new System.Windows.Point(0.5, 0.5);
-                var transform = new ScaleTransform(0.88, 0.88);
-                Card.RenderTransform = transform;
-                var duration = TimeSpan.FromMilliseconds(190);
-                transform.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(1, duration));
-                transform.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(1, duration));
+                CardScaleTransform.ScaleX = CardScaleTransform.ScaleY = 0.88;
+                var duration = TimeSpan.FromMilliseconds(250);
+                var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
+                CardScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(1, duration) { EasingFunction = easing });
+                CardScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(1, duration) { EasingFunction = easing });
                 Card.BeginAnimation(OpacityProperty, new DoubleAnimation(1, duration));
             }
             else
             {
                 Card.Opacity = 0;
                 var start = Services.QuickAccessService.NormalizePosition(_settings.Current.QuickAccessPosition) == "BottomLeft"
-                    ? -28d
-                    : 28d;
-                var transform = new TranslateTransform(start, 0);
-                Card.RenderTransform = transform;
-                var duration = TimeSpan.FromMilliseconds(190);
-                transform.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, duration));
-                Card.BeginAnimation(OpacityProperty, new DoubleAnimation(1, duration));
+                    ? -(Width + 50d)
+                    : Width + 50d;
+                CardTranslateTransform.X = start;
+                var duration = TimeSpan.FromMilliseconds(400);
+                var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
+                CardTranslateTransform.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, duration) { EasingFunction = easing });
+                Card.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(240)));
             }
             App.WriteQuickAccessLog($"Loaded shown={IsVisible} left={Left} top={Top} width={Width} height={Height} dpi={VisualTreeHelper.GetDpi(this).PixelsPerDip}");
         };
@@ -114,6 +108,7 @@ public partial class QuickAccessWindow : Window
             if (_countdown.Remaining(DateTimeOffset.UtcNow) <= TimeSpan.Zero) Close();
             else ArmCountdown(_countdown.Remaining(DateTimeOffset.UtcNow));
         };
+        _progressTimer.Tick += (_, _) => UpdateCountdownProgress();
         _hoverProbeTimer.Tick += (_, _) =>
         {
             // Native ShowWindow/SetWindowPos calls can occasionally suppress the
@@ -131,6 +126,7 @@ public partial class QuickAccessWindow : Window
         Closed += (_, _) =>
         {
             _timer.Stop();
+            _progressTimer.Stop();
             _hoverProbeTimer.Stop();
             _windowSource?.RemoveHook(WindowProcedure);
             _windowSource = null;
@@ -151,25 +147,112 @@ public partial class QuickAccessWindow : Window
     {
         HoverOverlay.IsHitTestVisible = true;
         AnimateOpacity(HoverOverlay, 1);
-        AnimateOpacity(PinButton, 1);
-        AnimateOpacity(CloseButton, 1);
         TitleBadge.Opacity = 0;
         DurationBadge.Opacity = 0;
     }
+
+    public void EnterKeyboardMode()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(EnterKeyboardMode);
+            return;
+        }
+        _keyboardMode = true;
+        PauseCountdown();
+        Focusable = true;
+        ShowActivated = true;
+        HoverOverlay.Opacity = 1;
+        HoverOverlay.IsHitTestVisible = true;
+        if (_windowSource is not null)
+        {
+            var style = NativeMethods.GetWindowLongPtr(_windowSource.Handle, NativeMethods.GwlExStyle).ToInt64();
+            NativeMethods.SetWindowLongPtr(_windowSource.Handle, NativeMethods.GwlExStyle,
+                new IntPtr(style & ~NativeMethods.WsExNoActivate));
+            NativeMethods.SetWindowPos(_windowSource.Handle, NativeMethods.HwndTopmost, 0, 0, 0, 0,
+                NativeMethods.SwpNoMove | NativeMethods.SwpNoSize | NativeMethods.SwpFrameChanged);
+        }
+        Activate();
+        if (VisibleActionButtons().FirstOrDefault() is { } first) Keyboard.Focus(first);
+    }
+
+    private void ExitKeyboardMode()
+    {
+        if (!_keyboardMode) return;
+        _keyboardMode = false;
+        Focusable = false;
+        ShowActivated = false;
+        HoverOverlay.IsHitTestVisible = false;
+        if (!_isPointerOver) HoverOverlay.Opacity = 0;
+        if (_windowSource is not null)
+        {
+            var style = NativeMethods.GetWindowLongPtr(_windowSource.Handle, NativeMethods.GwlExStyle).ToInt64();
+            NativeMethods.SetWindowLongPtr(_windowSource.Handle, NativeMethods.GwlExStyle,
+                new IntPtr(style | NativeMethods.WsExNoActivate));
+            NativeMethods.SetWindowPos(_windowSource.Handle, NativeMethods.HwndTopmost, 0, 0, 0, 0,
+                NativeMethods.SwpNoMove | NativeMethods.SwpNoSize | NativeMethods.SwpNoActivate | NativeMethods.SwpFrameChanged);
+        }
+        if (AutoDismissEnabled) ResumeCountdown();
+    }
+
+    private WpfButton[] VisibleActionButtons() =>
+        Actions.Children.OfType<WpfButton>()
+            .Where(button => button.Visibility == Visibility.Visible && button.IsEnabled)
+            .ToArray();
+
+    private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (!_keyboardMode) return;
+        var modifiers = Keyboard.Modifiers;
+        if (e.Key == Key.Escape)
+        {
+            ExitKeyboardMode();
+            e.Handled = true;
+            return;
+        }
+        if (e.Key == Key.Delete)
+        {
+            _ = ExecuteConfiguredActionAsync("Delete");
+            e.Handled = true;
+            return;
+        }
+        if (modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.C)
+        {
+            _controller.CopyHistoryItem(_item);
+            e.Handled = true;
+            return;
+        }
+        if (modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.S)
+        {
+            _ = _controller.SaveHistoryItemAsync(_item);
+            e.Handled = true;
+            return;
+        }
+        if (e.Key is Key.Left or Key.Right or Key.Up or Key.Down)
+        {
+            var actions = VisibleActionButtons();
+            if (actions.Length == 0) return;
+            var focused = Array.IndexOf(actions, Keyboard.FocusedElement as WpfButton);
+            var delta = e.Key is Key.Left or Key.Up ? -1 : 1;
+            actions[(focused < 0 ? 0 : (focused + delta + actions.Length) % actions.Length)].Focus();
+            e.Handled = true;
+        }
+    }
+
+    private void OnDeactivated(object? sender, EventArgs e) => ExitKeyboardMode();
 
     private void OnCardMouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
     {
         HoverOverlay.IsHitTestVisible = false;
         AnimateOpacity(HoverOverlay, 0);
-        AnimateOpacity(PinButton, 0);
-        AnimateOpacity(CloseButton, 0);
         TitleBadge.Opacity = 1;
         DurationBadge.Opacity = 1;
     }
 
     private void AnimateOpacity(UIElement element, double value)
     {
-        if (_settings.Current.QuickAccessAnimationStyle.Equals("None", StringComparison.OrdinalIgnoreCase))
+        if (Services.AccessibilityPreferences.ReduceMotion ||
+            _settings.Current.QuickAccessAnimationStyle.Equals("None", StringComparison.OrdinalIgnoreCase))
         {
             element.BeginAnimation(OpacityProperty, null);
             element.Opacity = value;
@@ -221,6 +304,7 @@ public partial class QuickAccessWindow : Window
         if (!AutoDismissEnabled) return;
         _countdown.Pause(DateTimeOffset.UtcNow);
         _timer.Stop();
+        UpdateCountdownProgress();
         _hoverProbeTimer.Start();
     }
 
@@ -238,6 +322,34 @@ public partial class QuickAccessWindow : Window
         _timer.Stop();
         _timer.Interval = remaining < TimeSpan.FromMilliseconds(10) ? TimeSpan.FromMilliseconds(10) : remaining;
         _timer.Start();
+        _progressTimer.Start();
+        UpdateCountdownProgress();
+    }
+
+    private void UpdateCountdownProgress()
+    {
+        if (!AutoDismissEnabled)
+        {
+            CountdownTrack.Visibility = Visibility.Collapsed;
+            _progressTimer.Stop();
+            return;
+        }
+        var ratio = Math.Clamp(_countdown.Remaining(DateTimeOffset.UtcNow).TotalMilliseconds /
+                               _countdownDuration.TotalMilliseconds, 0d, 1d);
+        CountdownScale.ScaleX = ratio;
+        if (ratio <= 0d) _progressTimer.Stop();
+    }
+
+    private void ResetCardTransform()
+    {
+        CardScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        CardScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        CardTranslateTransform.BeginAnimation(TranslateTransform.XProperty, null);
+        CardSwipeRotate.BeginAnimation(RotateTransform.AngleProperty, null);
+        CardScaleTransform.ScaleX = CardScaleTransform.ScaleY = 1;
+        CardTranslateTransform.X = CardTranslateTransform.Y = 0;
+        CardSwipeRotate.Angle = 0;
+        Card.Opacity = 1;
     }
 
     private void ConfigureActions(bool isTemporary)
@@ -249,47 +361,161 @@ public partial class QuickAccessWindow : Window
             ["Copy"] = CopyAction,
             ["SaveOrOpen"] = SaveAction,
             ["Pin"] = PinAction,
+            ["Drag"] = DragAction,
             ["Delete"] = DeleteAction,
             ["Close"] = CloseAction
         };
         Actions.Children.Clear();
-        foreach (var action in configured)
+        foreach (var action in configured.Take(6).Concat(Enumerable.Repeat("None", 6)).Take(6))
         {
-            if (!actions.TryGetValue(action, out var button) || Actions.Children.Contains(button)) continue;
+            if (action.Equals("Drag", StringComparison.OrdinalIgnoreCase) && !_settings.Current.QuickAccessEnableDrag ||
+                !actions.TryGetValue(action, out var button) || Actions.Children.Contains(button))
+            {
+                Actions.Children.Add(new Border
+                {
+                    Width = 78,
+                    Height = 28,
+                    Margin = new Thickness(1),
+                    Opacity = 0,
+                    IsHitTestVisible = false,
+                    Focusable = false
+                });
+                continue;
+            }
             button.Visibility = Visibility.Visible;
             Actions.Children.Add(button);
         }
+        ConfigureContextMenu(configured, isTemporary);
+    }
+
+    private void ConfigureContextMenu(IReadOnlyList<string> configured, bool isTemporary)
+    {
+        var menu = new ContextMenu();
+        var addedDestructiveSeparator = false;
+        foreach (var action in configured.Where(action => !action.Equals("None", StringComparison.OrdinalIgnoreCase)))
+        {
+            if (action.Equals("Drag", StringComparison.OrdinalIgnoreCase) && !_settings.Current.QuickAccessEnableDrag) continue;
+            if (action.Equals("Delete", StringComparison.OrdinalIgnoreCase) && menu.Items.Count > 0 && !addedDestructiveSeparator)
+            {
+                menu.Items.Add(new Separator());
+                addedDestructiveSeparator = true;
+            }
+            var title = action switch
+            {
+                "Copy" => "复制",
+                "SaveOrOpen" => isTemporary ? "另存为" : "打开",
+                "Pin" => "贴到屏幕",
+                "Drag" => "拖出文件",
+                "Delete" => "删除",
+                "Close" => "关闭卡片",
+                _ => null
+            };
+            if (title is null) continue;
+            var item = new MenuItem
+            {
+                Header = Services.LocalizationService.TranslatePhrase(title),
+                Tag = action
+            };
+            if (action.Equals("Delete", StringComparison.OrdinalIgnoreCase))
+                item.SetResourceReference(System.Windows.Controls.Control.ForegroundProperty, "DangerBrush");
+            item.Click += (_, _) => _ = ExecuteConfiguredActionAsync(action);
+            menu.Items.Add(item);
+        }
+        Card.ContextMenu = menu.Items.Count == 0 ? null : menu;
     }
 
     private void OnWindowMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        if (e.OriginalSource is DependencyObject source && Actions.IsAncestorOf(source)) return;
+        if (e.OriginalSource is DependencyObject source &&
+            (Actions.IsAncestorOf(source) || PinButton.IsAncestorOf(source) || CloseButton.IsAncestorOf(source))) return;
         if (e.ChangedButton == System.Windows.Input.MouseButton.Left && _settings.Current.QuickAccessEnableDrag)
-        {
-            try { DragMove(); } catch (InvalidOperationException) { }
-        }
+            _externalDragOrigin = e.GetPosition(this);
+    }
+
+    private void OnWindowMouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e) => _externalDragOrigin = null;
+
+    private void OnWindowMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (_externalDragOrigin is not { } origin || e.LeftButton != MouseButtonState.Pressed) return;
+        var point = e.GetPosition(this);
+        if (Math.Abs(point.X - origin.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(point.Y - origin.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+        _externalDragOrigin = null;
+        BeginExternalDrag();
+    }
+
+    private void OnWindowMouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Left ||
+            e.OriginalSource is DependencyObject source && Actions.IsAncestorOf(source)) return;
+        _externalDragOrigin = null;
+        _ = ExecuteConfiguredActionAsync("SaveOrOpen");
+        e.Handled = true;
     }
 
     private void OnManipulationDelta(object sender, System.Windows.Input.ManipulationDeltaEventArgs e)
     {
         _manipulationTranslation = e.CumulativeManipulation.Translation;
         _maximumManipulators = Math.Max(_maximumManipulators, e.Manipulators.Count());
+        if (!_settings.Current.QuickAccessTwoFingerSwipeEnabled || _maximumManipulators < 2) return;
+        CardTranslateTransform.BeginAnimation(TranslateTransform.XProperty, null);
+        CardTranslateTransform.X = _manipulationTranslation.X;
+        CardSwipeRotate.Angle = Math.Clamp(_manipulationTranslation.X / Math.Max(1d, ActualWidth) * 4d, -4d, 4d);
+        Card.Opacity = Math.Clamp(1d - Math.Abs(_manipulationTranslation.X) / Math.Max(1d, ActualWidth * 1.5d), 0.35d, 1d);
+        e.Handled = true;
     }
 
     private void OnManipulationCompleted(object sender, System.Windows.Input.ManipulationCompletedEventArgs e)
     {
         var manipulatorCount = Math.Max(_maximumManipulators, e.Manipulators.Count());
         _maximumManipulators = 0;
-        if (!_settings.Current.QuickAccessTwoFingerSwipeEnabled || manipulatorCount < 2) return;
+        if (!_settings.Current.QuickAccessTwoFingerSwipeEnabled || manipulatorCount < 2)
+        {
+            ResetSwipeVisual();
+            return;
+        }
         var translation = _manipulationTranslation;
         _manipulationTranslation = default;
         if (_settings.Current.QuickAccessTrackpadSwipeMode.Equals("Inverted", StringComparison.OrdinalIgnoreCase))
             translation.X *= -1;
         var threshold = 80d / Math.Max(0.5d, _settings.Current.QuickAccessSwipeSensitivity);
         if (Math.Abs(translation.X) >= threshold && Math.Abs(translation.X) > Math.Abs(translation.Y))
-            _ = ExecuteConfiguredActionAsync(translation.X < 0
+            _ = CompleteSwipeAsync(translation.X < 0
                 ? _settings.Current.QuickAccessSwipeLeftAction
-                : _settings.Current.QuickAccessSwipeRightAction);
+                : _settings.Current.QuickAccessSwipeRightAction, Math.Sign(translation.X));
+        else
+            ResetSwipeVisual(animated: true);
+    }
+
+    private async Task CompleteSwipeAsync(string action, int direction)
+    {
+        if (!Services.AccessibilityPreferences.ReduceMotion)
+        {
+            var completion = new TaskCompletionSource();
+            var animation = new DoubleAnimation(direction * (ActualWidth + 50d), TimeSpan.FromMilliseconds(180))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+            };
+            animation.Completed += (_, _) => completion.TrySetResult();
+            CardTranslateTransform.BeginAnimation(TranslateTransform.XProperty, animation);
+            Card.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(160)));
+            await completion.Task;
+        }
+        await ExecuteConfiguredActionAsync(action);
+        if (IsVisible) ResetSwipeVisual();
+    }
+
+    private void ResetSwipeVisual(bool animated = false)
+    {
+        var duration = animated && !Services.AccessibilityPreferences.ReduceMotion
+            ? TimeSpan.FromMilliseconds(180)
+            : TimeSpan.Zero;
+        var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
+        CardTranslateTransform.BeginAnimation(TranslateTransform.XProperty,
+            new DoubleAnimation(0, duration) { EasingFunction = easing });
+        CardSwipeRotate.BeginAnimation(RotateTransform.AngleProperty,
+            new DoubleAnimation(0, duration) { EasingFunction = easing });
+        Card.BeginAnimation(OpacityProperty, new DoubleAnimation(1, duration));
     }
     private async Task ExecuteConfiguredActionAsync(string? action)
     {
@@ -304,9 +530,13 @@ public partial class QuickAccessWindow : Window
             case "save": await _controller.SaveHistoryItemAsync(_item); Close(); break;
             case "open": await _controller.OpenHistoryItemAsync(_item); Close(); break;
             case "pin": _controller.PinHistoryItem(_item); break;
-            case "delete": await _controller.DeleteHistoryItemAsync(_item); Close(); break;
+            case "drag": BeginExternalDrag(); break;
+            case "delete":
+                if (await _controller.DeleteHistoryItemAsync(_item, this)) Close();
+                break;
+            case "close": Close(); break;
             case "none": break;
-            default: Close(); break;
+            default: break;
         }
     }
     private void OnCopy(object sender, RoutedEventArgs e) => _ = ExecuteConfiguredActionAsync("Copy");
@@ -318,6 +548,13 @@ public partial class QuickAccessWindow : Window
 
     private void OnDragOut(object sender, MouseButtonEventArgs e)
     {
+        BeginExternalDrag();
+        e.Handled = true;
+    }
+
+    private bool BeginExternalDrag()
+    {
+        if (!_settings.Current.QuickAccessEnableDrag) return false;
         var data = new System.Windows.DataObject();
         if (_item.FilePaths.Count > 0 && _item.ExistingFilePaths.Count > 0)
             data.SetData(System.Windows.DataFormats.FileDrop, _item.ExistingFilePaths.Select(Path.GetFullPath).ToArray());
@@ -325,11 +562,16 @@ public partial class QuickAccessWindow : Window
             data.SetData(System.Windows.DataFormats.FileDrop, new[] { Path.GetFullPath(_item.FilePath) });
         else if (!string.IsNullOrWhiteSpace(_item.Text))
             data.SetData(System.Windows.DataFormats.UnicodeText, _item.Text);
-        else return;
+        else return false;
         PauseCountdown();
-        System.Windows.DragDrop.DoDragDrop(this, data, System.Windows.DragDropEffects.Copy);
+        var result = System.Windows.DragDrop.DoDragDrop(this, data, System.Windows.DragDropEffects.Copy);
+        if (result != System.Windows.DragDropEffects.None)
+        {
+            Close();
+            return true;
+        }
         if (AutoDismissEnabled) ResumeCountdown();
-        e.Handled = true;
+        return false;
     }
 
     public void Suspend()

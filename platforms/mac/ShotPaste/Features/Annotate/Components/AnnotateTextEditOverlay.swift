@@ -28,49 +28,23 @@ struct TextEditOverlay: View {
         let displayBounds = calculateDisplayBounds(annotation.bounds)
         let displayFont = AnnotateTextLayout.displayFont(
           size: annotation.properties.fontSize,
-          fontName: annotation.properties.fontName,
           scale: scale
         )
         let fieldWidth = max(displayBounds.width, minTextFieldWidth)
         let fieldHeight = max(displayBounds.height, 1)
-        let textContainerInset = AnnotateTextLayout.textEditorInset(
-          scale: scale,
-          presentation: annotation.properties.textPresentation,
-          fontSize: annotation.properties.fontSize
+        let textContainerInset = AnnotateTextLayout.textEditorInset(scale: scale)
+
+        InlineAnnotationTextEditor(
+          editingId: editingId,
+          text: $editingText,
+          font: displayFont,
+          textContainerInset: textContainerInset,
+          textColor: NSColor(annotation.properties.strokeColor),
+          onCommit: { commitEdit(id: editingId) },
+          onCancel: cancelEdit,
+          onUndo: { state.undo() },
+          onRedo: { state.redo() }
         )
-        let tailTarget = annotation.properties.calloutTailTarget.map {
-          TextBubbleGeometry.resolvedTailTarget(
-            in: annotation.bounds,
-            requestedTarget: $0,
-            fontSize: annotation.properties.fontSize
-          )
-        }.map(calculateDisplayPoint)
-        let relativeTailTarget = tailTarget.map {
-          CGPoint(x: $0.x - displayBounds.minX, y: $0.y - displayBounds.minY)
-        }
-
-        ZStack(alignment: .topLeading) {
-          if annotation.properties.textPresentation != .plain {
-            TextBubbleShape(
-              tailTarget: annotation.properties.textPresentation == .callout ? relativeTailTarget : nil,
-              fontSize: displayFont.pointSize,
-              cornerRadius: annotation.properties.cornerRadius * scale
-            )
-            .fill(annotation.properties.fillColor)
-          }
-
-          InlineAnnotationTextEditor(
-            editingId: editingId,
-            text: $editingText,
-            font: displayFont,
-            textContainerInset: textContainerInset,
-            textColor: NSColor(annotation.properties.strokeColor),
-            onCommit: { commitEdit(id: editingId) },
-            onCancel: cancelEdit,
-            onUndo: { state.undo() },
-            onRedo: { state.redo() }
-          )
-        }
         .frame(
           width: fieldWidth,
           height: fieldHeight,
@@ -117,13 +91,6 @@ struct TextEditOverlay: View {
     )
   }
 
-  private func calculateDisplayPoint(_ imagePoint: CGPoint) -> CGPoint {
-    CGPoint(
-      x: (imagePoint.x - canvasBounds.minX) * scale,
-      y: (canvasBounds.maxY - imagePoint.y) * scale
-    )
-  }
-
   private func commitEdit(id: UUID) {
     if state.editingTextAnnotationId == id {
       state.updateAnnotationText(id: id, text: editingText)
@@ -141,26 +108,6 @@ struct TextEditOverlay: View {
       state.selectedAnnotationId = nil
     }
     state.finishTextEditing()
-  }
-}
-
-private struct TextBubbleShape: Shape {
-  let tailTarget: CGPoint?
-  let fontSize: CGFloat
-  let cornerRadius: CGFloat
-
-  func path(in rect: CGRect) -> Path {
-    let resolvedCornerRadius = cornerRadius > 0
-      ? min(cornerRadius, min(rect.width, rect.height) * 0.46)
-      : TextBubbleGeometry.cornerRadius(in: rect, fontSize: fontSize)
-    return Path(
-      TextBubbleGeometry.bubblePath(
-        in: rect,
-        cornerRadius: resolvedCornerRadius,
-        tailTarget: tailTarget,
-        fontSize: fontSize
-      )
-    )
   }
 }
 

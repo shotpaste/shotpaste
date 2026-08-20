@@ -215,18 +215,3 @@ private struct AnimatedCheckmark: Shape {
     CGPoint(x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t)
   }
 }
-
-// MARK: - Animated Checkmark Container
-
-private struct AnimatedCheckmarkView: View {
-  @State private var progress: CGFloat = 0
-
-  var body: some View {
-    AnimatedCheckmark(progress: progress)
-      .onAppear {
-        withAnimation(QuickAccessAnimations.checkmarkDraw) {
-          progress = 1
-        }
-      }
-  }
-}

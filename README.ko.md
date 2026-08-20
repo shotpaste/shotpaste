@@ -83,7 +83,7 @@ macOS:
 Windows PowerShell:
 
 ```powershell
-./scripts/build-windows.ps1 -Configuration Debug
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1 -Configuration Debug
 ```
 
 [프로젝트 구조 및 빌드 안내](docs/DEVELOPMENT.md)를 참조하세요.

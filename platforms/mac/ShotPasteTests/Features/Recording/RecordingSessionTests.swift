@@ -31,10 +31,6 @@ final class RecordingSessionTests: XCTestCase {
     XCTAssertNil(session.microphoneInput)
   }
 
-  func testCanWriteFrames_whenNotCapturing_returnsFalse() {
-    XCTAssertFalse(session.canWriteFrames())
-  }
-
   func testReset_clearsState() {
     session.isCapturing = true
     session.sessionStarted = true
@@ -54,8 +50,7 @@ final class RecordingSessionTests: XCTestCase {
   }
 
   func testSetOnFirstVideoFrame_doesNotCrash() {
-    var called = false
-    session.setOnFirstVideoFrame { called = true }
+    session.setOnFirstVideoFrame {}
     // Cannot trigger without real sample buffer
   }
 

@@ -384,28 +384,3 @@ extension View {
     modifier(ShortcutValidationHighlightModifier(issue: issue))
   }
 }
-
-/// Shared pressed/recording treatment for shortcut recorder buttons.
-struct ShortcutButtonStyle: ButtonStyle {
-  let isRecording: Bool
-
-  func makeBody(configuration: Configuration) -> some View {
-    configuration.label
-      .padding(.horizontal, 6)
-      .padding(.vertical, 4)
-      .background(
-        RoundedRectangle(cornerRadius: 7, style: .continuous)
-          .fill(isRecording ? Color.accentColor.opacity(0.08) : Color.clear)
-      )
-      .overlay(
-        RoundedRectangle(cornerRadius: 7, style: .continuous)
-          .strokeBorder(
-            isRecording ? Color.accentColor.opacity(0.5) : Color.clear,
-            lineWidth: 1
-          )
-      )
-      .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-      .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-      .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-  }
-}

@@ -55,7 +55,17 @@ public sealed class ClipboardMonitorService : IDisposable
         try
         {
             var data = System.Windows.Clipboard.GetDataObject();
-            if (data is null || ShouldIgnoreClipboardData(data)) return;
+            if (data is null)
+            {
+                LogUiTest("clipboard capture skipped: no data object");
+                return;
+            }
+            var formats = string.Join(",", data.GetFormats(autoConvert: false));
+            if (ShouldIgnoreClipboardData(data))
+            {
+                LogUiTest($"clipboard capture ignored formats={formats}");
+                return;
+            }
 
             if (System.Windows.Clipboard.ContainsFileDropList())
             {
@@ -66,6 +76,7 @@ public sealed class ClipboardMonitorService : IDisposable
                     .ToArray();
                 var added = await CaptureFileDropAsync(sourcePaths, _history, AppPaths.ClipboardFiles);
                 _lastFingerprint = added.LastOrDefault()?.ContentHash ?? _lastFingerprint;
+                LogUiTest($"clipboard files captured sources={sourcePaths.Length} added={added.Count} formats={formats}");
             }
             else if (System.Windows.Clipboard.ContainsImage())
             {
@@ -88,12 +99,19 @@ public sealed class ClipboardMonitorService : IDisposable
                 if (await IsDuplicateAsync(fingerprint)) return;
                 await _history.AddTextAsync(text, fingerprint);
                 _lastFingerprint = fingerprint;
+                LogUiTest($"clipboard text captured length={text.Length} formats={formats}");
             }
         }
-        catch (ExternalException) { }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
+        catch (Exception exception) when (exception is ExternalException or IOException or UnauthorizedAccessException)
+        {
+            LogUiTest($"clipboard capture failed: {exception.GetType().Name}: {exception.Message}");
+        }
         finally { _captureGate.Release(); }
+    }
+
+    private static void LogUiTest(string message)
+    {
+        if (App.UiTestMode) App.WriteQuickAccessLog(message);
     }
 
     private async Task<bool> IsDuplicateAsync(string fingerprint) =>

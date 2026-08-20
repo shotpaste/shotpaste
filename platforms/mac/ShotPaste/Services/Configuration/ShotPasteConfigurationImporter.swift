@@ -15,10 +15,6 @@ enum ShotPasteConfigurationImporter {
     let mutations: [() -> Void]
   }
 
-  static func validateTOML(_ source: String, defaults: UserDefaults = .standard) -> [ShotPasteConfigurationIssue] {
-    prepareImport(source, defaults: defaults).issues
-  }
-
   static func importTOML(_ source: String, defaults: UserDefaults = .standard) -> ShotPasteConfigurationImportResult {
     let preparedImport = prepareImport(source, defaults: defaults)
 
@@ -28,7 +24,6 @@ enum ShotPasteConfigurationImporter {
 
     preparedImport.mutations.forEach { $0() }
     KeyboardShortcutManager.shared.refreshShortcutRegistration()
-    defaults.synchronize()
 
     return ShotPasteConfigurationImportResult(
       appliedChangeCount: preparedImport.mutations.count,
@@ -167,9 +162,6 @@ enum ShotPasteConfigurationImporter {
     }
     collectInt(&reader, "capture", "screenshot", "magnifier_zoom", range: 1 ... 20, mutations: &mutations) {
       defaults.set($0, forKey: PreferencesKeys.screenshotMagnifierZoom)
-    }
-    collectInt(&reader, "capture", "screenshot", "output_scale", range: 0 ... 2, mutations: &mutations) {
-      defaults.set($0, forKey: PreferencesKeys.screenshotScale)
     }
     collectEnumString(
       &reader,

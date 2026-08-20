@@ -149,14 +149,37 @@ enum ScreenCapturePermissionRequestFlow {
 }
 
 enum ScreenshotCaptureWindowPolicy {
+  static func shouldExceptOwnWindow(
+    isHistoryPanel: Bool,
+    sharingType: NSWindow.SharingType,
+    windowNumber: Int,
+    includeAllShareableWindows: Bool
+  ) -> Bool {
+    (includeAllShareableWindows || isHistoryPanel)
+      && sharingType != .none
+      && windowNumber > 0
+      && CGWindowID(exactly: windowNumber) != nil
+  }
+
   @MainActor
-  static func exceptedOwnWindowIDs(from windows: [NSWindow]) -> Set<CGWindowID> {
+  static func exceptedOwnWindowIDs(
+    from windows: [NSWindow],
+    includeAllShareableWindows: Bool = false
+  ) -> Set<CGWindowID> {
     Set(windows.compactMap { window in
-      guard window is HistoryFloatingPanel,
-            window.sharingType != .none,
-            window.windowNumber > 0
+      // Read transient AppKit state once. A capture overlay can close between
+      // repeated windowNumber reads and turn an otherwise valid ID into -1.
+      let windowNumber = window.windowNumber
+      let sharingType = window.sharingType
+      guard let windowID = CGWindowID(exactly: windowNumber),
+            shouldExceptOwnWindow(
+              isHistoryPanel: window is HistoryFloatingPanel,
+              sharingType: sharingType,
+              windowNumber: windowNumber,
+              includeAllShareableWindows: includeAllShareableWindows
+            )
       else { return nil }
-      return CGWindowID(window.windowNumber)
+      return windowID
     })
   }
 }
@@ -207,20 +230,6 @@ final class ScreenCaptureManager: ObservableObject {
   private var didObserveResetPermissionRevocation = false
   private var lastLoggedAuthorizationSnapshot: ScreenRecordingAuthorizationLogSnapshot?
   private nonisolated static let minimumScreenshotOutputScaleFactor: CGFloat = 2.0
-
-  private var preferredScreenshotOutputScaleFactor: CGFloat {
-    switch UserDefaults.standard.integer(forKey: PreferencesKeys.screenshotScale) {
-    case 1:
-      1.0
-    case 2:
-      2.0
-    default:
-      max(
-        NSScreen.screens.map(\.backingScaleFactor).max() ?? Self.minimumScreenshotOutputScaleFactor,
-        Self.minimumScreenshotOutputScaleFactor
-      )
-    }
-  }
 
   private init() {
     screenParametersObserver = NotificationCenter.default.addObserver(
@@ -333,40 +342,6 @@ final class ScreenCaptureManager: ObservableObject {
       for: cacheMode
     )
     return task
-  }
-
-  func captureFastDisplaySnapshot(
-    displayID: CGDirectDisplayID,
-    showCursor: Bool,
-    excludeDesktopIcons: Bool,
-    excludeDesktopWidgets: Bool,
-    excludeOwnApplication: Bool = false,
-    allowFastPathWhenOwnApplicationHidden: Bool = false
-  ) -> FrozenDisplaySnapshot? {
-    guard !excludeOwnApplication || allowFastPathWhenOwnApplicationHidden else { return nil }
-    guard !showCursor else { return nil }
-    guard !excludeDesktopIcons else { return nil }
-    guard !excludeDesktopWidgets else { return nil }
-    guard let screen = NSScreen.screens.first(where: { $0.displayID == displayID }) else {
-      return nil
-    }
-    guard let image = CGDisplayCreateImage(displayID) else {
-      return nil
-    }
-
-    let scaleFactor = Self.imageScaleFactor(
-      for: image,
-      screenFrame: screen.frame,
-      fallback: screen.backingScaleFactor
-    )
-
-    return FrozenDisplaySnapshot(
-      displayID: displayID,
-      screenFrame: screen.frame,
-      scaleFactor: scaleFactor,
-      colorSpaceName: preferredCaptureColorSpaceName(for: screen),
-      image: image
-    )
   }
 
   /// Off-main-thread variant — caller must resolve NSScreen data on main thread first,
@@ -528,7 +503,7 @@ final class ScreenCaptureManager: ObservableObject {
     defer { directoryAccess.stop() }
     let scopedDirectory = directoryAccess.url
 
-    // Resolve filename using user-configurable template (with legacy fallback).
+    // Resolve filename using the user-configurable template with a safe fallback.
     let baseName = CaptureOutputNaming.resolveBaseName(
       customName: fileName,
       kind: .screenshot,
@@ -687,6 +662,7 @@ final class ScreenCaptureManager: ObservableObject {
     excludeDesktopIcons: Bool = false,
     excludeDesktopWidgets: Bool = false,
     excludeOwnApplication: Bool = false,
+    includeAllShareableOwnWindows: Bool = false,
     prefetchedContentTask: ShareableContentPrefetchTask? = nil
   ) async throws -> PreparedAreaCaptureContext {
     if let unavailableError = await ensureCaptureAvailability() {
@@ -699,6 +675,7 @@ final class ScreenCaptureManager: ObservableObject {
       excludeDesktopIcons: excludeDesktopIcons,
       excludeDesktopWidgets: excludeDesktopWidgets,
       excludeOwnApplication: excludeOwnApplication,
+      includeAllShareableOwnWindows: includeAllShareableOwnWindows,
       prefetchedContentTask: prefetchedContentTask
     )
   }
@@ -882,6 +859,7 @@ final class ScreenCaptureManager: ObservableObject {
     excludeDesktopIcons: Bool,
     excludeDesktopWidgets: Bool,
     excludeOwnApplication: Bool,
+    includeAllShareableOwnWindows: Bool,
     prefetchedContentTask: ShareableContentPrefetchTask?,
     minimumOutputScaleFactor: CGFloat = ScreenCaptureManager.minimumScreenshotOutputScaleFactor
   ) async throws -> PreparedAreaCaptureContext {
@@ -923,7 +901,8 @@ final class ScreenCaptureManager: ObservableObject {
       content: content,
       excludeDesktopIcons: excludeDesktopIcons,
       excludeDesktopWidgets: excludeDesktopWidgets,
-      excludeOwnApplication: excludeOwnApplication
+      excludeOwnApplication: excludeOwnApplication,
+      includeAllShareableOwnWindows: includeAllShareableOwnWindows
     )
     guard let matchingScreen = targetScreen ?? NSScreen.screens.first(where: {
       Int($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID ?? 0)
@@ -1075,22 +1054,6 @@ final class ScreenCaptureManager: ObservableObject {
       pixelHeight: image.height,
       frame: screenFrame
     ) ?? max(fallback, 1)
-  }
-
-  private nonisolated static func promoteScreenshotImageIfNeeded(
-    _ image: CGImage,
-    logicalSize: CGSize,
-    sourceScaleFactor: CGFloat,
-    minimumOutputScaleFactor: CGFloat,
-    colorSpaceName: CFString?
-  ) -> (image: CGImage, scaleFactor: CGFloat) {
-    FrozenAreaCaptureSession.imageByPromotingScaleIfNeeded(
-      image,
-      logicalSize: logicalSize,
-      sourceScaleFactor: sourceScaleFactor,
-      minimumOutputScaleFactor: max(minimumOutputScaleFactor, minimumScreenshotOutputScaleFactor),
-      colorSpaceName: colorSpaceName
-    )
   }
 
   private nonisolated static func dimensionScale(
@@ -1400,7 +1363,8 @@ final class ScreenCaptureManager: ObservableObject {
     content: SCShareableContent,
     excludeDesktopIcons: Bool,
     excludeDesktopWidgets: Bool,
-    excludeOwnApplication: Bool
+    excludeOwnApplication: Bool,
+    includeAllShareableOwnWindows: Bool = false
   ) -> SCContentFilter {
     let iconManager = DesktopIconManager.shared
     var excludedApps: [SCRunningApplication] = []
@@ -1409,7 +1373,8 @@ final class ScreenCaptureManager: ObservableObject {
     if excludeOwnApplication, let bundleID = Bundle.main.bundleIdentifier {
       excludedApps += content.applications.filter { $0.bundleIdentifier == bundleID }
       let capturableHistoryWindowIDs = ScreenshotCaptureWindowPolicy.exceptedOwnWindowIDs(
-        from: NSApp.windows
+        from: NSApp.windows,
+        includeAllShareableWindows: includeAllShareableOwnWindows
       )
       exceptedWindows += content.windows.filter {
         capturableHistoryWindowIDs.contains($0.windowID)

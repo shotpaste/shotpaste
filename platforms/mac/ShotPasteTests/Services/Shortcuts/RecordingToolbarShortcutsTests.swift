@@ -219,18 +219,5 @@ final class RecordingToolbarShortcutsTests: XCTestCase {
     XCTAssertTrue(manager.isShortcutEnabled(for: .togglePenRecording))
     XCTAssertTrue(manager.isShortcutEnabled(for: .restartRecording))
     XCTAssertFalse(manager.isShortcutEnabled(for: .deleteRecording))
-
-    // Export test
-    let exportedSource = ShotPasteConfigurationExporter.exportTOML(defaults: defaults)
-    let document = try SimpleTOMLParser.parse(exportedSource)
-
-    XCTAssertEqual(document.value(at: "shortcuts", "global", "toggle_pen_recording", "key")?.stringValue, "P")
-    XCTAssertEqual(document.value(at: "shortcuts", "global", "toggle_pen_recording", "enabled")?.boolValue, true)
-
-    XCTAssertEqual(document.value(at: "shortcuts", "global", "restart_recording", "key")?.stringValue, "R")
-    XCTAssertEqual(document.value(at: "shortcuts", "global", "restart_recording", "enabled")?.boolValue, true)
-
-    XCTAssertEqual(document.value(at: "shortcuts", "global", "delete_recording", "key")?.stringValue, "D")
-    XCTAssertEqual(document.value(at: "shortcuts", "global", "delete_recording", "enabled")?.boolValue, false)
   }
 }

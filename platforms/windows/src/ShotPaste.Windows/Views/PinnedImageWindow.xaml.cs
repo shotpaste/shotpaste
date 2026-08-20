@@ -58,6 +58,14 @@ public partial class PinnedImageWindow : Window
         e.Handled = true;
     }
 
+    private void OnManipulationDelta(object sender, ManipulationDeltaEventArgs e)
+    {
+        if (_locked) return;
+        var factor = Math.Clamp((e.DeltaManipulation.Scale.X + e.DeltaManipulation.Scale.Y) / 2d, 0.8d, 1.25d);
+        SetWindowSize(ActualWidth * factor, ActualHeight * factor, animate: false);
+        e.Handled = true;
+    }
+
     private void OnMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (_locked || e.ChangedButton != MouseButton.Left || IsButton(e.OriginalSource as DependencyObject)) return;
@@ -134,7 +142,7 @@ public partial class PinnedImageWindow : Window
             height = maximumHeight;
             width = Math.Max(180, height * aspect);
         }
-        if (!animate)
+        if (!animate || AccessibilityPreferences.ReduceMotion)
         {
             Width = width;
             Height = height;

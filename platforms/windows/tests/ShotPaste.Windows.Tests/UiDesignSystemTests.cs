@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace ShotPaste.Windows.Tests;
 
@@ -84,7 +85,7 @@ public sealed class UiDesignSystemTests
             Assert.Contains($"x:Key=\"{icon}\"", icons, StringComparison.Ordinal);
 
         Assert.Contains("x:Name=\"KindFilterGroup\"", history, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"剪贴板\"", history, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"剪贴板历史\"", history, StringComparison.Ordinal);
         Assert.DoesNotContain("HistoryFloatingIconButton", history, StringComparison.Ordinal);
         Assert.DoesNotContain("HistoryModeToggle", history, StringComparison.Ordinal);
         Assert.DoesNotContain("StaticResource HistoryPill", history, StringComparison.Ordinal);
@@ -99,6 +100,190 @@ public sealed class UiDesignSystemTests
         Assert.Contains("DwmaSystemBackdropType = 38", source, StringComparison.Ordinal);
         Assert.Contains("OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22621)", source, StringComparison.Ordinal);
         Assert.Contains("window.AllowsTransparency = true", source, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Colors.Light.xaml")]
+    [InlineData("Colors.Dark.xaml")]
+    public void ThemeTextColors_MeetWcagAaContrast(string themeFile)
+    {
+        var document = XDocument.Load(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Resources", "Themes", themeFile));
+        var colors = document.Root!.Elements()
+            .Where(element => element.Name.LocalName == "Color")
+            .ToDictionary(
+                element => element.Attributes().Single(attribute => attribute.Name.LocalName == "Key").Value,
+                element => ParseRgb(element.Value));
+        foreach (var (foreground, background) in new[]
+                 {
+                     ("TextColor", "WindowColor"),
+                     ("TextColor", "SurfaceColor"),
+                     ("SecondaryTextColor", "SurfaceColor"),
+                     ("SecondaryTextColor", "SurfaceSecondaryColor")
+                 })
+        {
+            var ratio = Contrast(colors[foreground], colors[background]);
+            Assert.True(ratio >= 4.5,
+                $"{themeFile}: {foreground} on {background} has {ratio:0.00}:1 contrast; expected at least 4.50:1.");
+        }
+    }
+
+    [Fact]
+    public void OcrResultCard_UsesReadableHudTextSurface()
+    {
+        var resourcePath = FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Resources", "DesignTokens.xaml");
+        var document = XDocument.Load(resourcePath);
+        var requiredBrushes = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "HudBrush", "HudInputBrush", "HudTextBrush"
+        };
+        var brushes = document.Root!.Elements()
+            .Where(element => element.Name.LocalName == "SolidColorBrush")
+            .Where(element => requiredBrushes.Contains(
+                element.Attributes().Single(attribute => attribute.Name.LocalName == "Key").Value))
+            .ToDictionary(
+                element => element.Attributes().Single(attribute => attribute.Name.LocalName == "Key").Value,
+                element => ParseArgb(element.Attribute("Color")!.Value));
+
+        var inputSurface = Composite(brushes["HudInputBrush"], brushes["HudBrush"]);
+        var ratio = Contrast(brushes["HudTextBrush"].Rgb, inputSurface);
+        Assert.True(ratio >= 4.5,
+            $"HudTextBrush on HudInputBrush has {ratio:0.00}:1 contrast; expected at least 4.50:1.");
+
+        var view = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "OcrResultWindow.xaml"));
+        Assert.Contains("AutomationProperties.AutomationId=\"OcrResultText\"", view, StringComparison.Ordinal);
+        Assert.Contains("Background=\"{DynamicResource HudInputBrush}\"", view, StringComparison.Ordinal);
+        Assert.Contains("Foreground=\"{DynamicResource HudTextBrush}\"", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("<TextBox Grid.Row=\"1\"", view, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void QuickAccessPreview_TracksAsynchronouslyDecodedThumbnail()
+    {
+        var sourceRoot = FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows");
+        var view = File.ReadAllText(Path.Combine(sourceRoot, "Views", "QuickAccessWindow.xaml"));
+        var code = File.ReadAllText(Path.Combine(sourceRoot, "Views", "QuickAccessWindow.xaml.cs"));
+
+        Assert.Contains("Source=\"{Binding PreviewSource}\"", view, StringComparison.Ordinal);
+        Assert.Contains("DataTrigger Binding=\"{Binding PreviewSource}\" Value=\"{x:Null}\"", view,
+            StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.AutomationId=\"QuickAccessTextPreview\"", view,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("Preview.Source = preview", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void QuickAccessCard_MatchesMacGeometryCountdownAndGestureFeedback()
+    {
+        var sourceRoot = FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows");
+        var view = File.ReadAllText(Path.Combine(sourceRoot, "Views", "QuickAccessWindow.xaml"));
+        var code = File.ReadAllText(Path.Combine(sourceRoot, "Views", "QuickAccessWindow.xaml.cs"));
+
+        Assert.Contains("Width=\"180\" Height=\"112\"", view, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"CountdownProgress\"", view, StringComparison.Ordinal);
+        Assert.Contains("MouseDoubleClick=\"OnWindowMouseDoubleClick\"", view, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"CardSwipeRotate\"", view, StringComparison.Ordinal);
+        Assert.Contains("SystemParameters.MinimumHorizontalDragDistance", code, StringComparison.Ordinal);
+        Assert.Contains("ExecuteConfiguredActionAsync(\"SaveOrOpen\")", code, StringComparison.Ordinal);
+        Assert.Contains("CompleteSwipeAsync", code, StringComparison.Ordinal);
+        Assert.Contains("Width + 50d", code, StringComparison.Ordinal);
+        Assert.Contains("TimeSpan.FromMilliseconds(400)", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PinnedImageToolbar_RemainsReadableOverAWhiteScreenshot()
+    {
+        var sourceRoot = FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows");
+        var document = XDocument.Load(Path.Combine(sourceRoot, "Resources", "DesignTokens.xaml"));
+        var requiredBrushes = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "HudTextBrush", "Pinned.ToolbarBackgroundBrush"
+        };
+        var brushes = document.Root!.Elements()
+            .Where(element => element.Name.LocalName == "SolidColorBrush")
+            .Where(element => requiredBrushes.Contains(
+                element.Attributes().Single(attribute => attribute.Name.LocalName == "Key").Value))
+            .ToDictionary(
+                element => element.Attributes().Single(attribute => attribute.Name.LocalName == "Key").Value,
+                element => ParseArgb(element.Attribute("Color")!.Value));
+
+        var toolbarOverWhite = Composite(
+            brushes["Pinned.ToolbarBackgroundBrush"],
+            (1d, (1d, 1d, 1d)));
+        var ratio = Contrast(brushes["HudTextBrush"].Rgb, toolbarOverWhite);
+        Assert.True(ratio >= 4.5,
+            $"Pinned toolbar text over a white screenshot has {ratio:0.00}:1 contrast; expected at least 4.50:1.");
+
+        var view = File.ReadAllText(Path.Combine(sourceRoot, "Views", "PinnedImageWindow.xaml"));
+        Assert.Contains("AutomationProperties.AutomationId=\"PinnedToolbarChrome\"", view,
+            StringComparison.Ordinal);
+        Assert.Contains("Background=\"{DynamicResource Pinned.ToolbarBackgroundBrush}\"", view,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AccessibilityPreferences_UseSystemContrastAndReduceMotionSignals()
+    {
+        var sourceRoot = FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows");
+        var preferences = File.ReadAllText(Path.Combine(sourceRoot, "Services", "AccessibilityPreferences.cs"));
+        Assert.Contains("SystemParameters.HighContrast", preferences, StringComparison.Ordinal);
+        Assert.Contains("SystemParameters.ClientAreaAnimation", preferences, StringComparison.Ordinal);
+        Assert.Contains("SystemColors.WindowTextBrush", preferences, StringComparison.Ordinal);
+        Assert.Contains("SystemColors.HighlightTextBrush", preferences, StringComparison.Ordinal);
+
+        foreach (var view in new[]
+                 {
+                     "RecordingToolbarWindow.xaml.cs", "MouseClickOverlayWindow.xaml.cs", "QuickAccessWindow.xaml.cs",
+                     "PinnedImageWindow.xaml.cs", "SettingsWindow.xaml.cs", "ToastWindow.xaml.cs"
+                 })
+            Assert.Contains("ReduceMotion", File.ReadAllText(Path.Combine(sourceRoot, "Views", view)),
+                StringComparison.Ordinal);
+    }
+
+    private static (double R, double G, double B) ParseRgb(string value)
+    {
+        var hex = value.Trim().TrimStart('#');
+        if (hex.Length == 8) hex = hex[2..];
+        Assert.Equal(6, hex.Length);
+        return (Convert.ToInt32(hex[..2], 16) / 255d,
+            Convert.ToInt32(hex.Substring(2, 2), 16) / 255d,
+            Convert.ToInt32(hex.Substring(4, 2), 16) / 255d);
+    }
+
+    private static (double Alpha, (double R, double G, double B) Rgb) ParseArgb(string value)
+    {
+        var hex = value.Trim().TrimStart('#');
+        Assert.True(hex.Length is 6 or 8);
+        var alpha = hex.Length == 8 ? Convert.ToInt32(hex[..2], 16) / 255d : 1d;
+        var rgb = ParseRgb(hex.Length == 8 ? hex[2..] : hex);
+        return (alpha, rgb);
+    }
+
+    private static (double R, double G, double B) Composite(
+        (double Alpha, (double R, double G, double B) Rgb) foreground,
+        (double Alpha, (double R, double G, double B) Rgb) background)
+    {
+        var alpha = foreground.Alpha;
+        return (
+            foreground.Rgb.R * alpha + background.Rgb.R * (1 - alpha),
+            foreground.Rgb.G * alpha + background.Rgb.G * (1 - alpha),
+            foreground.Rgb.B * alpha + background.Rgb.B * (1 - alpha));
+    }
+
+    private static double Contrast((double R, double G, double B) first, (double R, double G, double B) second)
+    {
+        static double Luminance((double R, double G, double B) color)
+        {
+            static double Linear(double component) => component <= 0.04045
+                ? component / 12.92
+                : Math.Pow((component + 0.055) / 1.055, 2.4);
+            return 0.2126 * Linear(color.R) + 0.7152 * Linear(color.G) + 0.0722 * Linear(color.B);
+        }
+        var one = Luminance(first);
+        var two = Luminance(second);
+        return (Math.Max(one, two) + 0.05) / (Math.Min(one, two) + 0.05);
     }
 
     private static string FindRepositoryFile(params string[] relativeParts)

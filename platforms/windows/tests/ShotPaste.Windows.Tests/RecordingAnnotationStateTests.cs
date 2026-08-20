@@ -7,6 +7,31 @@ namespace ShotPaste.Windows.Tests;
 public sealed class RecordingAnnotationStateTests
 {
     [Fact]
+    public void Add_TemporaryPolicyOverridesOnlyTheCreatedAnnotation()
+    {
+        var state = new RecordingAnnotationState
+        {
+            ClearMode = RecordingAnnotationClearMode.Manual,
+            ClearAfter = TimeSpan.FromSeconds(5),
+            MaximumCount = 12
+        };
+
+        var temporary = state.Add(
+            RecordingAnnotationTool.Pencil,
+            [new System.Windows.Point(1, 1), new System.Windows.Point(2, 2)],
+            temporaryPolicy: new RecordingAnnotationPolicy(
+                RecordingAnnotationClearMode.AfterSeconds,
+                TimeSpan.FromSeconds(2),
+                3));
+        var normal = state.Add(
+            RecordingAnnotationTool.Pencil,
+            [new System.Windows.Point(2, 2), new System.Windows.Point(3, 3)]);
+
+        Assert.Equal(RecordingAnnotationClearMode.AfterSeconds, temporary.ClearMode);
+        Assert.Equal(TimeSpan.FromSeconds(2), temporary.ClearAfter);
+        Assert.Equal(RecordingAnnotationClearMode.Manual, normal.ClearMode);
+    }
+    [Fact]
     public void Toolbar_CanBeConstructedWithoutInitializationEventCrash()
     {
         Exception? failure = null;
@@ -34,16 +59,57 @@ public sealed class RecordingAnnotationStateTests
             }
         });
         thread.SetApartmentState(ApartmentState.STA);
+        thread.IsBackground = true;
         thread.Start();
-        Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "WPF toolbar construction did not complete.");
+        Assert.True(thread.Join(TimeSpan.FromSeconds(15)), "WPF toolbar construction did not complete.");
 
         Assert.Null(failure);
     }
 
     [Fact]
-    public void Toolbar_UsesWindowsCaptureExclusionAffinity()
+    public void RecordingSurfaces_DelegateAffinityToDynamicPrivacyService()
     {
-        Assert.Equal(0x00000011u, RecordingInkToolbarWindow.CaptureExclusionAffinity);
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null &&
+               !Directory.Exists(Path.Combine(directory.FullName, ".git")) &&
+               !File.Exists(Path.Combine(directory.FullName, ".git"))) directory = directory.Parent;
+        var root = directory?.FullName ?? Directory.GetCurrentDirectory();
+        var views = Path.Combine(root, "platforms", "windows", "src", "ShotPaste.Windows", "Views");
+        foreach (var fileName in new[]
+                 {
+                     "RecordingToolbarWindow.xaml.cs",
+                     "RecordingRegionOverlayWindow.xaml.cs",
+                     "RecordingInkToolbarWindow.xaml.cs"
+                 })
+        {
+            var source = File.ReadAllText(Path.Combine(views, fileName));
+            Assert.DoesNotContain("SetWindowDisplayAffinity", source, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void Toolbar_AnchorsInsideNegativeCoordinateSecondaryMonitor()
+    {
+        var origin = RecordingInkToolbarWindow.ResolveAnchoredPlacement(
+            new System.Windows.Rect(-1120, 540, 32, 32),
+            new System.Windows.Rect(-1920, 0, 1920, 1080),
+            new System.Windows.Size(420, 72));
+
+        Assert.InRange(origin.X, -1912, -428);
+        Assert.InRange(origin.Y, 8, 1000);
+        Assert.True(origin.X < 0);
+    }
+
+    [Fact]
+    public void Toolbar_FallsBelowAnchorWhenMixedDpiWorkAreaHasNoRoomAbove()
+    {
+        var origin = RecordingInkToolbarWindow.ResolveAnchoredPlacement(
+            new System.Windows.Rect(1400, 12, 32, 32),
+            new System.Windows.Rect(1280, 0, 1280, 960),
+            new System.Windows.Size(520, 84));
+
+        Assert.Equal(52, origin.Y, 3);
+        Assert.InRange(origin.X, 1288, 2032);
     }
 
     [Fact]

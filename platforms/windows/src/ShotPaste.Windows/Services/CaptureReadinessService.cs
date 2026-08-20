@@ -33,7 +33,12 @@ public sealed record CaptureReadinessResult(
     bool RemoteSession,
     int MonitorCount,
     int VirtualWidth,
-    int VirtualHeight);
+    int VirtualHeight)
+{
+    public bool NativeExclusionApplied { get; init; }
+    public bool IsReady => RemainingVisibleWindows == 0 &&
+                           (NativeExclusionApplied || RemainingStaleProbes == 0);
+}
 
 /// <summary>
 /// Establishes an observable capture boundary after ShotPaste windows are
@@ -51,6 +56,7 @@ public static class CaptureReadinessService
     public static async Task<CaptureReadinessResult> WaitAsync(
         string scenario,
         CaptureHideState hiddenState,
+        bool nativeExclusionApplied = false,
         TimeSpan? timeout = null,
         CancellationToken cancellationToken = default)
     {
@@ -82,9 +88,11 @@ public static class CaptureReadinessService
         dwmMilliseconds += flush.Elapsed.TotalMilliseconds;
 
         var pixelWait = Stopwatch.StartNew();
-        var transitions = hiddenState.Windows.Select(probe => new ProbeTransitionState(probe)).ToList();
-        ObserveTransitions(transitions);
-        while (transitions.Any(state => !state.Ready) && total.Elapsed < budget)
+        var transitions = nativeExclusionApplied
+            ? new List<ProbeTransitionState>()
+            : hiddenState.Windows.Select(probe => new ProbeTransitionState(probe)).ToList();
+        if (!nativeExclusionApplied) ObserveTransitions(transitions);
+        while (!nativeExclusionApplied && transitions.Any(state => !state.Ready) && total.Elapsed < budget)
         {
             await Task.Delay(4, cancellationToken);
             flush.Restart();
@@ -96,7 +104,8 @@ public static class CaptureReadinessService
         }
         pixelWait.Stop();
 
-        var fallback = dwmResult < 0 || transitions.Any(state => !state.Ready);
+        var fallback = !nativeExclusionApplied &&
+                       (dwmResult < 0 || transitions.Any(state => !state.Ready));
         if (fallback)
         {
             // Remote/legacy composition can fail to expose a DWM boundary.
@@ -114,7 +123,7 @@ public static class CaptureReadinessService
         }
         total.Stop();
 
-        var remainingStale = transitions.Count(state => !state.Ready);
+        var remainingStale = nativeExclusionApplied ? 0 : transitions.Count(state => !state.Ready);
 
         var virtualScreen = Forms.SystemInformation.VirtualScreen;
         return new CaptureReadinessResult(
@@ -135,7 +144,10 @@ public static class CaptureReadinessService
             Forms.SystemInformation.TerminalServerSession,
             Forms.Screen.AllScreens.Length,
             virtualScreen.Width,
-            virtualScreen.Height);
+            virtualScreen.Height)
+        {
+            NativeExclusionApplied = nativeExclusionApplied
+        };
     }
 
     private static void ObserveTransitions(IEnumerable<ProbeTransitionState> transitions)
@@ -169,7 +181,7 @@ public static class CaptureReadinessService
             NativeMethods.SetStretchBltMode(destination, 3); // COLORONCOLOR
             if (!NativeMethods.StretchBlt(destination, 0, 0, 8, 8, source,
                     sampleBounds.Left, sampleBounds.Top, sampleBounds.Width, sampleBounds.Height,
-                    NativeMethods.Srccopy)) return 0;
+                    NativeMethods.Srccopy | NativeMethods.CaptureBlt)) return 0;
             const ulong offset = 14695981039346656037UL;
             const ulong prime = 1099511628211UL;
             var hash = offset;

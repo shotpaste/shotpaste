@@ -56,15 +56,15 @@
   <Thickness x:Key="ToggleSwitch.ContentMargin">9,0,0,0</Thickness>
   <Thickness x:Key="ComboBox.ItemPadding">10,7</Thickness>
   <Thickness x:Key="ComboBox.PopupPadding">4</Thickness>
-  <Thickness x:Key="Menu.ItemPadding">10,7</Thickness>
-  <Thickness x:Key="Menu.PopupPadding">5</Thickness>
+  <Thickness x:Key="Menu.ItemPadding">12,9</Thickness>
+  <Thickness x:Key="Menu.PopupPadding">7</Thickness>
   <Thickness x:Key="Toast.Padding">14,10</Thickness>
   <Thickness x:Key="ToolTip.Padding">9,6</Thickness>
-  <Thickness x:Key="Settings.TabPadding">16,8</Thickness>
-  <Thickness x:Key="Settings.TabMargin">4,0</Thickness>
-  <Thickness x:Key="Settings.CardPadding">16</Thickness>
-  <Thickness x:Key="Settings.CardMargin">0,0,0,12</Thickness>
-  <Thickness x:Key="Settings.SectionMargin">0,0,0,8</Thickness>
+  <Thickness x:Key="Settings.TabPadding">10,9</Thickness>
+  <Thickness x:Key="Settings.TabMargin">2,0</Thickness>
+  <Thickness x:Key="Settings.CardPadding">18</Thickness>
+  <Thickness x:Key="Settings.CardMargin">0,0,0,18</Thickness>
+  <Thickness x:Key="Settings.SectionMargin">4,0,0,10</Thickness>
 
   <!-- Motion and shadow metrics. -->
   <Duration x:Key="Animation.Fast">0:0:0.15</Duration>
@@ -124,6 +124,7 @@
   <SolidColorBrush x:Key="Capture.SelectionFillBrush" Color="#140A84FF" />
   <SolidColorBrush x:Key="Capture.MarqueeFillBrush" Color="#1F0A84FF" />
   <SolidColorBrush x:Key="Capture.SelectionBrush" Color="#FF0A84FF" />
+  <SolidColorBrush x:Key="Capture.MagnifierGridBrush" Color="#66FFFFFF" />
   <SolidColorBrush x:Key="Annotation.RedBrush" Color="#FFFF453A" />
   <SolidColorBrush x:Key="Annotation.OrangeBrush" Color="#FFFF9F0A" />
   <SolidColorBrush x:Key="Annotation.YellowBrush" Color="#FFFFD60A" />
@@ -136,6 +137,8 @@
   <SolidColorBrush x:Key="Annotation.BlurSelectionBrush" Color="#18FFFFFF" />
   <SolidColorBrush x:Key="Pinned.BackgroundBrush" Color="#DD111113" />
   <SolidColorBrush x:Key="Pinned.BorderBrush" Color="#55FFFFFF" />
+  <SolidColorBrush x:Key="Pinned.ToolbarBackgroundBrush" Color="#D91A1A1E" />
+  <SolidColorBrush x:Key="Pinned.ToolbarBorderBrush" Color="#48FFFFFF" />
   <sys:String x:Key="Annotation.Stroke.Red">Stroke:#FFFF453A</sys:String>
   <sys:String x:Key="Annotation.Stroke.Orange">Stroke:#FFFF9F0A</sys:String>
   <sys:String x:Key="Annotation.Stroke.Yellow">Stroke:#FFFFD60A</sys:String>
@@ -148,6 +151,7 @@
   <sys:String x:Key="Annotation.Yellow.Value">#FFFFD60A</sys:String>
   <sys:String x:Key="Annotation.Green.Value">#FF30D158</sys:String>
   <sys:String x:Key="Annotation.Blue.Value">#FF0A84FF</sys:String>
+  <sys:String x:Key="Annotation.White.Value">#FFFFFFFF</sys:String>
   <sys:String x:Key="Annotation.Background.Clear">TextBackground:Clear</sys:String>
   <sys:String x:Key="Annotation.Background.White">TextBackground:#FFFFFFFF</sys:String>
   <sys:String x:Key="Annotation.Background.Black">TextBackground:#FF000000</sys:String>

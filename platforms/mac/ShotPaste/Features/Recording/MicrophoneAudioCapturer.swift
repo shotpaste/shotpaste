@@ -190,7 +190,7 @@ final nonisolated class MicrophoneAudioCapturer: NSObject, @unchecked Sendable {
       try captureSessionFactory.configureOutput(on: session, delegate: self, queue: dataOutputQueue)
       session.startRunning()
       log(.info, "MicrophoneAudioCapturer: session started", context: [
-        "deviceID": preferredDeviceID ?? RecordingMicrophoneDevice.systemDefaultID,
+        "deviceID": preferredDeviceID ?? RecordingMicrophoneDeviceProvider.systemDefaultID,
         "device": deviceName,
       ])
     } catch MicrophoneCaptureSetupError.noDefaultDevice {

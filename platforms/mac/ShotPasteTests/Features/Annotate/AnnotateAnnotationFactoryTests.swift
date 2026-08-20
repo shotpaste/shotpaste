@@ -54,7 +54,7 @@ final class AnnotateAnnotationFactoryTests: XCTestCase {
   }
 
   func testCreateFilledRectangleCarriesTypeAndProperties() throws {
-    let properties = AnnotationProperties(strokeColor: .blue, fillColor: .green, strokeWidth: 5)
+    let properties = AnnotationProperties(strokeColor: .blue, strokeWidth: 5)
     let annotation = try XCTUnwrap(AnnotationFactory.createAnnotation(
       tool: .filledRectangle,
       from: CGPoint(x: 0, y: 0),

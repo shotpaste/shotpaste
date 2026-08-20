@@ -12,7 +12,6 @@ enum ShotPasteConfigurationAutoImportStatus: Equatable {
   case applied
   case failed
   case skippedMissingFile
-  case skippedPermissionRequired
   case skippedUnchanged
 }
 
@@ -40,26 +39,7 @@ enum ShotPasteConfigurationAutoImporter {
   static func applyIfNeededOnLaunch(
     defaults: UserDefaults = .standard
   ) -> ShotPasteConfigurationAutoImportResult {
-    applyIfNeededOnLaunch(service: .shared, defaults: defaults)
-  }
-
-  static func applyIfNeededOnLaunch(
-    service: ShotPasteConfigurationService,
-    defaults: UserDefaults = .standard
-  ) -> ShotPasteConfigurationAutoImportResult {
-    if service.needsUserSelectedConfigAccess {
-      return ShotPasteConfigurationAutoImportResult(
-        status: .skippedPermissionRequired,
-        fileURL: service.resolvedConfigFileURL,
-        importResult: nil,
-        errorMessage: nil
-      )
-    }
-
-    let access = service.beginAccessingConfigFile()
-    defer { access.stop() }
-
-    return applyIfNeeded(from: access.url, defaults: defaults)
+    applyIfNeeded(from: ShotPasteConfigurationPaths.suggestedConfigURL, defaults: defaults)
   }
 
   static func applyIfNeeded(
@@ -115,16 +95,6 @@ enum ShotPasteConfigurationAutoImporter {
       importResult: importResult,
       errorMessage: nil
     )
-  }
-
-  static func markCurrentFileApplied(_ source: String, defaults: UserDefaults = .standard) {
-    let signature = contentSignature(for: source)
-    guard defaults.string(forKey: PreferencesKeys.configurationLastAppliedSignature) != signature else { return }
-    defaults.set(signature, forKey: PreferencesKeys.configurationLastAppliedSignature)
-  }
-
-  static func isCurrentFileApplied(_ source: String, defaults: UserDefaults = .standard) -> Bool {
-    defaults.string(forKey: PreferencesKeys.configurationLastAppliedSignature) == contentSignature(for: source)
   }
 
   nonisolated static func contentSignature(for source: String) -> String {

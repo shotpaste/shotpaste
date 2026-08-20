@@ -1317,7 +1317,7 @@ private struct InlineAreaAnnotateRootView: View {
     if session.activePrompt != nil {
       InlineAreaNativeCursor.restoreArrow()
     } else if !session.isSelectingOneShotOCR,
-       let resizeHandle = activeResizeHandle ?? hoveredResizeHandle {
+              let resizeHandle = activeResizeHandle ?? hoveredResizeHandle {
       resizeHandle.cursor.set()
     } else if session.phase == .selecting {
       NSCursor.vectorScreenshotCrosshairLight.set()
@@ -2271,10 +2271,6 @@ private enum InlineAreaChrome {
   static let divider = Color.primary.opacity(0.15)
   static let primaryText = Color.primary.opacity(0.86)
   static let secondaryText = Color.secondary.opacity(0.88)
-  static let toolbarIconForeground = Color.primary.opacity(0.85)
-  static let toolbarIconSelectedForeground = Color.primary
-  static let toolbarIconInactiveToggleForeground = Color.primary.opacity(0.5)
-  static let toolbarHoverBackground = Color.primary.opacity(0.10)
 }
 
 private struct InlineAreaPanelBorder: View {
@@ -2800,11 +2796,6 @@ private struct InlineAreaPropertiesBar: View {
   private let strokeColors: [Color] = [
     .red, .orange, .yellow, .green, .blue, .purple, .white, .black,
   ]
-  private let fillColors: [Color] = [
-    .clear, .red, .orange, .yellow, .green, .blue, .purple, .white, .black,
-  ]
-  private let textBackgroundColors: [Color] = [.clear, .white, .black, .yellow, .blue]
-
   var body: some View {
     ZStack(alignment: .leading) {
       ScrollView(.horizontal, showsIndicators: false) {
@@ -2816,22 +2807,6 @@ private struct InlineAreaPropertiesBar: View {
               title: colorTitle,
               selectedColor: state.quickStrokeColorBinding,
               colors: strokeColors
-            )
-          }
-
-          if state.quickPropertiesSupportsFill {
-            InlineAreaColorControl(
-              title: L10n.Common.fill,
-              selectedColor: state.quickFillColorBinding,
-              colors: fillColors
-            )
-          }
-
-          if state.quickPropertiesSupportsTextBackground {
-            InlineAreaColorControl(
-              title: L10n.Common.background,
-              selectedColor: state.quickTextBackgroundBinding,
-              colors: textBackgroundColors
             )
           }
 

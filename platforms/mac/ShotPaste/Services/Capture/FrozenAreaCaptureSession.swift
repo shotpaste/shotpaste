@@ -44,10 +44,6 @@ final nonisolated class FrozenAreaCaptureSession {
     self.snapshots = snapshots
   }
 
-  static func fromSnapshot(_ snapshot: FrozenDisplaySnapshot) -> FrozenAreaCaptureSession {
-    FrozenAreaCaptureSession(snapshots: [snapshot.displayID: snapshot])
-  }
-
   static func fromSnapshots(_ snapshots: [FrozenDisplaySnapshot]) -> FrozenAreaCaptureSession {
     var snapshotsByDisplayID: [CGDirectDisplayID: FrozenDisplaySnapshot] = [:]
     for snapshot in snapshots {
@@ -94,19 +90,11 @@ final nonisolated class FrozenAreaCaptureSession {
     Set(snapshots.keys)
   }
 
-  func containsSnapshot(for displayID: CGDirectDisplayID) -> Bool {
-    snapshots[displayID] != nil
-  }
-
   /// Value copy of the current snapshots, safe to hand to a detached task for
   /// off-main cropping (dictionaries are value types; later mutations of the
   /// session copy-on-write and never affect the returned value).
   func allSnapshots() -> [CGDirectDisplayID: FrozenDisplaySnapshot] {
     snapshots
-  }
-
-  func addSnapshot(_ snapshot: FrozenDisplaySnapshot) {
-    snapshots[snapshot.displayID] = snapshot
   }
 
   func backdrop(for displayID: CGDirectDisplayID) -> AreaSelectionBackdrop? {
@@ -116,10 +104,6 @@ final nonisolated class FrozenAreaCaptureSession {
       image: snapshot.image,
       scaleFactor: snapshot.pixelScaleFactor
     )
-  }
-
-  func missingSnapshotDisplayIDs(for displayIDs: Set<CGDirectDisplayID>) -> Set<CGDirectDisplayID> {
-    Set(displayIDs.filter { snapshots[$0] == nil })
   }
 
   func cropImage(

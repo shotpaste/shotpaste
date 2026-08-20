@@ -209,6 +209,39 @@ final class ScrollingCaptureStitcherTests: XCTestCase {
     XCTAssertEqual(stitcher.outputHeight, 50)
   }
 
+  func testAppend_directionReversal_growsPastBothHistoricalExtents() throws {
+    let stitcher = ScrollingCaptureStitcher()
+    let base = try XCTUnwrap(
+      TestImageFactory.scrollingFrame(width: 240, height: 180, logicalYOffset: 100)
+    )
+    let down = try XCTUnwrap(
+      TestImageFactory.scrollingFrame(width: 240, height: 180, logicalYOffset: 124)
+    )
+    let aboveBase = try XCTUnwrap(
+      TestImageFactory.scrollingFrame(width: 240, height: 180, logicalYOffset: 88)
+    )
+
+    _ = stitcher.start(with: base)
+    let downUpdate = try XCTUnwrap(
+      stitcher.append(down, maxOutputHeight: 10_000, expectedSignedDeltaPixels: 24)
+    )
+    if case .appended(let delta) = downUpdate.outcome {
+      XCTAssertEqual(delta, 24)
+    } else {
+      XCTFail("Expected downward append, got \(downUpdate.outcome)")
+    }
+
+    let reverseUpdate = try XCTUnwrap(
+      stitcher.append(aboveBase, maxOutputHeight: 10_000, expectedSignedDeltaPixels: -36)
+    )
+    if case .appended(let delta) = reverseUpdate.outcome {
+      XCTAssertEqual(delta, 12)
+    } else {
+      XCTFail("Expected reverse append beyond the historical top, got \(reverseUpdate.outcome)")
+    }
+    XCTAssertEqual(stitcher.outputHeight, 216)
+  }
+
   // MARK: - maxOutputHeight enforcement
 
   func testAppend_atMaxOutputHeight_returnsReachedHeightLimit() {
@@ -240,7 +273,8 @@ final class ScrollingCaptureStitcherTests: XCTestCase {
     let update = stitcher.start(with: image)
     XCTAssertEqual(update?.alignmentDebug?.path, .initialFrame)
     XCTAssertEqual(update?.alignmentDebug?.confidence, 1.0)
-    XCTAssertFalse(update?.alignmentDebug?.usedVisionEstimate ?? true)
+    XCTAssertNil(update?.alignmentDebug?.peakCorrelation)
+    XCTAssertEqual(update?.alignmentDebug?.horizontalShift, 0)
     XCTAssertEqual(update?.safety, .confirmed)
   }
 

@@ -38,7 +38,6 @@ struct CaptureSettingsView: View {
   @AppStorage(PreferencesKeys.screenshotShowCursor) private var screenshotShowCursor = false
   @AppStorage(PreferencesKeys.screenshotMagnifierEnabled) private var screenshotMagnifierEnabled = true
   @AppStorage(PreferencesKeys.screenshotMagnifierZoom) private var screenshotMagnifierZoom = 1
-  @AppStorage(PreferencesKeys.screenshotScale) private var screenshotScale = 0
   @AppStorage(PreferencesKeys.screenshotColorSpace) private var screenshotColorSpace = "auto"
   @AppStorage(PreferencesKeys.screenshotLossyQuality) private var screenshotLossyQuality = 90
   @AppStorage(PreferencesKeys.screenshotSuccessNotificationEnabled)
@@ -233,20 +232,6 @@ struct CaptureSettingsView: View {
             }
 
             SettingRow(
-              icon: "arrow.up.left.and.arrow.down.right",
-              title: L10n.PreferencesCapture.outputScaleTitle,
-              description: L10n.PreferencesCapture.outputScaleDescription
-            ) {
-              Picker("", selection: $screenshotScale) {
-                Text(L10n.Common.automatic).tag(0)
-                Text("1×").tag(1)
-                Text("2×").tag(2)
-              }
-              .labelsHidden()
-              .pickerStyle(.menu)
-            }
-
-            SettingRow(
               icon: "paintpalette",
               title: L10n.PreferencesCapture.colorSpaceTitle,
               description: L10n.PreferencesCapture.colorSpaceDescription
@@ -287,12 +272,6 @@ struct CaptureSettingsView: View {
               }
               .padding(.vertical, 4)
             }
-          }
-        }
-
-        if selectedPane == .screenshot {
-          Section(L10n.PreferencesCapture.screenshotPresetSection) {
-            PreferencesScreenshotDefaultPresetPicker()
           }
         }
 
@@ -914,7 +893,7 @@ struct CaptureSettingsView: View {
   // MARK: - Helpers
 
   private var screenshotFilenamePreview: String {
-    let sampleContext = CaptureContext(appName: "Safari", windowTitle: "GitHub")
+    let sampleContext = CaptureContext(appName: "Safari")
     let baseName = CaptureOutputNaming.resolveTemplateBaseName(
       previewTemplate(screenshotFileNameTemplate, kind: .screenshot),
       kind: .screenshot,
@@ -924,7 +903,7 @@ struct CaptureSettingsView: View {
   }
 
   private var recordingFilenamePreview: String {
-    let sampleContext = CaptureContext(appName: "Safari", windowTitle: "GitHub")
+    let sampleContext = CaptureContext(appName: "Safari")
     let baseName = CaptureOutputNaming.resolveTemplateBaseName(
       previewTemplate(recordingFileNameTemplate, kind: .recording),
       kind: .recording,

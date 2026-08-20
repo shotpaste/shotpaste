@@ -248,65 +248,6 @@ final class AnnotateSelectionEditingTests: XCTestCase {
     XCTAssertEqual(state.annotations.first?.type, .rectangle)
   }
 
-  // MARK: - Primary color + remembered shared color
-
-  @MainActor
-  func testUpdatePrimaryColorSetsItemColorAndInheritsOnNextCreate() throws {
-    let state = makeAnnotateState()
-    state.activateTool(.rectangle)
-    let rectangle = makeRectangle(CGRect(x: 0, y: 0, width: 40, height: 40))
-    state.annotations = [rectangle]
-    state.selectedAnnotationId = rectangle.id
-
-    state.updateAnnotationPrimaryColor(id: rectangle.id, color: .green)
-
-    let updated = try XCTUnwrap(state.annotations.first)
-    XCTAssertEqual(updated.properties.strokeColor, .green)
-
-    // Remembered shared color feeds a freshly-created annotation's defaults.
-    let nextCreateProperties = state.annotationCreationProperties(for: .rectangle)
-    XCTAssertEqual(nextCreateProperties.strokeColor, .green)
-  }
-
-  // MARK: - Spotlight opacity remembered on next create
-
-  @MainActor
-  func testSpotlightOpacityBindingPersistsAndInheritsOnNextCreate() {
-    let state = makeAnnotateState()
-    state.activateTool(.spotlight)
-
-    state.quickSpotlightOpacityBinding.wrappedValue = 0.8
-
-    XCTAssertEqual(state.spotlightOpacity, 0.8, accuracy: 0.0001)
-    let nextCreateProperties = state.annotationCreationProperties(for: .spotlight)
-    XCTAssertEqual(nextCreateProperties.spotlightOpacity, 0.8, accuracy: 0.0001)
-  }
-
-  @MainActor
-  func testSpotlightOpacityBindingUpdatesSelectedSpotlightWithSingleUndo() throws {
-    let state = makeAnnotateState()
-    let spotlight = AnnotationItem(
-      type: .spotlight,
-      bounds: CGRect(x: 0, y: 0, width: 80, height: 80),
-      properties: AnnotationProperties(spotlightOpacity: 0.5)
-    )
-    state.annotations = [spotlight]
-    state.activateTool(.selection)
-    state.setSelectedAnnotationIds([spotlight.id])
-    state.hasUnsavedChanges = false
-
-    state.quickSpotlightOpacityBinding.wrappedValue = 0.9
-
-    let updated = try XCTUnwrap(state.annotations.first)
-    XCTAssertEqual(updated.properties.spotlightOpacity, 0.9, accuracy: 0.0001)
-    XCTAssertTrue(state.canUndo)
-
-    state.undo()
-
-    let restored = try XCTUnwrap(state.annotations.first)
-    XCTAssertEqual(restored.properties.spotlightOpacity, 0.5, accuracy: 0.0001)
-  }
-
   // MARK: - Spotlight corner radius remembered on next create
 
   @MainActor

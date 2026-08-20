@@ -69,9 +69,15 @@ internal static class Program
                 .Where(button => button.Tag is string)
                 .Select(button => (string)button.Tag)
                 .ToArray();
-            if (!linkButtons.SequenceEqual(expectedPayloads, StringComparer.Ordinal))
+            var expectedLinkActions = expectedPayloads
+                .SelectMany(payload => new[] { payload, payload })
+                .ToArray();
+            if (!linkButtons.SequenceEqual(expectedLinkActions, StringComparer.Ordinal))
                 throw new InvalidOperationException(
                     $"OCR result window link order changed: {string.Join(" | ", linkButtons)}.");
+            if (VisualDescendants<WpfButton>(window).Single(button => button.Name == "OpenAllButton").Visibility !=
+                Visibility.Visible)
+                throw new InvalidOperationException("OCR result window did not expose Open All for multiple links.");
             var resultWindowPath = Path.Combine(outputRoot, "ocr-result-window.png");
             SaveVisual(window, resultWindowPath);
             window.Close();
@@ -185,13 +191,22 @@ internal static class Program
 
     private static void LoadProductResources(System.Windows.Application app)
     {
-        app.Resources["AccentBrush"] = new SolidColorBrush(WpfColor.FromRgb(124, 58, 237));
-        app.Resources["WindowBrush"] = WpfBrushes.White;
-        app.Resources["TextBrush"] = WpfBrushes.Black;
-        var accent = new Style(typeof(WpfButton));
-        accent.Setters.Add(new Setter(WpfControl.BackgroundProperty, app.Resources["AccentBrush"]));
-        accent.Setters.Add(new Setter(WpfControl.ForegroundProperty, WpfBrushes.White));
-        app.Resources["AccentButton"] = accent;
+        var productAssembly = typeof(OcrResultWindow).Assembly.GetName().Name
+            ?? throw new InvalidOperationException("ShotPaste product assembly name is unavailable.");
+        foreach (var relative in new[]
+                 {
+                     "Resources/DesignTokens.xaml", "Resources/Themes/Colors.Light.xaml",
+                     "Resources/AnnotationIcons.xaml", "Resources/Icons.xaml",
+                     "Resources/Controls/Common.xaml", "Resources/Controls/Buttons.xaml",
+                     "Resources/Controls/CheckBox.xaml", "Resources/Controls/RadioButton.xaml",
+                     "Resources/Controls/TextBox.xaml", "Resources/Controls/ComboBox.xaml",
+                     "Resources/Controls/Slider.xaml", "Resources/Controls/ScrollBar.xaml",
+                     "Resources/Controls/Menu.xaml", "Resources/Controls/Tabs.xaml"
+                 })
+            app.Resources.MergedDictionaries.Add(new ResourceDictionary
+            {
+                Source = new Uri($"pack://application:,,,/{productAssembly};component/{relative}", UriKind.Absolute)
+            });
     }
 
     private static IEnumerable<T> VisualDescendants<T>(DependencyObject root) where T : DependencyObject

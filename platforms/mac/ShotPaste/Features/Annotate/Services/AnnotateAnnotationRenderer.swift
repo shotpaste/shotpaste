@@ -49,10 +49,9 @@ nonisolated struct AnnotationRenderer {
     }
 
     let strokeColor = NSColor(annotation.properties.strokeColor).cgColor
-    let fillColor = NSColor(annotation.properties.fillColor).cgColor
 
     context.setStrokeColor(strokeColor)
-    context.setFillColor(fillColor)
+    context.setFillColor(strokeColor)
     context.setLineWidth(annotation.properties.strokeWidth)
     context.setLineCap(.round)
     context.setLineJoin(.round)
@@ -114,7 +113,6 @@ nonisolated struct AnnotationRenderer {
     currentPath: [CGPoint],
     strokeColor: Color,
     strokeWidth: CGFloat,
-    fillColor: Color = .clear,
     arrowStyle: ArrowStyle = .straight,
     arrowType: ArrowType = .tapered,
     arrowBendDirection: ArrowBendDirection = .primary,
@@ -149,8 +147,7 @@ nonisolated struct AnnotationRenderer {
     case .filledRectangle:
       let currentPoint = currentPath.last ?? start
       let rect = makeRect(from: start, to: currentPoint)
-      let resolvedFillColor = fillColor == .clear ? strokeColor.opacity(1) : fillColor
-      context.setFillColor(NSColor(resolvedFillColor).cgColor)
+      context.setFillColor(NSColor(strokeColor).cgColor)
       context.addPath(roundedRectPath(in: rect, cornerRadius: rectangleCornerRadius))
       context.drawPath(using: .fillStroke)
       context.setFillColor(NSColor.clear.cgColor)
@@ -370,26 +367,7 @@ nonisolated struct AnnotationRenderer {
 
   private func drawText(_ content: String, in bounds: CGRect, properties: AnnotationProperties) {
     let displayText = content.isEmpty ? "" : content
-    let font = AnnotateTextLayout.font(size: properties.fontSize, fontName: properties.fontName)
-
-    // The text bounds are the bubble itself, so the surface grows in lockstep
-    // with the text instead of leaving a separate, fixed-size background behind.
-    if properties.textPresentation != .plain, properties.fillColor != .clear {
-      context.setFillColor(NSColor(properties.fillColor).cgColor)
-      let bgRect = bounds.standardized
-      let cornerRadius = properties.cornerRadius > 0
-        ? min(properties.cornerRadius, min(bgRect.width, bgRect.height) * 0.46)
-        : TextBubbleGeometry.cornerRadius(in: bgRect, fontSize: font.pointSize)
-      context.addPath(
-        TextBubbleGeometry.bubblePath(
-          in: bgRect,
-          cornerRadius: cornerRadius,
-          tailTarget: properties.textPresentation == .callout ? properties.calloutTailTarget : nil,
-          fontSize: font.pointSize
-        )
-      )
-      context.fillPath()
-    }
+    let font = AnnotateTextLayout.font(size: properties.fontSize)
 
     // Draw text with word wrapping within bounds
     let paragraphStyle = NSMutableParagraphStyle()
@@ -402,12 +380,7 @@ nonisolated struct AnnotationRenderer {
     ]
 
     let textBounds = bounds.standardized
-    let textRect = AnnotateTextLayout.textRect(
-      for: content,
-      font: font,
-      in: textBounds,
-      presentation: properties.textPresentation
-    )
+    let textRect = AnnotateTextLayout.textRect(for: content, font: font, in: textBounds)
     let text = displayText as NSString
     context.saveGState()
     context.clip(to: textBounds)

@@ -1017,44 +1017,6 @@ final class KeyboardShortcutManager {
     }
   }
 
-  private func registerOverlayShortcutIfNeeded(
-    label: String,
-    parentKind: GlobalShortcutKind,
-    config: ShortcutConfig?,
-    hotkeyID: EventHotKeyID,
-    ref: inout EventHotKeyRef?
-  ) {
-    guard isShortcutEnabled(for: parentKind), let config else { return }
-
-    // Same Fn handling as registerShortcutIfNeeded: dispatch via key event monitors.
-    guard config.modifiers & ShortcutConfig.functionCarbonModifier == 0 else {
-      fnBindings.append((id: hotkeyID.id, config: config))
-      return
-    }
-
-    guard config.modifiers != 0 else { return }
-
-    let status = RegisterEventHotKey(
-      config.keyCode,
-      config.modifiers,
-      hotkeyID,
-      GetApplicationEventTarget(),
-      0,
-      &ref
-    )
-
-    if status != noErr || ref == nil {
-      DiagnosticLogger.shared.log(
-        .warning,
-        .action,
-        "Failed to register shortcut \(label)",
-        context: ["status": String(status)]
-      )
-      ref = nil
-      return
-    }
-  }
-
   // MARK: - Fn Shortcut Dispatch
 
   /// Installs/removes the key event monitors used to dispatch Fn-containing

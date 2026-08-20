@@ -9,6 +9,7 @@
 
 import AppKit
 import Foundation
+import ImageIO
 import os.log
 import UniformTypeIdentifiers
 
@@ -24,6 +25,17 @@ private nonisolated let logger = Logger(subsystem: "ShotPaste", category: "Clipb
 /// Temp files must NOT be deleted immediately — the receiving app needs them at paste time.
 /// Orphaned temp files are cleaned up on next launch by `TempCaptureManager.cleanupOrphanedFiles()`.
 enum ClipboardHelper {
+  nonisolated static let maximumTIFFPixelCount = 32_000_000
+
+  nonisolated static func shouldCreateTIFFRepresentation(
+    pixelWidth: Int,
+    pixelHeight: Int
+  ) -> Bool {
+    guard pixelWidth >= 0, pixelHeight >= 0 else { return false }
+    let pixelCount = pixelWidth.multipliedReportingOverflow(by: pixelHeight)
+    return !pixelCount.overflow && pixelCount.partialValue <= maximumTIFFPixelCount
+  }
+
   static func copyText(_ text: String) {
     let pasteboard = NSPasteboard.general
     pasteboard.clearContents()
@@ -162,10 +174,25 @@ enum ClipboardHelper {
       return
     }
 
+    // Very tall screenshots can require hundreds of MiB when decoded and then
+    // again when represented as TIFF. PNG plus file URL is already sufficient
+    // for modern image consumers, so only materialize TIFF below a conservative
+    // pixel budget.
+    let source = CGImageSourceCreateWithURL(url as CFURL, nil)
+    let properties = source.flatMap {
+      CGImageSourceCopyPropertiesAtIndex($0, 0, nil) as? [CFString: Any]
+    }
+    let pixelWidth = properties?[kCGImagePropertyPixelWidth] as? Int ?? 0
+    let pixelHeight = properties?[kCGImagePropertyPixelHeight] as? Int ?? 0
+    let shouldCreateTIFF = shouldCreateTIFFRepresentation(
+      pixelWidth: pixelWidth,
+      pixelHeight: pixelHeight
+    )
+
     // Heavy work off-main
-    let image = NSImage(contentsOf: url)
+    let image = shouldCreateTIFF ? NSImage(contentsOf: url) : nil
     let tiffData = image?.tiffRepresentation
-    let encodedData = try? Data(contentsOf: url)
+    let encodedData = try? Data(contentsOf: url, options: .mappedIfSafe)
     let encodedType = pasteboardImageType(for: url.pathExtension)
 
     await MainActor.run {
@@ -183,7 +210,7 @@ enum ClipboardHelper {
         encodedType: encodedType
       )
 
-      if image == nil {
+      if image == nil, shouldCreateTIFF {
         logger.warning("ClipboardHelper: could not decode image, file/data-only clipboard for \(url.lastPathComponent)")
         DiagnosticLogger.shared.log(
           .warning,

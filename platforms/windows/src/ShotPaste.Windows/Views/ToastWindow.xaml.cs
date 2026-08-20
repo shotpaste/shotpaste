@@ -49,12 +49,23 @@ public partial class ToastWindow : Window
         if (!IsVisible) Show();
         UpdateLayout();
         PositionOnPointerScreen();
+        if (AccessibilityPreferences.ReduceMotion)
+        {
+            BeginAnimation(OpacityProperty, null);
+            ToastScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            ToastScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+            Opacity = 1;
+            ToastScale.ScaleX = ToastScale.ScaleY = 1;
+        }
+        else
+        {
         Opacity = 0;
         ToastScale.ScaleX = ToastScale.ScaleY = 0.95;
         BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(160)));
         var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
         ToastScale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.95, 1, TimeSpan.FromMilliseconds(280)) { EasingFunction = easing });
         ToastScale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.95, 1, TimeSpan.FromMilliseconds(280)) { EasingFunction = easing });
+        }
 
         _dismissTimer.Stop();
         _dismissTimer.Interval = duration < TimeSpan.FromMilliseconds(800) ? TimeSpan.FromMilliseconds(800) : duration;
@@ -66,6 +77,11 @@ public partial class ToastWindow : Window
         if (_dismissing || !IsVisible) return;
         _dismissing = true;
         _dismissTimer.Stop();
+        if (AccessibilityPreferences.ReduceMotion)
+        {
+            Close();
+            return;
+        }
         var fade = new DoubleAnimation(Opacity, 0, TimeSpan.FromMilliseconds(160));
         fade.Completed += (_, _) => Close();
         BeginAnimation(OpacityProperty, fade);

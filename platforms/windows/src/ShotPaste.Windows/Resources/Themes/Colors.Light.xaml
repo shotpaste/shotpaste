@@ -4,7 +4,7 @@
   <Color x:Key="SurfaceColor">#FFFFFFFF</Color>
   <Color x:Key="SurfaceSecondaryColor">#FFF1F1F5</Color>
   <Color x:Key="TextColor">#FF19191D</Color>
-  <Color x:Key="SecondaryTextColor">#FF71717A</Color>
+  <Color x:Key="SecondaryTextColor">#FF6D6D76</Color>
   <Color x:Key="ShadowColor">#FF000000</Color>
 
   <SolidColorBrush x:Key="WindowBrush" Color="{StaticResource WindowColor}" />

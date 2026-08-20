@@ -29,10 +29,11 @@ public sealed class SettingsStoreTests
 
         var store = new SettingsStore(settings);
 
-        Assert.Equal(6, store.Current.QuickAccessActions.Count);
+        Assert.Equal(["Copy", "None", "Drag", "Delete", "SaveOrOpen", "None"],
+            store.Current.QuickAccessActions);
         Assert.DoesNotContain("Unknown", store.Current.QuickAccessActions);
         Assert.DoesNotContain("Edit", store.Current.QuickAccessActions);
-        Assert.DoesNotContain("Drag", store.Current.QuickAccessActions);
+        Assert.Contains("Drag", store.Current.QuickAccessActions);
         Assert.DoesNotContain("Open", store.Current.QuickAccessActions);
         Assert.Contains("SaveOrOpen", store.Current.QuickAccessActions);
         Assert.Contains("Delete", store.Current.QuickAccessActions);
@@ -85,6 +86,34 @@ public sealed class SettingsStoreTests
         Assert.Equal(680, store.Current.HistoryExpandedHeight);
         Assert.Equal(30, store.Current.HistoryRetentionDays);
         Assert.Equal(1_000, store.Current.HistoryMaxCount);
+        Assert.Equal("Clipboard", store.Current.HistoryDefaultFilter);
+        Assert.Equal("TopCenter", store.Current.HistoryPosition);
+    }
+
+    [Fact]
+    public void NewSettings_UseRequestedCaptureNotificationAndClipboardDefaults()
+    {
+        var settings = new AppSettings();
+
+        Assert.False(settings.ExcludeOwnApplicationFromScreenshots);
+        Assert.True(settings.ShowOcrSuccessNotifications);
+        Assert.True(settings.ClipboardHistoryEnabled);
+        Assert.False(new ScreenCaptureOptions().ExcludeOwnApplication);
+    }
+
+    [Fact]
+    public void ExplicitPersistedChoices_AreNotOverwrittenByNewDefaults()
+    {
+        var store = new SettingsStore(new AppSettings
+        {
+            ExcludeOwnApplicationFromScreenshots = true,
+            ShowOcrSuccessNotifications = false,
+            ClipboardHistoryEnabled = false
+        });
+
+        Assert.True(store.Current.ExcludeOwnApplicationFromScreenshots);
+        Assert.False(store.Current.ShowOcrSuccessNotifications);
+        Assert.False(store.Current.ClipboardHistoryEnabled);
     }
 
     [Fact]
@@ -111,5 +140,44 @@ public sealed class SettingsStoreTests
 
         Assert.Null(store.Current.HistoryExpandedLeft);
         Assert.Equal(-100_000, store.Current.HistoryExpandedTop);
+    }
+
+    [Theory]
+    [InlineData("BottomCenter", "BottomCenter")]
+    [InlineData("BottomLeft", "BottomCenter")]
+    [InlineData("BottomRight", "BottomCenter")]
+    [InlineData("Remember", "TopCenter")]
+    [InlineData("Center", "TopCenter")]
+    [InlineData("TopLeft", "TopCenter")]
+    public void Constructor_MigratesHistoryPlacementToMacAlignedTopOrBottom(string persisted, string expected)
+    {
+        var store = new SettingsStore(new AppSettings { HistoryPosition = persisted });
+
+        Assert.Equal(expected, store.Current.HistoryPosition);
+    }
+
+    [Fact]
+    public void Constructor_NormalizesPersistedRecordingToolbarCoordinates()
+    {
+        var store = new SettingsStore(new AppSettings
+        {
+            RecordingToolbarLeft = double.PositiveInfinity,
+            RecordingToolbarTop = -250_000
+        });
+
+        Assert.Null(store.Current.RecordingToolbarLeft);
+        Assert.Equal(-100_000, store.Current.RecordingToolbarTop);
+    }
+
+    [Fact]
+    public void Constructor_MigratesLegacyMcpPortToTheCurrentBuildVariantDefault()
+    {
+        var store = new SettingsStore(new AppSettings
+        {
+            SchemaVersion = 15,
+            McpServerPort = AppBuildIdentity.Release.DefaultMcpServerPort
+        });
+
+        Assert.Equal(AppBuildIdentity.Current.DefaultMcpServerPort, store.Current.McpServerPort);
     }
 }

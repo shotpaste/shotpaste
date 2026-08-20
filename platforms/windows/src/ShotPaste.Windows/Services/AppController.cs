@@ -22,6 +22,8 @@ public sealed class AppController : IDisposable
     private readonly SemaphoreSlim _operationGate = new(1, 1);
     private readonly ImageFileService _images;
     private readonly OcrService _ocr;
+    private readonly IRecoverableFileOperations _recoverableFiles = new ShellRecoverableFileOperations();
+    private readonly WindowCaptureExclusionService _recordingCaptureExclusion = new();
     private RegionSelectionService? _selection;
     private ScrollingCaptureService? _scrolling;
     private GlobalHotkeyService? _hotkeys;
@@ -40,17 +42,26 @@ public sealed class AppController : IDisposable
     private KeystrokeOverlayService? _keystrokeOverlay;
     private MouseClickOverlayService? _mouseClickOverlay;
     private System.Windows.Threading.DispatcherTimer? _historyMaintenanceTimer;
+    private ShotPasteMcpServer? _mcpServer;
     private readonly Dictionary<Guid, PinnedImageWindow> _activePins = [];
     private Rectangle? _currentRecordingRectangle;
+    private TaskCompletionSource<bool>? _activeRecordingWorkflow;
+    private TaskCompletionSource<bool>? _activeScrollingWorkflow;
+    private ScrollingProgressWindow? _activeScrollingWindow;
+    private bool _exitInProgress;
     private readonly Queue<IReadOnlyList<string>> _pendingCommands = new();
     private bool _ready;
+    private bool _settingsWindowOpen;
+    private SettingsWindow? _settingsWindow;
+    private string? _databaseRecoveryArchivePath;
 
     public AppController()
     {
         _images = new ImageFileService(_settings);
         _ocr = new OcrService(() => _settings.Current.OcrRecognitionLanguage.Equals("Auto", StringComparison.OrdinalIgnoreCase)
             ? _settings.Current.Language
-            : _settings.Current.OcrRecognitionLanguage);
+            : _settings.Current.OcrRecognitionLanguage,
+            () => _settings.Current.ShowOcrLinkNotifications);
     }
 
     public async void Start()
@@ -82,7 +93,7 @@ public sealed class AppController : IDisposable
         LocalizationService.EnableAutomaticWpfLocalization();
         ThemeService.Apply(_settings.Current.Theme);
         ApplyOperatingSystemIntegrations();
-        await _history.LoadAsync();
+        if (!await EnsureHistoryDatabaseReadyForLaunchAsync()) return;
         var recoveryScan = await RecordingRecoveryService.ScanAsync();
         if (recoveryScan.Recording is { } recovered &&
             !_history.Items.Any(item => string.Equals(item.FilePath, recovered.Path, StringComparison.OrdinalIgnoreCase)))
@@ -91,14 +102,21 @@ public sealed class AppController : IDisposable
         await _history.PruneAsync(_settings.Current.HistoryRetentionDays, _settings.Current.HistoryMaxCount);
         _selection = new RegionSelectionService(
             _capture,
-            () => ScreenshotCaptureOptions);
+            () => ScreenshotCaptureOptions,
+            () => _settings.Current,
+            _settings.Save);
         _scrolling = CreateScrollingCaptureService();
         if (!App.UiTestMode)
         {
             _hotkeys = new GlobalHotkeyService();
-            _clipboard = new ClipboardMonitorService(_history, _settings);
-            _tray = new TrayIconService(_settings.Current, () => _recording.Elapsed);
+            _tray = new TrayIconService(
+                _settings.Current,
+                () => _recording.Elapsed,
+                () => _quickAccess?.HasVisibleItems == true,
+                () => _settingsWindow?.IsVisible == true ? _settingsWindow : null);
         }
+        if (!App.UiTestMode || App.UiTestClipboardMonitorEnabled)
+            _clipboard = new ClipboardMonitorService(_history, _settings);
         _quickAccess = new QuickAccessService(this, _settings);
         WireEvents();
         if (!string.IsNullOrWhiteSpace(_settings.LastConfigurationWarning))
@@ -109,6 +127,16 @@ public sealed class AppController : IDisposable
         else if (!string.IsNullOrWhiteSpace(recoveryScan.Warning))
             _tray?.ShowMessage("录屏恢复", recoveryScan.Warning, Forms.ToolTipIcon.Warning);
         _mainWindow = new MainWindow(this, _history, _settings);
+        _mcpServer = new ShotPasteMcpServer(new ShotPasteMcpProtocol(
+            ExecuteMcpToolAsync,
+            GetMcpStatus,
+            typeof(AppController).Assembly.GetName().Version?.ToString() ?? "1.0.0"));
+        ApplyMcpSettings();
+        if (!string.IsNullOrWhiteSpace(_databaseRecoveryArchivePath))
+            _tray?.ShowMessage(
+                LocalizationService.TranslatePhrase("数据库已重置"),
+                LocalizationService.TranslatePhrase("旧数据库已保存在：") + _databaseRecoveryArchivePath,
+                Forms.ToolTipIcon.Warning);
         if (App.UiTestMode)
         {
             _mainWindow.Show();
@@ -120,9 +148,84 @@ public sealed class AppController : IDisposable
         if (_hotkeys?.FailedActions.Count > 0)
             _tray?.ShowMessage("部分快捷键不可用", "快捷键已被其他程序占用，可继续使用托盘菜单。", Forms.ToolTipIcon.Warning);
         _ready = true;
-        while (_pendingCommands.Count > 0) ExecuteExternalCommand(UrlSchemeService.Parse(_pendingCommands.Dequeue()));
+        while (_pendingCommands.Count > 0) HandleExternalCommand(_pendingCommands.Dequeue());
         if (!App.UiTestMode && AppBuildIdentity.Current.PerformsAutomaticUpdateChecks)
             _ = CheckForUpdatesAutomaticallyAsync();
+    }
+
+    private async Task<bool> EnsureHistoryDatabaseReadyForLaunchAsync()
+    {
+        Exception? currentError = null;
+        string? note = null;
+        while (true)
+        {
+            try
+            {
+                await _history.LoadAsync();
+                return true;
+            }
+            catch (Exception exception) when (DatabaseRecoveryService.IsRecoverableLaunchFailure(exception))
+            {
+                currentError = exception;
+            }
+
+            var details = $"{LocalizationService.TranslatePhrase("ShotPaste 需要历史数据库才能运行。")}\n\n" +
+                          $"{LocalizationService.TranslatePhrase("数据库：")}\n{_history.DatabasePath}\n\n" +
+                          $"{LocalizationService.TranslatePhrase("错误：")}\n{currentError.Message}";
+            if (!string.IsNullOrWhiteSpace(note)) details += $"\n\n{LocalizationService.TranslatePhrase(note)}";
+            details += "\n\n" + LocalizationService.TranslatePhrase(
+                "请先尝试修复。重置会把现有数据库移到恢复文件夹，再创建空数据库；磁盘上的截图、录屏和剪贴板文件不会被删除。");
+            var action = LocalizedDialogService.ShowCustom(
+                null,
+                details,
+                "ShotPaste 无法打开数据库",
+                "尝试修复",
+                "重置数据库…",
+                "退出 ShotPaste",
+                MessageBoxImage.Error);
+
+            if (action == MessageBoxResult.Yes)
+            {
+                note = "修复未成功。你可以在备份现有数据库后重置，或退出 ShotPaste。";
+                continue;
+            }
+
+            if (action == MessageBoxResult.No)
+            {
+                var confirm = LocalizedDialogService.ShowCustom(
+                    null,
+                    $"{LocalizationService.TranslatePhrase("ShotPaste 会把当前数据库文件移到恢复文件夹，然后创建新的空数据库。")}\n\n" +
+                    $"{LocalizationService.TranslatePhrase("这会清空 ShotPaste 内的历史记录，但不会删除磁盘上的截图、录屏或剪贴板文件。")}\n\n" +
+                    $"{LocalizationService.TranslatePhrase("数据库：")}\n{_history.DatabasePath}\n\n" +
+                    $"{LocalizationService.TranslatePhrase("当前错误：")}\n{currentError.Message}",
+                    "重置 ShotPaste 数据库？",
+                    "重置数据库",
+                    "取消",
+                    MessageBoxImage.Warning);
+                if (confirm != MessageBoxResult.Yes)
+                {
+                    note = null;
+                    continue;
+                }
+
+                try
+                {
+                    var archive = DatabaseRecoveryService.ArchiveDatabaseFiles(_history.DatabasePath);
+                    _databaseRecoveryArchivePath = archive.ArchiveDirectory;
+                    note = "旧数据库已移到恢复文件夹，但 ShotPaste 仍无法创建新数据库。";
+                    continue;
+                }
+                catch (Exception resetException) when (DatabaseRecoveryService.IsRecoverableLaunchFailure(resetException))
+                {
+                    currentError = resetException;
+                    note = "重置在创建新数据库前失败。";
+                    continue;
+                }
+            }
+
+            System.Windows.Application.Current.Shutdown(1);
+            return false;
+        }
     }
 
     private async Task CheckForUpdatesAutomaticallyAsync()
@@ -178,13 +281,27 @@ public sealed class AppController : IDisposable
 
     public void HandleExternalCommand(IReadOnlyList<string> arguments)
     {
-        var parsed = UrlSchemeService.Parse(arguments);
-        if (parsed.Command == AppCommand.None) return;
         if (!_ready)
         {
             _pendingCommands.Enqueue(arguments.ToArray());
             return;
         }
+        if (App.UiTestMode && arguments.Any(argument =>
+                argument.Equals("--ui-test-exit", StringComparison.OrdinalIgnoreCase)))
+        {
+            Exit();
+            return;
+        }
+        var uiTestSurface = App.UiTestMode
+            ? arguments.FirstOrDefault(argument => argument.StartsWith("--ui-test-surface=", StringComparison.OrdinalIgnoreCase))
+            : null;
+        if (uiTestSurface is not null)
+        {
+            ShowUiTestSurface(uiTestSurface.Split('=', 2)[1]);
+            return;
+        }
+        var parsed = UrlSchemeService.Parse(arguments);
+        if (parsed.Command == AppCommand.None) return;
         ExecuteExternalCommand(parsed);
     }
 
@@ -208,10 +325,43 @@ public sealed class AppController : IDisposable
                     LocalizationService.TranslatePhrase(command.Error ?? "ShotPaste 链接格式无效"),
                     Forms.ToolTipIcon.Warning);
                 break;
-            case AppCommand.OneShot: StartOneShot(); break;
-            case AppCommand.History: ShowHistory(); break;
+            case AppCommand.OneShot:
+                StartOneShot(command.CaptureMode switch
+                {
+                    "scrolling" => OneShotMode.Scrolling,
+                    "recording" => OneShotMode.Recording,
+                    "ocr" => OneShotMode.Ocr,
+                    _ => OneShotMode.Screenshot
+                });
+                break;
+            case AppCommand.CancelCapture:
+            {
+                var overlay = System.Windows.Application.Current.Windows.OfType<InlineAnnotateWindow>()
+                    .FirstOrDefault(window => window.IsVisible);
+                if (overlay is null)
+                    _tray?.ShowMessage("无法取消捕获", "当前没有正在进行的 One Shot。", Forms.ToolTipIcon.Warning);
+                else
+                    overlay.RequestExternalCancel();
+                break;
+            }
+            case AppCommand.History: ShowHistory(command.HistoryFilter); break;
             case AppCommand.Settings: ShowSettings(command.SettingsTab); break;
+            case AppCommand.ControlRecording: ExecuteExternalRecordingAction(command.RecordingAction); break;
         }
+    }
+
+    private void ExecuteExternalRecordingAction(string? action)
+    {
+        if (!_recording.IsRecording)
+        {
+            _tray?.ShowMessage("无法控制录屏", "当前没有正在进行的录屏。", Forms.ToolTipIcon.Warning);
+            return;
+        }
+        if (action == "pause" && !_recording.IsPaused) _recording.TogglePause();
+        else if (action == "resume" && _recording.IsPaused) _recording.TogglePause();
+        else if (action == "stop") _recording.Stop();
+        else
+            _tray?.ShowMessage("无法控制录屏", action == "pause" ? "录屏已经暂停。" : "录屏当前并未暂停。", Forms.ToolTipIcon.Warning);
     }
 
     private void WireEvents()
@@ -222,6 +372,7 @@ public sealed class AppController : IDisposable
             _tray.PauseRecordingRequested += (_, _) => _recording.TogglePause();
             _tray.OneShotRequested += (_, _) => StartOneShot();
             _tray.HistoryRequested += (_, _) => ShowHistory();
+            _tray.FocusQuickAccessRequested += (_, _) => _quickAccess?.FocusNewest();
             _tray.SettingsRequested += (_, _) => ShowSettings();
             _tray.ExitRequested += (_, _) => Exit();
         }
@@ -252,10 +403,10 @@ public sealed class AppController : IDisposable
                         ToggleRecordingInk(recordingRectangle);
                     break;
                 case HotkeyAction.RecordingRestart:
-                    if (_recording.IsRecording) { _restartRecording = true; _recording.Stop(); }
+                    RequestRecordingRestart();
                     break;
                 case HotkeyAction.RecordingDelete:
-                    if (_recording.IsRecording) { _discardRecording = true; _recording.Stop(); }
+                    RequestRecordingDiscard();
                     break;
             }
         });
@@ -264,15 +415,20 @@ public sealed class AppController : IDisposable
     private async Task CaptureScrollingCoreAsync(Rectangle initialRegion)
     {
         if (_scrolling is null) return;
+        var workflow = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _activeScrollingWorkflow = workflow;
         _scrolling = CreateScrollingCaptureService();
-        HideApplicationWindows();
         var region = initialRegion;
         using var cancellation = new CancellationTokenSource();
         var outline = new RecordingRegionOverlayWindow(
             region,
             _capture.VirtualBounds,
             constrainToRegionScreen: true);
-        var window = new ScrollingProgressWindow(_settings.Current.ScrollingShowHints);
+        var preview = new ScrollingPreviewWindow();
+        var showHints = _settings.Current.ScrollingShowHints;
+        var window = new ScrollingProgressWindow(showHints, preview);
+        var autoScrollWindow = new ScrollingAutoScrollWindow();
+        _activeScrollingWindow = window;
         var startCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var discard = false;
         var autoScrollState = 0;
@@ -282,22 +438,33 @@ public sealed class AppController : IDisposable
         {
             if (Interlocked.Exchange(ref finishState, 1) != 0) return;
             window.BeginFinalizing();
+            // The incremental canvas is already the product. Exit capture UI
+            // immediately while the tail fence, final crop, encoding, and
+            // history insertion continue in the protected workflow.
+            window.Hide();
+            autoScrollWindow.StopAndHide();
+            preview.Hide();
+            outline.Hide();
         };
         window.CancelRequested += (_, _) =>
         {
             discard = true;
             startCompletion.TrySetResult(false);
             cancellation.Cancel();
+            autoScrollWindow.StopAndHide();
         };
-        window.AutoScrollRequested += (_, _) =>
-            Volatile.Write(ref autoScrollState, window.IsAutoScrollEnabled ? 1 : 0);
+        autoScrollWindow.ToggleRequested += (_, _) =>
+            Volatile.Write(ref autoScrollState, autoScrollWindow.IsAutoScrollEnabled ? 1 : 0);
         window.Closed += (_, _) => startCompletion.TrySetResult(false);
         outline.RegionChanged += updatedRegion =>
         {
             region = updatedRegion;
             window.UpdateReadyRegion(updatedRegion);
+            autoScrollWindow.PositionInside(updatedRegion);
         };
         outline.SetScrollingAppearance(capturing: false);
+        if (showHints)
+            outline.SetScrollingGuidance("可拖动选区或八个边缘调整范围；只框选会滚动的内容，然后点击开始。");
         window.ShowReady(region);
         window.PositionNear(region);
         outline.Show();
@@ -311,7 +478,9 @@ public sealed class AppController : IDisposable
                 if (!shouldStart || discard) return;
 
                 outline.SetScrollingAppearance(capturing: true);
-                window.BeginCapture(_settings.Current.ScrollingAutoScrollEnabled);
+                if (showHints) outline.SetScrollingGuidance("正在锁定选区和首帧，请稍候。");
+                window.BeginCapture(true);
+                autoScrollWindow.ShowForCapture(region);
                 window.PositionNear(region);
                 await window.Dispatcher.InvokeAsync(
                     window.UpdateLayout,
@@ -324,15 +493,24 @@ public sealed class AppController : IDisposable
                 var scrollTarget = NativeMethods.GetAncestor(NativeMethods.WindowFromPoint(center), NativeMethods.GaRoot);
                 using var wheelMonitor = new MouseWheelMonitor();
                 wheelMonitor.Start(region);
-                var progress = new Progress<ScrollingCaptureProgress>(window.UpdateProgress);
+                var progress = new Progress<ScrollingCaptureProgress>(progress =>
+                {
+                    window.UpdateProgress(progress);
+                    autoScrollWindow.UpdateProgress(progress);
+                    if (showHints)
+                    {
+                        outline.SetScrollingGuidance(
+                            progress.Status,
+                            progress.Height > 0 ? $"已拼接 {progress.Frames} 帧 · {progress.Height:N0} px" : null);
+                    }
+                });
                 captured = await _scrolling.CaptureAsync(
                     region,
                     scrollTarget,
                     wheelMonitor,
                     progress,
                     cancellation.Token,
-                    () => Volatile.Read(ref autoScrollState) == 1 &&
-                          _settings.Current.ScrollingAutoScrollEnabled,
+                    () => Volatile.Read(ref autoScrollState) == 1,
                     () => discard,
                     () => Volatile.Read(ref finishState) == 1);
             }
@@ -342,24 +520,26 @@ public sealed class AppController : IDisposable
             }
 
             using var capturedResult = captured;
-            using var result = capturedResult is null ? null : PrepareScreenshot(capturedResult);
+            // The scrolling canvas already owns the final 32-bpp bitmap. Avoid
+            // cloning the entire long image at the default 1x scale; only create
+            // a second bitmap when the user explicitly requests 2x output.
+            using var scaledResult = capturedResult is not null && _settings.Current.ScreenshotScale == 2
+                ? PrepareScreenshot(capturedResult)
+                : null;
+            var result = scaledResult ?? capturedResult;
             if (discard || result is null) return;
 
-            // Match macOS: keep the HUD visible, lock every action, and expose a
-            // distinct saving state until the long screenshot has been written.
-            window.BeginSaving();
-            await window.Dispatcher.InvokeAsync(
-                window.UpdateLayout,
-                System.Windows.Threading.DispatcherPriority.Render);
-            await Task.Delay(16);
-            var path = _images.Save(result, ScreenshotOutputDirectory, CaptureKind.ScrollingScreenshot);
-            await FinishImageCaptureAsync(path, CaptureKind.ScrollingScreenshot, result);
+            await SaveScrollingResultWithRecoveryAsync(window, result);
         }
         finally
         {
-            window.Close();
+            window.CloseAfterWorkflow();
+            autoScrollWindow.CloseAfterWorkflow();
+            preview.Close();
             outline.Close();
-            RestoreMainWindowIfNeeded();
+            workflow.TrySetResult(true);
+            if (ReferenceEquals(_activeScrollingWorkflow, workflow)) _activeScrollingWorkflow = null;
+            if (ReferenceEquals(_activeScrollingWindow, window)) _activeScrollingWindow = null;
         }
     }
 
@@ -379,13 +559,14 @@ public sealed class AppController : IDisposable
                 Owner = _mainWindow?.IsVisible == true ? _mainWindow : null
             };
             resultWindow.Show();
-            resultWindow.Activate();
         }
         else if (_settings.Current.ShowOcrSuccessNotifications)
             _tray?.ShowMessage("文字已复制", result.Text.Length > 90 ? result.Text[..90] + "…" : result.Text);
     }
 
-    public void StartOneShot() => RunExclusive(async () =>
+    public void StartOneShot() => StartOneShot(OneShotMode.Screenshot);
+
+    internal void StartOneShot(OneShotMode initialMode) => RunExclusive(async () =>
     {
         if (_selection is null) return;
         var recordingOptions = new OneShotRecordingOptions(
@@ -393,14 +574,15 @@ public sealed class AppController : IDisposable
             _settings.Current.IncludeCursorInRecording,
             _settings.Current.RecordSystemAudio,
             _settings.Current.RecordMicrophone);
-        using var result = await _selection.SelectOneShotAsync(recordingOptions);
+        using var result = await _selection.SelectOneShotAsync(recordingOptions, CommitScreenshotFromOverlayAsync, initialMode);
         if (result is null) return;
 
         switch (result.Mode)
         {
             case OneShotMode.Screenshot when result.Image is not null:
-                using (var image = PrepareScreenshot(result.Image))
+                if (!result.ScreenshotCommitted)
                 {
+                    using var image = PrepareScreenshot(result.Image);
                     var path = _images.Save(image, ScreenshotOutputDirectory, CaptureKind.Screenshot);
                     var item = await FinishImageCaptureAsync(path, CaptureKind.Screenshot, image);
                     if (result.PinRequested) PinHistoryItem(item);
@@ -420,6 +602,229 @@ public sealed class AppController : IDisposable
                 break;
         }
     });
+
+    private async Task<bool> CommitScreenshotFromOverlayAsync(Window owner, Bitmap rendered, bool pin)
+    {
+        using var image = PrepareScreenshot(rendered);
+        string? savedPath = null;
+        while (savedPath is null)
+        {
+            try
+            {
+                savedPath = _images.Save(image, ScreenshotOutputDirectory, CaptureKind.Screenshot);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or
+                                               System.ComponentModel.Win32Exception or ExternalException)
+            {
+                var decision = LocalizedDialogService.ShowCustom(
+                    owner,
+                    $"截图尚未写入磁盘：{exception.Message}\n\n成果仍保留在标注窗口中。可以重试、选择其他位置，或返回后使用复制按钮。",
+                    "截图保存失败",
+                    "重试",
+                    "选择其他位置",
+                    "返回",
+                    MessageBoxImage.Error);
+                if (decision == MessageBoxResult.Yes) continue;
+                if (decision != MessageBoxResult.No) return false;
+
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = LocalizedDialogService.Text("选择截图保存位置"),
+                    InitialDirectory = _settings.Current.SaveDirectory,
+                    FileName = Path.GetFileName(_images.NewPath(_settings.Current.SaveDirectory, CaptureKind.Screenshot)),
+                    DefaultExt = ".png",
+                    Filter = LocalizedDialogService.Text("图片文件|*.png;*.jpg;*.jpeg;*.webp|所有文件|*.*"),
+                    AddExtension = true,
+                    OverwritePrompt = true
+                };
+                if (dialog.ShowDialog(owner) != true) return false;
+                try
+                {
+                    _images.SaveToPath(image, dialog.FileName);
+                    savedPath = dialog.FileName;
+                }
+                catch (Exception saveAsException) when (saveAsException is IOException or UnauthorizedAccessException or
+                                                        System.ComponentModel.Win32Exception or ExternalException)
+                {
+                    LocalizedDialogService.Show(owner, $"仍无法保存：{saveAsException.Message}", "截图保存失败",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        try
+        {
+            var item = await FinishImageCaptureAsync(savedPath, CaptureKind.Screenshot, image);
+            if (pin) PinHistoryItem(item);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ExternalException or
+                                           Microsoft.Data.Sqlite.SqliteException)
+        {
+            LocalizedDialogService.Show(
+                owner,
+                $"截图已保存到：\n{savedPath}\n\n但写入历史或剪贴板失败：{exception.Message}",
+                "截图已保存",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+        return true;
+    }
+
+    private void ShowUiTestSurface(string surface)
+    {
+        switch (surface.ToLowerInvariant())
+        {
+            case "ocr":
+                new OcrResultWindow(new OcrRecognitionResult(
+                    "ShotPaste OCR localization preview\nhttps://shotpaste.local/help",
+                    [],
+                    ["https://shotpaste.local/help"],
+                    [])).Show();
+                break;
+            case "scrolling-recovery":
+            {
+                var preview = new ScrollingPreviewWindow();
+                var hud = new ScrollingProgressWindow(showHints: true, preview);
+                hud.ShowReady(new Rectangle(120, 120, 760, 520));
+                preview.Show();
+                hud.Show();
+                _ = hud.WaitForSaveRecoveryActionAsync("保存失败，成果仍保留；可重试、另存或复制");
+                hud.Closed += (_, _) => preview.Close();
+                break;
+            }
+            case "recording-toolbar":
+                _recordingToolbar = new RecordingToolbarWindow(_recording, _settings.Current);
+                _recordingToolbar.Show();
+                break;
+            case "quick-access":
+                _settings.Current.QuickAccessAutoDismissEnabled = false;
+                new QuickAccessWindow(new CaptureHistoryItem
+                {
+                    Kind = CaptureKind.ClipboardText,
+                    Text = "ShotPaste localization preview"
+                }, this, _settings).Show();
+                break;
+            case "dialog":
+                LocalizedDialogService.ShowCustom(
+                    _mainWindow,
+                    "您有未保存的更改。您想在关闭前保存吗？",
+                    "未保存的更改",
+                    "保存",
+                    "不要保存",
+                    "取消",
+                    MessageBoxImage.Warning);
+                break;
+        }
+    }
+
+    private async Task<bool> SaveScrollingResultWithRecoveryAsync(
+        ScrollingProgressWindow window,
+        Bitmap result)
+    {
+        Exception? lastFailure = null;
+        while (true)
+        {
+            if (lastFailure is null)
+            {
+                window.BeginSaving();
+                await window.Dispatcher.InvokeAsync(
+                    window.UpdateLayout,
+                    System.Windows.Threading.DispatcherPriority.Render);
+                await Task.Delay(16);
+            }
+
+            try
+            {
+                var path = _images.Save(result, ScreenshotOutputDirectory, CaptureKind.ScrollingScreenshot);
+                await FinishSavedScrollingResultAsync(window, path, result);
+                return true;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or
+                                               System.ComponentModel.Win32Exception or ExternalException)
+            {
+                lastFailure = exception;
+            }
+
+            var action = await window.WaitForSaveRecoveryActionAsync(
+                $"{lastFailure.Message}\n成果仍在内存中，可重试、选择其他位置或复制到剪贴板。");
+            switch (action)
+            {
+                case ScrollingSaveRecoveryAction.Retry:
+                    lastFailure = null;
+                    continue;
+                case ScrollingSaveRecoveryAction.Copy:
+                    try
+                    {
+                        ClipboardWriter.SetImage(BitmapSourceFactory.FromBitmap(result));
+                        lastFailure = new IOException("成果已复制到剪贴板，但尚未写入磁盘。");
+                    }
+                    catch (ExternalException exception)
+                    {
+                        lastFailure = exception;
+                    }
+                    continue;
+                case ScrollingSaveRecoveryAction.SaveAs:
+                {
+                    var dialog = new Microsoft.Win32.SaveFileDialog
+                    {
+                        Title = LocalizedDialogService.Text("选择长图保存位置"),
+                        InitialDirectory = _settings.Current.SaveDirectory,
+                        FileName = Path.GetFileName(_images.NewPath(_settings.Current.SaveDirectory, CaptureKind.ScrollingScreenshot)),
+                        DefaultExt = ".png",
+                        Filter = LocalizedDialogService.Text("图片文件|*.png;*.jpg;*.jpeg;*.webp|所有文件|*.*"),
+                        AddExtension = true,
+                        OverwritePrompt = true
+                    };
+                    if (dialog.ShowDialog(window) != true) continue;
+                    try
+                    {
+                        _images.SaveToPath(result, dialog.FileName);
+                        await FinishSavedScrollingResultAsync(window, dialog.FileName, result);
+                        return true;
+                    }
+                    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or
+                                                       System.ComponentModel.Win32Exception or ExternalException)
+                    {
+                        lastFailure = exception;
+                        continue;
+                    }
+                }
+                case ScrollingSaveRecoveryAction.Discard:
+                    var decision = LocalizedDialogService.ShowCustom(
+                        window,
+                        "长图尚未保存。确定丢弃当前合并成果吗？此操作无法恢复。",
+                        "丢弃长图？",
+                        "丢弃成果",
+                        "返回",
+                        MessageBoxImage.Warning);
+                    if (decision == MessageBoxResult.Yes) return false;
+                    continue;
+                case ScrollingSaveRecoveryAction.DiscardConfirmed:
+                    return false;
+            }
+        }
+    }
+
+    private async Task FinishSavedScrollingResultAsync(
+        Window owner,
+        string path,
+        Bitmap result)
+    {
+        try
+        {
+            _ = await FinishImageCaptureAsync(path, CaptureKind.ScrollingScreenshot, result);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ExternalException or
+                                           Microsoft.Data.Sqlite.SqliteException)
+        {
+            LocalizedDialogService.Show(
+                owner,
+                $"长图已保存到：\n{path}\n\n但写入历史或剪贴板失败：{exception.Message}",
+                "长图已保存",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
 
     private async Task StartOneShotRecordingAsync(Rectangle rectangle, OneShotRecordingOptions options)
     {
@@ -447,6 +852,9 @@ public sealed class AppController : IDisposable
 
     private async Task ExecuteRecordingRequestAsync(RecordingRequest request)
     {
+        var workflow = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _activeRecordingWorkflow = workflow;
+        var completedSafely = false;
         ApplyRecordingRequestSettings(request);
         var target = request.Target;
         var rectangle = target.Bounds;
@@ -454,6 +862,7 @@ public sealed class AppController : IDisposable
         _recordingRegionOverlay ??= new RecordingRegionOverlayWindow(rectangle, _capture.VirtualBounds);
         if (!_recordingRegionOverlay.IsVisible) _recordingRegionOverlay.Show();
         _recordingRegionOverlay.SetRecordingAppearance(request.DimNonSelectedArea);
+        _recordingCaptureExclusion.SetEnabled(!request.IncludeShotPaste);
         HideApplicationWindows(forRecording: true);
         try
         {
@@ -485,12 +894,7 @@ public sealed class AppController : IDisposable
                 }
                 if (_settings.Current.ShowRecordingToolbar)
                 {
-                    _recordingToolbar = new RecordingToolbarWindow(_recording, _settings.Current);
-                    _recordingToolbar.StopRequested += (_, _) => _recording.Stop();
-                    _recordingToolbar.DeleteRequested += (_, _) => { _discardRecording = true; _recording.Stop(); };
-                    _recordingToolbar.RestartRequested += (_, _) => { _restartRecording = true; _recording.Stop(); };
-                    _recordingToolbar.PenRequested += (_, _) => ToggleRecordingInk(rectangle);
-                    _recordingToolbar.Show();
+                    ShowRecordingToolbar(rectangle);
                 }
                 var path = await completion;
                 var duration = _recording.Elapsed;
@@ -500,8 +904,16 @@ public sealed class AppController : IDisposable
                 _mouseClickOverlay?.Dispose(); _mouseClickOverlay = null;
                 if (_discardRecording || _restartRecording)
                 {
-                    try { if (File.Exists(path)) File.Delete(path); } catch (IOException) { }
-                    continue;
+                    var removal = _recoverableFiles.MoveToRecycleBin(path);
+                    if (removal.Succeeded) continue;
+
+                    _discardRecording = false;
+                    _restartRecording = false;
+                    LocalizedDialogService.Show(
+                        $"录屏未能移入 Windows 回收站，因此文件已保留并会加入历史。\n\n{removal.Error}",
+                        "无法丢弃录屏",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
                 }
                 var kind = request.Gif ? CaptureKind.Gif : CaptureKind.Recording;
                 var item = await _history.AddFileAsync(path, kind, duration);
@@ -514,6 +926,7 @@ public sealed class AppController : IDisposable
             _currentRecordingRectangle = null;
             _recordingRegionOverlay?.Close(); _recordingRegionOverlay = null;
             RestoreMainWindowIfNeeded();
+            completedSafely = true;
         }
         catch (Exception exception)
         {
@@ -525,6 +938,58 @@ public sealed class AppController : IDisposable
             _recordingRegionOverlay?.Close(); _recordingRegionOverlay = null;
             ShowError("录屏失败", exception); RestoreMainWindowIfNeeded();
         }
+        finally
+        {
+            _recordingCaptureExclusion.SetEnabled(false);
+            workflow.TrySetResult(completedSafely);
+            if (ReferenceEquals(_activeRecordingWorkflow, workflow)) _activeRecordingWorkflow = null;
+        }
+    }
+
+    private void ShowRecordingToolbar(Rectangle rectangle)
+    {
+        if (_recordingToolbar is { IsVisible: true }) return;
+        var toolbar = new RecordingToolbarWindow(_recording, () => _settings.Current, _settings.Save);
+        _recordingToolbar = toolbar;
+        toolbar.StopRequested += (_, _) => _recording.Stop();
+        toolbar.DeleteRequested += (_, _) => RequestRecordingDiscard();
+        toolbar.RestartRequested += (_, _) => RequestRecordingRestart();
+        toolbar.PenRequested += (_, _) => ToggleRecordingInk(rectangle);
+        toolbar.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_recordingToolbar, toolbar)) _recordingToolbar = null;
+        };
+        toolbar.Show();
+    }
+
+    private void RequestRecordingRestart()
+    {
+        if (!_recording.IsRecording || _restartRecording || _discardRecording) return;
+        var decision = LocalizedDialogService.ShowCustom(
+            _recordingToolbar,
+            "重新录制会停止当前录屏，并把当前文件移入 Windows 回收站。确定继续吗？",
+            "重新录制？",
+            "移入回收站并重录",
+            "继续当前录屏",
+            MessageBoxImage.Warning);
+        if (decision != MessageBoxResult.Yes) return;
+        _restartRecording = true;
+        _recording.Stop();
+    }
+
+    private void RequestRecordingDiscard()
+    {
+        if (!_recording.IsRecording || _restartRecording || _discardRecording) return;
+        var decision = LocalizedDialogService.ShowCustom(
+            _recordingToolbar,
+            "删除会停止当前录屏，并把当前文件移入 Windows 回收站。确定继续吗？",
+            "删除录屏？",
+            "移入回收站",
+            "继续录屏",
+            MessageBoxImage.Warning);
+        if (decision != MessageBoxResult.Yes) return;
+        _discardRecording = true;
+        _recording.Stop();
     }
 
     private void ApplyRecordingRequestSettings(RecordingRequest request)
@@ -552,7 +1017,7 @@ public sealed class AppController : IDisposable
         if (_recordingInkToolbar is null)
         {
             _recordingInk.SetInteractionEnabled(true);
-            _recordingInkToolbar = new RecordingInkToolbarWindow(_recordingInk);
+            _recordingInkToolbar = new RecordingInkToolbarWindow(_recordingInk, _recordingToolbar);
             _recordingInkToolbar.CloseRequested += (_, _) => DeactivateRecordingInk();
             _recordingInkToolbar.Show();
             _recordingToolbar?.SetPenActive(true);
@@ -589,11 +1054,11 @@ public sealed class AppController : IDisposable
         _recordingToolbar?.SetPenActive(false);
     }
 
-    private async Task<CaptureHistoryItem> FinishImageCaptureAsync(string path, CaptureKind kind, Bitmap image)
+    private async Task<CaptureHistoryItem> FinishImageCaptureAsync(string path, CaptureKind kind, Bitmap _)
     {
         if (_settings.Current.CopyScreenshots)
         {
-            ClipboardWriter.SetImage(BitmapSourceFactory.FromBitmap(image));
+            await ClipboardWriter.SetImageFileAsync(path);
         }
         var item = await _history.AddFileAsync(path, kind);
         if (_settings.Current.ShowQuickAccess && _settings.Current.ShowQuickAccessForScreenshots) ShowQuickAccess(item);
@@ -671,18 +1136,51 @@ public sealed class AppController : IDisposable
     public void ShowHistory()
     {
         if (_mainWindow is null) return;
+        _mainWindow.ShowDefaultHistory();
+        _mainWindow.Show();
+        _mainWindow.WindowState = WindowState.Normal;
+        _mainWindow.Activate();
+    }
+
+    private void ShowClipboardHistory()
+    {
+        if (_mainWindow is null) return;
         _mainWindow.ShowClipboardHistory();
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
     }
 
-    private void ShowClipboardHistory() => ShowHistory();
+    private void ShowHistory(string? filter)
+    {
+        if (_mainWindow is null) return;
+        if (string.IsNullOrWhiteSpace(filter)) _mainWindow.ShowDefaultHistory();
+        else _mainWindow.ShowHistoryFilter(filter);
+        _mainWindow.Show();
+        _mainWindow.WindowState = WindowState.Normal;
+        _mainWindow.Activate();
+    }
 
     public void ShowSettings(string? tab = null)
     {
-        var window = new SettingsWindow(_settings, tab) { Owner = _mainWindow?.IsVisible == true ? _mainWindow : null };
+        if (_settingsWindow is { } existing)
+        {
+            existing.NavigateToTab(tab);
+            if (existing.WindowState == WindowState.Minimized) existing.WindowState = WindowState.Normal;
+            existing.Activate();
+            existing.Focus();
+            var handle = new System.Windows.Interop.WindowInteropHelper(existing).Handle;
+            if (handle != IntPtr.Zero) NativeMethods.SetForegroundWindow(handle);
+            return;
+        }
+
+        var window = new SettingsWindow(_settings, tab, ApplyLiveSettings)
+        {
+            Owner = _mainWindow?.IsVisible == true ? _mainWindow : null
+        };
+        _settingsWindow = window;
         _hotkeys?.Suspend();
+        _settingsWindowOpen = true;
         var saved = false;
         try
         {
@@ -691,6 +1189,8 @@ public sealed class AppController : IDisposable
         }
         finally
         {
+            if (ReferenceEquals(_settingsWindow, window)) _settingsWindow = null;
+            _settingsWindowOpen = false;
             _hotkeys?.RegisterConfigured(_settings.Current);
         }
 
@@ -705,13 +1205,155 @@ public sealed class AppController : IDisposable
         foreach (Window openWindow in System.Windows.Application.Current.Windows)
             LocalizationService.LocalizeWindow(openWindow);
         _mainWindow?.RefreshLocalization();
-        _mainWindow?.ApplyHistoryBackgroundStyle();
+        _mainWindow?.ApplyHistoryPresentation();
         _quickAccess?.RefreshSettings();
         ApplyOperatingSystemIntegrations();
         App.ConfigureDiagnostics(_settings.Current.DiagnosticsEnabled);
-        _hotkeys?.RegisterConfigured(_settings.Current);
+        if (!_settingsWindowOpen) _hotkeys?.RegisterConfigured(_settings.Current);
         _tray?.UpdateShortcuts(_settings.Current);
+        _recordingCaptureExclusion.SetEnabled(_recording.IsRecording && !_settings.Current.IncludeShotPasteInRecording);
+        if (_recording.IsRecording && _currentRecordingRectangle is { } rectangle)
+        {
+            _recordingRegionOverlay?.SetRecordingAppearance(_settings.Current.DimNonSelectedRecordingArea);
+            if (_settings.Current.ShowRecordingToolbar) ShowRecordingToolbar(rectangle);
+            else
+            {
+                _recordingToolbar?.Close();
+                _recordingToolbar = null;
+            }
+        }
+        ApplyMcpSettings();
     }
+
+    private void ApplyMcpSettings()
+    {
+        if (_mcpServer is null) return;
+        if (_settings.Current.McpServerEnabled && string.IsNullOrWhiteSpace(_settings.Current.McpServerAuthToken))
+        {
+            _settings.Current.McpServerAuthToken = Convert.ToBase64String(
+                    System.Security.Cryptography.RandomNumberGenerator.GetBytes(32))
+                .TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            _settings.Save();
+        }
+        _mcpServer.Apply(
+            _settings.Current.McpServerEnabled,
+            _settings.Current.McpServerPort,
+            _settings.Current.McpServerAuthToken);
+        if (_settings.Current.McpServerEnabled && _mcpServer.LastError is { } error)
+            _tray?.ShowMessage("MCP Server 启动失败", error, Forms.ToolTipIcon.Warning);
+    }
+
+    private Task<McpAutomationResult> ExecuteMcpToolAsync(
+        string name,
+        System.Text.Json.Nodes.JsonObject arguments,
+        CancellationToken cancellationToken)
+    {
+        var dispatcher = System.Windows.Application.Current.Dispatcher;
+        if (dispatcher.CheckAccess()) return Task.FromResult(ExecuteMcpTool(name, arguments));
+        return dispatcher.InvokeAsync(() => ExecuteMcpTool(name, arguments),
+            System.Windows.Threading.DispatcherPriority.Normal, cancellationToken).Task;
+    }
+
+    private McpAutomationResult ExecuteMcpTool(string name, System.Text.Json.Nodes.JsonObject arguments)
+    {
+        switch (name)
+        {
+            case "shotpaste.start_capture":
+            {
+                if (_operationGate.CurrentCount == 0 || System.Windows.Application.Current.Windows.OfType<InlineAnnotateWindow>().Any(window => window.IsVisible))
+                    return McpAutomationResult.Failure("A capture or another exclusive operation is already active.", GetMcpStatus().State);
+                var mode = ShotPasteMcpProtocol.ReadString(arguments, "mode") switch
+                {
+                    "scrolling" => OneShotMode.Scrolling,
+                    "recording" => OneShotMode.Recording,
+                    _ => OneShotMode.Screenshot
+                };
+                StartOneShot(mode);
+                return new McpAutomationResult(true, $"Started One Shot in {mode.ToString().ToLowerInvariant()} mode.", GetMcpStatus().State);
+            }
+            case "shotpaste.cancel_capture":
+            {
+                var overlay = System.Windows.Application.Current.Windows.OfType<InlineAnnotateWindow>().FirstOrDefault(window => window.IsVisible);
+                if (overlay is null) return McpAutomationResult.Failure("No One Shot capture is active.", GetMcpStatus().State);
+                overlay.RequestExternalCancel();
+                return new McpAutomationResult(true, "Requested cancellation of the active One Shot capture.", GetMcpStatus().State);
+            }
+            case "shotpaste.open_history":
+            {
+                var filter = ShotPasteMcpProtocol.ReadString(arguments, "filter");
+                ShowHistory(filter);
+                return new McpAutomationResult(true, $"Opened history{(filter is null ? string.Empty : $" with {filter} filter")}.", GetMcpStatus().State);
+            }
+            case "shotpaste.open_settings":
+            {
+                var rawTab = ShotPasteMcpProtocol.ReadString(arguments, "tab");
+                var tab = rawTab == "appearance" ? "appearance" : UrlSchemeService.NormalizeSettingsTab(rawTab);
+                if (rawTab is not null && tab is null)
+                    return McpAutomationResult.Failure("Unknown settings tab.", GetMcpStatus().State);
+                _ = System.Windows.Application.Current.Dispatcher.BeginInvoke(() => ShowSettings(tab));
+                return new McpAutomationResult(true, "Opened settings.", GetMcpStatus().State);
+            }
+            case "shotpaste.control_recording":
+            {
+                var action = ShotPasteMcpProtocol.ReadString(arguments, "action");
+                var transitionError = RecordingActionError(action, _recording.IsRecording, _recording.IsPaused);
+                if (transitionError is not null)
+                    return McpAutomationResult.Failure(transitionError, GetMcpStatus().State);
+                if (action is "pause" or "resume") _recording.TogglePause();
+                else if (action == "stop") _recording.Stop();
+                return new McpAutomationResult(true, $"Recording {action} request accepted.", GetMcpStatus().State);
+            }
+            default:
+                return McpAutomationResult.Failure("Unknown MCP tool.", GetMcpStatus().State);
+        }
+    }
+
+    private McpAutomationResult GetMcpStatus()
+    {
+        var dispatcher = System.Windows.Application.Current.Dispatcher;
+        if (!dispatcher.CheckAccess()) return dispatcher.Invoke(GetMcpStatus);
+        var oneShot = System.Windows.Application.Current.Windows.OfType<InlineAnnotateWindow>()
+            .FirstOrDefault(window => window.IsVisible);
+        var state = BuildMcpStatusState(
+            oneShot?.CurrentOneShotMode,
+            _activeScrollingWorkflow is not null,
+            _recording.IsRecording,
+            _recording.IsPaused,
+            _recording.IsPostProcessing,
+            _recording.Elapsed,
+            _mainWindow?.IsVisible == true);
+        return new McpAutomationResult(true, "ShotPaste status read.", state);
+    }
+
+    internal static IReadOnlyDictionary<string, string> BuildMcpStatusState(
+        OneShotMode? oneShotMode,
+        bool scrollingActive,
+        bool recordingActive,
+        bool recordingPaused,
+        bool recordingPostProcessing,
+        TimeSpan recordingDuration,
+        bool historyVisible) => new Dictionary<string, string>
+        {
+            ["platform"] = "Windows",
+            ["oneShot"] = oneShotMode is null ? "idle" : "active",
+            ["oneShotMode"] = oneShotMode?.ToString().ToLowerInvariant() ?? "none",
+            ["scrollingCapture"] = scrollingActive ? "active" : "idle",
+            ["recording"] = recordingPostProcessing ? "stopping" :
+                !recordingActive ? "idle" : recordingPaused ? "paused" : "recording",
+            ["recordingDuration"] = $"{(int)recordingDuration.TotalMinutes:00}:{recordingDuration.Seconds:00}",
+            ["historyVisible"] = historyVisible ? "true" : "false"
+        };
+
+    internal static string? RecordingActionError(string? action, bool recordingActive, bool recordingPaused) => action switch
+    {
+        "pause" when recordingActive && !recordingPaused => null,
+        "pause" => "No running recording can be paused.",
+        "resume" when recordingActive && recordingPaused => null,
+        "resume" => "No paused recording can be resumed.",
+        "stop" when recordingActive => null,
+        "stop" => "No active recording can be stopped.",
+        _ => "Unknown recording action."
+    };
 
     private void ApplyOperatingSystemIntegrations()
     {
@@ -819,7 +1461,29 @@ public sealed class AppController : IDisposable
         pinned.Show();
     }
 
-    public Task DeleteHistoryItemAsync(CaptureHistoryItem item) => _history.RemoveAsync(item, true);
+    public async Task<bool> DeleteHistoryItemAsync(CaptureHistoryItem item, Window? owner = null)
+    {
+        var decision = LocalizedDialogService.ShowCustom(
+            owner,
+            "确定删除这条历史记录吗？由 ShotPaste 保存的文件会移入 Windows 回收站，可以恢复。",
+            "删除历史记录",
+            "移入回收站",
+            "取消",
+            MessageBoxImage.Warning);
+        if (decision != MessageBoxResult.Yes) return false;
+
+        var result = await _history.RemoveAsync(item, true);
+        if (result.RecordRemoved) return true;
+        var detail = string.Join("\n", result.Failures.Take(3).Select(failure =>
+            $"{Path.GetFileName(failure.Path)}：{failure.Message}"));
+        LocalizedDialogService.Show(
+            owner,
+            $"未能完成安全文件处理或历史数据库更新，因此记录仍然保留，可重试。\n\n{detail}",
+            "删除失败",
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
+        return false;
+    }
 
     public async Task SaveHistoryItemAsync(CaptureHistoryItem item)
     {
@@ -906,18 +1570,18 @@ public sealed class AppController : IDisposable
         _settings.Current.HideDesktopWidgetsInScreenshots,
         _settings.Current.ExcludeOwnApplicationFromScreenshots);
 
-    private ScrollingCaptureService CreateScrollingCaptureService() => new(
-        _capture,
-        _settings.Current.ScrollingMaxHeight,
-        _settings.Current.ScrollingPreviewMaxHeight,
-        _settings.Current.ScrollingAutoScrollIntervalMs,
-        _settings.Current.ScrollingDetectFixedBars,
-        _settings.Current.ScrollingSafetyGuardEnabled,
-        () => new ScreenCaptureOptions(
+    internal static ScreenCaptureOptions ScrollingCaptureOptions => new(
             IncludeCursor: false,
             HideDesktopIcons: false,
             HideDesktopWidgets: false,
-            ExcludeOwnApplication: _settings.Current.ExcludeOwnApplicationFromScreenshots));
+            // Scrolling capture keeps shareable ShotPaste windows visible. Its
+            // region outline, compact HUD, auto-scroll capsule, and preview rail
+            // each opt out through WDA_EXCLUDEFROMCAPTURE.
+            ExcludeOwnApplication: false);
+
+    private ScrollingCaptureService CreateScrollingCaptureService() => new(
+        _capture,
+        captureOptionsProvider: () => ScrollingCaptureOptions);
 
     private Drawing.Bitmap PrepareScreenshot(Drawing.Bitmap source)
     {
@@ -1014,15 +1678,72 @@ public sealed class AppController : IDisposable
 
     private void ShowError(string title, Exception exception) => _tray?.ShowMessage(title, exception.Message, Forms.ToolTipIcon.Error);
 
-    private void Exit()
+    internal bool HasProtectedWork =>
+        _recording.IsRecording ||
+        _activeRecordingWorkflow is not null ||
+        _activeScrollingWorkflow is not null ||
+        System.Windows.Application.Current.Windows.OfType<InlineAnnotateWindow>()
+            .Any(window => window.IsVisible && window.HasUnsavedAnnotations);
+
+    internal void RequestSessionEnding() => _ = ExitAsync();
+
+    private void Exit() => _ = ExitAsync();
+
+    private async Task<bool> ExitAsync()
     {
-        _mainWindow?.CloseForExit();
-        System.Windows.Application.Current.Shutdown();
+        if (_exitInProgress) return false;
+        _exitInProgress = true;
+        try
+        {
+            var editor = System.Windows.Application.Current.Windows.OfType<InlineAnnotateWindow>()
+                .FirstOrDefault(window => window.IsVisible);
+            if (editor is not null && !await editor.RequestCloseForExitAsync())
+            {
+                return false;
+            }
+
+            var scrollingWindow = _activeScrollingWindow;
+            var scrollingWorkflow = _activeScrollingWorkflow;
+            if (scrollingWindow is not null)
+            {
+                if (!scrollingWindow.RequestCloseForExit()) return false;
+                if (scrollingWorkflow is not null) await scrollingWorkflow.Task;
+            }
+
+            var recordingWorkflow = _activeRecordingWorkflow;
+            if (_recording.IsRecording || recordingWorkflow is not null)
+            {
+                var decision = LocalizedDialogService.ShowCustom(
+                    _recordingToolbar,
+                    "当前正在录屏。停止并保存后退出、丢弃录屏并退出，还是取消退出？",
+                    "退出 ShotPaste？",
+                    "停止并保存",
+                    "丢弃并退出",
+                    "取消",
+                    MessageBoxImage.Warning);
+                if (decision == MessageBoxResult.Cancel) return false;
+
+                _restartRecording = false;
+                _discardRecording = decision == MessageBoxResult.No;
+                if (_recording.IsRecording) _recording.Stop();
+                if (recordingWorkflow is not null && !await recordingWorkflow.Task) return false;
+            }
+
+            _mainWindow?.CloseForExit();
+            System.Windows.Application.Current.Shutdown();
+            return true;
+        }
+        finally
+        {
+            if (!System.Windows.Application.Current.Dispatcher.HasShutdownStarted)
+                _exitInProgress = false;
+        }
     }
 
     public void Dispose()
     {
         _historyMaintenanceTimer?.Stop();
+        _recordingCaptureExclusion.Dispose();
         _recording.Dispose();
         _keystrokeOverlay?.Dispose();
         _mouseClickOverlay?.Dispose();
@@ -1034,6 +1755,7 @@ public sealed class AppController : IDisposable
         _clipboard?.Dispose();
         _hotkeys?.Dispose();
         _tray?.Dispose();
+        _mcpServer?.Dispose();
         _operationGate.Dispose();
     }
 }

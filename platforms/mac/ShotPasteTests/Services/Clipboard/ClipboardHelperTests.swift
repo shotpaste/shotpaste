@@ -38,6 +38,21 @@ final class ClipboardHelperTests: XCTestCase {
     // Should not crash; pasteboard may be empty or unchanged
   }
 
+  func testTIFFRepresentationPixelBudgetProtectsVeryTallScreenshots() {
+    XCTAssertTrue(ClipboardHelper.shouldCreateTIFFRepresentation(
+      pixelWidth: 4_000,
+      pixelHeight: 8_000
+    ))
+    XCTAssertFalse(ClipboardHelper.shouldCreateTIFFRepresentation(
+      pixelWidth: 4_000,
+      pixelHeight: 8_001
+    ))
+    XCTAssertFalse(ClipboardHelper.shouldCreateTIFFRepresentation(
+      pixelWidth: Int.max,
+      pixelHeight: 2
+    ))
+  }
+
   func testCopyImageFromURL_validFile_copiesToClipboard() throws {
     let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)

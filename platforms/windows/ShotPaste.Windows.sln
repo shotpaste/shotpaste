@@ -9,6 +9,18 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShotPaste.Windows.Tests", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShotPaste.Windows.ScrollingE2E", "tests\ShotPaste.Windows.ScrollingE2E\ShotPaste.Windows.ScrollingE2E.csproj", "{4BF35D75-A3B7-4CDA-93D4-5147634AF657}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{AA590502-8161-463E-B9EF-4630D632077A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShotPaste.Windows.HistoryE2E", "tests\ShotPaste.Windows.HistoryE2E\ShotPaste.Windows.HistoryE2E.csproj", "{E9E1BF8A-25BA-4304-A987-29F5737748B2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShotPaste.Windows.InlineE2E", "tests\ShotPaste.Windows.InlineE2E\ShotPaste.Windows.InlineE2E.csproj", "{36153666-E9A4-4D58-8A28-74D436C89F51}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShotPaste.Windows.LocalizationE2E", "tests\ShotPaste.Windows.LocalizationE2E\ShotPaste.Windows.LocalizationE2E.csproj", "{8E5CB3F7-86C6-4F9A-B715-1936812238D3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShotPaste.Windows.OcrE2E", "tests\ShotPaste.Windows.OcrE2E\ShotPaste.Windows.OcrE2E.csproj", "{B9A67840-D554-4878-8C23-E0F51FB782AA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShotPaste.Windows.RecordingE2E", "tests\ShotPaste.Windows.RecordingE2E\ShotPaste.Windows.RecordingE2E.csproj", "{5EBED0E3-2A80-4F72-BC86-512A64472FE9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -27,5 +39,32 @@ Global
 		{4BF35D75-A3B7-4CDA-93D4-5147634AF657}.Debug|x64.Build.0 = Debug|x64
 		{4BF35D75-A3B7-4CDA-93D4-5147634AF657}.Release|x64.ActiveCfg = Release|x64
 		{4BF35D75-A3B7-4CDA-93D4-5147634AF657}.Release|x64.Build.0 = Release|x64
+		{E9E1BF8A-25BA-4304-A987-29F5737748B2}.Debug|x64.ActiveCfg = Debug|x64
+		{E9E1BF8A-25BA-4304-A987-29F5737748B2}.Debug|x64.Build.0 = Debug|x64
+		{E9E1BF8A-25BA-4304-A987-29F5737748B2}.Release|x64.ActiveCfg = Release|x64
+		{E9E1BF8A-25BA-4304-A987-29F5737748B2}.Release|x64.Build.0 = Release|x64
+		{36153666-E9A4-4D58-8A28-74D436C89F51}.Debug|x64.ActiveCfg = Debug|x64
+		{36153666-E9A4-4D58-8A28-74D436C89F51}.Debug|x64.Build.0 = Debug|x64
+		{36153666-E9A4-4D58-8A28-74D436C89F51}.Release|x64.ActiveCfg = Release|x64
+		{36153666-E9A4-4D58-8A28-74D436C89F51}.Release|x64.Build.0 = Release|x64
+		{8E5CB3F7-86C6-4F9A-B715-1936812238D3}.Debug|x64.ActiveCfg = Debug|x64
+		{8E5CB3F7-86C6-4F9A-B715-1936812238D3}.Debug|x64.Build.0 = Debug|x64
+		{8E5CB3F7-86C6-4F9A-B715-1936812238D3}.Release|x64.ActiveCfg = Release|x64
+		{8E5CB3F7-86C6-4F9A-B715-1936812238D3}.Release|x64.Build.0 = Release|x64
+		{B9A67840-D554-4878-8C23-E0F51FB782AA}.Debug|x64.ActiveCfg = Debug|x64
+		{B9A67840-D554-4878-8C23-E0F51FB782AA}.Debug|x64.Build.0 = Debug|x64
+		{B9A67840-D554-4878-8C23-E0F51FB782AA}.Release|x64.ActiveCfg = Release|x64
+		{B9A67840-D554-4878-8C23-E0F51FB782AA}.Release|x64.Build.0 = Release|x64
+		{5EBED0E3-2A80-4F72-BC86-512A64472FE9}.Debug|x64.ActiveCfg = Debug|x64
+		{5EBED0E3-2A80-4F72-BC86-512A64472FE9}.Debug|x64.Build.0 = Debug|x64
+		{5EBED0E3-2A80-4F72-BC86-512A64472FE9}.Release|x64.ActiveCfg = Release|x64
+		{5EBED0E3-2A80-4F72-BC86-512A64472FE9}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E9E1BF8A-25BA-4304-A987-29F5737748B2} = {AA590502-8161-463E-B9EF-4630D632077A}
+		{36153666-E9A4-4D58-8A28-74D436C89F51} = {AA590502-8161-463E-B9EF-4630D632077A}
+		{8E5CB3F7-86C6-4F9A-B715-1936812238D3} = {AA590502-8161-463E-B9EF-4630D632077A}
+		{B9A67840-D554-4878-8C23-E0F51FB782AA} = {AA590502-8161-463E-B9EF-4630D632077A}
+		{5EBED0E3-2A80-4F72-BC86-512A64472FE9} = {AA590502-8161-463E-B9EF-4630D632077A}
 	EndGlobalSection
 EndGlobal

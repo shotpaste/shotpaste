@@ -32,7 +32,9 @@ swiftc -parse-as-library \
   platforms/mac/Tools/Benchmarks/scrolling-capture-accuracy/scrolling-capture-accuracy-benchmark.swift \
   platforms/mac/Tools/Benchmarks/scrolling-capture-accuracy/scrolling-capture-accuracy-metrics.swift \
   platforms/mac/Tools/Benchmarks/scrolling-capture-accuracy/scrolling-capture-accuracy-support.swift \
-  platforms/mac/ShotPaste/Services/Capture/ScrollingCapture/ScrollingCaptureStitcher.swift
+  platforms/mac/ShotPaste/Services/Capture/ScrollingCapture/ScrollingCaptureStitcher.swift \
+  platforms/mac/ShotPaste/Services/Capture/ScrollingCapture/ScrollingCaptureMotionTracker.swift \
+  platforms/mac/ShotPaste/Services/Capture/ScrollingCapture/ScrollingCaptureCanvas.swift
 
 : > "$STDERR_PATH"
 set +e

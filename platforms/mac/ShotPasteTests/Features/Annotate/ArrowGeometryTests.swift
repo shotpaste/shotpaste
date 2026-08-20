@@ -175,7 +175,7 @@ final class ArrowGeometryTests: XCTestCase {
     return ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared
   }
 
-  // MARK: - arrowType & backwards compatibility
+  // MARK: - Arrow type
 
   func testArrowType_defaultsToTapered() {
     let geo = ArrowGeometry(start: CGPoint(x: 0, y: 0), end: CGPoint(x: 100, y: 100), style: .straight)

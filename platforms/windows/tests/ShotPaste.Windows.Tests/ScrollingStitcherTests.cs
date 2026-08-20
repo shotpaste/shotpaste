@@ -217,7 +217,10 @@ public sealed class ScrollingStitcherTests
 
         using var stitcher = new ScrollingStitcher();
         Assert.Equal(StitchResult.Added, stitcher.Append(first));
-        Assert.Equal(StitchResult.Added, stitcher.Append(second, expectedWheelDirection: -1));
+        var compositorResult = stitcher.Append(second, expectedWheelDirection: -1);
+        Assert.True(
+            compositorResult == StitchResult.Added,
+            $"result={compositorResult} failure={stitcher.LastFailureDiagnostics} match={stitcher.LastMatchDiagnostics}");
         Assert.Equal(800, stitcher.OutputHeight);
     }
 
@@ -257,7 +260,10 @@ public sealed class ScrollingStitcherTests
         using var stitcher = new ScrollingStitcher();
 
         Assert.Equal(StitchResult.Added, stitcher.Append(lower));
-        Assert.Equal(StitchResult.Added, stitcher.Append(upper));
+        var upwardResult = stitcher.Append(upper);
+        Assert.True(
+            upwardResult == StitchResult.Added,
+            $"result={upwardResult} failure={stitcher.LastFailureDiagnostics} match={stitcher.LastMatchDiagnostics}");
 
         using var result = stitcher.Result;
         Assert.NotNull(result);
@@ -267,7 +273,7 @@ public sealed class ScrollingStitcherTests
     }
 
     [Fact]
-    public void Append_AfterDownwardLock_RejectsUpwardFramesWithoutGrowing()
+    public void Append_AfterDownwardGrowth_RevisitsCapturedRowsWithoutGrowing()
     {
         using var content = MakePattern(160, 300);
         using var first = MakeViewport(content, 80, 10, 30);
@@ -282,18 +288,41 @@ public sealed class ScrollingStitcherTests
         Assert.NotNull(before);
         var heightBefore = before.Height;
 
-        Assert.Equal(StitchResult.NoMatch, stitcher.Append(reverse));
+        Assert.Equal(StitchResult.Duplicate, stitcher.Append(reverse));
         using var after = stitcher.Result;
         Assert.NotNull(after);
         Assert.Equal(heightBefore, after.Height);
         Assert.Equal(ScrollingStitcher.ScrollDirection.Down, stitcher.LockedDirection);
 
-        // Continuing in the locked direction still appends after the rejection.
+        // Continuing past the historical bottom still appends after the revisit.
         using var further = MakeViewport(content, 160, 10, 30);
         Assert.Equal(StitchResult.Added, stitcher.Append(further));
         using var grown = stitcher.Result;
         Assert.NotNull(grown);
         Assert.True(grown.Height > heightBefore);
+    }
+
+    [Fact]
+    public void Append_DirectionReversal_CanGrowPastTheOppositeHistoricalExtent()
+    {
+        using var content = MakePattern(160, 360);
+        using var middle = MakeViewport(content, 80, 10, 30);
+        using var lower = MakeViewport(content, 120, 10, 30);
+        using var top = MakeViewport(content, 40, 10, 30);
+        using var stitcher = new ScrollingStitcher();
+
+        Assert.Equal(StitchResult.Added, stitcher.Append(middle));
+        Assert.Equal(StitchResult.Added, stitcher.Append(lower));
+        var topResult = stitcher.Append(top);
+        Assert.True(
+            topResult == StitchResult.Added,
+            $"result={topResult} failure={stitcher.LastFailureDiagnostics} match={stitcher.LastMatchDiagnostics}");
+
+        using var result = stitcher.Result;
+        Assert.NotNull(result);
+        Assert.Equal(240, result.Height);
+        Assert.Equal(Color.FromArgb(255, 20, 80, 160), result.GetPixel(80, 2));
+        Assert.Equal(Color.FromArgb(255, 70, 70, 70), result.GetPixel(80, result.Height - 2));
     }
 
     [Fact]
@@ -305,13 +334,16 @@ public sealed class ScrollingStitcherTests
         using var stitcher = new ScrollingStitcher();
 
         Assert.Equal(StitchResult.Added, stitcher.Append(first));
-        Assert.Equal(StitchResult.NoMatch, stitcher.Append(second, expectedWheelDirection: 1));
+        var wrongDirection = stitcher.Append(second, expectedWheelDirection: 1);
+        Assert.True(
+            wrongDirection == StitchResult.NoMatch,
+            $"result={wrongDirection} failure={stitcher.LastFailureDiagnostics} match={stitcher.LastMatchDiagnostics}");
         Assert.Equal(StitchResult.Added, stitcher.Append(second, expectedWheelDirection: -1));
         Assert.Equal(ScrollingStitcher.ScrollDirection.Down, stitcher.LockedDirection);
     }
 
     [Fact]
-    public void Append_AfterUpwardLock_RejectsDownwardFramesWithoutGrowing()
+    public void Append_AfterUpwardGrowth_RevisitsCapturedRowsWithoutGrowing()
     {
         using var content = MakePattern(160, 300);
         using var first = MakeViewport(content, 120, 10, 30);
@@ -320,13 +352,16 @@ public sealed class ScrollingStitcherTests
         using var stitcher = new ScrollingStitcher();
 
         Assert.Equal(StitchResult.Added, stitcher.Append(first));
-        Assert.Equal(StitchResult.Added, stitcher.Append(second));
+        var upwardGrowthResult = stitcher.Append(second);
+        Assert.True(
+            upwardGrowthResult == StitchResult.Added,
+            $"result={upwardGrowthResult} failure={stitcher.LastFailureDiagnostics} match={stitcher.LastMatchDiagnostics}");
         Assert.Equal(ScrollingStitcher.ScrollDirection.Up, stitcher.LockedDirection);
         using var before = stitcher.Result;
         Assert.NotNull(before);
         var heightBefore = before.Height;
 
-        Assert.Equal(StitchResult.NoMatch, stitcher.Append(reverse));
+        Assert.Equal(StitchResult.Duplicate, stitcher.Append(reverse));
         using var after = stitcher.Result;
         Assert.NotNull(after);
         Assert.Equal(heightBefore, after.Height);
@@ -342,7 +377,10 @@ public sealed class ScrollingStitcherTests
         using var stitcher = new ScrollingStitcher();
 
         Assert.Equal(StitchResult.Added, stitcher.Append(first));
-        Assert.Equal(StitchResult.Added, stitcher.Append(second));
+        var seamResult = stitcher.Append(second);
+        Assert.True(
+            seamResult == StitchResult.Added,
+            $"result={seamResult} failure={stitcher.LastFailureDiagnostics} match={stitcher.LastMatchDiagnostics}");
         using var result = stitcher.Result;
         Assert.NotNull(result);
         Assert.Equal(240, result.Height);
@@ -365,7 +403,10 @@ public sealed class ScrollingStitcherTests
         using var stitcher = new ScrollingStitcher();
 
         Assert.Equal(StitchResult.Added, stitcher.Append(first));
-        Assert.Equal(StitchResult.Added, stitcher.Append(second));
+        var sparseContentResult = stitcher.Append(second);
+        Assert.True(
+            sparseContentResult == StitchResult.Added,
+            $"result={sparseContentResult} failure={stitcher.LastFailureDiagnostics} match={stitcher.LastMatchDiagnostics}");
         using var result = stitcher.Result;
         Assert.NotNull(result);
         Assert.Equal(200, result.Height);
@@ -381,7 +422,7 @@ public sealed class ScrollingStitcherTests
     }
 
     [Fact]
-    public void Append_SparseContent_AfterLock_RejectsReverseFrames()
+    public void Append_SparseContent_ReverseWithinCapturedRangeDoesNotDuplicate()
     {
         using var content = MakeSparseRows(160, 240);
         using var first = content.Clone(new Rectangle(0, 0, 160, 160), content.PixelFormat);
@@ -396,7 +437,7 @@ public sealed class ScrollingStitcherTests
         Assert.NotNull(before);
         var heightBefore = before.Height;
 
-        Assert.Equal(StitchResult.NoMatch, stitcher.Append(reverse));
+        Assert.Equal(StitchResult.Duplicate, stitcher.Append(reverse));
         using var after = stitcher.Result;
         Assert.NotNull(after);
         Assert.Equal(heightBefore, after.Height);
@@ -416,7 +457,10 @@ public sealed class ScrollingStitcherTests
         using var stitcher = new ScrollingStitcher();
 
         Assert.Equal(StitchResult.Added, stitcher.Append(first));
-        Assert.Equal(StitchResult.Added, stitcher.Append(second));
+        var recoveryResult = stitcher.Append(second);
+        Assert.True(
+            recoveryResult == StitchResult.Added,
+            $"result={recoveryResult} failure={stitcher.LastFailureDiagnostics} match={stitcher.LastMatchDiagnostics}");
         Assert.Equal(viewportHeight + scrollDelta, stitcher.OutputHeight);
 
         using var result = stitcher.Result;
@@ -456,7 +500,10 @@ public sealed class ScrollingStitcherTests
             Assert.Equal(
                 StitchResult.Added,
                 stitcher.Append(frame, expectedWheelDirection: index == 0 ? 0 : -1));
-            Assert.Equal(viewportHeight + offset, stitcher.OutputHeight);
+            Assert.True(
+                stitcher.OutputHeight == viewportHeight + offset,
+                $"index={index} offset={offset} height={stitcher.OutputHeight} " +
+                $"failure={stitcher.LastFailureDiagnostics} match={stitcher.LastMatchDiagnostics}");
         }
     }
 
@@ -510,7 +557,10 @@ public sealed class ScrollingStitcherTests
                 var expectedHeight = wheel == 0 && phase == 2
                     ? viewportHeight
                     : viewportHeight + offset;
-                Assert.Equal(expectedHeight, stitcher.OutputHeight);
+                Assert.True(
+                    stitcher.OutputHeight == expectedHeight,
+                    $"offset={offset} expected={expectedHeight} height={stitcher.OutputHeight} " +
+                    $"failure={stitcher.LastFailureDiagnostics} match={stitcher.LastMatchDiagnostics}");
             }
         }
     }

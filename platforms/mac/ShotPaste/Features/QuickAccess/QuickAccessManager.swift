@@ -818,44 +818,6 @@ final class QuickAccessManager: ObservableObject {
     return next
   }
 
-  /// Scale image to thumbnail size using CGContext (thread-safe, runs on any queue)
-  nonisolated static func cgScaleThumbnail(_ image: NSImage, maxSize: CGFloat) -> NSImage {
-    let originalSize = image.size
-    guard originalSize.width > 0, originalSize.height > 0 else { return image }
-
-    let scale = min(maxSize / max(originalSize.width, originalSize.height), 1.0)
-    if scale >= 1.0 {
-      return image
-    }
-
-    let newSize = CGSize(
-      width: originalSize.width * scale,
-      height: originalSize.height * scale
-    )
-
-    var rect = CGRect(origin: .zero, size: originalSize)
-    guard let cgImage = image.cgImage(forProposedRect: &rect, context: nil, hints: nil) else { return image }
-    let width = Int(newSize.width)
-    let height = Int(newSize.height)
-
-    guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
-          let context = CGContext(
-            data: nil,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: colorSpace,
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-          ) else { return image }
-
-    context.interpolationQuality = .high
-    context.draw(cgImage, in: CGRect(origin: .zero, size: newSize))
-
-    guard let scaledCgImage = context.makeImage() else { return image }
-    return NSImage(cgImage: scaledCgImage, size: newSize)
-  }
-
   /// Scale image to thumbnail size (synchronous, no file I/O)
   private func scaleThumbnail(_ image: NSImage, maxSize: CGFloat) -> NSImage {
     PerfSignpost.measure("scaleThumbnailInner") {
@@ -887,53 +849,6 @@ final class QuickAccessManager: ObservableObject {
       thumbnail.unlockFocus()
       return thumbnail
     }
-  }
-
-  /// Refresh thumbnail for an item after its image was updated on disk (e.g. annotation saved)
-  func refreshItemThumbnail(id: UUID) async {
-    guard let index = items.firstIndex(where: { $0.id == id }) else {
-      DiagnosticLogger.shared.log(
-        .debug,
-        .ui,
-        "Quick access thumbnail refresh skipped; item missing",
-        context: ["itemId": id.uuidString]
-      )
-      return
-    }
-    let url = items[index].url
-    let fileAccess = fileAccessManager.beginAccessingURL(url)
-    defer { fileAccess.stop() }
-    let result = await ThumbnailGenerator.generate(from: url)
-    guard let newThumbnail = result.thumbnail else {
-      logger.warning("Thumbnail refresh failed for \(url.lastPathComponent)")
-      DiagnosticLogger.shared.log(
-        .warning,
-        .ui,
-        "Quick access thumbnail refresh failed",
-        context: ["fileName": url.lastPathComponent]
-      )
-      return
-    }
-    // Re-check index (item may have been removed during async thumbnail generation)
-    guard let freshIndex = items.firstIndex(where: { $0.id == id }) else { return }
-    let existing = items[freshIndex]
-    items[freshIndex] = QuickAccessItem(
-      id: existing.id,
-      url: existing.url,
-      thumbnail: newThumbnail,
-      capturedAt: existing.capturedAt,
-      itemType: existing.itemType,
-      duration: existing.duration,
-      isPinned: existing.isPinned
-    )
-    pinWindowManager.update(item: items[freshIndex])
-    logger.info("Thumbnail refreshed for \(url.lastPathComponent)")
-    DiagnosticLogger.shared.log(
-      .debug,
-      .ui,
-      "Quick access thumbnail refreshed",
-      context: ["fileName": url.lastPathComponent]
-    )
   }
 
   func suspendForCapture() {

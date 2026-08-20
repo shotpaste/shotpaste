@@ -125,6 +125,16 @@ final class RecordingRegionOverlayWindow: NSPanel {
     overlayView.guidance = guidance
   }
 
+  func setSelectionAccentColor(_ color: NSColor) {
+    overlayView.borderColor = color
+    overlayView.needsDisplay = true
+  }
+
+  func setGuidanceUsesPlainText(_ usesPlainText: Bool) {
+    overlayView.usesPlainGuidance = usesPlainText
+    overlayView.needsDisplay = true
+  }
+
   /// Hide the border when recording starts (border would appear in video)
   func hideBorder() {
     overlayView.showBorder = false
@@ -157,13 +167,6 @@ final class RecordingRegionOverlayWindow: NSPanel {
     overlayView.refreshCursor()
   }
 
-  /// Only update interaction state when it actually changes, to avoid
-  /// redundant invalidateCursorRects calls on every drag event.
-  func setInteractionEnabledIfNeeded(_ enabled: Bool) {
-    guard overlayView.isInteractionEnabled != enabled else { return }
-    setInteractionEnabled(enabled)
-  }
-
   override func close() {
     // Restore cursor to arrow before closing — the overlay may have set
     // a resize, openHand, or crosshair cursor that could persist if the
@@ -190,6 +193,7 @@ final class RecordingRegionOverlayView: NSView {
   var showBorder: Bool = true
   var showDim: Bool = true
   var isInteractionEnabled: Bool = false
+  var usesPlainGuidance = false
   var guidance: RecordingRegionOverlayGuidance? {
     didSet {
       needsDisplay = true
@@ -221,7 +225,7 @@ final class RecordingRegionOverlayView: NSView {
 
   // Constants
   private let dimColor = NSColor.black.withAlphaComponent(0.4)
-  private let borderColor = NSColor.white
+  var borderColor = NSColor.white
   private let borderWidth: CGFloat = 1.5
   private let handleHitSize: CGFloat = 10.0
   private let cornerHandleLength: CGFloat = 20.0
@@ -805,7 +809,9 @@ final class RecordingRegionOverlayView: NSView {
         borderPath.stroke()
 
         // Draw resize handles
-        drawRecordingResizeHandles(for: clampedRect)
+        if isInteractionEnabled {
+          drawRecordingResizeHandles(for: clampedRect)
+        }
       }
     }
 
@@ -815,6 +821,11 @@ final class RecordingRegionOverlayView: NSView {
   }
 
   private func drawGuidance(_ guidance: RecordingRegionOverlayGuidance, in rect: CGRect) {
+    if usesPlainGuidance {
+      drawPlainGuidance(guidance, in: rect)
+      return
+    }
+
     let horizontalInset = min(max(16, rect.width * 0.08), 28)
     let availableWidth = rect.width - horizontalInset * 2
     guard availableWidth >= 120 else { return }
@@ -920,6 +931,77 @@ final class RecordingRegionOverlayView: NSView {
         height: ceil(detailBounds.height)
       )
       detailString.draw(with: detailRect, options: [.usesLineFragmentOrigin, .usesFontLeading])
+    }
+  }
+
+  private func drawPlainGuidance(_ guidance: RecordingRegionOverlayGuidance, in rect: CGRect) {
+    let availableWidth = min(520, rect.width - 32)
+    guard availableWidth >= 120 else { return }
+
+    let paragraphStyle = NSMutableParagraphStyle()
+    paragraphStyle.alignment = .center
+    paragraphStyle.lineBreakMode = .byWordWrapping
+
+    let shadow = NSShadow()
+    shadow.shadowColor = NSColor.black.withAlphaComponent(0.72)
+    shadow.shadowBlurRadius = 6
+    shadow.shadowOffset = CGSize(width: 0, height: -1)
+
+    let title = NSAttributedString(
+      string: guidance.title,
+      attributes: [
+        .font: NSFont.systemFont(ofSize: 15, weight: .semibold),
+        .foregroundColor: NSColor.white,
+        .paragraphStyle: paragraphStyle,
+        .shadow: shadow,
+      ]
+    )
+    let detail = guidance.detail.map {
+      NSAttributedString(
+        string: $0,
+        attributes: [
+          .font: NSFont.systemFont(ofSize: 12, weight: .medium),
+          .foregroundColor: NSColor.white.withAlphaComponent(0.9),
+          .paragraphStyle: paragraphStyle,
+          .shadow: shadow,
+        ]
+      )
+    }
+    let titleBounds = title.boundingRect(
+      with: CGSize(width: availableWidth, height: .greatestFiniteMagnitude),
+      options: [.usesLineFragmentOrigin, .usesFontLeading]
+    )
+    let detailBounds = detail?.boundingRect(
+      with: CGSize(width: availableWidth, height: .greatestFiniteMagnitude),
+      options: [.usesLineFragmentOrigin, .usesFontLeading]
+    ) ?? .zero
+    let spacing: CGFloat = detail == nil ? 0 : 4
+    let totalHeight = ceil(titleBounds.height) + spacing + ceil(detailBounds.height)
+    let groupMidY = rect.midY + min(90, rect.height * 0.16)
+    let groupMinY = min(
+      rect.maxY - totalHeight - 18,
+      max(rect.minY + 18, groupMidY - totalHeight / 2)
+    )
+
+    title.draw(
+      with: CGRect(
+        x: rect.midX - availableWidth / 2,
+        y: groupMinY + ceil(detailBounds.height) + spacing,
+        width: availableWidth,
+        height: ceil(titleBounds.height)
+      ),
+      options: [.usesLineFragmentOrigin, .usesFontLeading]
+    )
+    if let detail {
+      detail.draw(
+        with: CGRect(
+          x: rect.midX - availableWidth / 2,
+          y: groupMinY,
+          width: availableWidth,
+          height: ceil(detailBounds.height)
+        ),
+        options: [.usesLineFragmentOrigin, .usesFontLeading]
+      )
     }
   }
 
@@ -1051,9 +1133,9 @@ final class RecordingRegionOverlayView: NSView {
     NSColor.black.withAlphaComponent(0.5).setFill()
     shadowPath.fill()
 
-    // Draw white bar
+    // Draw the selection-accent bar.
     let path = NSBezierPath(rect: rect)
-    NSColor.white.setFill()
+    borderColor.setFill()
     path.fill()
   }
 

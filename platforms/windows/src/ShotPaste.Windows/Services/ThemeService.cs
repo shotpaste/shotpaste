@@ -68,6 +68,7 @@ public static class ThemeService
         IsDark = dark;
         ReplaceThemeDictionary(application.Resources, dark ? DarkThemeFile : LightThemeFile);
         ApplyAccentColor(application.Resources, GetSystemAccentColor());
+        AccessibilityPreferences.ApplyHighContrastResources(application.Resources);
         WindowAppearanceService.RefreshOpenWindows();
     }
 

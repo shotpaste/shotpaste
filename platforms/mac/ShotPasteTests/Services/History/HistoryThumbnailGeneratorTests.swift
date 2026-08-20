@@ -68,41 +68,17 @@ final class HistoryThumbnailGeneratorTests: XCTestCase {
     XCTAssertEqual(url1?.path, url2?.path)
   }
 
-  // MARK: - totalThumbnailSize
-
-  func testTotalThumbnailSize_sumsFileSizes() async throws {
-    XCTAssertEqual(generator.totalThumbnailSize(), 0)
-
-    let imageURL = try createTestImage(width: 100, height: 100)
-    let record = makeRecord(filePath: imageURL.path, captureType: .screenshot)
-    _ = await generator.generate(for: record)
-
-    let size = generator.totalThumbnailSize()
-    XCTAssertGreaterThan(size, 0)
-  }
-
   // MARK: - clearAllThumbnails
 
   func testClearAllThumbnails_removesAllFiles() async throws {
     let imageURL = try createTestImage(width: 100, height: 100)
     let record = makeRecord(filePath: imageURL.path, captureType: .screenshot)
-    _ = await generator.generate(for: record)
-    XCTAssertGreaterThan(generator.totalThumbnailSize(), 0)
+    let generatedURL = await generator.generate(for: record)
+    let thumbnailURL = try XCTUnwrap(generatedURL)
+    XCTAssertTrue(FileManager.default.fileExists(atPath: thumbnailURL.path))
 
     generator.clearAllThumbnails()
-    XCTAssertEqual(generator.totalThumbnailSize(), 0)
-  }
-
-  // MARK: - deleteThumbnail
-
-  func testDeleteThumbnail_removesFilesForRecordId() async throws {
-    let imageURL = try createTestImage(width: 100, height: 100)
-    let record = makeRecord(filePath: imageURL.path, captureType: .screenshot)
-    let thumbURL = await generator.generate(for: record)
-    XCTAssertNotNil(thumbURL)
-
-    generator.deleteThumbnail(for: record.id)
-    XCTAssertFalse(try FileManager.default.fileExists(atPath: XCTUnwrap(thumbURL?.path)))
+    XCTAssertFalse(FileManager.default.fileExists(atPath: thumbnailURL.path))
   }
 
   // MARK: - loadThumbnailImage

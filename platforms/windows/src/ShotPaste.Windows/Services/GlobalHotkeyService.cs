@@ -16,6 +16,16 @@ public enum HotkeyAction
     RecordingDelete
 }
 
+public enum HotkeyAvailability
+{
+    Available,
+    Disabled,
+    Invalid,
+    Conflict
+}
+
+public sealed record HotkeyAvailabilityResult(HotkeyAction Action, HotkeyAvailability Availability, string Message);
+
 public sealed class GlobalHotkeyService : IDisposable
 {
     private readonly HwndSource _source;
@@ -93,6 +103,65 @@ public sealed class GlobalHotkeyService : IDisposable
             if (!Enum.TryParse(part, true, out key) || key == Key.None) return false;
         }
         return key != Key.None && modifiers != 0;
+    }
+
+    internal static IReadOnlyDictionary<HotkeyAction, HotkeyAvailabilityResult> ProbeConfigured(AppSettings settings)
+    {
+        var gestures = new (HotkeyAction Action, string Gesture)[]
+        {
+            (HotkeyAction.OneShot, settings.OneShotHotkey),
+            (HotkeyAction.History, settings.HistoryHotkey),
+            (HotkeyAction.RecordingPause, settings.RecordingPauseHotkey),
+            (HotkeyAction.RecordingAnnotation, settings.RecordingAnnotationHotkey),
+            (HotkeyAction.RecordingRestart, settings.RecordingRestartHotkey),
+            (HotkeyAction.RecordingDelete, settings.RecordingDeleteHotkey)
+        };
+        if (!settings.ShortcutsEnabled)
+            return gestures.ToDictionary(entry => entry.Action, entry =>
+                new HotkeyAvailabilityResult(entry.Action, HotkeyAvailability.Disabled, "全局快捷键已停用"));
+
+        var parameters = new HwndSourceParameters(AppBuildIdentity.Current.HotkeyWindowName + ".Probe")
+        {
+            Width = 0,
+            Height = 0,
+            WindowStyle = 0,
+            ParentWindow = new IntPtr(-3)
+        };
+        using var source = new HwndSource(parameters);
+        var registered = new List<int>();
+        var results = new Dictionary<HotkeyAction, HotkeyAvailabilityResult>();
+        try
+        {
+            foreach (var entry in gestures)
+            {
+                if (string.IsNullOrWhiteSpace(entry.Gesture))
+                {
+                    results[entry.Action] = new(entry.Action, HotkeyAvailability.Disabled, "未设置");
+                    continue;
+                }
+                if (!TryParseGesture(entry.Gesture, out var modifiers, out var key))
+                {
+                    results[entry.Action] = new(entry.Action, HotkeyAvailability.Invalid, "格式无效");
+                    continue;
+                }
+                var id = 0x5A00 + (int)entry.Action;
+                var virtualKey = (uint)KeyInterop.VirtualKeyFromKey(key);
+                if (NativeMethods.RegisterHotKey(source.Handle, id, modifiers | NativeMethods.ModNoRepeat, virtualKey))
+                {
+                    registered.Add(id);
+                    results[entry.Action] = new(entry.Action, HotkeyAvailability.Available, "可用");
+                }
+                else
+                {
+                    results[entry.Action] = new(entry.Action, HotkeyAvailability.Conflict, "已被系统或其他应用占用");
+                }
+            }
+        }
+        finally
+        {
+            foreach (var id in registered) NativeMethods.UnregisterHotKey(source.Handle, id);
+        }
+        return results;
     }
 
     public void Suspend() => UnregisterAll();

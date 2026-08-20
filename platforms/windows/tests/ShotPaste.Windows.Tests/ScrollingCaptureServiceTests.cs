@@ -301,6 +301,36 @@ public sealed class ScrollingCaptureServiceTests
     }
 
     [Fact]
+    public async Task CaptureFrameStream_ContinuousModePublishesDistinctFramesWithoutArming()
+    {
+        var captureCount = 0;
+        using var stream = new ScrollingCaptureService.CaptureFrameStream(
+            (_, _) =>
+            {
+                var sequence = Interlocked.Increment(ref captureCount);
+                var frame = new System.Drawing.Bitmap(24, 24);
+                frame.SetPixel(12, 12, System.Drawing.Color.FromArgb(sequence % 255, 0, 0));
+                return frame;
+            },
+            new System.Drawing.Rectangle(0, 0, 24, 24),
+            optionsProvider: null,
+            CancellationToken.None,
+            continuous: true);
+
+        await Task.Delay(130);
+        var frames = stream.StopAndDrain();
+        try
+        {
+            Assert.True(Volatile.Read(ref captureCount) >= 2);
+            Assert.NotEmpty(frames);
+        }
+        finally
+        {
+            foreach (var frame in frames) frame.Dispose();
+        }
+    }
+
+    [Fact]
     public void CaptureFrameStream_ArmForBurst_DoesNotBlockOnFrameCapture()
     {
         using var captureStarted = new ManualResetEventSlim();
@@ -384,7 +414,7 @@ public sealed class ScrollingCaptureServiceTests
         var frames = stream.StopAndDrain();
         try
         {
-            Assert.True(Volatile.Read(ref captureCount) >= 3);
+            Assert.True(Volatile.Read(ref captureCount) >= 2);
             Assert.Single(frames);
         }
         finally

@@ -31,7 +31,7 @@ final class AnnotateRenderSnapshotTests: XCTestCase {
   // MARK: - Snapshot equivalence
 
   /// The off-main snapshot render must produce byte-identical output to the
-  /// legacy main-actor state render (file output must not change).
+  /// main-actor state render (file output must not change).
   func testSnapshotRender_matchesStateRender() async throws {
     let state = makeState()
     state.sourceImage = try makeSourceImage()
@@ -47,23 +47,6 @@ final class AnnotateRenderSnapshotTests: XCTestCase {
         properties: AnnotationProperties(fontSize: 14)
       ),
     ]
-
-    let reference = try XCTUnwrap(AnnotateExporter.renderFinalImage(state: state))
-    let snapshot = try XCTUnwrap(state.makeRenderSnapshot())
-    let renderedImage = await AnnotateExporter.renderFinalImage(snapshot: snapshot)
-    let rendered = try XCTUnwrap(renderedImage)
-
-    XCTAssertEqual(rendered.size, reference.size)
-    XCTAssertEqual(rendered.tiffRepresentation, reference.tiffRepresentation)
-  }
-
-  /// Canvas effects (gradient background + padding) must flow through the snapshot.
-  func testSnapshotRender_withCanvasEffects_matchesStateRender() async throws {
-    let state = makeState()
-    state.sourceImage = try makeSourceImage()
-    state.backgroundStyle = .gradient(.pinkOrange)
-    state.padding = 24
-    state.cornerRadius = 8
 
     let reference = try XCTUnwrap(AnnotateExporter.renderFinalImage(state: state))
     let snapshot = try XCTUnwrap(state.makeRenderSnapshot())
@@ -99,21 +82,6 @@ final class AnnotateRenderSnapshotTests: XCTestCase {
     let rendered = try XCTUnwrap(renderedImage)
     XCTAssertEqual(rendered.size, reference.size)
     XCTAssertEqual(rendered.tiffRepresentation, reference.tiffRepresentation)
-  }
-
-  // MARK: - cgScaleThumbnail
-
-  func testCgScaleThumbnail_downscalesKeepingAspect() throws {
-    let image = try makeSourceImage(width: 400, height: 200)
-    let thumb = QuickAccessManager.cgScaleThumbnail(image, maxSize: 200)
-    XCTAssertEqual(thumb.size.width, 200, accuracy: 1)
-    XCTAssertEqual(thumb.size.height, 100, accuracy: 1)
-  }
-
-  func testCgScaleThumbnail_doesNotUpscale() throws {
-    let image = try makeSourceImage(width: 100, height: 50)
-    let thumb = QuickAccessManager.cgScaleThumbnail(image, maxSize: 200)
-    XCTAssertEqual(thumb.size, image.size)
   }
 
   // MARK: - Save generation guard

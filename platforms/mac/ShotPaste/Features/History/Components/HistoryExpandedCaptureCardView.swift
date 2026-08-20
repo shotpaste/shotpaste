@@ -25,7 +25,6 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
   @State private var isHovering = false
   @State private var fileExists = true
   @State private var isVisible = false
-  @State private var thumbnailReloadToken = 0
 
   var body: some View {
     VStack(spacing: 8) {
@@ -76,12 +75,6 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
     .task(id: thumbnailTaskID, priority: .utility) {
       guard isVisible else { return }
       await loadThumbnail()
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .captureHistoryFileDidChange)) { notification in
-      guard matchesHistoryFileChange(notification) else { return }
-      thumbnailImage = nil
-      checkFileExistence()
-      thumbnailReloadToken += 1
     }
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(record.displayTitle)
@@ -233,16 +226,7 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
 
   private var thumbnailTaskID: String {
     let id = record.thumbnailPath ?? record.id.uuidString
-    return isVisible ? "\(id)-\(thumbnailReloadToken)" : "hidden-\(record.id.uuidString)"
-  }
-
-  private func matchesHistoryFileChange(_ notification: Notification) -> Bool {
-    if let recordIDs = notification.userInfo?["recordIDs"] as? [UUID],
-       recordIDs.contains(record.id) {
-      return true
-    }
-
-    return (notification.userInfo?["filePath"] as? String) == record.filePath
+    return isVisible ? id : "hidden-\(record.id.uuidString)"
   }
 
   private func checkFileExistence() {

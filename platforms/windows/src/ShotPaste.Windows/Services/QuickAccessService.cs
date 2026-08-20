@@ -16,6 +16,7 @@ public sealed class QuickAccessService(AppController controller, SettingsStore s
     private bool _suspended;
 
     internal bool IsSuspended => _suspended;
+    internal bool HasVisibleItems => _windows.Any(window => window.IsVisible);
 
     public void Show(CaptureHistoryItem item)
     {
@@ -112,6 +113,17 @@ public sealed class QuickAccessService(AppController controller, SettingsStore s
     {
         foreach (var window in _windows.ToArray()) window.Close();
         _windows.Clear();
+    }
+
+    public void FocusNewest()
+    {
+        var window = _windows.LastOrDefault(candidate => candidate.IsVisible);
+        if (window is null)
+        {
+            controller.ShowHistory();
+            return;
+        }
+        window.EnterKeyboardMode();
     }
 
     public void SuspendAll()

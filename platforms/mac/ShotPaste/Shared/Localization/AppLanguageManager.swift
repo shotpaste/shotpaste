@@ -101,10 +101,6 @@ final class AppLanguageManager: ObservableObject {
     Self.resolvedSystemIdentifier(availableOptions: availableOptions)
   }
 
-  var systemResolvedOption: AppLanguageOption? {
-    option(for: systemResolvedIdentifier)
-  }
-
   var activeEffectiveLanguageIdentifier: String {
     effectiveIdentifier(for: activeLanguageIdentifier)
   }
@@ -122,11 +118,6 @@ final class AppLanguageManager: ObservableObject {
 
   func requiresRelaunch(for selection: String) -> Bool {
     effectiveIdentifier(for: selection) != activeEffectiveLanguageIdentifier
-  }
-
-  func option(for identifier: String) -> AppLanguageOption? {
-    availableOptions.first(where: { $0.identifier == identifier })
-      ?? AppLanguageOption.supported.first(where: { $0.identifier == identifier })
   }
 
   static func normalizedLanguageIdentifier(from identifier: String?) -> String? {
