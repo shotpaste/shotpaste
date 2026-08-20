@@ -169,6 +169,40 @@ final class HistoryFloatingLayoutTests: XCTestCase {
     XCTAssertTrue(ScreenshotCaptureWindowPolicy.exceptedOwnWindowIDs(from: [panel]).isEmpty)
   }
 
+  func testScrollingCaptureExceptsShareableOwnWindowsButNotCaptureChrome() {
+    XCTAssertTrue(ScreenshotCaptureWindowPolicy.shouldExceptOwnWindow(
+      isHistoryPanel: false,
+      sharingType: .readOnly,
+      windowNumber: 42,
+      includeAllShareableWindows: true
+    ))
+
+    XCTAssertFalse(ScreenshotCaptureWindowPolicy.shouldExceptOwnWindow(
+      isHistoryPanel: false,
+      sharingType: .none,
+      windowNumber: 43,
+      includeAllShareableWindows: true
+    ))
+    XCTAssertFalse(ScreenshotCaptureWindowPolicy.shouldExceptOwnWindow(
+      isHistoryPanel: false,
+      sharingType: .readOnly,
+      windowNumber: 44,
+      includeAllShareableWindows: false
+    ))
+    XCTAssertFalse(ScreenshotCaptureWindowPolicy.shouldExceptOwnWindow(
+      isHistoryPanel: false,
+      sharingType: .readOnly,
+      windowNumber: -1,
+      includeAllShareableWindows: true
+    ))
+    XCTAssertFalse(ScreenshotCaptureWindowPolicy.shouldExceptOwnWindow(
+      isHistoryPanel: false,
+      sharingType: .readOnly,
+      windowNumber: Int.max,
+      includeAllShareableWindows: true
+    ))
+  }
+
   func testHistoryFloatingPanelCmdAPostNotification() {
     let panel = HistoryFloatingPanel(contentRect: NSRect(x: 0, y: 0, width: 100, height: 100))
     let expectation = expectation(forNotification: .historySelectAll, object: panel, handler: nil)

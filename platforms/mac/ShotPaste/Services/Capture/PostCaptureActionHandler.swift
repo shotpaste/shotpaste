@@ -193,7 +193,7 @@ final class PostCaptureActionHandler {
     }
 
     if captureType == .recording {
-      copyToClipboard(url: url, isVideo: true)
+      ClipboardHelper.copyMediaFile(from: url)
     } else {
       let previous = editedClipboardTask
       editedClipboardTask = Task.detached(priority: .userInitiated) {
@@ -276,7 +276,7 @@ final class PostCaptureActionHandler {
     // to update immediately after capture; it must not depend on thumbnail
     // generation, Quick Access animations, or editor opening.
     if preferences.isActionEnabled(.copyFile, for: captureType) {
-      copyToClipboard(url: url, isVideo: captureType == .recording)
+      await copyToClipboard(url: url, isVideo: captureType == .recording)
       let label = captureType == .screenshot ? "screenshot" : "recording"
       logger.debug("Clipboard copy executed for \(url.lastPathComponent)")
       DiagnosticLogger.shared.log(
@@ -334,7 +334,7 @@ final class PostCaptureActionHandler {
   }
 
   /// Copy file to clipboard (format-aware image data for screenshots, file URL for videos)
-  private func copyToClipboard(url: URL, isVideo: Bool) {
+  private func copyToClipboard(url: URL, isVideo: Bool) async {
     if isVideo {
       ClipboardHelper.copyMediaFile(from: url)
       DiagnosticLogger.shared.log(
@@ -344,7 +344,7 @@ final class PostCaptureActionHandler {
         context: ["fileName": url.lastPathComponent, "kind": "video"]
       )
     } else {
-      ClipboardHelper.copyImage(from: url)
+      await ClipboardHelper.copyImageOffMain(from: url)
       DiagnosticLogger.shared.log(
         .debug,
         .clipboard,

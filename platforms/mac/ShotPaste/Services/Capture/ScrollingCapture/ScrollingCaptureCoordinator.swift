@@ -33,7 +33,6 @@ final class ScrollingCaptureCoordinator {
   private let autoScrollIntervalNanoseconds: UInt64 = 40_000_000
   private let autoScrollPausedIntervalNanoseconds: UInt64 = 150_000_000
   private let autoScrollDeltaY: Int32 = -15
-  private let previewRenderScale: CGFloat = 2
   private let processingQueue = DispatchQueue(
     label: "com.ahtcfg24.shotpaste.scrolling-capture.processing",
     qos: .userInitiated
@@ -41,6 +40,7 @@ final class ScrollingCaptureCoordinator {
 
   private var sessionModel: ScrollingCaptureSessionModel?
   private var hudWindow: ScrollingCaptureHUDWindow?
+  private var autoScrollWindow: ScrollingCaptureAutoScrollWindow?
   private var previewWindow: ScrollingCapturePreviewWindow?
   private var regionOverlayWindows: [RecordingRegionOverlayWindow] = []
   private var sessionModelObservation: AnyCancellable?
@@ -137,12 +137,17 @@ final class ScrollingCaptureCoordinator {
       model: model,
       onStart: { [weak self] in self?.startCapture() },
       onDone: { [weak self] in self?.finish() },
-      onCancel: { [weak self] in self?.cancel() },
+      onCancel: { [weak self] in self?.cancel() }
+    )
+    autoScrollWindow = ScrollingCaptureAutoScrollWindow(
+      anchorRect: rect,
+      model: model,
       onToggleAutoScroll: { [weak self] in self?.toggleAutoScrolling() }
     )
     previewWindow = ScrollingCapturePreviewWindow(anchorRect: rect, model: model)
 
     hudWindow?.orderFrontRegardless()
+    autoScrollWindow?.orderFrontRegardless()
     previewWindow?.orderFrontRegardless()
     installSessionKeyMonitorsIfNeeded()
     prewarmCaptureContext(for: rect)
@@ -193,8 +198,10 @@ final class ScrollingCaptureCoordinator {
     }
     regionOverlayWindows.removeAll()
     hudWindow?.orderOut(nil)
+    autoScrollWindow?.orderOut(nil)
     previewWindow?.orderOut(nil)
     hudWindow = nil
+    autoScrollWindow = nil
     previewWindow = nil
     sessionModel = nil
     latestImage = nil
@@ -809,6 +816,8 @@ final class ScrollingCaptureCoordinator {
     for screen in NSScreen.screens {
       let overlay = RecordingRegionOverlayWindow(screen: screen, highlightRect: rect)
       overlay.interactionDelegate = self
+      overlay.setSelectionAccentColor(.systemBlue)
+      overlay.setGuidanceUsesPlainText(true)
       overlay.setInteractionEnabled(true)
       overlay.updateGuidance(currentRegionOverlayGuidance())
       overlay.orderFrontRegardless()
@@ -818,7 +827,7 @@ final class ScrollingCaptureCoordinator {
 
   private func bindRegionOverlayGuidance(to model: ScrollingCaptureSessionModel) {
     sessionModelObservation?.cancel()
-    sessionModelObservation = model.objectWillChange.sink { [weak self] _ in
+    sessionModelObservation = model.$guidanceKind.sink { [weak self] _ in
       DispatchQueue.main.async {
         self?.syncRegionOverlayGuidance()
       }
@@ -834,7 +843,8 @@ final class ScrollingCaptureCoordinator {
   }
 
   private func currentRegionOverlayGuidance() -> RecordingRegionOverlayGuidance? {
-    guard let guidance = sessionModel?.selectionGuidance else { return nil }
+    guard let sessionModel, sessionModel.phase != .ready else { return nil }
+    let guidance = sessionModel.selectionGuidance
     let tone: RecordingRegionOverlayGuidanceTone = switch guidance.tone {
     case .neutral:
       .neutral
@@ -865,12 +875,14 @@ final class ScrollingCaptureCoordinator {
         overlay.orderFrontRegardless()
       }
       hudWindow?.orderFrontRegardless()
+      autoScrollWindow?.orderFrontRegardless()
       previewWindow?.orderFrontRegardless()
     } else {
       for overlay in regionOverlayWindows {
         overlay.orderOut(nil)
       }
       hudWindow?.orderOut(nil)
+      autoScrollWindow?.orderOut(nil)
       previewWindow?.orderOut(nil)
     }
   }
@@ -885,6 +897,7 @@ final class ScrollingCaptureCoordinator {
       overlay.updateHighlightRect(normalizedRect)
     }
     hudWindow?.updateAnchorRect(normalizedRect)
+    autoScrollWindow?.updateAnchorRect(normalizedRect)
     previewWindow?.updateAnchorRect(normalizedRect)
 
     if reprepareSession {
@@ -934,6 +947,7 @@ final class ScrollingCaptureCoordinator {
           excludeDesktopIcons: DesktopIconManager.shared.isIconHidingEnabled,
           excludeDesktopWidgets: DesktopIconManager.shared.isWidgetHidingEnabled,
           excludeOwnApplication: true,
+          includeAllShareableOwnWindows: true,
           prefetchedContentTask: prefetchedContentTask
         )
 
@@ -976,6 +990,7 @@ final class ScrollingCaptureCoordinator {
       excludeDesktopIcons: DesktopIconManager.shared.isIconHidingEnabled,
       excludeDesktopWidgets: DesktopIconManager.shared.isWidgetHidingEnabled,
       excludeOwnApplication: true,
+      includeAllShareableOwnWindows: true,
       prefetchedContentTask: prefetchedContentTask
     )
     preparedCaptureContext = context
@@ -1309,8 +1324,8 @@ final class ScrollingCaptureCoordinator {
   ) async -> (ScrollingCaptureStitchUpdate?, ScrollingCaptureStitcher?, CGImage?) {
     let currentStitcher = stitcher
     let maxOutputHeight = maxOutputHeight
-    let previewMaxWidth = Int((ScrollingCapturePreviewLayout.previewWidth * previewRenderScale).rounded())
-    let previewMaxHeight = Int((ScrollingCapturePreviewLayout.maxPreviewHeight * previewRenderScale).rounded())
+    let previewMaxWidth = ScrollingCapturePreviewLayout.renderPixelWidth
+    let previewMaxHeight = ScrollingCapturePreviewLayout.renderPixelHeight
 
     return await withCheckedContinuation { continuation in
       processingQueue.async {
