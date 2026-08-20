@@ -53,8 +53,13 @@ swift -module-cache-path build/swift-module-cache platforms/mac/Tools/Localizati
 Windows PowerShell baseline:
 
 ```powershell
-./scripts/build-windows.ps1 -Configuration Debug
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1 -Configuration Debug
 ```
+
+This command runs the x64 restore, unit-test passes, build-identity check, and
+headless Windows parity gate. See [the Windows development guide](docs/DEVELOPMENT.md)
+for Release, publish, interactive parity, artifact paths, and `dotnet` PATH
+troubleshooting.
 
 A successful compile is not sufficient for capture, recording, permission,
 shortcut, DPI, or window-management changes. Include the affected OS/hardware

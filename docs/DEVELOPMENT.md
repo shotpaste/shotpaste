@@ -149,22 +149,75 @@ repository owner.
 Requirements:
 
 - Windows 10 version 2004 or later, x64
-- .NET 8 SDK
+- PowerShell 5.1 or PowerShell 7
+- .NET 8 SDK (`dotnet --info` should report an installed SDK)
+- Run the commands below from the repository root
 
-From PowerShell, restore, build, and run the configured tests:
-
-```powershell
-./scripts/build-windows.ps1 -Configuration Debug
-```
-
-Create a self-contained release publish:
+Verify the SDK before starting the build:
 
 ```powershell
-./scripts/build-windows.ps1 -Configuration Release -Publish
+dotnet --info
 ```
 
-Selection, hotkeys, DPI, scrolling, recording, media, and window behavior must
-be validated at the physical Windows console.
+`scripts/build-windows.ps1` is the canonical Windows validation entry point. It
+restores `platforms/windows/ShotPaste.Windows.sln` for x64, runs the broad test
+pass and the isolated native-memory/database regressions, verifies the
+selected configuration's application identity, builds the Windows E2E projects,
+and runs the headless parity contract. The headless run does not require a signed-in
+desktop; interactive capture, clipboard, OCR, localization, and recording
+checks are run separately on a signed-in Windows session.
+
+Run the full Debug validation from PowerShell:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1 -Configuration Debug
+```
+
+Run the Release validation without publishing:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1 -Configuration Release
+```
+
+Create a self-contained, single-file win-x64 release publish:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1 -Configuration Release -Publish
+```
+
+The primary artifacts are:
+
+- Debug: `platforms/windows/src/ShotPaste.Windows/bin/x64/Debug/net8.0-windows10.0.19041.0/win-x64/ShotPasteDebug.exe`
+- Release: `platforms/windows/src/ShotPaste.Windows/bin/x64/Release/net8.0-windows10.0.19041.0/win-x64/ShotPaste.exe`
+- Release publish: `platforms/windows/src/ShotPaste.Windows/bin/x64/Release/net8.0-windows10.0.19041.0/win-x64/publish/ShotPaste.exe`
+
+The headless parity summary is written to
+`build/e2e/windows-parity/summary.json`. A successful build script run is not
+evidence that interactive capture, recording, permission, shortcut, DPI, or
+window-management behavior passed. Run those checks at the physical Windows
+console and include the affected OS/hardware and concise manual acceptance
+steps in the change description.
+
+For a Debug interactive parity run after the Debug build, pass the Debug
+executable explicitly:
+
+```powershell
+$product = (Resolve-Path '.\platforms\windows\src\ShotPaste.Windows\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\ShotPasteDebug.exe').Path
+.\scripts\test-windows-parity.ps1 -Configuration Debug -Tier Interactive -SkipBuild -ProductExecutable $product -RequireDpiScale 1.5
+```
+
+If `dotnet` is not recognized, install the .NET 8 SDK and reopen PowerShell, or
+prepend the directory containing an existing `dotnet.exe` for the current
+PowerShell session only. Replace the placeholder with the actual SDK directory:
+
+```powershell
+$dotnetRoot = 'C:\path\to\directory-containing-dotnet.exe'
+if (-not (Test-Path (Join-Path $dotnetRoot 'dotnet.exe'))) {
+    throw "dotnet.exe was not found under $dotnetRoot"
+}
+$env:PATH = "$dotnetRoot;$env:PATH"
+dotnet --info
+```
 
 ## Main code areas
 
