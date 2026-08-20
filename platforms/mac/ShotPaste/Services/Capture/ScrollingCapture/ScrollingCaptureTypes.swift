@@ -72,15 +72,6 @@ enum ScrollingCapturePreviewTruthState: Equatable {
       L10n.ScrollingCapture.badgeSaving
     }
   }
-
-  var prefersLiveViewport: Bool {
-    switch self {
-    case .liveSynced, .liveAhead:
-      true
-    default:
-      false
-    }
-  }
 }
 
 enum ScrollingCaptureSelectionGuidanceTone {
@@ -261,6 +252,7 @@ enum ScrollingCaptureAutoScrollStitchAction: Equatable {
 enum ScrollingCaptureAutoScrollPolicy {
   static let hoverPadding: CGFloat = 16
   static let alignmentFailureStopThreshold = 3
+  static let boundaryConfirmationCount = 3
 
   static func canToggle(
     phase: ScrollingCapturePhase,
@@ -279,6 +271,10 @@ enum ScrollingCaptureAutoScrollPolicy {
     let hoverRect = selectedRect.insetBy(dx: -hoverPadding, dy: -hoverPadding)
     guard hoverRect.contains(mouseLocation) else { return nil }
     return mouseLocation
+  }
+
+  static func shouldConfirmBoundary(acceptedFrameCount: Int, stationaryUpdateCount: Int) -> Bool {
+    acceptedFrameCount > 1 && stationaryUpdateCount >= boundaryConfirmationCount
   }
 
   static func stitchAction(for update: ScrollingCaptureStitchUpdate) -> ScrollingCaptureAutoScrollStitchAction {
@@ -352,34 +348,8 @@ final class ScrollingCaptureSessionModel: ObservableObject {
     )
   }
 
-  var isShowingLiveViewport: Bool {
-    phase == .capturing
-      && previewImage == nil
-      && previewTruthState.prefersLiveViewport
-      && livePreviewImage != nil
-  }
-
   var activePreviewImage: CGImage? {
     previewImage ?? livePreviewImage
-  }
-
-  var previewTruthDescription: String {
-    switch previewTruthState {
-    case .ready:
-      L10n.ScrollingCapture.previewPressStartToBegin
-    case .committedOnly:
-      L10n.ScrollingCapture.previewShowingLatestStitchedCapture
-    case .liveSynced:
-      L10n.ScrollingCapture.previewMatchesStitchedCapture
-    case .liveAhead:
-      L10n.ScrollingCapture.previewShowingLatestWhileLockingNewerContent
-    case .pausedRecovery:
-      L10n.ScrollingCapture.previewPausedScrollSlowly
-    case .finalizing:
-      L10n.ScrollingCapture.previewFinishingSavingCapture
-    case .saving:
-      L10n.ScrollingCapture.previewSavingCapture
-    }
   }
 
   var selectionGuidance: ScrollingCaptureSelectionGuidance {

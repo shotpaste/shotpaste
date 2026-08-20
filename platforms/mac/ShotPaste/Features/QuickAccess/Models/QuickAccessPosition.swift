@@ -46,15 +46,6 @@ enum QuickAccessPosition: String, CaseIterable, Codable {
     self == .topLeft || self == .bottomLeft
   }
 
-  /// Create position from side preference
-  static func fromSide(_ isLeft: Bool, preferTop: Bool = false) -> QuickAccessPosition {
-    if isLeft {
-      preferTop ? .topLeft : .bottomLeft
-    } else {
-      preferTop ? .topRight : .bottomRight
-    }
-  }
-
   // MARK: - Animation Support
 
   /// Calculate off-screen origin for slide-in animation

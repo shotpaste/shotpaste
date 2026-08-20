@@ -22,6 +22,7 @@ public sealed class AppBuildIdentityTests
         Assert.Equal("ShotPaste", identity.StartupRegistryValueName);
         Assert.Equal("shotpaste", identity.UrlScheme);
         Assert.Equal("Ctrl+Shift", identity.DefaultHotkeyModifiers);
+        Assert.Equal(48123, identity.DefaultMcpServerPort);
         Assert.True(identity.PerformsAutomaticUpdateChecks);
     }
 
@@ -38,6 +39,7 @@ public sealed class AppBuildIdentityTests
         Assert.Equal("com.ahtcfg24.shotpaste.windows.debug", debug.NativeManifestIdentity);
         Assert.Equal("ShotPaste.Debug", debug.DataDirectoryName);
         Assert.Equal("shotpaste-debug", debug.UrlScheme);
+        Assert.Equal(48124, debug.DefaultMcpServerPort);
         Assert.NotEqual(release.ExecutableName, debug.ExecutableName);
         Assert.NotEqual(release.DataDirectoryName, debug.DataDirectoryName);
         Assert.NotEqual(release.DefaultSaveDirectoryName, debug.DefaultSaveDirectoryName);
@@ -46,6 +48,7 @@ public sealed class AppBuildIdentityTests
         Assert.NotEqual(release.StartupRegistryValueName, debug.StartupRegistryValueName);
         Assert.NotEqual(release.UrlScheme, debug.UrlScheme);
         Assert.NotEqual(release.DefaultHotkeyModifiers, debug.DefaultHotkeyModifiers);
+        Assert.NotEqual(release.DefaultMcpServerPort, debug.DefaultMcpServerPort);
         Assert.NotEqual(release.NativeManifestIdentity, debug.NativeManifestIdentity);
         Assert.NotEqual(release.InternalClipboardWriteMarkerFormat, debug.InternalClipboardWriteMarkerFormat);
         Assert.NotEqual(AppPaths.DefaultRootFor(release), AppPaths.DefaultRootFor(debug));
@@ -93,6 +96,7 @@ public sealed class AppBuildIdentityTests
                 gesture.StartsWith(identity.DefaultHotkeyModifiers + "+", StringComparison.Ordinal),
                 gesture));
         Assert.Equal($@"Software\Classes\{identity.UrlScheme}", UrlSchemeService.ProtocolKey);
+        Assert.Equal(identity.DefaultMcpServerPort, settings.McpServerPort);
     }
 
     [Fact]
@@ -158,7 +162,8 @@ public sealed class AppBuildIdentityTests
             FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows", "Controls", "WindowTitleBar.xaml"),
             FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows", "Resources", "Controls", "Common.xaml"),
             FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows", "Services", "ThemeService.cs"),
-            FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows", "Services", "TrayIconService.cs")
+            FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows", "Services", "TrayIconService.cs"),
+            FindRepositoryFile("platforms", "windows", "tests", "ShotPaste.Windows.OcrE2E", "Program.cs")
         };
 
         Assert.All(files, file => Assert.DoesNotContain(

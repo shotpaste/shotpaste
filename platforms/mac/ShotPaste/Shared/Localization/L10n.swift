@@ -166,16 +166,6 @@ nonisolated enum L10n {
   }
 
   enum PreferencesAdvanced {
-    static let backupSection = string(
-      "preferences-advanced.backup-section",
-      defaultValue: "Backup",
-      comment: "Advanced preferences backup section title"
-    )
-    static let integrationSection = string(
-      "preferences-advanced.section-integration",
-      defaultValue: "Integration",
-      comment: "Advanced preferences integration section title"
-    )
     static let urlSchemeTitle = string(
       "preferences-advanced.url-scheme-title",
       defaultValue: "URL Scheme integration",
@@ -208,26 +198,6 @@ nonisolated enum L10n {
     static let openFolderButton = PreferencesGeneral.openFolderButton
     static let calculating = PreferencesGeneral.calculating
     static let noLogs = PreferencesGeneral.noLogs
-    static let exportTitle = string(
-      "preferences-advanced.export-title",
-      defaultValue: "Export backup",
-      comment: "Advanced preferences export row title"
-    )
-    static let exportDescription = string(
-      "preferences-advanced.export-description",
-      defaultValue: "Save portable copy",
-      comment: "Advanced preferences export row description"
-    )
-    static let importTitle = string(
-      "preferences-advanced.import-title",
-      defaultValue: "Import backup",
-      comment: "Advanced preferences import row title"
-    )
-    static let importDescription = string(
-      "preferences-advanced.import-description",
-      defaultValue: "Replace from .toml file",
-      comment: "Advanced preferences import row description"
-    )
     static let restoreDefaultsTitle = string(
       "preferences-advanced.restore-defaults-title",
       defaultValue: "Restore defaults",
@@ -237,16 +207,6 @@ nonisolated enum L10n {
       "preferences-advanced.restore-defaults-description",
       defaultValue: "Reset all settings",
       comment: "Advanced preferences restore defaults row description"
-    )
-    static let exportButton = string(
-      "preferences-advanced.export-button",
-      defaultValue: "Export",
-      comment: "Export config button"
-    )
-    static let importButton = string(
-      "preferences-advanced.import-button",
-      defaultValue: "Import",
-      comment: "Import config button"
     )
     static let restoreDefaultsButton = string(
       "preferences-advanced.restore-defaults-button",
@@ -258,242 +218,10 @@ nonisolated enum L10n {
       defaultValue: "Restore Defaults",
       comment: "Destructive confirmation button for restoring default settings"
     )
-    static let openConfigButton = string(
-      "preferences-advanced.open-config-button",
-      defaultValue: "Open config.toml",
-      comment: "Open TOML config file button"
-    )
-    static let configSyncStatusTitle = string(
-      "preferences-advanced.config-sync-status-title",
-      defaultValue: "config.toml sync",
-      comment: "Settings row title for config.toml background sync status"
-    )
-    static let syncNowButton = string(
-      "preferences-advanced.sync-now-button",
-      defaultValue: "Sync Now",
-      comment: "Button title for manually syncing current settings into config.toml"
-    )
-    static let configSyncBadgeSynced = string(
-      "preferences-advanced.config-sync-badge-synced",
-      defaultValue: "Synced",
-      comment: "Badge label when config.toml matches current settings"
-    )
-    static let configSyncBadgeQueued = string(
-      "preferences-advanced.config-sync-badge-queued",
-      defaultValue: "Queued",
-      comment: "Badge label when config.toml sync is queued"
-    )
-    static let configSyncBadgeSyncing = string(
-      "preferences-advanced.config-sync-badge-syncing",
-      defaultValue: "Syncing",
-      comment: "Badge label while config.toml is syncing"
-    )
-    static let configSyncBadgeAccessNeeded = string(
-      "preferences-advanced.config-sync-badge-access-needed",
-      defaultValue: "Access Needed",
-      comment: "Badge label when config folder access is required before syncing config.toml"
-    )
-    static let configSyncBadgeReviewNeeded = string(
-      "preferences-advanced.config-sync-badge-review-needed",
-      defaultValue: "Review Needed",
-      comment: "Badge label when config.toml has external changes that need user review"
-    )
-    static let configSyncBadgeFailed = string(
-      "preferences-advanced.config-sync-badge-failed",
-      defaultValue: "Failed",
-      comment: "Badge label when config.toml sync failed"
-    )
-    static let configSyncIdleDescription = string(
-      "preferences-advanced.config-sync-idle-description",
-      defaultValue: "Current settings will sync to config.toml automatically.",
-      comment: "Config sync row description before the first sync result is available"
-    )
-    static let configSyncQueuedDescription = string(
-      "preferences-advanced.config-sync-queued-description",
-      defaultValue: "Sync queued. ShotPaste will update config.toml shortly.",
-      comment: "Config sync row description when sync is queued"
-    )
-    static let configSyncWritingDescription = string(
-      "preferences-advanced.config-sync-writing-description",
-      defaultValue: "Writing current settings to config.toml.",
-      comment: "Config sync row description while sync is writing config.toml"
-    )
-    static func configSyncUpToDateDescription(_ time: String) -> String {
-      format(
-        "preferences-advanced.config-sync-up-to-date-description",
-        defaultValue: "config.toml already matches current settings. Last checked at %@.",
-        comment: "Config sync row description when config.toml was already current. %@ is a localized time.",
-        time
-      )
-    }
-
-    static func configSyncSyncedDescription(_ time: String) -> String {
-      format(
-        "preferences-advanced.config-sync-synced-description",
-        defaultValue: "config.toml updated from current settings at %@.",
-        comment: "Config sync row description after config.toml is written. %@ is a localized time.",
-        time
-      )
-    }
-
-    static let configAccessWarningTitle = string(
-      "preferences-advanced.config-access-warning-title",
-      defaultValue: "Config folder access needed",
-      comment: "Warning title when ShotPaste has not been granted config folder access"
-    )
-    static func configAccessWarningDescription(_ path: String) -> String {
-      format(
-        "preferences-advanced.config-access-warning-description",
-        defaultValue: "Grant access to %@ once so ShotPaste can create config.toml and apply direct edits on launch.",
-        comment: "Warning description when config folder access is missing. %@ is the expected config directory path.",
-        path
-      )
-    }
-
-    static let grantConfigAccessButton = string(
-      "preferences-advanced.grant-config-access-button",
-      defaultValue: "Grant Access",
-      comment: "Button title to grant config folder access"
-    )
-    static let configAccessRequiredToast = string(
-      "preferences-advanced.config-access-required-toast",
-      defaultValue: "Grant config folder access first.",
-      comment: "Toast shown when a config backup action requires folder access first"
-    )
-    static let configAccessReady = string(
-      "preferences-advanced.config-access-ready",
-      defaultValue: "config.toml is ready.",
-      comment: "Toast shown after config folder access is granted"
-    )
-    static let exportSucceeded = string(
-      "preferences-advanced.export-succeeded",
-      defaultValue: "Config backup exported.",
-      comment: "Toast shown after config export succeeds"
-    )
-    static let openConfigSucceeded = string(
-      "preferences-advanced.open-config-succeeded",
-      defaultValue: "config.toml opened.",
-      comment: "Toast shown after config.toml is opened"
-    )
-    static let configSyncing = string(
-      "preferences-advanced.config-syncing",
-      defaultValue: "Syncing config.toml...",
-      comment: "Toast shown while ShotPaste syncs current settings into config.toml"
-    )
-    static let configSynced = string(
-      "preferences-advanced.config-synced",
-      defaultValue: "config.toml synced.",
-      comment: "Toast shown after ShotPaste syncs current settings into config.toml"
-    )
-    static let configSyncNeedsConfirmation = string(
-      "preferences-advanced.config-sync-needs-confirmation",
-      defaultValue: "config.toml has external changes.",
-      comment: "Toast shown when ShotPaste needs confirmation before replacing externally changed config.toml"
-    )
-    static let configSyncConfirmationTitle = string(
-      "preferences-advanced.config-sync-confirmation-title",
-      defaultValue: "Sync config.toml?",
-      comment: "Confirmation alert title before replacing a config file with external changes"
-    )
-    static let configSyncConfirmationMessage = string(
-      "preferences-advanced.config-sync-confirmation-message",
-      defaultValue: "config.toml no longer matches ShotPaste settings and may have edits from outside the app. Syncing will replace it with current settings.",
-      comment: "Confirmation alert message before replacing a config file with external changes"
-    )
-    static let syncConfigConfirmButton = string(
-      "preferences-advanced.sync-config-confirm-button",
-      defaultValue: "Sync & Open",
-      comment: "Confirmation button that replaces config.toml with current settings and opens it"
-    )
-    static let openExistingConfigButton = string(
-      "preferences-advanced.open-existing-config-button",
-      defaultValue: "Open Existing",
-      comment: "Confirmation button that opens config.toml without syncing current settings"
-    )
-    static let importSucceeded = string(
-      "preferences-advanced.import-succeeded",
-      defaultValue: "Backup imported and config.toml replaced.",
-      comment: "Toast shown after a backup import replaces the managed config file"
-    )
     static let restoreDefaultsSucceeded = string(
       "preferences-advanced.restore-defaults-succeeded",
       defaultValue: "Defaults restored.",
       comment: "Toast shown after settings are restored to defaults"
-    )
-    static let operationFinished = string(
-      "preferences-advanced.operation-finished",
-      defaultValue: "Done.",
-      comment: "Fallback toast when a config backup operation completes"
-    )
-    static let openConfigUnavailable = string(
-      "preferences-advanced.open-config-unavailable",
-      defaultValue: "Could not open config.toml.",
-      comment: "Open config file unavailable result message"
-    )
-    static let exportPanelTitle = string(
-      "preferences-advanced.export-panel-title",
-      defaultValue: "Export ShotPaste Config",
-      comment: "Config export save panel title"
-    )
-    static let importPanelTitle = string(
-      "preferences-advanced.import-panel-title",
-      defaultValue: "Import ShotPaste Config",
-      comment: "Config import open panel title"
-    )
-    static func exported(_ path: String) -> String {
-      format(
-        "preferences-advanced.exported",
-        defaultValue: "Exported config to %@",
-        comment: "Config export success message",
-        path
-      )
-    }
-
-    static func openedConfig(_ path: String) -> String {
-      format(
-        "preferences-advanced.opened-config",
-        defaultValue: "Opened config.toml from %@",
-        comment: "Config file opened success message",
-        path
-      )
-    }
-
-    static func configAccessGranted(_ path: String) -> String {
-      format(
-        "preferences-advanced.config-access-granted",
-        defaultValue: "Config folder access granted. config.toml is ready at %@",
-        comment: "Config folder access success message. %@ is the config file path.",
-        path
-      )
-    }
-
-    static func openConfigMissing(_ path: String) -> String {
-      format(
-        "preferences-advanced.open-config-missing",
-        defaultValue: "No config file exists at %@. Export a backup first, then open it here.",
-        comment: "Config file missing warning message",
-        path
-      )
-    }
-
-    static func openConfigFailed(_ path: String) -> String {
-      format(
-        "preferences-advanced.open-config-failed",
-        defaultValue: "macOS could not open %@.",
-        comment: "Config file open failure message",
-        path
-      )
-    }
-
-    static let exportFailed = string(
-      "preferences-advanced.export-failed",
-      defaultValue: "Config export failed.",
-      comment: "Config export failure message"
-    )
-    static let importFailed = string(
-      "preferences-advanced.import-failed",
-      defaultValue: "Config import failed.",
-      comment: "Config import failure message"
     )
     static let restoreDefaultsFailed = string(
       "preferences-advanced.restore-defaults-failed",
@@ -507,36 +235,9 @@ nonisolated enum L10n {
     )
     static let restoreDefaultsConfirmationMessage = string(
       "preferences-advanced.restore-defaults-confirmation-message",
-      defaultValue: "If you confirm, ShotPaste will replace config.toml with default values and reset app settings. Saved captures are not deleted.",
+      defaultValue: "If you confirm, ShotPaste will reset app settings to their default values. Saved captures are not deleted.",
       comment: "Restore defaults confirmation alert message"
     )
-    static func importFailedWithErrors(_ count: Int) -> String {
-      format(
-        "preferences-advanced.import-failed-with-errors",
-        defaultValue: "Config import failed with %d error(s).",
-        comment: "Config import validation error summary",
-        count
-      )
-    }
-
-    static func imported(_ count: Int) -> String {
-      format(
-        "preferences-advanced.imported",
-        defaultValue: "Imported %d config setting(s).",
-        comment: "Config import success summary",
-        count
-      )
-    }
-
-    static func importedWithWarnings(_ count: Int, _ warningCount: Int) -> String {
-      format(
-        "preferences-advanced.imported-with-warnings",
-        defaultValue: "Imported %d config setting(s) with %d warning(s).",
-        comment: "Config import success with warnings summary",
-        count,
-        warningCount
-      )
-    }
   }
 
   enum Actions {
@@ -645,21 +346,6 @@ nonisolated enum L10n {
       defaultValue: "Stop and Quit",
       comment: "Alert action that saves an active recording before quitting"
     )
-    static let tryItOut = string(
-      "common.try-it-out",
-      defaultValue: "Try It Out",
-      comment: "Try it out button title"
-    )
-    static let next = string(
-      "common.next",
-      defaultValue: "Next",
-      comment: "Primary next action button title"
-    )
-    static let continueAction = string(
-      "common.continue",
-      defaultValue: "Continue",
-      comment: "Generic continue button title"
-    )
     static let close = string(
       "common.close",
       defaultValue: "Close",
@@ -674,16 +360,6 @@ nonisolated enum L10n {
       "common.preferences",
       defaultValue: "Preferences",
       comment: "Generic label for preferences without an ellipsis"
-    )
-    static let width = string(
-      "common.width",
-      defaultValue: "Width",
-      comment: "Generic label for width"
-    )
-    static let height = string(
-      "common.height",
-      defaultValue: "Height",
-      comment: "Generic label for height"
     )
     static let on = string(
       "common.on",
@@ -735,26 +411,6 @@ nonisolated enum L10n {
       defaultValue: "Reset to Default",
       comment: "Generic button title to reset a setting to its default value"
     )
-    static let importAction = string(
-      "common.import",
-      defaultValue: "Import",
-      comment: "Generic import button title"
-    )
-    static let exportAction = string(
-      "common.export",
-      defaultValue: "Export",
-      comment: "Generic export button title"
-    )
-    static let share = string(
-      "common.share",
-      defaultValue: "Share",
-      comment: "Generic share button title"
-    )
-    static let saveAs = string(
-      "common.save-as",
-      defaultValue: "Save as...",
-      comment: "Generic save as button title"
-    )
     static let save = string(
       "common.save",
       defaultValue: "Save",
@@ -764,11 +420,6 @@ nonisolated enum L10n {
       "common.none",
       defaultValue: "None",
       comment: "Generic none option label"
-    )
-    static let more = string(
-      "common.more",
-      defaultValue: "More",
-      comment: "Generic more button title"
     )
     static let reset = string(
       "common.reset",
@@ -780,20 +431,10 @@ nonisolated enum L10n {
       defaultValue: "Done",
       comment: "Generic done button title"
     )
-    static let apply = string(
-      "common.apply",
-      defaultValue: "Apply",
-      comment: "Generic apply button title"
-    )
     static let deleteAction = string(
       "common.delete",
       defaultValue: "Delete",
       comment: "Generic delete button title"
-    )
-    static let overwrite = string(
-      "common.overwrite",
-      defaultValue: "Overwrite",
-      comment: "Generic overwrite button title"
     )
     static let undo = string(
       "common.undo",
@@ -825,11 +466,6 @@ nonisolated enum L10n {
       defaultValue: "Open",
       comment: "Generic open button title"
     )
-    static let restore = string(
-      "common.restore",
-      defaultValue: "Restore",
-      comment: "Generic restore button title"
-    )
     static let openInFinder = string(
       "common.open-in-finder",
       defaultValue: "Open in Finder",
@@ -840,160 +476,30 @@ nonisolated enum L10n {
       defaultValue: "Move to Trash",
       comment: "Generic destructive action title for moving a file to the system Trash"
     )
-    static let renameFile = string(
-      "common.rename-file",
-      defaultValue: "Rename file",
-      comment: "Generic tooltip or label for renaming a file"
-    )
     static let preview = string(
       "common.preview",
       defaultValue: "Preview",
       comment: "Generic preview section title"
-    )
-    static let file = string(
-      "common.file",
-      defaultValue: "File",
-      comment: "Generic file section title"
-    )
-    static let name = string(
-      "common.name",
-      defaultValue: "Name",
-      comment: "Generic name field label"
-    )
-    static let path = string(
-      "common.path",
-      defaultValue: "Path",
-      comment: "Generic path field label"
     )
     static let size = string(
       "common.size",
       defaultValue: "Size",
       comment: "Generic size field label"
     )
-    static let format = string(
-      "common.format",
-      defaultValue: "Format",
-      comment: "Generic format field label"
-    )
-    static let resolution = string(
-      "common.resolution",
-      defaultValue: "Resolution",
-      comment: "Generic resolution field label"
-    )
-    static let aspectRatio = string(
-      "common.aspect-ratio",
-      defaultValue: "Aspect Ratio",
-      comment: "Generic aspect ratio field label"
-    )
-    static let duration = string(
-      "common.duration",
-      defaultValue: "Duration",
-      comment: "Generic duration field label"
-    )
-    static let created = string(
-      "common.created",
-      defaultValue: "Created",
-      comment: "Generic created date field label"
-    )
-    static let modified = string(
-      "common.modified",
-      defaultValue: "Modified",
-      comment: "Generic modified date field label"
-    )
     static let status = string(
       "common.status",
       defaultValue: "Status",
       comment: "Generic status field label"
-    )
-    static let currentSize = string(
-      "common.current-size",
-      defaultValue: "Current Size",
-      comment: "Generic current file size label"
-    )
-    static let estimated = string(
-      "common.estimated",
-      defaultValue: "Estimated",
-      comment: "Generic estimated value label"
-    )
-    static let estimatedSize = string(
-      "common.estimated-size",
-      defaultValue: "Estimated Size",
-      comment: "Generic estimated file size label"
-    )
-    static let quality = string(
-      "common.quality",
-      defaultValue: "Quality",
-      comment: "Generic quality section title"
-    )
-    static let dimensions = string(
-      "common.dimensions",
-      defaultValue: "Dimensions",
-      comment: "Generic dimensions section title"
-    )
-    static let audio = string(
-      "common.audio",
-      defaultValue: "Audio",
-      comment: "Generic audio section title"
-    )
-    static let video = string(
-      "common.video",
-      defaultValue: "Video",
-      comment: "Generic video section title"
-    )
-    static let background = string(
-      "common.background",
-      defaultValue: "Background",
-      comment: "Generic background section title"
-    )
-    static let colors = string(
-      "common.colors",
-      defaultValue: "Colors",
-      comment: "Generic colors section title"
-    )
-    static let gradients = string(
-      "common.gradients",
-      defaultValue: "Gradients",
-      comment: "Generic gradients section title"
-    )
-    static let padding = string(
-      "common.padding",
-      defaultValue: "Padding",
-      comment: "Generic padding setting label"
-    )
-    static let inset = string(
-      "common.inset",
-      defaultValue: "Inset",
-      comment: "Generic inset setting label"
-    )
-    static let shadow = string(
-      "common.shadow",
-      defaultValue: "Shadow",
-      comment: "Generic shadow setting label"
     )
     static let corners = string(
       "common.corners",
       defaultValue: "Corners",
       comment: "Generic corners setting label"
     )
-    static let rotation = string(
-      "common.rotation",
-      defaultValue: "Rotation",
-      comment: "Generic rotation section title"
-    )
-    static let perspective = string(
-      "common.perspective",
-      defaultValue: "Perspective",
-      comment: "Generic perspective section title"
-    )
     static let style = string(
       "common.style",
       defaultValue: "Style",
       comment: "Generic style setting label"
-    )
-    static let fill = string(
-      "common.fill",
-      defaultValue: "Fill",
-      comment: "Generic fill setting label"
     )
     static let text = string(
       "common.text",
@@ -1009,81 +515,6 @@ nonisolated enum L10n {
       "common.stroke",
       defaultValue: "Stroke",
       comment: "Generic stroke setting label"
-    )
-    static let solid = string(
-      "common.solid",
-      defaultValue: "Solid",
-      comment: "Generic solid color label"
-    )
-    static let free = string(
-      "common.free",
-      defaultValue: "Free",
-      comment: "Generic free-form option label"
-    )
-    static let dates = string(
-      "common.dates",
-      defaultValue: "Dates",
-      comment: "Generic dates section title"
-    )
-    static let low = string(
-      "common.low",
-      defaultValue: "Low",
-      comment: "Generic low option label"
-    )
-    static let medium = string(
-      "common.medium",
-      defaultValue: "Medium",
-      comment: "Generic medium option label"
-    )
-    static let high = string(
-      "common.high",
-      defaultValue: "High",
-      comment: "Generic high option label"
-    )
-    static let original = string(
-      "common.original",
-      defaultValue: "Original",
-      comment: "Generic original option label"
-    )
-    static let favorite = string(
-      "common.favorite",
-      defaultValue: "Favorite",
-      comment: "Generic favorite section title"
-    )
-    static let dragColorsHere = string(
-      "common.drag-colors-here",
-      defaultValue: "Drag colors here",
-      comment: "Instruction shown in color favorite drop zones"
-    )
-    static let custom = string(
-      "common.custom",
-      defaultValue: "Custom",
-      comment: "Generic custom option label"
-    )
-    static let unsaved = string(
-      "common.unsaved",
-      defaultValue: "Unsaved",
-      comment: "Generic unsaved status label"
-    )
-    static let active = string(
-      "common.active",
-      defaultValue: "Active",
-      comment: "Generic active status label"
-    )
-    static let ready = string(
-      "common.ready",
-      defaultValue: "Ready",
-      comment: "Generic ready status label"
-    )
-    static let enabled = string(
-      "common.enabled",
-      defaultValue: "Enabled",
-      comment: "Generic enabled state label"
-    )
-    static let disabled = string(
-      "common.disabled",
-      defaultValue: "Disabled",
-      comment: "Generic disabled state label"
     )
     static func withShortcut(_ title: String, _ shortcut: String) -> String {
       L10n.format(
@@ -1301,11 +732,6 @@ nonisolated enum L10n {
   }
 
   enum ShortcutGuidance {
-    static let recordingSection = string(
-      "shortcut-guidance.section-recording",
-      defaultValue: "Recording",
-      comment: "Shortcut group title in the Shortcuts settings reference"
-    )
     static let guideStep1 = string(
       "shortcut-guidance.guide-step-1",
       defaultValue: "Open System Settings → Keyboard → Keyboard Shortcuts",
@@ -1382,14 +808,6 @@ nonisolated enum L10n {
       defaultValue: "Turn this shortcut on to edit it.",
       comment: "Help text shown when shortcut recorder is disabled"
     )
-    static func usedBy(_ displayName: String) -> String {
-      format(
-        "shortcut-recorder.used-by",
-        defaultValue: "Used by %@",
-        comment: "Conflict label for a shortcut already used by another action or tool. %@ is the conflicting action name.",
-        displayName
-      )
-    }
   }
 
   enum ShortcutValidation {
@@ -1543,11 +961,6 @@ nonisolated enum L10n {
       defaultValue: "Save location",
       comment: "General preferences setting title"
     )
-    static let saveLocationDescription = string(
-      "preferences-general.save-location-description",
-      defaultValue: "Where ShotPaste stores captures",
-      comment: "General preferences setting description"
-    )
     static let chooseButton = string(
       "preferences-general.choose-button",
       defaultValue: "Choose...",
@@ -1562,26 +975,6 @@ nonisolated enum L10n {
       "preferences-general.check-automatically-description",
       defaultValue: "Look for updates on launch",
       comment: "General preferences setting description"
-    )
-    static let downloadAutomaticallyTitle = string(
-      "preferences-general.download-automatically-title",
-      defaultValue: "Download automatically",
-      comment: "General preferences setting title"
-    )
-    static let downloadAutomaticallyDescription = string(
-      "preferences-general.download-automatically-description",
-      defaultValue: "Download updates in background",
-      comment: "General preferences setting description"
-    )
-    static let lastCheckedTitle = string(
-      "preferences-general.last-checked-title",
-      defaultValue: "Last checked",
-      comment: "General preferences setting title"
-    )
-    static let never = string(
-      "preferences-general.never",
-      defaultValue: "Never",
-      comment: "Label shown when an event has never happened"
     )
     static let updateCheckButton = string(
       "preferences-general.update-check-button",
@@ -1718,11 +1111,6 @@ nonisolated enum L10n {
   }
 
   enum PreferencesPermissions {
-    static let intro = string(
-      "preferences-permissions.intro",
-      defaultValue: "ShotPaste requires certain permissions to capture your screen and audio.",
-      comment: "Introductory text for the permissions preferences tab"
-    )
     static let setupTitle = string(
       "preferences-permissions.setup-title",
       defaultValue: "Finish setting up ShotPaste",
@@ -2097,16 +1485,6 @@ nonisolated enum L10n {
       defaultValue: "Unpin",
       comment: "Quick access configurable action title"
     )
-    static let primaryActionBadge = string(
-      "preferences-quick-access.badge-primary",
-      defaultValue: "Primary",
-      comment: "Quick access configurable action placement badge"
-    )
-    static let cornerActionBadge = string(
-      "preferences-quick-access.badge-corner",
-      defaultValue: "Corner",
-      comment: "Quick access configurable action placement badge"
-    )
     static let notOnCard = string(
       "preferences-quick-access.not-on-card",
       defaultValue: "Not on card",
@@ -2141,11 +1519,6 @@ nonisolated enum L10n {
       "preferences-quick-access.slot-bottom-right",
       defaultValue: "Bottom right",
       comment: "Quick access preview placement slot title"
-    )
-    static let swipeActionsSection = string(
-      "preferences-quick-access.section-swipe-actions",
-      defaultValue: "Swipe Actions",
-      comment: "Quick access preferences section title for swipe action zones"
     )
     static let swipeLeftAction = string(
       "preferences-quick-access.swipe-left-action",
@@ -2195,12 +1568,6 @@ nonisolated enum L10n {
       defaultValue: "Format",
       comment: "Capture preferences section title"
     )
-    static let screenshotPresetSection = string(
-      "preferences-capture.section-screenshot-preset",
-      defaultValue: "Preset",
-      comment: "Capture preferences section title"
-    )
-
     static let scrollingCaptureSection = string(
       "preferences-capture.section-scrolling-capture",
       defaultValue: "Scrolling Capture",
@@ -2337,17 +1704,6 @@ nonisolated enum L10n {
       defaultValue: "Object cutout captures require transparency. ShotPaste will save them as PNG even when JPEG is selected.",
       comment: "Informational note shown when JPEG screenshot format is selected"
     )
-    static let defaultPresetTitle = string(
-      "preferences-capture.default-preset-title",
-      defaultValue: "Default Preset",
-      comment: "Capture preferences setting title"
-    )
-    static let defaultPresetDescription = string(
-      "preferences-capture.default-preset-description",
-      defaultValue: "Apply an Annotate preset right after each screenshot capture",
-      comment: "Capture preferences setting description"
-    )
-
     static let showSessionHintsTitle = string(
       "preferences-capture.show-session-hints-title",
       defaultValue: "Show Session Hints",
@@ -2431,16 +1787,6 @@ nonisolated enum L10n {
       defaultValue: "Higher FPS for smoother motion",
       comment: "Capture preferences setting description"
     )
-    static let qualityTitle = string(
-      "preferences-capture.quality-title",
-      defaultValue: "Quality",
-      comment: "Capture preferences setting title"
-    )
-    static let qualityDescription = string(
-      "preferences-capture.quality-description",
-      defaultValue: "Higher quality = larger file size",
-      comment: "Capture preferences setting description"
-    )
     static let hoverBarVisibleTitle = string(
       "preferences-capture.hover-bar-visible-title",
       defaultValue: "Show Floating Controls",
@@ -2497,16 +1843,6 @@ nonisolated enum L10n {
     static let rippleCountDescription = string(
       "preferences-capture.ripple-count-description",
       defaultValue: "Number of expanding rings",
-      comment: "Capture preferences setting description"
-    )
-    static let highlightColorTitle = string(
-      "preferences-capture.highlight-color-title",
-      defaultValue: "Highlight Color",
-      comment: "Capture preferences setting title"
-    )
-    static let highlightColorDescription = string(
-      "preferences-capture.highlight-color-description",
-      defaultValue: "Color of click rings",
       comment: "Capture preferences setting description"
     )
     static let opacityTitle = string(
@@ -2574,36 +1910,6 @@ nonisolated enum L10n {
     static let microphoneDescription = string(
       "preferences-capture.microphone-description",
       defaultValue: "Capture your voice",
-      comment: "Capture preferences setting description"
-    )
-    static let microphoneInputTitle = string(
-      "preferences-capture.microphone-input-title",
-      defaultValue: "Microphone Input",
-      comment: "Capture preferences setting title"
-    )
-    static let microphoneInputDescription = string(
-      "preferences-capture.microphone-input-description",
-      defaultValue: "Choose the built-in or external microphone used for recordings",
-      comment: "Capture preferences setting description"
-    )
-    static let microphoneRequiresMacOS = string(
-      "preferences-capture.microphone-requires-macos",
-      defaultValue: "Requires macOS 15.0+",
-      comment: "Capture preferences description when microphone capture is unavailable on the current macOS version"
-    )
-    static let removeBackground = string(
-      "preferences-capture.remove-background",
-      defaultValue: "Remove Background",
-      comment: "Caption label for background removal settings"
-    )
-    static let autoCropSubjectTitle = string(
-      "preferences-capture.auto-crop-subject-title",
-      defaultValue: "Auto-Crop Subject",
-      comment: "Capture preferences setting title"
-    )
-    static let autoCropSubjectDescription = string(
-      "preferences-capture.auto-crop-subject-description",
-      defaultValue: "Applies to background removal in capture and Annotate",
       comment: "Capture preferences setting description"
     )
     static let ocrSection = string(
@@ -2754,11 +2060,6 @@ nonisolated enum L10n {
       defaultValue: "Open the Clipboard History browser",
       comment: "Description for open Clipboard History shortcut"
     )
-    static let recorderHint = string(
-      "preferences-shortcuts.recorder-hint",
-      defaultValue: "Click a shortcut button to record new keys. Use Backspace/Delete while recording to clear keys. Use the row toggle to turn a shortcut off. Press Esc to cancel.",
-      comment: "Hint text below editable shortcut recorder rows"
-    )
     static let setShortcut = string(
       "preferences-shortcuts.set-shortcut",
       defaultValue: "Set shortcut",
@@ -2791,61 +2092,6 @@ nonisolated enum L10n {
       "microphone.continue-without-mic",
       defaultValue: "Continue Without Mic",
       comment: "Alert button title to continue recording without microphone access"
-    )
-    static let doNotUse = string(
-      "microphone.do-not-use",
-      defaultValue: "Do Not Use Microphone",
-      comment: "Microphone menu option to disable microphone capture"
-    )
-    static let unavailableVersion = string(
-      "microphone.unavailable-version",
-      defaultValue: "Microphone unavailable on this macOS version",
-      comment: "Accessibility label when microphone capture is unavailable on current macOS version"
-    )
-    static let mute = string(
-      "microphone.mute",
-      defaultValue: "Mute microphone",
-      comment: "Accessibility label for muting the microphone"
-    )
-    static let unmute = string(
-      "microphone.unmute",
-      defaultValue: "Unmute microphone",
-      comment: "Accessibility label for unmuting the microphone"
-    )
-    static let on = string(
-      "microphone.on",
-      defaultValue: "Microphone on",
-      comment: "Tooltip when microphone capture is enabled"
-    )
-    static let off = string(
-      "microphone.off",
-      defaultValue: "Microphone off",
-      comment: "Tooltip when microphone capture is disabled"
-    )
-    static let options = string(
-      "microphone.options",
-      defaultValue: "Microphone options",
-      comment: "Accessibility label for the microphone options menu button"
-    )
-    static let chooseInput = string(
-      "microphone.choose-input",
-      defaultValue: "Choose a microphone input",
-      comment: "Accessibility hint for the microphone options menu button"
-    )
-    static let doubleTapToToggle = string(
-      "microphone.double-tap-toggle",
-      defaultValue: "Double-tap to toggle",
-      comment: "Accessibility hint for toggling microphone capture"
-    )
-    static let systemDefault = string(
-      "microphone.system-default",
-      defaultValue: "System Default Microphone",
-      comment: "Microphone picker option for the current macOS default input device"
-    )
-    static let unavailable = string(
-      "microphone.unavailable",
-      defaultValue: "Unavailable",
-      comment: "Microphone picker suffix for a stored input device that is not currently connected"
     )
   }
 
@@ -2898,16 +2144,6 @@ nonisolated enum L10n {
       defaultValue: "Copy to clipboard",
       comment: "Tooltip shown for copying the annotated image to the clipboard"
     )
-    static let backgroundRatio = string(
-      "annotate.background-ratio",
-      defaultValue: "Background Ratio",
-      comment: "Section label for choosing the annotation background canvas aspect ratio"
-    )
-    static let toggleAspectRatioOrientation = string(
-      "annotate.toggle-aspect-ratio-orientation",
-      defaultValue: "Switch aspect ratio orientation",
-      comment: "Tooltip for switching annotate background aspect ratio between horizontal and vertical"
-    )
     static let unsavedChangesTitle = string(
       "annotate.unsaved-changes-title",
       defaultValue: "Unsaved Changes",
@@ -2933,148 +2169,10 @@ nonisolated enum L10n {
       defaultValue: "ShotPaste couldn't write to the selected location. Please choose another folder.",
       comment: "Alert message shown when annotate save fails"
     )
-    static let defaultAnnotatedFileName = string(
-      "annotate.default-annotated-file-name",
-      defaultValue: "annotated_image",
-      comment: "Default file name for a new annotated image without a source URL"
-    )
-    static let presets = string(
-      "annotate.presets",
-      defaultValue: "Presets",
-      comment: "Section title for annotate canvas presets"
-    )
-    static let selectPreset = string(
-      "annotate.select-preset",
-      defaultValue: "Select preset",
-      comment: "Placeholder label for choosing an annotate canvas preset"
-    )
-    static let resetCanvasEffectsHelp = string(
-      "annotate.reset-canvas-effects-help",
-      defaultValue: "Reset background, padding, shadow, and corners",
-      comment: "Tooltip for resetting annotate canvas effects"
-    )
-    static let applySavedStylePreset = string(
-      "annotate.apply-saved-style-preset",
-      defaultValue: "Apply a saved style preset",
-      comment: "Tooltip for opening the annotate saved preset picker"
-    )
-    static let addNewPreset = string(
-      "annotate.add-new-preset",
-      defaultValue: "Add new preset",
-      comment: "Button title for creating a new annotate preset"
-    )
-    static let noPresetsYet = string(
-      "annotate.no-presets-yet",
-      defaultValue: "No presets yet",
-      comment: "Empty state label when no annotate presets have been saved"
-    )
-    static let deletePresetHelp = string(
-      "annotate.delete-preset-help",
-      defaultValue: "Delete preset",
-      comment: "Tooltip for deleting an annotate preset"
-    )
-    static let setDefaultPresetHelp = string(
-      "annotate.set-default-preset-help",
-      defaultValue: "Use as default preset",
-      comment: "Tooltip for setting an annotate preset as the default"
-    )
-    static let clearDefaultPresetHelp = string(
-      "annotate.clear-default-preset-help",
-      defaultValue: "Clear default preset",
-      comment: "Tooltip for clearing the default annotate preset"
-    )
-    static let updatePreset = string(
-      "annotate.update-preset",
-      defaultValue: "Update preset",
-      comment: "Button title for updating the selected annotate preset"
-    )
-    static let updateSelectedPresetHelp = string(
-      "annotate.update-selected-preset-help",
-      defaultValue: "Update selected preset with current values",
-      comment: "Tooltip for updating the selected annotate preset"
-    )
-    static let savePresetTitle = string(
-      "annotate.save-preset-title",
-      defaultValue: "Save Preset",
-      comment: "Alert title for saving a new annotate preset"
-    )
-    static let savePresetMessage = string(
-      "annotate.save-preset-message",
-      defaultValue: "Enter a name for this canvas preset.",
-      comment: "Alert message for saving a new annotate preset"
-    )
-    static let updatePresetTitle = string(
-      "annotate.update-preset-title",
-      defaultValue: "Update Preset",
-      comment: "Alert title for updating an annotate preset"
-    )
-    static func updatePresetMessage(_ presetName: String) -> String {
-      format(
-        "annotate.update-preset-message",
-        defaultValue: "Replace \"%@\" with current settings?",
-        comment: "Alert message for updating an annotate preset. %@ is the preset name.",
-        presetName
-      )
-    }
-
-    static let deletePresetTitle = string(
-      "annotate.delete-preset-title",
-      defaultValue: "Delete Preset",
-      comment: "Alert title for deleting an annotate preset"
-    )
-    static func deletePresetMessage(_ presetName: String) -> String {
-      format(
-        "annotate.delete-preset-message",
-        defaultValue: "Delete \"%@\"?",
-        comment: "Alert message for deleting an annotate preset. %@ is the preset name.",
-        presetName
-      )
-    }
-
-    static let presetNamePlaceholder = string(
-      "annotate.preset-name-placeholder",
-      defaultValue: "Preset name",
-      comment: "Placeholder text for the annotate preset name field"
-    )
-    static let presetLimitReachedTitle = string(
-      "annotate.preset-limit-reached-title",
-      defaultValue: "Preset Limit Reached",
-      comment: "Alert title shown when the annotate preset limit is reached"
-    )
-    static let presetLimitReachedMessage = string(
-      "annotate.preset-limit-reached-message",
-      defaultValue: "You can save up to 20 presets. Delete one to add a new preset.",
-      comment: "Alert message shown when the annotate preset limit is reached"
-    )
-    static let unableToSavePresetTitle = string(
-      "annotate.unable-to-save-preset-title",
-      defaultValue: "Unable to Save Preset",
-      comment: "Alert title shown when the current annotate canvas style cannot be saved as a preset"
-    )
-    static let unableToSavePresetMessage = string(
-      "annotate.unable-to-save-preset-message",
-      defaultValue: "Current canvas style cannot be stored as a preset right now.",
-      comment: "Alert message shown when the current annotate canvas style cannot be saved as a preset"
-    )
-    static let textStyle = string(
-      "annotate.text-style",
-      defaultValue: "Text Style",
-      comment: "Section title for annotate text styling controls"
-    )
-    static let textColor = string(
-      "annotate.text-color",
-      defaultValue: "Text Color",
-      comment: "Label for annotate text color controls"
-    )
     static let annotation = string(
       "annotate.annotation",
       defaultValue: "Annotation",
       comment: "Section title for annotate item properties"
-    )
-    static let alignment = string(
-      "annotate.alignment",
-      defaultValue: "Alignment",
-      comment: "Section title for annotate image alignment controls"
     )
     static let blurType = string(
       "annotate.blur-type",
@@ -3090,16 +2188,6 @@ nonisolated enum L10n {
       "annotate.gaussian",
       defaultValue: "Gaussian",
       comment: "Label for gaussian blur style"
-    )
-    static let pixelatedBlurDescription = string(
-      "annotate.pixelated-blur-description",
-      defaultValue: "Classic square-pixel blur effect",
-      comment: "Description shown for the pixelated blur style"
-    )
-    static let gaussianBlurDescription = string(
-      "annotate.gaussian-blur-description",
-      defaultValue: "Smooth Gaussian blur similar to CSS filter",
-      comment: "Description shown for the gaussian blur style"
     )
     static let hexagonal = string(
       "annotate.hexagonal",
@@ -3131,66 +2219,6 @@ nonisolated enum L10n {
       defaultValue: "Washi",
       comment: "Label for washi cover style"
     )
-    static let hexagonalBlurDescription = string(
-      "annotate.hexagonal-blur-description",
-      defaultValue: "Artistic hexagonal pixelation effect",
-      comment: "Description shown for the hexagonal blur style"
-    )
-    static let crystallizedBlurDescription = string(
-      "annotate.crystallized-blur-description",
-      defaultValue: "Lavender paper tape with a starry pattern",
-      comment: "Description shown for the starry tape style"
-    )
-    static let pointillismBlurDescription = string(
-      "annotate.pointillism-blur-description",
-      defaultValue: "Peach paper tape with a grid line pattern",
-      comment: "Description shown for the grid tape style"
-    )
-    static let halftoneBlurDescription = string(
-      "annotate.halftone-blur-description",
-      defaultValue: "Cream paper tape with a gingham check pattern",
-      comment: "Description shown for the gingham tape style"
-    )
-    static let tapeBlurDescription = string(
-      "annotate.tape-blur-description",
-      defaultValue: "Off-white paper tape with diagonal patterns",
-      comment: "Description shown for the tape cover style"
-    )
-    static let washiBlurDescription = string(
-      "annotate.washi-blur-description",
-      defaultValue: "Pastel teal paper tape with grid dot patterns",
-      comment: "Description shown for the washi cover style"
-    )
-    static let blurredBackground = string(
-      "annotate.blurred-background",
-      defaultValue: "Blurred",
-      comment: "Section title for annotate blurred background controls"
-    )
-    static let blurredBackgroundSoft = string(
-      "annotate.blurred-background-soft",
-      defaultValue: "Soft",
-      comment: "Label for the soft blurred background preset"
-    )
-    static let blurredBackgroundFrosted = string(
-      "annotate.blurred-background-frosted",
-      defaultValue: "Frosted",
-      comment: "Label for the frosted blurred background preset"
-    )
-    static let blurredBackgroundVivid = string(
-      "annotate.blurred-background-vivid",
-      defaultValue: "Vivid",
-      comment: "Label for the vivid blurred background preset"
-    )
-    static let blurredBackgroundDim = string(
-      "annotate.blurred-background-dim",
-      defaultValue: "Dim",
-      comment: "Label for the dim blurred background preset"
-    )
-    static let spotlightOpacity = string(
-      "annotate.spotlight-opacity",
-      defaultValue: "Darkness",
-      comment: "Label for spotlight darkness controls"
-    )
     static let straight = string(
       "annotate.straight",
       defaultValue: "Straight",
@@ -3205,21 +2233,6 @@ nonisolated enum L10n {
       "annotate.curvedLeft",
       defaultValue: "Curved Left",
       comment: "Label for the curved left arrow style"
-    )
-    static let straightArrowHelp = string(
-      "annotate.straight-arrow-help",
-      defaultValue: "Direct line from start to end",
-      comment: "Helper text for the straight arrow style"
-    )
-    static let curvedRightArrowHelp = string(
-      "annotate.curved-right-arrow-help",
-      defaultValue: "Arrow curving to the right",
-      comment: "Helper text for the curved right arrow style"
-    )
-    static let curvedLeftArrowHelp = string(
-      "annotate.curved-left-arrow-help",
-      defaultValue: "Arrow curving to the left",
-      comment: "Helper text for the curved left arrow style"
     )
     static let arrowBend = string(
       "annotate.arrow-bend",
@@ -3353,41 +2366,6 @@ nonisolated enum L10n {
       "scrolling-capture.badge-saving",
       defaultValue: "Saving",
       comment: "Badge label for saving scrolling capture preview"
-    )
-    static let previewPressStartToBegin = string(
-      "scrolling-capture.preview-press-start-to-begin",
-      defaultValue: "Press Start Capture to begin.",
-      comment: "Preview description shown before scrolling capture starts"
-    )
-    static let previewShowingLatestStitchedCapture = string(
-      "scrolling-capture.preview-showing-latest-stitched-capture",
-      defaultValue: "Showing the latest stitched capture.",
-      comment: "Preview description shown when the committed stitched capture is displayed"
-    )
-    static let previewMatchesStitchedCapture = string(
-      "scrolling-capture.preview-matches-stitched-capture",
-      defaultValue: "Preview matches the stitched capture.",
-      comment: "Preview description shown when the live preview matches the stitched output"
-    )
-    static let previewShowingLatestWhileLockingNewerContent = string(
-      "scrolling-capture.preview-showing-latest-while-locking-newer-content",
-      defaultValue: "Showing the latest stitched result while ShotPaste locks newer content.",
-      comment: "Preview description shown while scrolling capture syncs newer content"
-    )
-    static let previewPausedScrollSlowly = string(
-      "scrolling-capture.preview-paused-scroll-slowly",
-      defaultValue: "Preview paused - scroll slowly so ShotPaste can re-align.",
-      comment: "Preview description shown when scrolling capture needs recovery"
-    )
-    static let previewFinishingSavingCapture = string(
-      "scrolling-capture.preview-finishing-saving-capture",
-      defaultValue: "Finishing up - saving your capture.",
-      comment: "Preview description shown when scrolling capture is finalizing"
-    )
-    static let previewSavingCapture = string(
-      "scrolling-capture.preview-saving-capture",
-      defaultValue: "Saving your capture...",
-      comment: "Preview description shown while scrolling capture is saving"
     )
     static let guidanceReleaseToLockArea = string(
       "scrolling-capture.guidance-release-to-lock-area",
@@ -3690,11 +2668,6 @@ nonisolated enum L10n {
       defaultValue: "Scrolling Capture saved the stitched image.",
       comment: "Toast shown after scrolling capture saves successfully"
     )
-    static let toastSessionAlreadyActive = string(
-      "scrolling-capture.toast-session-already-active",
-      defaultValue: "A scrolling capture session is already active.",
-      comment: "Toast shown when the user tries to start a second scrolling capture session while one is already active"
-    )
   }
 
   enum RecordingToolbar {
@@ -3703,44 +2676,9 @@ nonisolated enum L10n {
       defaultValue: "Preparing recording…",
       comment: "Status shown while ShotPaste prepares the recording pipeline"
     )
-    static let options = string(
-      "recording-toolbar.options",
-      defaultValue: "Options",
-      comment: "Button title for recording toolbar options"
-    )
-    static let recordingOptionsAccessibility = string(
-      "recording-toolbar.options-accessibility",
-      defaultValue: "Recording options",
-      comment: "Accessibility label for recording toolbar options button"
-    )
-    static let recordingOptionsHint = string(
-      "recording-toolbar.options-hint",
-      defaultValue: "Opens settings for format, quality, and overlays",
-      comment: "Accessibility hint for recording toolbar options button"
-    )
-    static let settingsTitle = string(
-      "recording-toolbar.settings-title",
-      defaultValue: "Recording Settings",
-      comment: "Popover title for recording toolbar settings"
-    )
     static let formatSection = string(
       "recording-toolbar.format-section",
       defaultValue: "Format",
-      comment: "Recording toolbar settings section title"
-    )
-    static let qualitySection = string(
-      "recording-toolbar.quality-section",
-      defaultValue: "Quality",
-      comment: "Recording toolbar settings section title"
-    )
-    static let audioSection = string(
-      "recording-toolbar.audio-section",
-      defaultValue: "Audio",
-      comment: "Recording toolbar settings section title"
-    )
-    static let overlaysSection = string(
-      "recording-toolbar.overlays-section",
-      defaultValue: "Overlays",
       comment: "Recording toolbar settings section title"
     )
     static let systemAudio = string(
@@ -3753,54 +2691,10 @@ nonisolated enum L10n {
       defaultValue: "Microphone",
       comment: "Recording toolbar microphone input picker label"
     )
-    static let highlightClicks = string(
-      "recording-toolbar.highlight-clicks",
-      defaultValue: "Highlight Clicks",
-      comment: "Recording toolbar setting label"
-    )
-    static let showKeystrokes = string(
-      "recording-toolbar.show-keystrokes",
-      defaultValue: "Show Keystrokes",
-      comment: "Recording toolbar setting label"
-    )
     static let showCursor = string(
       "recording-toolbar.show-cursor",
       defaultValue: "Show Cursor",
       comment: "Recording toolbar setting label"
-    )
-    static let dimNonSelectedArea = string(
-      "recording-toolbar.dim-non-selected-area",
-      defaultValue: "Dim Non-Selected Area",
-      comment: "Recording toolbar setting label"
-    )
-    static let outputModeAccessibilityPrefix = string(
-      "recording-toolbar.output-mode-accessibility-prefix",
-      defaultValue: "Output mode",
-      comment: "Accessibility label prefix for current output mode"
-    )
-    static let outputModeHint = string(
-      "recording-toolbar.output-mode-hint",
-      defaultValue: "Opens output format selection",
-      comment: "Accessibility hint for output mode selector"
-    )
-    static let record = string(
-      "recording-toolbar.record",
-      defaultValue: "Record",
-      comment: "Recording toolbar primary action button title"
-    )
-    static func startRecordingAs(_ mode: String) -> String {
-      format(
-        "recording-toolbar.start-recording-as",
-        defaultValue: "Start recording as %@",
-        comment: "Accessibility label for recording button. %@ is the output mode name.",
-        mode
-      )
-    }
-
-    static let startRecordingHint = string(
-      "recording-toolbar.start-recording-hint",
-      defaultValue: "Begins screen recording with current settings",
-      comment: "Accessibility hint for recording button"
     )
     static let stop = string(
       "recording-toolbar.stop",
@@ -3980,11 +2874,6 @@ nonisolated enum L10n {
       defaultValue: "Recording Failed",
       comment: "Alert title shown when starting or running a recording fails"
     )
-    static let screenshotFailedTitle = string(
-      "recording.screenshot-failed-title",
-      defaultValue: "Screenshot Failed",
-      comment: "Alert title shown when taking a screenshot during recording fails"
-    )
     static let saveLocationAccessRequiredTitle = string(
       "recording.save-location-access-required-title",
       defaultValue: "Save Location Access Required",
@@ -4127,11 +3016,6 @@ nonisolated enum L10n {
       "file-access.choose-folder-prompt",
       defaultValue: "Choose Folder",
       comment: "Open panel prompt shown when ShotPaste asks the user to choose a folder"
-    )
-    nonisolated static let desktopPicturesAccessMessage = string(
-      "file-access.desktop-pictures-access-message",
-      defaultValue: "Select the Desktop Pictures folder to grant access",
-      comment: "Open panel message shown when ShotPaste asks for access to the system Desktop Pictures folder"
     )
     static let bookmarkSaveFailedTitle = string(
       "file-access.bookmark-save-failed-title",
@@ -4357,11 +3241,6 @@ nonisolated enum L10n {
       defaultValue: "Save location permission is required.",
       comment: "Error shown when ShotPaste cannot save a screenshot because folder access has not been granted"
     )
-    nonisolated static let unableToCaptureSelectedArea = string(
-      "screen-capture.unable-to-capture-selected-area",
-      defaultValue: "Unable to capture the selected area.",
-      comment: "Error shown when ShotPaste cannot capture the selected screenshot area"
-    )
     nonisolated static let failedToCropCapturedImage = string(
       "screen-capture.failed-to-crop-captured-image",
       defaultValue: "Failed to crop the captured image",
@@ -4441,11 +3320,6 @@ nonisolated enum L10n {
   }
 
   enum OCR {
-    static let extractingContent = string(
-      "ocr.extracting-content",
-      defaultValue: "Extracting content...",
-      comment: "Progress toast shown while OCR is extracting text or QR content from the selected area"
-    )
     static let imageConversionFailed = string(
       "ocr.image-conversion-failed",
       defaultValue: "Failed to convert image for OCR processing",
@@ -4526,16 +3400,6 @@ nonisolated enum L10n {
       defaultValue: "Could not extract any frames from video",
       comment: "Error shown when converting a video to GIF but no frames can be extracted"
     )
-    static let cannotReadSource = string(
-      "gif.cannot-read-source",
-      defaultValue: "Cannot read GIF file",
-      comment: "Error shown when a GIF source file cannot be read"
-    )
-    static let noFramesInGIF = string(
-      "gif.no-frames-in-gif",
-      defaultValue: "GIF contains no frames",
-      comment: "Error shown when a GIF file contains no frames"
-    )
     static let cannotCreateOutputFile = string(
       "gif.cannot-create-output-file",
       defaultValue: "Failed to create GIF output file",
@@ -4546,11 +3410,6 @@ nonisolated enum L10n {
       defaultValue: "Failed to finalize GIF file",
       comment: "Error shown when GIF generation or resizing cannot be finalized"
     )
-    static let finalizeResizedFailed = string(
-      "gif.finalize-resized-failed",
-      defaultValue: "Failed to finalize resized GIF",
-      comment: "Error shown when a resized GIF cannot be finalized"
-    )
   }
 
   enum CaptureStorage {
@@ -4558,11 +3417,6 @@ nonisolated enum L10n {
       "capture-storage.empty",
       defaultValue: "Empty",
       comment: "Label shown when the capture cache is empty"
-    )
-    static let operationInProgress = string(
-      "capture-storage.operation-in-progress",
-      defaultValue: "Cannot clear cache while a capture or recording is in progress.",
-      comment: "Error shown when cache cleanup is attempted while a capture or recording is active"
     )
   }
 
@@ -4842,25 +3696,10 @@ nonisolated enum L10n {
       defaultValue: "Filter shown when opening the floating panel",
       comment: "History settings description for default filter"
     )
-    static let defaultFilterAll = string(
-      "preferences-history.default-filter-all",
-      defaultValue: "All",
-      comment: "History settings default filter option for all capture types"
-    )
     static let defaultFilterScreenshots = string(
       "preferences-history.default-filter-screenshots",
       defaultValue: "Screenshots",
       comment: "History settings default filter option for screenshots"
-    )
-    static let defaultFilterVideos = string(
-      "preferences-history.default-filter-videos",
-      defaultValue: "Videos",
-      comment: "History settings default filter option for videos"
-    )
-    static let defaultFilterGifs = string(
-      "preferences-history.default-filter-gifs",
-      defaultValue: "GIFs",
-      comment: "History settings default filter option for GIFs"
     )
     static let panelSizeTitle = string(
       "preferences-history.panel-size-title",
@@ -4920,16 +3759,6 @@ nonisolated enum L10n {
       "preferences-history.storage-section",
       defaultValue: "Storage",
       comment: "History settings section title for storage"
-    )
-    static let captureStorageTitle = string(
-      "preferences-history.capture-storage-title",
-      defaultValue: "Capture Storage",
-      comment: "History settings title for local capture storage"
-    )
-    static let openCaptureStorageButton = string(
-      "preferences-history.open-capture-storage-button",
-      defaultValue: "Open Folder",
-      comment: "History settings button for opening local capture storage in Finder"
     )
     static let clearHistoryTitle = string(
       "preferences-history.clear-history-title",
@@ -5040,16 +3869,6 @@ nonisolated enum L10n {
     static let solid = string(
       "history-background-style.solid",
       defaultValue: "Solid",
-      comment: "History background style option"
-    )
-    static let glass = string(
-      "history-background-style.glass",
-      defaultValue: "Glass",
-      comment: "History background style option"
-    )
-    static let gradient = string(
-      "history-background-style.gradient",
-      defaultValue: "Gradient",
       comment: "History background style option"
     )
   }
@@ -5167,14 +3986,6 @@ extension L10n.PreferencesCapture {
   static let lossyQualityDescription = L10n.string(
     "preferences-capture.lossy-quality-description", defaultValue: "JPEG and WebP quality (1–100)",
     comment: "Image quality setting description"
-  )
-  static let outputScaleTitle = L10n.string(
-    "preferences-capture.output-scale-title", defaultValue: "Output Scale", comment: "Screenshot scale setting title"
-  )
-  static let outputScaleDescription = L10n.string(
-    "preferences-capture.output-scale-description",
-    defaultValue: "Automatic and 1× preserve native pixels; 2× may upscale.",
-    comment: "Screenshot scale setting description"
   )
   static let colorSpaceTitle = L10n.string(
     "preferences-capture.color-space-title", defaultValue: "Color Space", comment: "Screenshot color space title"
@@ -5392,17 +4203,7 @@ extension L10n.Recording {
   )
 }
 
-extension L10n.AnnotateUI {
-  nonisolated static let transparentText = L10n.string(
-    "annotate.transparent-text", defaultValue: "Transparent Text", comment: "Annotation text style"
-  )
-  nonisolated static let textLabel = L10n.string(
-    "annotate.text-label", defaultValue: "Text Label", comment: "Annotation text style"
-  )
-  nonisolated static let calloutLabel = L10n.string(
-    "annotate.callout-label", defaultValue: "Callout Label", comment: "Annotation text style"
-  )
-}
+extension L10n.AnnotateUI {}
 
 extension L10n.ShortcutOverlay {
   static let spaceKey = L10n.string(

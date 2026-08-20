@@ -14,7 +14,8 @@ internal sealed record AppBuildIdentity(
     string HotkeyWindowName,
     string StartupRegistryValueName,
     string UrlScheme,
-    string DefaultHotkeyModifiers)
+    string DefaultHotkeyModifiers,
+    int DefaultMcpServerPort)
 {
     private const string VariantMetadataName = "ShotPasteVariant";
 
@@ -30,7 +31,8 @@ internal sealed record AppBuildIdentity(
         HotkeyWindowName: "ShotPasteDebugHotkeys",
         StartupRegistryValueName: "ShotPaste Debug",
         UrlScheme: "shotpaste-debug",
-        DefaultHotkeyModifiers: "Ctrl+Alt+Shift");
+        DefaultHotkeyModifiers: "Ctrl+Alt+Shift",
+        DefaultMcpServerPort: 48124);
 
     internal static AppBuildIdentity Release { get; } = new(
         IsDebug: false,
@@ -44,7 +46,8 @@ internal sealed record AppBuildIdentity(
         HotkeyWindowName: "ShotPasteHotkeys",
         StartupRegistryValueName: "ShotPaste",
         UrlScheme: "shotpaste",
-        DefaultHotkeyModifiers: "Ctrl+Shift");
+        DefaultHotkeyModifiers: "Ctrl+Shift",
+        DefaultMcpServerPort: 48123);
 
     internal string InternalClipboardWriteMarkerFormat => $"{NativeManifestIdentity}.internal-media-write";
     internal bool PerformsAutomaticUpdateChecks => !IsDebug;

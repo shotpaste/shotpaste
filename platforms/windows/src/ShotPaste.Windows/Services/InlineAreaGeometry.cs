@@ -6,7 +6,7 @@ namespace ShotPaste.Windows.Services;
 
 internal static class InlineAreaGeometry
 {
-    internal const double MinimumSelectionSize = 24;
+    internal const double MinimumSelectionSize = 5;
 
     internal static Rect Normalize(WpfPoint first, WpfPoint second) => new(
         Math.Min(first.X, second.X),

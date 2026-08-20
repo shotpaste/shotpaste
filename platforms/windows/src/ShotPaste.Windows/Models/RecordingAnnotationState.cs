@@ -62,9 +62,10 @@ public sealed class RecordingAnnotationState
     public RecordingAnnotation Add(
         RecordingAnnotationTool tool,
         IEnumerable<WpfPoint> points,
-        DateTimeOffset? createdAt = null)
+        DateTimeOffset? createdAt = null,
+        RecordingAnnotationPolicy? temporaryPolicy = null)
     {
-        var policy = GetPolicy(tool);
+        var policy = temporaryPolicy is null ? GetPolicy(tool) : Normalize(temporaryPolicy);
         var annotation = new RecordingAnnotation(
             Guid.NewGuid(),
             tool,

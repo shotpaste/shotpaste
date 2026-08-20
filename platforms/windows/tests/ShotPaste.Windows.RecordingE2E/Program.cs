@@ -24,6 +24,9 @@ internal static class Program
                         ? await RecordingEffectsE2E.RunAsync(outputRoot)
                         : args.Any(argument => argument.Equals("--formats-only", StringComparison.OrdinalIgnoreCase))
                             ? await RecordingFormatE2E.RunAsync(outputRoot)
+                            : args.Any(argument => argument.Equals("--lifecycle-only", StringComparison.OrdinalIgnoreCase))
+                                ? await RecordingLifecycleE2E.RunAsync(Path.GetFullPath(productExecutable ??
+                                    throw new ArgumentException("Product executable is required for --lifecycle-only.")), outputRoot)
                             : args.Any(argument => argument.Equals("--settings-only", StringComparison.OrdinalIgnoreCase))
                                 ? await RecordingSettingsE2E.RunAsync(Path.GetFullPath(productExecutable ??
                                     throw new ArgumentException("Product executable is required for --settings-only.")), outputRoot)
@@ -60,6 +63,9 @@ internal static class Program
         var settings = string.IsNullOrWhiteSpace(productExecutable)
             ? null
             : await RecordingSettingsE2E.RunAsync(Path.GetFullPath(productExecutable), outputRoot);
-        return new { Effects = effects, Formats = formats, Settings = settings };
+        var lifecycle = string.IsNullOrWhiteSpace(productExecutable)
+            ? null
+            : await RecordingLifecycleE2E.RunAsync(Path.GetFullPath(productExecutable), outputRoot);
+        return new { Effects = effects, Formats = formats, Settings = settings, Lifecycle = lifecycle };
     }
 }

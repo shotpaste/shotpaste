@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using Drawing = System.Drawing;
 using ShotPaste.Windows.Interop;
+using ShotPaste.Windows.Services;
 
 namespace ShotPaste.Windows.Views;
 
@@ -33,6 +34,7 @@ public partial class RecordingRegionOverlayWindow : Window
     private bool _editingEnabled = true;
     private bool _dragging;
     private bool _resizing;
+    private bool _showScrollingGuidance;
     private RecordingResizeHandle _activeHandle;
     private Drawing.Point _dragStart;
     private Drawing.Point _resizeStart;
@@ -75,8 +77,8 @@ public partial class RecordingRegionOverlayWindow : Window
 
     public void SetScrollingAppearance(bool capturing)
     {
-        var accent = new System.Windows.Media.SolidColorBrush(
-            System.Windows.Media.Color.FromRgb(167, 139, 250));
+        var accent = TryFindResource("Capture.SelectionBrush") as System.Windows.Media.Brush ??
+                     System.Windows.Media.Brushes.DodgerBlue;
         TopLine.Fill = accent;
         RightLine.Fill = accent;
         BottomLine.Fill = accent;
@@ -86,11 +88,29 @@ public partial class RecordingRegionOverlayWindow : Window
         SetInteractionEnabled(!capturing);
     }
 
+    public void SetScrollingGuidance(string title, string? detail = null)
+    {
+        _showScrollingGuidance = !string.IsNullOrWhiteSpace(title);
+        ScrollingGuidanceTitle.Text = title;
+        ScrollingGuidanceDetail.Text = detail ?? string.Empty;
+        ScrollingGuidanceDetail.Visibility = string.IsNullOrWhiteSpace(detail)
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        if (IsLoaded) UpdateLayoutForRegion();
+    }
+
     public void SetRecordingAppearance(bool dimOutside)
     {
+        _showScrollingGuidance = false;
         SetInteractionEnabled(false);
         _showBorder = false;
         _dimOutside = dimOutside;
+        if (App.UiTestMode)
+        {
+            System.Windows.Automation.AutomationProperties.SetItemStatus(
+                this,
+                dimOutside ? "Dimmed" : "OutlineOnly");
+        }
         if (IsLoaded) UpdateLayoutForRegion();
     }
 
@@ -112,8 +132,8 @@ public partial class RecordingRegionOverlayWindow : Window
         var toolWindowStyle = App.UiTestMode ? 0 : NativeMethods.WsExToolWindow;
         NativeMethods.SetWindowLongPtr(handle, NativeMethods.GwlExStyle,
             new IntPtr((style & ~NativeMethods.WsExTransparent) | NativeMethods.WsExNoActivate | toolWindowStyle));
+        if (!App.UiTestMode) WindowCaptureExclusionService.ExcludeCaptureControl(handle);
         source.AddHook(WndProc);
-        if (!App.UiTestMode) NativeMethods.SetWindowDisplayAffinity(handle, NativeMethods.WdaExcludeFromCapture);
         ApplyPhysicalWindowBounds();
     }
 
@@ -161,6 +181,28 @@ public partial class RecordingRegionOverlayWindow : Window
                 rect.Width + ResizeHandleHitSize * 2,
                 rect.Height + ResizeHandleHitSize * 2)
             : Rect.Empty);
+
+        ScrollingGuidance.Visibility = _showScrollingGuidance ? Visibility.Visible : Visibility.Collapsed;
+        if (_showScrollingGuidance)
+        {
+            var availableWidth = Math.Min(520, Math.Max(0, rect.Width - 32));
+            if (availableWidth < 120)
+            {
+                ScrollingGuidance.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                ScrollingGuidance.Width = availableWidth;
+                ScrollingGuidance.Measure(new System.Windows.Size(availableWidth, double.PositiveInfinity));
+                var height = ScrollingGuidance.DesiredSize.Height;
+                var top = Math.Clamp(
+                    rect.Top + rect.Height * 0.34 - height / 2,
+                    rect.Top + 18,
+                    Math.Max(rect.Top + 18, rect.Bottom - height - 18));
+                Canvas.SetLeft(ScrollingGuidance, rect.Left + (rect.Width - availableWidth) / 2);
+                Canvas.SetTop(ScrollingGuidance, top);
+            }
+        }
     }
 
     private IntPtr WndProc(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)

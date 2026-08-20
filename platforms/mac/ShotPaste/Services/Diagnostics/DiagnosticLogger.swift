@@ -41,7 +41,7 @@ final class DiagnosticLogger {
   }
 
   /// Log a diagnostic entry with source location and optional context.
-  /// Backward-compatible: existing calls like `log(.info, .capture, "msg")` still compile.
+  /// Context is optional for concise call sites such as `log(.info, .capture, "msg")`.
   /// Thread-safe: all file state is confined to a private serial queue.
   nonisolated func log(
     _ level: DiagnosticLogLevel,
@@ -104,11 +104,6 @@ final class DiagnosticLogger {
       in: libraryDirectory,
       variant: .current
     )
-  }
-
-  /// Path to today's log file.
-  var currentLogFileURL: URL {
-    logDirectoryURL.appendingPathComponent(logFileName(for: Date()))
   }
 
   // MARK: - File Management

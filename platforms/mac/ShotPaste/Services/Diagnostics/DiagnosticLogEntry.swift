@@ -101,31 +101,4 @@ nonisolated struct DiagnosticLogEntry {
 
     return result + "\n"
   }
-
-  /// Parse timestamp from a log line (for cleanup). Returns nil if unparseable.
-  static func parseTimestamp(from line: String, referenceDate: Date) -> Date? {
-    // Expected: [HH:mm:ss.SSS][...
-    guard line.count >= 10,
-          line.first == "["
-    else { return nil }
-
-    // Find the closing bracket for the timestamp
-    let startIndex = line.index(after: line.startIndex)
-    guard let closeBracket = line.firstIndex(of: "]"), closeBracket > startIndex else { return nil }
-
-    let timeString = String(line[startIndex ..< closeBracket])
-
-    let fmt = DateFormatter()
-    fmt.dateFormat = "HH:mm:ss.SSS"
-    guard let parsed = fmt.date(from: timeString) else { return nil }
-
-    // Combine with referenceDate's year/month/day
-    let cal = Calendar.current
-    var components = cal.dateComponents([.year, .month, .day], from: referenceDate)
-    let timeComponents = cal.dateComponents([.hour, .minute, .second], from: parsed)
-    components.hour = timeComponents.hour
-    components.minute = timeComponents.minute
-    components.second = timeComponents.second
-    return cal.date(from: components)
-  }
 }

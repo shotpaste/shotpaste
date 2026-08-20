@@ -30,7 +30,6 @@ enum LoginItemManager {
         "Launch at login preference updated",
         context: ["enabled": enabled ? "true" : "false"]
       )
-      ShotPasteConfigurationSyncCoordinator.shared.scheduleSync(reason: .explicitChange)
       if SMAppService.mainApp.status == .requiresApproval {
         return .requiresApproval
       }

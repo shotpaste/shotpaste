@@ -45,7 +45,6 @@ enum ResizeHandle: Equatable {
   case topLeft, topRight, bottomLeft, bottomRight
   case top, bottom, left, right
   case lineStart, lineEnd
-  case textCalloutTail
 }
 
 /// Transparent drawing layer of the annotate canvas. Renders via `drawBody`
@@ -414,18 +413,12 @@ final class DrawingCanvasNSView: NSView {
 
     case .text:
       let bounds = inDisplayCoordinates ? imageToDisplay(annotation.resizeBounds) : annotation.resizeBounds
-      var handles: [(ResizeHandle, CGRect)] = [
+      return [
         (.topLeft, handleRect(at: CGPoint(x: bounds.minX, y: bounds.maxY))),
         (.topRight, handleRect(at: CGPoint(x: bounds.maxX, y: bounds.maxY))),
         (.bottomLeft, handleRect(at: CGPoint(x: bounds.minX, y: bounds.minY))),
         (.bottomRight, handleRect(at: CGPoint(x: bounds.maxX, y: bounds.minY))),
       ]
-      if annotation.properties.textPresentation == .callout,
-         let tailTarget = annotation.properties.calloutTailTarget {
-        let point = inDisplayCoordinates ? imageToDisplay(tailTarget) : tailTarget
-        handles.append((.textCalloutTail, handleRect(at: point)))
-      }
-      return handles
 
     case .arrow(let geometry):
       // Figma-style endpoint editing: two draggable endpoints instead of a bounding box.
@@ -761,8 +754,8 @@ final class DrawingCanvasNSView: NSView {
   }
 
   /// Applies a resize gesture to the gesture-local copy only. Mirrors the
-  /// state update methods (`updateArrowEndpoint`, `updateLineEndpoint`,
-  /// `updateTextCalloutTail`, `updateAnnotationBounds`) so the commit on
+  /// state update methods (`updateArrowEndpoint`, `updateLineEndpoint`, and
+  /// `updateAnnotationBounds`) so the commit on
   /// mouseUp produces the exact same final geometry.
   private func applyGestureResize(handle: ResizeHandle, resizeId: UUID, imagePoint: CGPoint, event: NSEvent) {
     guard let original = gestureOriginalItems[resizeId] else { return }
@@ -798,17 +791,6 @@ final class DrawingCanvasNSView: NSView {
       default:
         return
       }
-      gestureLocalItems[resizeId] = item
-
-    case .textCalloutTail:
-      var item = original
-      guard case .text = item.type,
-            item.properties.textPresentation == .callout else { return }
-      item.properties.calloutTailTarget = TextBubbleGeometry.resolvedTailTarget(
-        in: item.bounds,
-        requestedTarget: imagePoint,
-        fontSize: item.properties.fontSize
-      )
       gestureLocalItems[resizeId] = item
 
     default:
@@ -862,10 +844,6 @@ final class DrawingCanvasNSView: NSView {
             } else {
               state.updateLineEndpoint(id: resizeId, end: lastPoint)
             }
-          }
-        case .textCalloutTail:
-          if let lastPoint = gestureLastPoint {
-            state.updateTextCalloutTail(id: resizeId, target: lastPoint)
           }
         default:
           if let lastBounds = gestureLastResizeBounds {
@@ -1072,10 +1050,9 @@ final class DrawingCanvasNSView: NSView {
     let properties = state.annotationCreationProperties(for: .text)
     let initialBounds = AnnotateTextLayout.bounds(
       text: "",
-      font: AnnotateTextLayout.font(size: properties.fontSize, fontName: properties.fontName),
+      font: AnnotateTextLayout.font(size: properties.fontSize),
       origin: .zero,
-      constrainedWidth: AnnotateTextLayout.minWidth,
-      presentation: properties.textPresentation
+      constrainedWidth: AnnotateTextLayout.minWidth
     )
     let bounds = CGRect(
       x: point.x,
@@ -1087,7 +1064,6 @@ final class DrawingCanvasNSView: NSView {
     let item = AnnotationItem(type: .text(""), bounds: bounds, properties: properties)
     state.annotations.append(item)
     state.useAutomaticTextWidth(for: item.id)
-    state.prepareTextCalloutTail(for: item.id)
     state.selectedAnnotationId = item.id
     state.beginTextEditing(id: item.id, recordsUndo: false) // Enter edit mode immediately
   }
@@ -1228,7 +1204,6 @@ final class DrawingCanvasNSView: NSView {
   }
 
   /// Unified Spotlight overlay pass (below annotations, above base image).
-  /// Opacity is sourced from each item's own properties so slider changes reflect immediately.
   private func drawSpotlightOverlay(dirtyRect _: NSRect) {
     guard let context = NSGraphicsContext.current?.cgContext else { return }
     context.saveGState()
@@ -1240,8 +1215,7 @@ final class DrawingCanvasNSView: NSView {
       guard case .spotlight = a.type else { return nil }
       return SpotlightRegion(
         rect: a.bounds,
-        cornerRadius: a.properties.cornerRadius,
-        opacity: a.properties.spotlightOpacity
+        cornerRadius: a.properties.cornerRadius
       )
     }
     let spotlightPreview: SpotlightRegion? = (isDrawing && state.selectedTool == .spotlight)
@@ -1249,8 +1223,7 @@ final class DrawingCanvasNSView: NSView {
         currentPath.last.map {
           SpotlightRegion(
             rect: CGRect(x: min(s.x, $0.x), y: min(s.y, $0.y), width: abs($0.x - s.x), height: abs($0.y - s.y)),
-            cornerRadius: spotlightCreationProps.cornerRadius,
-            opacity: spotlightCreationProps.spotlightOpacity
+            cornerRadius: spotlightCreationProps.cornerRadius
           )
         }
       }
@@ -1301,7 +1274,6 @@ final class DrawingCanvasNSView: NSView {
         currentPath: currentPath,
         strokeColor: previewProperties.strokeColor,
         strokeWidth: previewProperties.strokeWidth,
-        fillColor: previewProperties.fillColor,
         arrowStyle: state.arrowStyle,
         arrowType: state.arrowType,
         arrowBendDirection: state.arrowBendDirection,
@@ -1488,7 +1460,7 @@ final class DrawingCanvasNSView: NSView {
 
   private func setCursorForHandle(_ handle: ResizeHandle) {
     switch handle {
-    case .topLeft, .bottomRight, .lineStart, .lineEnd, .textCalloutTail:
+    case .topLeft, .bottomRight, .lineStart, .lineEnd:
       NSCursor.crosshair.set()
     case .topRight, .bottomLeft:
       NSCursor.crosshair.set()

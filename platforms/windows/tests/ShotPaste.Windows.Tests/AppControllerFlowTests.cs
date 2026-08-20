@@ -25,6 +25,12 @@ public sealed class AppControllerFlowTests
     }
 
     [Fact]
+    public void ScrollingCapture_KeepsShareableShotPasteWindowsVisible()
+    {
+        Assert.False(AppController.ScrollingCaptureOptions.ExcludeOwnApplication);
+    }
+
+    [Fact]
     public void RecordingToolbar_ExposesMicrophoneLevelAndDistinctStateFeedback()
     {
         var xaml = File.ReadAllText(FindRepositoryFile(
@@ -76,7 +82,8 @@ public sealed class AppControllerFlowTests
 
         Assert.True(start >= 0 && end > start, "StartOneShot method was not found.");
         var method = controller[start..end];
-        Assert.Contains("SelectOneShotAsync(recordingOptions)", method, StringComparison.Ordinal);
+        Assert.Contains("SelectOneShotAsync(recordingOptions, CommitScreenshotFromOverlayAsync, initialMode)", method, StringComparison.Ordinal);
+        Assert.Contains("result.ScreenshotCommitted", method, StringComparison.Ordinal);
         Assert.Contains("CaptureScrollingCoreAsync(result.Rectangle)", method, StringComparison.Ordinal);
         Assert.Contains("StartOneShotRecordingAsync(result.Rectangle, result.RecordingOptions)", method, StringComparison.Ordinal);
         Assert.Contains("case OneShotMode.Ocr when result.Image is not null:", method, StringComparison.Ordinal);
@@ -90,7 +97,7 @@ public sealed class AppControllerFlowTests
     }
 
     [Fact]
-    public void ClipboardHistoryEntryPoints_OpenFullPanelOnClipboardFilter()
+    public void HistoryEntryPoints_UseConfiguredDefaultAndExplicitClipboardFilter()
     {
         var controller = File.ReadAllText(FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Services", "AppController.cs"));
@@ -98,13 +105,12 @@ public sealed class AppControllerFlowTests
             "platforms", "windows", "src", "ShotPaste.Windows", "Views", "MainWindow.xaml.cs"));
 
         Assert.Contains("public void ShowHistory()", controller, StringComparison.Ordinal);
-        Assert.Contains("private void ShowClipboardHistory() => ShowHistory();",
-            controller, StringComparison.Ordinal);
+        Assert.Contains("_mainWindow.ShowDefaultHistory();", controller, StringComparison.Ordinal);
         Assert.Contains("_mainWindow.ShowClipboardHistory();", controller, StringComparison.Ordinal);
+        Assert.Contains("public void ShowDefaultHistory()", historyWindow, StringComparison.Ordinal);
         Assert.Contains("public void ShowClipboardHistory()", historyWindow, StringComparison.Ordinal);
+        Assert.Contains("HistoryDefaultFilter", historyWindow, StringComparison.Ordinal);
         Assert.Contains("_selectedKind = \"Clipboard\";", historyWindow, StringComparison.Ordinal);
-        Assert.DoesNotContain("DefaultHistoryFilter", controller, StringComparison.Ordinal);
-        Assert.DoesNotContain("ApplyHistoryMode", historyWindow, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -311,9 +317,28 @@ public sealed class AppControllerFlowTests
                 "InlineToolFilledRectangle", "InlineToolOval", "InlineToolArrow", "InlineToolLine",
                 "InlineToolText", "InlineToolHighlighter", "InlineToolBlur", "InlineToolSpotlight",
                 "InlineToolCounter", "InlineToolPencil", "InlineUndo", "InlineRedo", "OneShotOcr",
+                "InlineToolPan", "InlineZoomOut", "InlineZoomPicker", "InlineZoomFit", "InlineZoomIn",
                 "OneShotPin", "OneShotCopy", "OneShotCancel", "OneShotDone"
             ],
             orderedIds);
+        var toolScroller = Assert.Single(toolbar.Descendants(), element =>
+            string.Equals((string?)element.Attribute(x + "Name"), "AnnotationToolScroller", StringComparison.Ordinal));
+        var persistentActions = Assert.Single(toolbar.Descendants(), element =>
+            string.Equals((string?)element.Attribute(x + "Name"), "PersistentToolbarActions", StringComparison.Ordinal));
+        var scrolledIds = toolScroller.Descendants()
+            .Select(element => (string?)element.Attribute("AutomationProperties.AutomationId"))
+            .Where(value => value is not null)
+            .Select(value => value!)
+            .ToArray();
+        var persistentIds = persistentActions.Descendants()
+            .Select(element => (string?)element.Attribute("AutomationProperties.AutomationId"))
+            .Where(value => value is not null)
+            .Select(value => value!)
+            .ToArray();
+        Assert.DoesNotContain("OneShotCancel", scrolledIds);
+        Assert.DoesNotContain("OneShotDone", scrolledIds);
+        Assert.Contains("OneShotCancel", persistentIds);
+        Assert.Contains("OneShotDone", persistentIds);
         Assert.Contains("Content=\"Text\"", xaml, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource AnnotationTextIcon}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Content=\"Blur\"", xaml, StringComparison.Ordinal);
@@ -348,20 +373,238 @@ public sealed class AppControllerFlowTests
     }
 
     [Fact]
-    public void ToolKeySettingsAndOrdinarySelectionServices_AreDeleted()
+    public void RecordingAnnotationTemporaryMode_IsConfigurableWithoutLegacySelectionServices()
     {
         var settings = File.ReadAllText(FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Models", "AppSettings.cs"));
         var settingsView = File.ReadAllText(FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Views", "SettingsWindow.xaml"));
 
-        Assert.DoesNotContain("RecordingAnnotationTemporaryModifier", settings, StringComparison.Ordinal);
+        Assert.Contains("RecordingAnnotationTemporaryModifier", settings, StringComparison.Ordinal);
+        Assert.Contains("RecordingAnnotationTemporaryClearMode", settings, StringComparison.Ordinal);
         Assert.DoesNotContain("RecordingAnnotationTemporaryHoldDurationMs", settings, StringComparison.Ordinal);
-        Assert.DoesNotContain("临时切换键", settingsView, StringComparison.Ordinal);
+        Assert.Contains("临时切换键", settingsView, StringComparison.Ordinal);
         Assert.False(File.Exists(FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Services", "LiveSelectionInputService.cs")));
         Assert.False(File.Exists(FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Services", "LiveSelectionRawInputService.cs")));
+    }
+
+    [Fact]
+    public void DataSafetyRecoveryContracts_AreWiredBeforeSessionClosure()
+    {
+        var sourceRoot = FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows");
+        var application = File.ReadAllText(Path.Combine(sourceRoot, "App.xaml.cs"));
+        var controller = File.ReadAllText(Path.Combine(sourceRoot, "Services", "AppController.cs"));
+        var inline = File.ReadAllText(Path.Combine(sourceRoot, "Views", "InlineAnnotateWindow.xaml.cs"));
+        var scrolling = File.ReadAllText(Path.Combine(sourceRoot, "Views", "ScrollingProgressWindow.xaml.cs"));
+
+        Assert.Contains("您有未保存的更改。您想在关闭前保存吗？", inline, StringComparison.Ordinal);
+        Assert.Contains("if (!committed)", inline, StringComparison.Ordinal);
+        Assert.True(inline.IndexOf("if (!committed)", StringComparison.Ordinal) <
+                    inline.IndexOf("DialogResult = true", inline.IndexOf("private async void Finish", StringComparison.Ordinal),
+                        StringComparison.Ordinal));
+        Assert.Contains("ScrollingSaveRecoveryAction.Retry", controller, StringComparison.Ordinal);
+        Assert.Contains("ScrollingSaveRecoveryAction.SaveAs", controller, StringComparison.Ordinal);
+        Assert.Contains("ScrollingSaveRecoveryAction.Copy", controller, StringComparison.Ordinal);
+        Assert.Contains("ScrollingProgressPhase.SaveFailed", scrolling, StringComparison.Ordinal);
+        Assert.Contains("停止并保存后退出、丢弃录屏并退出，还是取消退出", controller, StringComparison.Ordinal);
+        Assert.Contains("MoveToRecycleBin", controller, StringComparison.Ordinal);
+        Assert.Contains("protected override void OnSessionEnding", application, StringComparison.Ordinal);
+        Assert.Contains("e.Cancel = true", application, StringComparison.Ordinal);
+        Assert.Contains("HasProtectedWork", application, StringComparison.Ordinal);
+        Assert.Contains("RequestSessionEnding", application, StringComparison.Ordinal);
+        Assert.Contains("internal bool HasProtectedWork", controller, StringComparison.Ordinal);
+        Assert.Contains("internal void RequestSessionEnding() => _ = ExitAsync()", controller, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LaunchRecoveryAndContinuousRecordingPrivacyAreWiredAtReachableEntryPoints()
+    {
+        var sourceRoot = FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows");
+        var controller = File.ReadAllText(Path.Combine(sourceRoot, "Services", "AppController.cs"));
+        var exclusion = File.ReadAllText(Path.Combine(sourceRoot, "Services", "WindowCaptureExclusionService.cs"));
+
+        var recovery = controller.IndexOf("EnsureHistoryDatabaseReadyForLaunchAsync", StringComparison.Ordinal);
+        var mainWindow = controller.IndexOf("_mainWindow = new MainWindow", StringComparison.Ordinal);
+        Assert.True(recovery >= 0 && mainWindow > recovery,
+            "Database recovery must complete before normal product windows become reachable.");
+        Assert.Contains("DatabaseRecoveryService.ArchiveDatabaseFiles", controller, StringComparison.Ordinal);
+        Assert.Contains("尝试修复", controller, StringComparison.Ordinal);
+        Assert.Contains("重置数据库…", controller, StringComparison.Ordinal);
+
+        Assert.Contains("EventManager.RegisterClassHandler", exclusion, StringComparison.Ordinal);
+        Assert.Contains("NativeMethods.EnumWindows", exclusion, StringComparison.Ordinal);
+        Assert.Contains("GetWindowThreadProcessId", exclusion, StringComparison.Ordinal);
+        Assert.Contains("WdaExcludeFromCapture", exclusion, StringComparison.Ordinal);
+        Assert.Contains("RestoreAll()", exclusion, StringComparison.Ordinal);
+        Assert.Contains("_recordingCaptureExclusion.SetEnabled(!request.IncludeShotPaste)", controller,
+            StringComparison.Ordinal);
+        Assert.Contains("_recordingCaptureExclusion.SetEnabled(_recording.IsRecording && !_settings.Current.IncludeShotPasteInRecording)",
+            controller, StringComparison.Ordinal);
+        Assert.Contains("_recordingCaptureExclusion.SetEnabled(false)", controller, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OneShotOwnApplicationExclusionUsesNativeFilteringAndFailClosedReadiness()
+    {
+        var selection = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Services", "RegionSelectionService.cs"));
+
+        var privacyScope = selection.IndexOf("HideAndExcludeApplicationWindows()", StringComparison.Ordinal);
+        var readiness = selection.IndexOf("CaptureReadinessService.WaitAsync", StringComparison.Ordinal);
+        var frozenBackdrop = selection.IndexOf("CaptureFrozenBackdropAsync(options, trace)", StringComparison.Ordinal);
+        Assert.True(privacyScope >= 0 && readiness > privacyScope && frozenBackdrop > readiness,
+            "One Shot must complete own-window exclusion readiness before freezing the desktop.");
+        Assert.Contains("if (!readiness.IsReady)", selection, StringComparison.Ordinal);
+        Assert.Contains("WindowCaptureExclusionService", selection, StringComparison.Ordinal);
+
+        var implementation = selection[selection.IndexOf(
+            "public static WindowVisibilityScope HideAndExcludeApplicationWindows", StringComparison.Ordinal)..];
+        var probe = implementation.IndexOf("windows.Select(CreateProbe)", StringComparison.Ordinal);
+        var nativeFilter = implementation.IndexOf("exclusion.SetEnabled(true)", StringComparison.Ordinal);
+        var hide = implementation.IndexOf("window.Hide()", StringComparison.Ordinal);
+        Assert.True(probe >= 0 && nativeFilter > probe && hide > nativeFilter,
+            "Visible pixels must be probed before native filtering and window hiding change the compositor frame.");
+        Assert.Contains("_captureExclusion?.Dispose();", implementation, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void QuickAccessDragAndContextMenuFollowConfiguredActionSemantics()
+    {
+        var xaml = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "SettingsWindow.xaml"));
+        var card = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "QuickAccessWindow.xaml.cs"));
+
+        Assert.Contains("Tag=\"Drag\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("允许从卡片拖出文件", xaml, StringComparison.Ordinal);
+        Assert.Contains("[\"Drag\"] = DragAction", card, StringComparison.Ordinal);
+        Assert.Contains("ConfigureContextMenu(configured, isTemporary)", card, StringComparison.Ordinal);
+        Assert.Contains("foreach (var action in configured", card, StringComparison.Ordinal);
+        Assert.Contains("DragDrop.DoDragDrop", card, StringComparison.Ordinal);
+        Assert.Contains("if (result != System.Windows.DragDropEffects.None)", card, StringComparison.Ordinal);
+        Assert.Contains("Close();", card[card.IndexOf("if (result !=", StringComparison.Ordinal)..], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OcrSettingsAndResultActionsAreVisibleOnTheCurrentCapturePage()
+    {
+        var settings = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "SettingsWindow.xaml"));
+        var result = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "OcrResultWindow.xaml"));
+
+        Assert.Contains("AutomationProperties.AutomationId=\"SettingsOcrLanguage\"", settings, StringComparison.Ordinal);
+        Assert.Contains("IsChecked=\"{Binding ShowOcrLinkNotifications}\"", settings, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.AutomationId=\"OcrResultCopyLink\"", result, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.AutomationId=\"OcrResultOpenLink\"", result, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.AutomationId=\"OcrResultOpenAll\"", result, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HistoryAccessibilityPlacementAndSeparateStorageActionsMatchMacSemantics()
+    {
+        var history = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "MainWindow.xaml"));
+        var historyCode = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "MainWindow.xaml.cs"));
+        var settings = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "SettingsWindow.xaml"));
+
+        Assert.Contains("HistoryRevealItem", history, StringComparison.Ordinal);
+        Assert.Contains("ReducedMotionHistoryListBoxItem", history, StringComparison.Ordinal);
+        Assert.Contains("AccessibilityPreferences.ReduceMotion", historyCode, StringComparison.Ordinal);
+        Assert.Contains("\"BottomCenter\" =>", historyCode, StringComparison.Ordinal);
+        Assert.Contains("打开截图与录屏目录", settings, StringComparison.Ordinal);
+        Assert.Contains("打开媒体剪贴板目录", settings, StringComparison.Ordinal);
+        Assert.DoesNotContain("Tag=\"Remember\"", settings, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RecordingToolbarPersistsUserPositionAndLiveSettingsControlVisibleRecordingUi()
+    {
+        var toolbar = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "RecordingToolbarWindow.xaml.cs"));
+        var controller = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Services", "AppController.cs"));
+        var timerStart = toolbar.IndexOf("_timer.Tick", StringComparison.Ordinal);
+        var timerEnd = toolbar.IndexOf("_recording.StateChanged", timerStart, StringComparison.Ordinal);
+
+        Assert.True(timerStart >= 0 && timerEnd > timerStart);
+        Assert.DoesNotContain("PositionNearSelection", toolbar[timerStart..timerEnd], StringComparison.Ordinal);
+        Assert.Contains("settings.RecordingToolbarLeft = Left", toolbar, StringComparison.Ordinal);
+        Assert.Contains("settings.RecordingToolbarTop = Top", toolbar, StringComparison.Ordinal);
+        Assert.Contains("_saveSettings?.Invoke()", toolbar, StringComparison.Ordinal);
+        Assert.Contains("_recordingRegionOverlay?.SetRecordingAppearance(_settings.Current.DimNonSelectedRecordingArea)",
+            controller, StringComparison.Ordinal);
+        Assert.Contains("if (_settings.Current.ShowRecordingToolbar) ShowRecordingToolbar(rectangle)", controller,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnnotationZoomAndPanToolKeepEveryToolbarOperationReachable()
+    {
+        var xaml = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "InlineAnnotateWindow.xaml"));
+        var code = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "InlineAnnotateWindow.xaml.cs"));
+
+        Assert.Contains("InlineZoomOut", xaml, StringComparison.Ordinal);
+        Assert.Contains("InlineZoomIn", xaml, StringComparison.Ordinal);
+        Assert.Contains("AnnotationPanIcon", xaml, StringComparison.Ordinal);
+        Assert.Contains("AnnotationZoomOutIcon", xaml, StringComparison.Ordinal);
+        Assert.Contains("AnnotationZoomInIcon", xaml, StringComparison.Ordinal);
+        Assert.Contains("Key.OemMinus or Key.Subtract", code, StringComparison.Ordinal);
+        Assert.Contains("Key.OemPlus or Key.Add", code, StringComparison.Ordinal);
+        Assert.Contains("Key.D0 or Key.NumPad0", code, StringComparison.Ordinal);
+        Assert.Contains("SetCanvasPanMode(!_panToolActive)", code, StringComparison.Ordinal);
+        Assert.Contains("e.LeftButton != MouseButtonState.Pressed", code, StringComparison.Ordinal);
+        Assert.Contains("ReleaseTransientInputCapture();", code, StringComparison.Ordinal);
+        Assert.Contains("!IsWithin(Toolbar, e.OriginalSource)", code, StringComparison.Ordinal);
+        Assert.Contains("!IsWithin(PropertiesBar, e.OriginalSource)", code, StringComparison.Ordinal);
+        Assert.Contains("!IsWithin(OneShotModePanel, e.OriginalSource)", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ShortcutPageShowsPersistentPerActionRegistrationFeedback()
+    {
+        var settings = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "SettingsWindow.xaml"));
+        var settingsCode = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "SettingsWindow.xaml.cs"));
+        var controller = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Services", "AppController.cs"));
+
+        foreach (var name in new[]
+                 {
+                     "OneShotHotkeyStatus", "HistoryHotkeyStatus", "RecordingPauseHotkeyStatus",
+                     "RecordingAnnotationHotkeyStatus", "RecordingRestartHotkeyStatus", "RecordingDeleteHotkeyStatus"
+                 })
+            Assert.Contains($"x:Name=\"{name}\"", settings, StringComparison.Ordinal);
+        Assert.Contains("刷新状态", settings, StringComparison.Ordinal);
+        Assert.Contains("GlobalHotkeyService.ProbeConfigured(_draft)", settingsCode, StringComparison.Ordinal);
+        Assert.Contains("_hotkeys?.Suspend()", controller, StringComparison.Ordinal);
+        Assert.Contains("if (!_settingsWindowOpen) _hotkeys?.RegisterConfigured", controller, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SettingsWindowIsSingleInstanceAndRepeatedRequestsNavigateExistingWindow()
+    {
+        var controller = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Services", "AppController.cs"));
+        var settingsWindow = File.ReadAllText(FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "SettingsWindow.xaml.cs"));
+
+        Assert.Contains("private SettingsWindow? _settingsWindow;", controller, StringComparison.Ordinal);
+        Assert.Contains("if (_settingsWindow is { } existing)", controller, StringComparison.Ordinal);
+        Assert.Contains("existing.NavigateToTab(tab);", controller, StringComparison.Ordinal);
+        Assert.Contains("NativeMethods.SetForegroundWindow(handle)", controller, StringComparison.Ordinal);
+        Assert.Contains("_settingsWindow = window;", controller, StringComparison.Ordinal);
+        Assert.Contains("ReferenceEquals(_settingsWindow, window)", controller, StringComparison.Ordinal);
+        Assert.Contains("() => _settingsWindow?.IsVisible == true ? _settingsWindow : null", controller,
+            StringComparison.Ordinal);
+        Assert.Contains("public void NavigateToTab(string? tab)", settingsWindow, StringComparison.Ordinal);
     }
 
     private static string FindRepositoryFile(params string[] relativeParts)

@@ -18,8 +18,7 @@ nonisolated enum ShotPasteConfigurationPaths {
   }
 
   static var suggestedConfigURL: URL {
-    suggestedConfigDirectoryURL
-      .appendingPathComponent("config.toml")
+    suggestedConfigURL(homeDirectory: userHomeDirectory, variant: .current)
   }
 
   static var suggestedConfigDirectoryURL: URL {
@@ -27,10 +26,7 @@ nonisolated enum ShotPasteConfigurationPaths {
   }
 
   static func expandedUserPath(_ path: String) -> String {
-    guard path.hasPrefix("~/") else { return path }
-    return userHomeDirectory
-      .appendingPathComponent(String(path.dropFirst(2)))
-      .path
+    expandedUserPath(path, homeDirectory: userHomeDirectory)
   }
 
   static func suggestedConfigURL(
@@ -46,21 +42,6 @@ nonisolated enum ShotPasteConfigurationPaths {
     variant: AppVariant = .current
   ) -> URL {
     AppDataLocations.configurationDirectory(in: homeDirectory, variant: variant)
-  }
-
-  static func collapsingHomePath(_ path: String) -> String {
-    collapsingHomePath(path, homeDirectory: userHomeDirectory)
-  }
-
-  static func collapsingHomePath(_ path: String, homeDirectory: URL) -> String {
-    let home = homeDirectory.path
-    if path == home {
-      return "~"
-    }
-    if path.hasPrefix(home + "/") {
-      return "~/" + String(path.dropFirst(home.count + 1))
-    }
-    return path
   }
 
   static func expandedUserPath(_ path: String, homeDirectory: URL) -> String {

@@ -86,6 +86,44 @@ public sealed class GlobalHotkeyServiceTests
     }
 
     [Fact]
+    public void ProbeConfigured_ReportsDisabledStateForEveryShortcutWithoutRegistering()
+    {
+        var results = GlobalHotkeyService.ProbeConfigured(new AppSettings { ShortcutsEnabled = false });
+
+        Assert.Equal(Enum.GetValues<HotkeyAction>().Length, results.Count);
+        Assert.All(results.Values, result => Assert.Equal(HotkeyAvailability.Disabled, result.Availability));
+    }
+
+    [Fact]
+    public void ProbeConfigured_ReportsInvalidGesturesPerAction()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var settings = new AppSettings
+                {
+                    ShortcutsEnabled = true,
+                    OneShotHotkey = "A",
+                    HistoryHotkey = "B",
+                    RecordingPauseHotkey = "C",
+                    RecordingAnnotationHotkey = "D",
+                    RecordingRestartHotkey = "E",
+                    RecordingDeleteHotkey = "F"
+                };
+                var results = GlobalHotkeyService.ProbeConfigured(settings);
+                Assert.All(results.Values, result => Assert.Equal(HotkeyAvailability.Invalid, result.Availability));
+            }
+            catch (Exception exception) { failure = exception; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(10)), "Hotkey probe STA test timed out.");
+        if (failure is not null) throw failure;
+    }
+
+    [Fact]
     public void KeystrokeOverlayBuildsReadableChord()
     {
         var pressed = new HashSet<int> { 0x11, 0x10 };

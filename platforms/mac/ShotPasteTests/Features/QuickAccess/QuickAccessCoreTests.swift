@@ -291,37 +291,6 @@ final class QuickAccessCoreTests: XCTestCase {
     XCTAssertFalse(state.zoomMenuPercents.contains(50))
   }
 
-  func testQuickAccessPinWindowState_appliesContinuousZoomStepsWithinBounds() {
-    let image = NSImage(size: CGSize(width: 400, height: 300))
-    let state = QuickAccessPinWindowState(
-      id: UUID(),
-      url: URL(fileURLWithPath: "/tmp/pinned.png"),
-      image: image,
-      thumbnail: image,
-      baseSize: CGSize(width: 400, height: 300),
-      maxSize: CGSize(width: 800, height: 600)
-    )
-    Self.retainedPinWindowStates.append(state)
-
-    var displaySize = state.applyZoomStep(0.35)
-
-    XCTAssertEqual(state.zoomPercent, 135)
-    XCTAssertEqual(displaySize.width, 540, accuracy: 0.001)
-    XCTAssertEqual(displaySize.height, 405, accuracy: 0.001)
-
-    displaySize = state.applyZoomStep(10)
-
-    XCTAssertEqual(state.zoomPercent, 200)
-    XCTAssertEqual(displaySize.width, 800, accuracy: 0.001)
-    XCTAssertEqual(displaySize.height, 600, accuracy: 0.001)
-
-    displaySize = state.applyZoomStep(-10)
-
-    XCTAssertEqual(state.zoomPercent, 60)
-    XCTAssertEqual(displaySize.width, 240, accuracy: 0.001)
-    XCTAssertEqual(displaySize.height, 180, accuracy: 0.001)
-  }
-
   func testQuickAccessPinWindowState_reclampsWhenScreenSizingShrinks() {
     let image = NSImage(size: CGSize(width: 400, height: 300))
     let state = QuickAccessPinWindowState(
@@ -334,7 +303,7 @@ final class QuickAccessCoreTests: XCTestCase {
     )
     Self.retainedPinWindowStates.append(state)
 
-    _ = state.applyZoomStep(1)
+    _ = state.setZoomPercent(200)
     let displaySize = state.updateSizing(
       baseSize: CGSize(width: 300, height: 225),
       maxSize: CGSize(width: 300, height: 225)
@@ -617,21 +586,6 @@ final class QuickAccessCoreTests: XCTestCase {
     XCTAssertTrue(store.isEnabled(.pinToScreen))
   }
 
-  func testQuickAccessActionKind_contextMenuOrderKeepsCloseAndDeleteAtEnd() {
-    let configuredOrder: [QuickAccessActionKind] = [
-      .copy,
-      .saveOrOpen,
-      .dismiss,
-      .delete,
-      .pinToScreen,
-    ]
-
-    XCTAssertEqual(
-      QuickAccessActionKind.contextMenuOrder(from: configuredOrder),
-      [.copy, .saveOrOpen, .pinToScreen, .dismiss, .delete]
-    )
-  }
-
   func testQuickAccessActionConfigurationStore_filtersUnknownIdsAndAppendsMissingActions() {
     let defaults = makeIsolatedDefaults()
     defaults.set(
@@ -841,24 +795,6 @@ final class QuickAccessCoreTests: XCTestCase {
     let store = QuickAccessActionConfigurationStore(defaults: defaults)
     Self.retainedActionStores.append(store)
     return store
-  }
-
-  private func makePinWindow() -> QuickAccessPinWindow {
-    let image = NSImage(size: CGSize(width: 24, height: 16))
-    let state = QuickAccessPinWindowState(
-      id: UUID(),
-      url: URL(fileURLWithPath: "/tmp/pinned.png"),
-      image: image,
-      thumbnail: image,
-      baseSize: CGSize(width: 320, height: 220),
-      maxSize: CGSize(width: 1200, height: 900)
-    )
-    Self.retainedPinWindowStates.append(state)
-
-    return QuickAccessPinWindow(
-      contentRect: NSRect(x: 0, y: 0, width: 320, height: 220),
-      state: state
-    )
   }
 }
 

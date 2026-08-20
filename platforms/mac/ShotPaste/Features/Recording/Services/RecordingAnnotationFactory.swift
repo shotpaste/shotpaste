@@ -20,7 +20,6 @@ enum RecordingAnnotationFactory {
   ) -> AnnotationItem? {
     let properties = AnnotationProperties(
       strokeColor: strokeColor,
-      fillColor: .clear,
       strokeWidth: strokeWidth
     )
 

@@ -125,10 +125,6 @@ final class SystemScreenshotShortcutManager {
       .map(\.displayName)
   }
 
-  func hasConflict(for kind: GlobalShortcutKind, shortcut: ShortcutConfig) -> Bool {
-    !conflictDescriptions(for: kind, shortcut: shortcut).isEmpty
-  }
-
   /// Open System Settings to the Keyboard Shortcuts → Screenshots pane
   func openSystemScreenshotSettings() {
     // Mark prompt as seen

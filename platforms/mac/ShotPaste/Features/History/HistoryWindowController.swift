@@ -47,52 +47,6 @@ struct HistoryDeletionResult: Equatable {
   let failedCount: Int
 }
 
-final class HistoryWindow: NSWindow {
-  override func performKeyEquivalent(with event: NSEvent) -> Bool {
-    guard event.type == .keyDown else {
-      return super.performKeyEquivalent(with: event)
-    }
-
-    let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-
-    if event.keyCode == 8, flags == .command {
-      if isTextInputActive {
-        return super.performKeyEquivalent(with: event)
-      }
-
-      NotificationCenter.default.post(name: .historyCopySelection, object: self)
-      return true
-    }
-
-    if event.keyCode == 0, flags == .command {
-      if isTextInputActive {
-        return super.performKeyEquivalent(with: event)
-      }
-
-      NotificationCenter.default.post(name: .historySelectAll, object: self)
-      return true
-    }
-
-    return super.performKeyEquivalent(with: event)
-  }
-
-  override func keyDown(with event: NSEvent) {
-    let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-
-    if !isTextInputActive, flags.isEmpty, [51, 117].contains(event.keyCode) {
-      NotificationCenter.default.post(name: .historyDeleteSelection, object: self)
-      return
-    }
-
-    super.keyDown(with: event)
-  }
-
-  private var isTextInputActive: Bool {
-    guard let responder = firstResponder else { return false }
-    return responder is NSTextView || responder is NSTextField
-  }
-}
-
 /// Manages the capture history browser window
 @MainActor
 final class HistoryWindowController {
@@ -104,11 +58,6 @@ final class HistoryWindowController {
     DiagnosticLogger.shared.log(.info, .history, "History window requested")
     HistoryFloatingManager.shared.showDefaultHistory()
     NSApp.activate(ignoringOtherApps: true)
-  }
-
-  func hideWindow() {
-    DiagnosticLogger.shared.log(.debug, .history, "History window hide requested")
-    HistoryFloatingManager.shared.hide()
   }
 
   func copyToClipboard(_ records: [CaptureHistoryRecord]) {

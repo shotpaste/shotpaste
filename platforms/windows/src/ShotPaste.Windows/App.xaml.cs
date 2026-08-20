@@ -11,6 +11,7 @@ namespace ShotPaste.Windows;
 public partial class App : System.Windows.Application
 {
     internal static bool UiTestMode { get; private set; }
+    internal static bool UiTestClipboardMonitorEnabled { get; private set; }
     internal static bool DiagnosticsLoggingEnabled { get; private set; } = true;
     private Mutex? _singleInstance;
     private AppController? _controller;
@@ -29,6 +30,8 @@ public partial class App : System.Windows.Application
         }
 
         UiTestMode = e.Args.Any(argument => argument.Equals("--ui-test", StringComparison.OrdinalIgnoreCase));
+        UiTestClipboardMonitorEnabled = UiTestMode && e.Args.Any(argument =>
+            argument.Equals("--ui-test-clipboard", StringComparison.OrdinalIgnoreCase));
         if (UiTestMode)
         {
             try
@@ -50,15 +53,15 @@ public partial class App : System.Windows.Application
             if (args.ExceptionObject is Exception exception) WriteCrashLog(exception);
         };
         base.OnStartup(e);
+        var commandArguments = AppLaunchArguments.ResolveInitialCommandArguments(e.Args);
         var mutexName = UiTestMode
             ? $"{AppBuildIdentity.Current.SingleInstanceMutexName}.UiTest.{ScopeToken(_instanceScope!)}"
             : AppBuildIdentity.Current.SingleInstanceMutexName;
         _singleInstance = new Mutex(true, mutexName, out var createdNew);
         if (!createdNew)
         {
-            var forwarded = e.Args.Length > 0 ? e.Args : ["--history"];
             App.WriteQuickAccessLog("Secondary instance forwarding command.");
-            var sent = AppCommandService.SendAsync(forwarded, instanceScope: _instanceScope).GetAwaiter().GetResult();
+            var sent = AppCommandService.SendAsync(commandArguments, instanceScope: _instanceScope).GetAwaiter().GetResult();
             App.WriteQuickAccessLog($"Secondary instance forwarding completed sent={sent}; shutting down.");
             Shutdown();
             return;
@@ -69,7 +72,7 @@ public partial class App : System.Windows.Application
         _commandService = new AppCommandService(_instanceScope);
         _commandService.Start(arguments => Dispatcher.BeginInvoke(() => _controller?.HandleExternalCommand(arguments)));
         _controller.Start();
-        _controller.HandleExternalCommand(e.Args);
+        _controller.HandleExternalCommand(commandArguments);
         if (UiTestMode && e.Args.Any(argument => argument.Equals("--ui-test-toast", StringComparison.OrdinalIgnoreCase)))
         {
             _ = Dispatcher.BeginInvoke(() => ToastService.Show(
@@ -109,6 +112,18 @@ public partial class App : System.Windows.Application
     }
 
     internal static void ConfigureDiagnostics(bool enabled) => DiagnosticsLoggingEnabled = enabled;
+
+    protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
+    {
+        var protectActiveSession = _controller?.HasProtectedWork == true;
+        if (protectActiveSession) e.Cancel = true;
+        base.OnSessionEnding(e);
+        if (protectActiveSession)
+        {
+            App.WriteQuickAccessLog($"Windows session ending ({e.ReasonSessionEnding}) was paused for recoverable work.");
+            _ = Dispatcher.BeginInvoke(() => _controller?.RequestSessionEnding());
+        }
+    }
 
     protected override void OnExit(ExitEventArgs e)
     {

@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:ShotPaste.Windows.Controls"
-        Title="ShotPaste" Width="430" SizeToContent="Height" MinHeight="190" MaxHeight="640"
+        Title="ShotPaste" Width="430" MinWidth="430" MaxWidth="680" SizeToContent="Height" MinHeight="190" MaxHeight="640"
         WindowStyle="None" ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False" Background="{DynamicResource WindowBackdropBrush}"
         AutomationProperties.AutomationId="ShotPasteDialog">
@@ -24,9 +24,12 @@
     <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="0,1,0,0" Padding="18,12">
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-        <Button x:Name="TertiaryButton" Visibility="Collapsed" Margin="0,0,8,0" Click="OnTertiary"/>
-        <Button x:Name="SecondaryButton" Visibility="Collapsed" Margin="0,0,8,0" Click="OnSecondary"/>
-        <Button x:Name="PrimaryButton" Style="{StaticResource AccentButton}" MinWidth="82" Click="OnPrimary"/>
+        <Button x:Name="TertiaryButton" Visibility="Collapsed" Margin="0,0,8,0" Click="OnTertiary"
+                AutomationProperties.AutomationId="DialogTertiary"/>
+        <Button x:Name="SecondaryButton" Visibility="Collapsed" Margin="0,0,8,0" Click="OnSecondary"
+                AutomationProperties.AutomationId="DialogSecondary"/>
+        <Button x:Name="PrimaryButton" Style="{StaticResource AccentButton}" MinWidth="82" Click="OnPrimary"
+                AutomationProperties.AutomationId="DialogPrimary"/>
       </StackPanel>
     </Border>
   </Grid>

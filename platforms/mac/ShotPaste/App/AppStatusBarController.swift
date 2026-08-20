@@ -118,10 +118,6 @@ final class AppStatusBarController: ObservableObject {
     syncStatusItemVisibility()
   }
 
-  var isMenuBarIconVisible: Bool {
-    statusItem != nil
-  }
-
   private func syncStatusItemVisibility() {
     let shouldShow = UserDefaults.standard.object(forKey: PreferencesKeys.showMenuBarIcon) as? Bool ?? true
 

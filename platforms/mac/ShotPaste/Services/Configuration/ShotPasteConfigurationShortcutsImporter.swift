@@ -101,6 +101,19 @@ extension QuickAccessActionSlot {
   }
 }
 
+extension GlobalShortcutKind {
+  var configKey: String {
+    switch self {
+    case .oneShot: "one_shot"
+    case .pauseResumeRecording: "pause_resume_recording"
+    case .togglePenRecording: "toggle_pen_recording"
+    case .restartRecording: "restart_recording"
+    case .deleteRecording: "delete_recording"
+    case .history: "history"
+    }
+  }
+}
+
 @MainActor
 private extension KeyboardShortcutManager {
   func setShortcut(_ config: ShortcutConfig?, for kind: GlobalShortcutKind) {

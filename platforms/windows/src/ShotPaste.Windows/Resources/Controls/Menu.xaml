@@ -62,7 +62,17 @@
     </Setter>
   </Style>
   <Style x:Key="MenuSeparator" TargetType="{x:Type Separator}">
-    <Setter Property="Margin" Value="8,4" />
+    <Setter Property="Margin" Value="10,5" />
     <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type Separator}"><Border Height="1" Background="{DynamicResource MenuSeparatorBrush}" /></ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style x:Key="TrayContextMenu" TargetType="{x:Type ContextMenu}" BasedOn="{StaticResource {x:Type ContextMenu}}">
+    <Setter Property="MinWidth" Value="250" />
+    <Setter Property="Padding" Value="8" />
+  </Style>
+  <Style x:Key="TrayMenuItem" TargetType="{x:Type MenuItem}" BasedOn="{StaticResource {x:Type MenuItem}}">
+    <Setter Property="MinHeight" Value="42" />
+    <Setter Property="Padding" Value="12,9" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
 </ResourceDictionary>

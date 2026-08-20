@@ -3,6 +3,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Shell;
 using ShotPaste.Windows.Interop;
+using Forms = System.Windows.Forms;
 
 namespace ShotPaste.Windows.Services;
 
@@ -69,6 +70,38 @@ public static class WindowAppearanceService
         }
 
         if (new WindowInteropHelper(window).Handle != IntPtr.Zero) Apply(window);
+    }
+
+    public static Rect WorkingAreaInDips(Window window)
+    {
+        var handle = new WindowInteropHelper(window).Handle;
+        var screen = handle == IntPtr.Zero
+            ? Forms.Screen.FromPoint(Forms.Cursor.Position)
+            : Forms.Screen.FromHandle(handle);
+        var source = PresentationSource.FromVisual(window) as HwndSource;
+        if (source?.CompositionTarget is null) return SystemParameters.WorkArea;
+        var fromDevice = source.CompositionTarget.TransformFromDevice;
+        var topLeft = fromDevice.Transform(new System.Windows.Point(screen.WorkingArea.Left, screen.WorkingArea.Top));
+        var bottomRight = fromDevice.Transform(new System.Windows.Point(screen.WorkingArea.Right, screen.WorkingArea.Bottom));
+        return new Rect(topLeft, bottomRight);
+    }
+
+    public static void ConstrainToWorkingArea(Window window, double margin = 12d)
+    {
+        var area = WorkingAreaInDips(window);
+        var availableWidth = Math.Max(320d, area.Width - margin * 2d);
+        var availableHeight = Math.Max(320d, area.Height - margin * 2d);
+        window.MinWidth = Math.Min(window.MinWidth, availableWidth);
+        window.MinHeight = Math.Min(window.MinHeight, availableHeight);
+        window.MaxWidth = Math.Min(window.MaxWidth, availableWidth);
+        window.MaxHeight = Math.Min(window.MaxHeight, availableHeight);
+        if (window.WindowState != WindowState.Normal) return;
+        window.Width = Math.Min(window.Width, availableWidth);
+        window.Height = Math.Min(window.Height, availableHeight);
+        window.Left = Math.Clamp(window.Left, area.Left + margin,
+            Math.Max(area.Left + margin, area.Right - margin - window.Width));
+        window.Top = Math.Clamp(window.Top, area.Top + margin,
+            Math.Max(area.Top + margin, area.Bottom - margin - window.Height));
     }
 
     public static void RefreshOpenWindows()

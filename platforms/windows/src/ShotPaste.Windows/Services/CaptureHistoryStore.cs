@@ -18,18 +18,29 @@ public sealed class CaptureHistoryStore
     private readonly string _databasePath;
     private readonly string _thumbnailDirectory;
     private readonly string _clipboardDirectory;
+    private readonly IRecoverableFileOperations _recoverableFiles;
+    private readonly System.Windows.Threading.Dispatcher? _uiDispatcher;
 
-    public CaptureHistoryStore() : this(AppPaths.HistoryDatabaseFile, AppPaths.Thumbnails) { }
+    public CaptureHistoryStore() : this(AppPaths.HistoryDatabaseFile, AppPaths.Thumbnails, null) { }
 
-    internal CaptureHistoryStore(string databasePath, string thumbnailDirectory)
+    internal CaptureHistoryStore(
+        string databasePath,
+        string thumbnailDirectory,
+        IRecoverableFileOperations? recoverableFiles = null)
     {
         _databasePath = databasePath;
         _thumbnailDirectory = thumbnailDirectory;
         _clipboardDirectory = Path.Combine(Path.GetDirectoryName(databasePath) ?? AppPaths.Root, "ClipboardFiles");
+        _recoverableFiles = recoverableFiles ?? new ShellRecoverableFileOperations();
+        var applicationDispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (applicationDispatcher is not null && applicationDispatcher.CheckAccess() &&
+            !applicationDispatcher.HasShutdownStarted && !applicationDispatcher.HasShutdownFinished)
+            _uiDispatcher = applicationDispatcher;
     }
 
     public ObservableCollection<CaptureHistoryItem> Items { get; } = [];
     public event EventHandler<CaptureHistoryItem>? ItemAdded;
+    internal string DatabasePath => _databasePath;
 
     public async Task LoadAsync()
     {
@@ -141,32 +152,60 @@ public sealed class CaptureHistoryStore
         finally { _gate.Release(); }
     }
 
-    public async Task RemoveAsync(CaptureHistoryItem item, bool deleteFile)
+    public async Task<HistoryRemovalResult> RemoveAsync(CaptureHistoryItem item, bool deleteFile)
     {
+        var failures = new List<HistoryRemovalFailure>();
         await _gate.WaitAsync();
         try
         {
             await using var connection = await OpenConnectionAsync();
+            await using var transaction = connection.BeginTransaction();
             await using var command = connection.CreateCommand();
+            command.Transaction = transaction;
             command.CommandText = "DELETE FROM history_items WHERE id = $id;";
             command.Parameters.AddWithValue("$id", item.Id.ToString("D"));
-            await command.ExecuteNonQueryAsync();
+            var affected = await command.ExecuteNonQueryAsync();
+            if (affected != 1)
+            {
+                await transaction.RollbackAsync();
+                failures.Add(new HistoryRemovalFailure(_databasePath,
+                    "历史数据库预检未找到唯一记录；尚未处理任何文件，请重新加载历史后重试。"));
+                return new HistoryRemovalResult(false, failures);
+            }
+
+            // The DELETE is deliberately prepared inside an uncommitted SQLite
+            // transaction before touching user content. A locked, read-only or
+            // otherwise unhealthy database therefore fails while every file is
+            // still at its original path. The row remains visible to other
+            // connections and in Items until all recycle operations succeed.
+            if (deleteFile)
+            {
+                foreach (var path in UserContentPaths(item).Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    var deletion = _recoverableFiles.MoveToRecycleBin(path);
+                    if (!deletion.Succeeded)
+                        failures.Add(new HistoryRemovalFailure(deletion.Path, deletion.Error ?? "无法移入回收站。"));
+                }
+            }
+            if (failures.Count > 0)
+            {
+                await transaction.RollbackAsync();
+                return new HistoryRemovalResult(false, failures);
+            }
+
+            await transaction.CommitAsync();
             await InvokeOnUiAsync(() => Items.Remove(item));
         }
+        catch (Exception exception) when (exception is SqliteException or IOException or UnauthorizedAccessException)
+        {
+            failures.Add(new HistoryRemovalFailure(_databasePath,
+                $"历史数据库更新失败；记录仍保留。若文件已进入回收站，可直接重试以清理记录。{exception.Message}"));
+            return new HistoryRemovalResult(false, failures);
+        }
         finally { _gate.Release(); }
-
-        if (deleteFile && IsManagedClipboardItem(item))
-        {
-            foreach (var path in ClipboardPaths(item))
-                TryDeleteManagedClipboardPath(path);
-            TryDeleteManagedClipboardPath(item.TextStoragePath);
-            TryDelete(item.ThumbnailPath);
-        }
-        else if (deleteFile)
-        {
-            TryDelete(item.FilePath);
-            TryDelete(item.ThumbnailPath);
-        }
+        TryDelete(item.ThumbnailPath);
+        PruneManagedClipboardParents(item);
+        return new HistoryRemovalResult(true, []);
     }
 
     public async Task PruneAsync(int retentionDays, int maxCount = 0)
@@ -182,32 +221,24 @@ public sealed class CaptureHistoryStore
             foreach (var item in Items.Where(item => !item.IsPinned).OrderByDescending(item => item.CreatedAt).Skip(maxCount))
                 expired.Add(item);
         }
-        foreach (var item in expired) await RemoveAsync(item, true);
+        foreach (var item in expired) _ = await RemoveAsync(item, true);
     }
 
-    public async Task ClearAsync()
+    public async Task<HistoryBulkRemovalResult> ClearAsync()
     {
         var snapshot = Items.ToArray();
-        await _gate.WaitAsync();
-        try
-        {
-            await using var connection = await OpenConnectionAsync();
-            await using var command = connection.CreateCommand();
-            command.CommandText = "DELETE FROM history_items;";
-            await command.ExecuteNonQueryAsync();
-            await InvokeOnUiAsync(Items.Clear);
-        }
-        finally { _gate.Release(); }
+        var removed = 0;
+        var failures = new List<HistoryRemovalFailure>();
         foreach (var item in snapshot)
         {
-            TryDelete(item.ThumbnailPath);
-            if (IsManagedClipboardItem(item))
-            {
-                foreach (var path in ClipboardPaths(item))
-                    TryDeleteManagedClipboardPath(path);
-                TryDeleteManagedClipboardPath(item.TextStoragePath);
-            }
+            // Clearing history is the same destructive action on both native
+            // implementations: every record-associated user file is moved to
+            // the OS recycle bin before its row is committed as deleted.
+            var result = await RemoveAsync(item, true);
+            if (result.RecordRemoved) removed++;
+            failures.AddRange(result.Failures);
         }
+        return new HistoryBulkRemovalResult(removed, snapshot.Length, failures);
     }
 
     /// <summary>
@@ -264,41 +295,49 @@ public sealed class CaptureHistoryStore
     private async Task<SqliteConnection> OpenConnectionAsync()
     {
         var connection = new SqliteConnection($"Data Source={_databasePath};Mode=ReadWriteCreate;Cache=Shared");
-        await connection.OpenAsync();
-        await using var command = connection.CreateCommand();
-        command.CommandText = """
-            CREATE TABLE IF NOT EXISTS history_items (
-                id TEXT PRIMARY KEY,
-                kind INTEGER NOT NULL,
-                created_at TEXT NOT NULL,
-                file_path TEXT NULL,
-                thumbnail_path TEXT NULL,
-                text_value TEXT NULL,
-                size_bytes INTEGER NOT NULL,
-                pixel_width INTEGER NOT NULL,
-                pixel_height INTEGER NOT NULL,
-                duration_ticks INTEGER NULL,
-                is_pinned INTEGER NOT NULL DEFAULT 0,
-                file_paths_json TEXT NULL,
-                content_hash TEXT NULL,
-                text_storage_path TEXT NULL,
-                text_length INTEGER NOT NULL DEFAULT 0,
-                text_is_truncated INTEGER NOT NULL DEFAULT 0,
-                preview_error TEXT NULL
-            );
-            CREATE INDEX IF NOT EXISTS idx_history_created_at ON history_items(created_at DESC);
-            """;
-        await command.ExecuteNonQueryAsync();
-        await EnsureColumnAsync(connection, "file_paths_json", "TEXT NULL");
-        await EnsureColumnAsync(connection, "content_hash", "TEXT NULL");
-        await EnsureColumnAsync(connection, "text_storage_path", "TEXT NULL");
-        await EnsureColumnAsync(connection, "text_length", "INTEGER NOT NULL DEFAULT 0");
-        await EnsureColumnAsync(connection, "text_is_truncated", "INTEGER NOT NULL DEFAULT 0");
-        await EnsureColumnAsync(connection, "preview_error", "TEXT NULL");
-        await using var indexCommand = connection.CreateCommand();
-        indexCommand.CommandText = "CREATE INDEX IF NOT EXISTS idx_history_content_hash ON history_items(content_hash) WHERE content_hash IS NOT NULL;";
-        await indexCommand.ExecuteNonQueryAsync();
-        return connection;
+        try
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                CREATE TABLE IF NOT EXISTS history_items (
+                    id TEXT PRIMARY KEY,
+                    kind INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    file_path TEXT NULL,
+                    thumbnail_path TEXT NULL,
+                    text_value TEXT NULL,
+                    size_bytes INTEGER NOT NULL,
+                    pixel_width INTEGER NOT NULL,
+                    pixel_height INTEGER NOT NULL,
+                    duration_ticks INTEGER NULL,
+                    is_pinned INTEGER NOT NULL DEFAULT 0,
+                    file_paths_json TEXT NULL,
+                    content_hash TEXT NULL,
+                    text_storage_path TEXT NULL,
+                    text_length INTEGER NOT NULL DEFAULT 0,
+                    text_is_truncated INTEGER NOT NULL DEFAULT 0,
+                    preview_error TEXT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_history_created_at ON history_items(created_at DESC);
+                """;
+            await command.ExecuteNonQueryAsync();
+            await EnsureColumnAsync(connection, "file_paths_json", "TEXT NULL");
+            await EnsureColumnAsync(connection, "content_hash", "TEXT NULL");
+            await EnsureColumnAsync(connection, "text_storage_path", "TEXT NULL");
+            await EnsureColumnAsync(connection, "text_length", "INTEGER NOT NULL DEFAULT 0");
+            await EnsureColumnAsync(connection, "text_is_truncated", "INTEGER NOT NULL DEFAULT 0");
+            await EnsureColumnAsync(connection, "preview_error", "TEXT NULL");
+            await using var indexCommand = connection.CreateCommand();
+            indexCommand.CommandText = "CREATE INDEX IF NOT EXISTS idx_history_content_hash ON history_items(content_hash) WHERE content_hash IS NOT NULL;";
+            await indexCommand.ExecuteNonQueryAsync();
+            return connection;
+        }
+        catch
+        {
+            await connection.DisposeAsync();
+            throw;
+        }
     }
 
     private static async Task EnsureColumnAsync(SqliteConnection connection, string name, string declaration)
@@ -401,10 +440,11 @@ public sealed class CaptureHistoryStore
         await command.ExecuteNonQueryAsync();
     }
 
-    private static Task InvokeOnUiAsync(Action action)
+    private Task InvokeOnUiAsync(Action action)
     {
-        var dispatcher = System.Windows.Application.Current?.Dispatcher;
-        if (dispatcher is null || dispatcher.CheckAccess())
+        var dispatcher = _uiDispatcher;
+        if (dispatcher is null || dispatcher.CheckAccess() ||
+            dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
         {
             action();
             return Task.CompletedTask;
@@ -412,10 +452,12 @@ public sealed class CaptureHistoryStore
         return dispatcher.InvokeAsync(action).Task;
     }
 
-    private static async Task<T> InvokeOnUiAsync<T>(Func<T> function)
+    private async Task<T> InvokeOnUiAsync<T>(Func<T> function)
     {
-        var dispatcher = System.Windows.Application.Current?.Dispatcher;
-        if (dispatcher is null || dispatcher.CheckAccess()) return function();
+        var dispatcher = _uiDispatcher;
+        if (dispatcher is null || dispatcher.CheckAccess() ||
+            dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+            return function();
         return await dispatcher.InvokeAsync(function);
     }
 
@@ -506,22 +548,49 @@ public sealed class CaptureHistoryStore
         catch (UnauthorizedAccessException) { }
     }
 
-    private void TryDeleteManagedClipboardPath(string? path)
+    private IEnumerable<string> UserContentPaths(CaptureHistoryItem item)
     {
-        if (string.IsNullOrWhiteSpace(path)) return;
+        if (!IsManagedClipboardItem(item))
+        {
+            if (!string.IsNullOrWhiteSpace(item.FilePath)) yield return item.FilePath;
+            yield break;
+        }
+
+        foreach (var path in ClipboardPaths(item))
+            if (IsManagedClipboardPath(path)) yield return path;
+        if (IsManagedClipboardPath(item.TextStoragePath)) yield return item.TextStoragePath!;
+    }
+
+    private bool IsManagedClipboardPath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
         var managedRoot = Path.GetFullPath(_clipboardDirectory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-        var fullPath = Path.GetFullPath(path);
-        if (!fullPath.StartsWith(managedRoot, StringComparison.OrdinalIgnoreCase)) return;
         try
         {
-            if (File.Exists(fullPath)) File.Delete(fullPath);
-            else if (Directory.Exists(fullPath)) Directory.Delete(fullPath, true);
-            var parent = Path.GetDirectoryName(fullPath);
-            if (!string.IsNullOrWhiteSpace(parent) && Directory.Exists(parent) && !Directory.EnumerateFileSystemEntries(parent).Any())
-                Directory.Delete(parent);
+            return Path.GetFullPath(path).StartsWith(managedRoot, StringComparison.OrdinalIgnoreCase);
         }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
+        catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
+    }
+
+    private void PruneManagedClipboardParents(CaptureHistoryItem item)
+    {
+        foreach (var path in ClipboardPaths(item).Append(item.TextStoragePath))
+        {
+            if (!IsManagedClipboardPath(path)) continue;
+            var parent = Path.GetDirectoryName(Path.GetFullPath(path!));
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(parent) && Directory.Exists(parent) &&
+                    !Directory.EnumerateFileSystemEntries(parent).Any() &&
+                    !Path.GetFullPath(parent).Equals(Path.GetFullPath(_clipboardDirectory), StringComparison.OrdinalIgnoreCase))
+                    Directory.Delete(parent);
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
     }
 
     private static IEnumerable<string> ClipboardPaths(CaptureHistoryItem item) => item.FilePaths.Count > 0
@@ -544,4 +613,16 @@ public sealed class CaptureHistoryStore
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { return 0; }
     }
+}
+
+public sealed record HistoryRemovalFailure(string Path, string Message);
+
+public sealed record HistoryRemovalResult(bool RecordRemoved, IReadOnlyList<HistoryRemovalFailure> Failures);
+
+public sealed record HistoryBulkRemovalResult(
+    int RemovedCount,
+    int RequestedCount,
+    IReadOnlyList<HistoryRemovalFailure> Failures)
+{
+    public bool FullySucceeded => RemovedCount == RequestedCount && Failures.Count == 0;
 }

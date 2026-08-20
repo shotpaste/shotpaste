@@ -4,7 +4,7 @@ namespace ShotPaste.Windows.Models;
 
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 12;
+    public const int CurrentSchemaVersion = 16;
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public string Language { get; set; } = "System";
     public bool PlaySounds { get; set; } = true;
@@ -17,11 +17,24 @@ public sealed class AppSettings
     public bool ShowCursorInScreenshots { get; set; }
     public bool HideDesktopIconsInScreenshots { get; set; }
     public bool HideDesktopWidgetsInScreenshots { get; set; }
-    public bool ExcludeOwnApplicationFromScreenshots { get; set; } = true;
+    public bool ExcludeOwnApplicationFromScreenshots { get; set; }
+    [JsonIgnore]
+    public bool IncludeOwnApplicationInScreenshots
+    {
+        get => !ExcludeOwnApplicationFromScreenshots;
+        set => ExcludeOwnApplicationFromScreenshots = !value;
+    }
     public int ScreenshotScale { get; set; }
     public string ScreenshotColorSpace { get; set; } = "Auto";
+    public bool ScreenshotMagnifierEnabled { get; set; } = true;
+    public int ScreenshotMagnifierZoom { get; set; } = 1;
+    public string AnnotationPrimaryColor { get; set; } = "#FFFF453A";
+    public double AnnotationStrokeWidth { get; set; } = 4d;
+    public double AnnotationFontSize { get; set; } = 20d;
+    public double AnnotationCornerRadius { get; set; }
+    public Dictionary<string, AnnotationToolSettings> AnnotationToolSettings { get; set; } = [];
     public bool ShowCaptureNotifications { get; set; } = true;
-    public bool ShowOcrSuccessNotifications { get; set; }
+    public bool ShowOcrSuccessNotifications { get; set; } = true;
     public bool ShowOcrLinkNotifications { get; set; } = true;
     public string OcrRecognitionLanguage { get; set; } = "Auto";
     public bool CopyRecordings { get; set; } = true;
@@ -51,6 +64,8 @@ public sealed class AppSettings
     public Dictionary<string, RecordingAnnotationPolicySettings> RecordingAnnotationToolPolicies { get; set; } = [];
     public bool RecordingAnnotationFadeEnabled { get; set; } = true;
     public int RecordingAnnotationFadeMilliseconds { get; set; } = 350;
+    public string RecordingAnnotationTemporaryModifier { get; set; } = "Shift";
+    public string RecordingAnnotationTemporaryClearMode { get; set; } = "Manual";
     public bool DimNonSelectedRecordingArea { get; set; } = true;
     public bool RecordSystemAudio { get; set; } = true;
     public bool RecordMicrophone { get; set; }
@@ -65,12 +80,17 @@ public sealed class AppSettings
     public bool ClipboardHistoryEnabled { get; set; } = true;
     public bool LaunchAtStartup { get; set; }
     public bool UrlSchemeEnabled { get; set; } = true;
+    public bool McpServerEnabled { get; set; }
+    public int McpServerPort { get; set; } = AppBuildIdentity.Current.DefaultMcpServerPort;
+    public string McpServerAuthToken { get; set; } = string.Empty;
     public bool ShowTrayIcon { get; set; } = true;
     public bool CheckForUpdatesAutomatically { get; set; } = true;
     public DateTimeOffset? LastUpdateCheckUtc { get; set; }
     public string LastPromptedUpdateVersion { get; set; } = string.Empty;
     public bool ShowRecordingDurationInTray { get; set; } = true;
     public bool ShowRecordingToolbar { get; set; } = true;
+    public double? RecordingToolbarLeft { get; set; }
+    public double? RecordingToolbarTop { get; set; }
     public int RecordingFps { get; set; } = 30;
     public int RecordingGifFps { get; set; } = 15;
     public int HistoryRetentionDays { get; set; } = 30;
@@ -124,6 +144,11 @@ public sealed class AppSettings
     public double? HistoryExpandedLeft { get; set; }
     public double? HistoryExpandedTop { get; set; }
     public string HistoryBackgroundStyle { get; set; } = "Hud";
+    public bool HistoryKeepOpen { get; set; }
+    public string HistoryDefaultFilter { get; set; } = "Clipboard";
+    public string HistoryPosition { get; set; } = "TopCenter";
+    public double HistoryScale { get; set; } = 1d;
+    public string LastOneShotGuideVersion { get; set; } = string.Empty;
 
     public bool ScrollingAutoScrollEnabled { get; set; } = true;
     public bool ScrollingShowHints { get; set; } = true;
@@ -172,8 +197,23 @@ public sealed class RecordingAnnotationPolicySettings
     public int MaximumCount { get; set; } = 12;
 }
 
+public sealed class AnnotationToolSettings
+{
+    public string Color { get; set; } = "#FFFF453A";
+    public string? TextBackgroundColor { get; set; }
+    public double StrokeWidth { get; set; } = 4d;
+    public double FontSize { get; set; } = 20d;
+    public double CornerRadius { get; set; }
+    public string BlurKind { get; set; } = "Pixelated";
+    public string ArrowStyle { get; set; } = "Straight";
+    public string ArrowType { get; set; } = "Tapered";
+    public string ArrowBend { get; set; } = "Primary";
+    public string ArrowStartHead { get; set; } = "None";
+    public string ArrowEndHead { get; set; } = "Arrow";
+}
+
 public sealed record ScreenCaptureOptions(
     bool IncludeCursor = false,
     bool HideDesktopIcons = false,
     bool HideDesktopWidgets = false,
-    bool ExcludeOwnApplication = true);
+    bool ExcludeOwnApplication = false);

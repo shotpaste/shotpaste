@@ -26,7 +26,18 @@ final class ScrollingCaptureWindowSharingTests: XCTestCase {
       model: model,
       onStart: {},
       onDone: {},
-      onCancel: {},
+      onCancel: {}
+    )
+    defer { window.close() }
+
+    XCTAssertEqual(window.sharingType, NSWindow.SharingType.none)
+  }
+
+  func testAutoScrollWindow_isExcludedFromScreenCapture() {
+    let model = ScrollingCaptureSessionModel(selectedRect: sampleAnchorRect)
+    let window = ScrollingCaptureAutoScrollWindow(
+      anchorRect: sampleAnchorRect,
+      model: model,
       onToggleAutoScroll: {}
     )
     defer { window.close() }
@@ -90,10 +101,10 @@ final class ScrollingCaptureAutoScrollPolicyTests: XCTestCase {
     XCTFail("Expected warning guidance tone")
   }
 
-  func testHUDWindowContentSize_usesMinimumForCompactContent() {
+  func testHUDWindowContentSize_tracksCompactReferenceControls() {
     XCTAssertEqual(
       ScrollingCaptureHUDWindow.resolvedContentSize(for: CGSize(width: 240.1, height: 32.4)),
-      CGSize(width: 380, height: 44)
+      CGSize(width: 241, height: 44)
     )
   }
 
@@ -102,6 +113,28 @@ final class ScrollingCaptureAutoScrollPolicyTests: XCTestCase {
       ScrollingCaptureHUDWindow.resolvedContentSize(for: CGSize(width: 431.2, height: 45.1)),
       CGSize(width: 432, height: 46)
     )
+  }
+
+  func testPreviewLayoutStartsWideThenNarrowsAsLongImageGrows() throws {
+    let anchorRect = CGRect(x: 20, y: 240, width: 570, height: 595)
+    let visibleFrame = CGRect(x: 0, y: 0, width: 1_440, height: 1_080)
+    let initialImage = try XCTUnwrap(TestImageFactory.solidColor(width: 1_140, height: 1_190))
+    let longImage = try XCTUnwrap(TestImageFactory.solidColor(width: 640, height: 2_000))
+
+    let initialSize = ScrollingCapturePreviewLayout.previewSize(
+      for: initialImage,
+      anchorRect: anchorRect,
+      visibleFrame: visibleFrame
+    )
+    let longSize = ScrollingCapturePreviewLayout.previewSize(
+      for: longImage,
+      anchorRect: anchorRect,
+      visibleFrame: visibleFrame
+    )
+
+    XCTAssertEqual(initialSize, CGSize(width: 320, height: 334))
+    XCTAssertEqual(longSize.height, 760)
+    XCTAssertLessThan(longSize.width, initialSize.width)
   }
 
   func testAutoScrollPolicy_usesCurrentPointerAsScrollTarget() {
@@ -151,6 +184,27 @@ final class ScrollingCaptureAutoScrollPolicyTests: XCTestCase {
         for: stitchUpdate(outcome: .reachedHeightLimit)
       ),
       .finishCapture
+    )
+  }
+
+  func testAutoScrollPolicy_requiresMovementAndSustainedStationaryUpdatesForBoundary() {
+    XCTAssertFalse(
+      ScrollingCaptureAutoScrollPolicy.shouldConfirmBoundary(
+        acceptedFrameCount: 1,
+        stationaryUpdateCount: 3
+      )
+    )
+    XCTAssertFalse(
+      ScrollingCaptureAutoScrollPolicy.shouldConfirmBoundary(
+        acceptedFrameCount: 2,
+        stationaryUpdateCount: 2
+      )
+    )
+    XCTAssertTrue(
+      ScrollingCaptureAutoScrollPolicy.shouldConfirmBoundary(
+        acceptedFrameCount: 2,
+        stationaryUpdateCount: 3
+      )
     )
   }
 

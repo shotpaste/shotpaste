@@ -25,7 +25,7 @@ final class RecordingConfigurationTests: XCTestCase {
     XCTAssertFalse(RecordingToolbarPreferences.captureMicrophone(defaults: defaults))
     XCTAssertEqual(
       RecordingToolbarPreferences.microphoneDeviceID(defaults: defaults),
-      RecordingMicrophoneDevice.systemDefaultID
+      RecordingMicrophoneDeviceProvider.systemDefaultID
     )
     XCTAssertEqual(RecordingToolbarPreferences.outputMode(defaults: defaults), .video)
     XCTAssertTrue(RecordingToolbarPreferences.showCursor(defaults: defaults))

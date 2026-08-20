@@ -16,15 +16,4 @@ import AppKit
 struct AnnotateRenderSnapshot {
   var sourceImage: NSImage
   var annotations: [AnnotationItem]
-
-  var backgroundStyle: BackgroundStyle
-  var isBlurredBackgroundEffectActive: Bool
-  var blurredBackgroundEffect: BlurredBackgroundEffect
-
-  var padding: CGFloat
-  var cornerRadius: CGFloat
-  var shadowIntensity: CGFloat
-  var imageAlignment: ImageAlignment
-  var aspectRatio: AspectRatioOption
-  var aspectRatioOrientation: AspectRatioOrientation
 }

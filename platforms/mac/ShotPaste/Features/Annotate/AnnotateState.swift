@@ -35,61 +35,11 @@ final class AnnotateState: ObservableObject {
     var arrowEndHead: String?
   }
 
-  private struct PersistedAnnotationProperties: Codable {
-    var strokeColor: RGBAColor
-    var fillColor: RGBAColor
-    var strokeWidth: CGFloat
-    var cornerRadius: CGFloat
-    var fontSize: CGFloat
-    var fontName: String
-    var spotlightOpacity: CGFloat?
-
-    init?(_ properties: AnnotationProperties) {
-      guard let strokeColor = RGBAColor(color: properties.strokeColor),
-            let fillColor = RGBAColor(color: properties.fillColor) else {
-        return nil
-      }
-
-      self.strokeColor = strokeColor
-      self.fillColor = fillColor
-      strokeWidth = properties.strokeWidth
-      cornerRadius = properties.cornerRadius
-      fontSize = properties.fontSize
-      fontName = properties.fontName
-      spotlightOpacity = properties.spotlightOpacity
-    }
-
-    var annotationProperties: AnnotationProperties {
-      AnnotationProperties(
-        strokeColor: strokeColor.color,
-        fillColor: fillColor.color,
-        strokeWidth: strokeWidth,
-        cornerRadius: cornerRadius,
-        fontSize: fontSize,
-        fontName: fontName,
-        spotlightOpacity: spotlightOpacity ?? 0.5
-      )
-    }
-  }
-
-  private static let canvasPresetLimit: Int = 20
-  private let canvasPresetStore: AnnotateCanvasPresetStore
   private let defaults: UserDefaults
-  private let appliesDefaultCanvasPresetOnNewImages: Bool
-  private var suppressCanvasEffectChangeTracking = false
 
   // MARK: - Source Image
 
   @Published var sourceImage: NSImage?
-
-  /// Whether an image is loaded
-  var hasImage: Bool {
-    sourceImage != nil
-  }
-
-  private var isQuickPropertiesSyncEnabled: Bool {
-    true
-  }
 
   // MARK: - Tool State
 
@@ -99,7 +49,6 @@ final class AnnotateState: ObservableObject {
 
   @Published var strokeWidth: CGFloat = 3
   @Published var strokeColor: Color = .red
-  @Published var fillColor: Color = .clear
   @Published var rectangleCornerRadius: CGFloat = 0
   @Published var blurType: BlurType = .pixelated
   @Published var arrowStyle: ArrowStyle = .straight
@@ -107,14 +56,8 @@ final class AnnotateState: ObservableObject {
   @Published var arrowBendDirection: ArrowBendDirection = .primary
   @Published var arrowStartHead: ArrowEndpointStyle = .none
   @Published var arrowEndHead: ArrowEndpointStyle = .arrow
-  @Published var spotlightOpacity: CGFloat = 0.5
-  @Published private var annotationToolProperties: [AnnotationToolType: AnnotationProperties] = [:]
   private var isQuickPropertiesGestureEditing = false
   private var quickPropertiesGestureUndoSnapshot: AnnotationSnapshot?
-  // Sidebar property slider drags (e.g. text font size) coalesce undo into one
-  // checkpoint per gesture instead of one snapshot per tick (see issue #335).
-  private var isPropertySliderGestureEditing = false
-  private var propertySliderGestureUndoSnapshot: AnnotationSnapshot?
   private var sharedAnnotationColor: Color?
   private var sharedAnnotationParameterDefaults = SharedAnnotationParameterDefaults()
   /// New text starts as a natural-width line. Resizing it switches that item
@@ -149,11 +92,6 @@ final class AnnotateState: ObservableObject {
 
   var effectiveZoomRange: ClosedRange<CGFloat> {
     Self.minimumZoomLevel ... effectiveMaximumZoomLevel
-  }
-
-  var actualPixelZoomLevel: CGFloat {
-    guard fitScale > 0 else { return 1.0 }
-    return clampedZoom(1.0 / fitScale)
   }
 
   var currentDisplayedZoomPercent: Int {
@@ -320,488 +258,7 @@ final class AnnotateState: ObservableObject {
     )
   }
 
-  // MARK: - Background Settings
-
-  @Published var backgroundStyle: BackgroundStyle = .none {
-    didSet {
-      if backgroundStyle.supportsBlurredBackgroundEffect == false, isBlurredBackgroundEnabled {
-        isBlurredBackgroundEnabled = false
-      }
-      handleCanvasEffectDidChange()
-    }
-  }
-
-  @Published var isBlurredBackgroundEnabled: Bool = false {
-    didSet {
-      handleCanvasEffectDidChange()
-    }
-  }
-
-  @Published var blurredBackgroundEffect: BlurredBackgroundEffect = .soft {
-    didSet {
-      handleCanvasEffectDidChange()
-    }
-  }
-
-  var isBlurredBackgroundEffectActive: Bool {
-    backgroundStyle.supportsBlurredBackgroundEffect && isBlurredBackgroundEnabled
-  }
-
-  @Published var padding: CGFloat = 0 {
-    didSet {
-      handleCanvasEffectDidChange()
-    }
-  }
-
-  @Published var inset: CGFloat = 0
-  @Published var autoBalance: Bool = true
-  @Published var shadowIntensity: CGFloat = 0.3 {
-    didSet {
-      handleCanvasEffectDidChange()
-    }
-  }
-
-  @Published var cornerRadius: CGFloat = AnnotateCanvasDefaults.cornerRadius {
-    didSet {
-      handleCanvasEffectDidChange()
-    }
-  }
-
-  @Published var imageAlignment: ImageAlignment = .center {
-    didSet {
-      handleCanvasEffectDidChange()
-    }
-  }
-
-  @Published var aspectRatio: AspectRatioOption = .auto {
-    didSet {
-      handleCanvasEffectDidChange()
-    }
-  }
-
-  @Published var aspectRatioOrientation: AspectRatioOrientation = .horizontal {
-    didSet {
-      handleCanvasEffectDidChange()
-    }
-  }
-
-  @Published private(set) var canvasPresets: [AnnotateCanvasPreset] = []
-  @Published var selectedCanvasPresetId: UUID?
-  @Published private(set) var isSelectedCanvasPresetDirty: Bool = false
-  @Published private(set) var defaultCanvasPresetId: UUID?
-  @Published private(set) var isDefaultCanvasPresetAutoApplied = false
-
-  enum CanvasPresetMutationResult {
-    case success
-    case invalidName
-    case limitReached
-    case unavailablePayload
-    case missingSelection
-  }
-
-  var selectedCanvasPreset: AnnotateCanvasPreset? {
-    guard let selectedCanvasPresetId else { return nil }
-    return canvasPresets.first(where: { $0.id == selectedCanvasPresetId })
-  }
-
-  var defaultCanvasPreset: AnnotateCanvasPreset? {
-    guard let defaultCanvasPresetId else { return nil }
-    return canvasPresets.first(where: { $0.id == defaultCanvasPresetId })
-  }
-
-  var canUpdateSelectedCanvasPreset: Bool {
-    selectedCanvasPresetId != nil && isSelectedCanvasPresetDirty
-  }
-
-  var canDeleteSelectedCanvasPreset: Bool {
-    selectedCanvasPresetId != nil
-  }
-
-  var isCanvasPresetLimitReached: Bool {
-    canvasPresets.count >= Self.canvasPresetLimit
-  }
-
-  var requiresRenderedOutputForSharing: Bool {
-    hasUnsavedChanges || isDefaultCanvasPresetAutoApplied
-  }
-
-  var nextSuggestedCanvasPresetName: String {
-    "Preset \(canvasPresets.count + 1)"
-  }
-
-  var isNoneCanvasEffectsActive: Bool {
-    backgroundStyle == .none
-      && abs(padding) <= 0.0001
-      && abs(shadowIntensity) <= 0.0001
-      && abs(cornerRadius) <= 0.0001
-      && aspectRatio == .auto
-  }
-
-  var canvasEffectsSnapshot: AnnotationCanvasEffects {
-    AnnotationCanvasEffects(
-      backgroundStyle: backgroundStyle,
-      isBlurredBackgroundEnabled: isBlurredBackgroundEnabled,
-      blurredBackgroundEffect: blurredBackgroundEffect,
-      padding: padding,
-      inset: inset,
-      autoBalance: autoBalance,
-      shadowIntensity: shadowIntensity,
-      cornerRadius: cornerRadius,
-      imageAlignment: imageAlignment,
-      aspectRatio: aspectRatio,
-      aspectRatioOrientation: aspectRatioOrientation
-    )
-  }
-
-  func applyCanvasEffects(
-    _ effects: AnnotationCanvasEffects,
-    preferredSelectedCanvasPresetId: UUID? = nil,
-    preferredPresetDirtyState: Bool? = nil
-  ) {
-    withCanvasEffectChangeTrackingSuspended {
-      backgroundStyle = effects.backgroundStyle
-      isBlurredBackgroundEnabled = effects.isBlurredBackgroundEnabled && effects.backgroundStyle
-        .supportsBlurredBackgroundEffect
-      blurredBackgroundEffect = effects.blurredBackgroundEffect
-      padding = effects.padding
-      inset = effects.inset
-      autoBalance = effects.autoBalance
-      shadowIntensity = effects.shadowIntensity
-      cornerRadius = effects.cornerRadius
-      imageAlignment = effects.imageAlignment
-      aspectRatio = effects.aspectRatio
-      aspectRatioOrientation = effects.aspectRatioOrientation
-    }
-
-    restoreCanvasPresetSelection(
-      preferredSelectedCanvasPresetId: preferredSelectedCanvasPresetId,
-      preferredPresetDirtyState: preferredPresetDirtyState
-    )
-    isDefaultCanvasPresetAutoApplied = false
-
-    previewPadding = nil
-    previewInset = nil
-    previewShadowIntensity = nil
-    previewCornerRadius = nil
-  }
-
-  func loadCanvasPresets() {
-    canvasPresets = canvasPresetStore.loadPresets()
-    defaultCanvasPresetId = canvasPresetStore.loadDefaultPresetId(validating: canvasPresets)
-    if let selectedCanvasPresetId,
-       canvasPresets.contains(where: { $0.id == selectedCanvasPresetId }) == false {
-      self.selectedCanvasPresetId = nil
-    }
-    recomputeCanvasPresetDirtyState()
-  }
-
-  func isDefaultCanvasPreset(_ preset: AnnotateCanvasPreset) -> Bool {
-    defaultCanvasPresetId == preset.id
-  }
-
-  func toggleDefaultCanvasPreset(id: UUID) {
-    if defaultCanvasPresetId == id {
-      clearDefaultCanvasPreset()
-    } else {
-      setDefaultCanvasPreset(id: id)
-    }
-  }
-
-  func setDefaultCanvasPreset(id: UUID) {
-    guard canvasPresets.contains(where: { $0.id == id }) else { return }
-    defaultCanvasPresetId = id
-    canvasPresetStore.saveDefaultPresetId(id)
-  }
-
-  func clearDefaultCanvasPreset() {
-    defaultCanvasPresetId = nil
-    canvasPresetStore.clearDefaultPresetId()
-  }
-
-  func resetCanvasEffectsToNone() {
-    let beforePayload = currentCanvasPresetPayload()
-    withCanvasEffectChangeTrackingSuspended {
-      backgroundStyle = .none
-      isBlurredBackgroundEnabled = false
-      blurredBackgroundEffect = .soft
-      padding = 0
-      shadowIntensity = 0
-      cornerRadius = 0
-      aspectRatio = .auto
-      aspectRatioOrientation = .horizontal
-      previewPadding = nil
-      previewShadowIntensity = nil
-      previewCornerRadius = nil
-    }
-    selectedCanvasPresetId = nil
-    isSelectedCanvasPresetDirty = false
-    isDefaultCanvasPresetAutoApplied = false
-
-    if let beforePayload,
-       let afterPayload = currentCanvasPresetPayload(),
-       beforePayload.approximatelyEquals(afterPayload) == false {
-      hasUnsavedChanges = true
-    }
-  }
-
-  func applyCanvasPreset(_ preset: AnnotateCanvasPreset, marksUnsaved: Bool = true) {
-    let beforePayload = currentCanvasPresetPayload()
-    withCanvasEffectChangeTrackingSuspended {
-      let presetBackgroundStyle = preset.payload.backgroundStyle.toBackgroundStyle()
-      backgroundStyle = presetBackgroundStyle
-      isBlurredBackgroundEnabled = preset.payload.isBlurredBackgroundEnabled &&
-        presetBackgroundStyle.supportsBlurredBackgroundEffect
-      blurredBackgroundEffect = preset.payload.blurredBackgroundEffect
-      padding = preset.payload.padding
-      shadowIntensity = preset.payload.shadowIntensity
-      cornerRadius = preset.payload.cornerRadius
-      aspectRatio = preset.payload.aspectRatio
-      aspectRatioOrientation = preset.payload.aspectRatioOrientation
-      previewPadding = nil
-      previewShadowIntensity = nil
-      previewCornerRadius = nil
-    }
-    selectedCanvasPresetId = preset.id
-    isSelectedCanvasPresetDirty = false
-
-    let afterPayload = currentCanvasPresetPayload()
-    let didChange: Bool = if let beforePayload, let afterPayload {
-      beforePayload.approximatelyEquals(afterPayload) == false
-    } else {
-      beforePayload != nil || afterPayload != nil
-    }
-
-    if marksUnsaved, didChange {
-      isDefaultCanvasPresetAutoApplied = false
-    } else if !marksUnsaved {
-      isDefaultCanvasPresetAutoApplied = didChange
-    }
-
-    if marksUnsaved, didChange {
-      hasUnsavedChanges = true
-    }
-  }
-
-  @discardableResult
-  func saveCurrentCanvasAsPreset(name: String) -> CanvasPresetMutationResult {
-    let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard trimmedName.isEmpty == false else {
-      return .invalidName
-    }
-
-    guard canvasPresets.count < Self.canvasPresetLimit else {
-      return .limitReached
-    }
-
-    guard let payload = currentCanvasPresetPayload() else {
-      return .unavailablePayload
-    }
-
-    let uniqueName = uniqueCanvasPresetName(from: trimmedName)
-    let preset = AnnotateCanvasPreset(name: uniqueName, payload: payload)
-    canvasPresets.insert(preset, at: 0)
-    selectedCanvasPresetId = preset.id
-    isSelectedCanvasPresetDirty = false
-    persistCanvasPresets()
-    return .success
-  }
-
-  @discardableResult
-  func updateSelectedCanvasPreset() -> CanvasPresetMutationResult {
-    guard let selectedCanvasPresetId,
-          let index = canvasPresets.firstIndex(where: { $0.id == selectedCanvasPresetId }) else {
-      return .missingSelection
-    }
-
-    guard let payload = currentCanvasPresetPayload() else {
-      return .unavailablePayload
-    }
-
-    var updatedPreset = canvasPresets[index]
-    updatedPreset.payload = payload
-    updatedPreset.updatedAt = Date()
-    canvasPresets.remove(at: index)
-    canvasPresets.insert(updatedPreset, at: 0)
-    self.selectedCanvasPresetId = updatedPreset.id
-    isSelectedCanvasPresetDirty = false
-    persistCanvasPresets()
-    return .success
-  }
-
-  @discardableResult
-  func deleteSelectedCanvasPreset() -> Bool {
-    guard let selectedCanvasPresetId else {
-      return false
-    }
-    return deleteCanvasPreset(id: selectedCanvasPresetId)
-  }
-
-  @discardableResult
-  func deleteCanvasPreset(id: UUID) -> Bool {
-    let isDeletingSelectedPreset = selectedCanvasPresetId == id
-
-    let countBefore = canvasPresets.count
-    canvasPresets.removeAll(where: { $0.id == id })
-    guard canvasPresets.count != countBefore else {
-      return false
-    }
-
-    if isDeletingSelectedPreset {
-      selectedCanvasPresetId = nil
-      isSelectedCanvasPresetDirty = false
-    } else {
-      recomputeCanvasPresetDirtyState()
-    }
-
-    if defaultCanvasPresetId == id {
-      clearDefaultCanvasPreset()
-    }
-
-    persistCanvasPresets()
-    return true
-  }
-
-  func recomputeCanvasPresetDirtyState() {
-    guard let selectedPreset = selectedCanvasPreset else {
-      isSelectedCanvasPresetDirty = false
-      return
-    }
-
-    guard let currentPayload = currentCanvasPresetPayload() else {
-      isSelectedCanvasPresetDirty = true
-      return
-    }
-
-    isSelectedCanvasPresetDirty = currentPayload.approximatelyEquals(selectedPreset.payload) == false
-  }
-
-  private func handleCanvasEffectDidChange() {
-    recomputeCanvasPresetDirtyState()
-    guard !suppressCanvasEffectChangeTracking else { return }
-    isDefaultCanvasPresetAutoApplied = false
-    hasUnsavedChanges = true
-  }
-
-  private func withCanvasEffectChangeTrackingSuspended(_ operation: () -> Void) {
-    suppressCanvasEffectChangeTracking = true
-    operation()
-    suppressCanvasEffectChangeTracking = false
-    recomputeCanvasPresetDirtyState()
-  }
-
-  private func currentCanvasPresetPayload() -> AnnotateCanvasPresetPayload? {
-    guard let codableStyle = CodableBackgroundStyle(from: backgroundStyle) else {
-      return nil
-    }
-
-    return AnnotateCanvasPresetPayload(
-      backgroundStyle: codableStyle,
-      isBlurredBackgroundEnabled: isBlurredBackgroundEffectActive,
-      blurredBackgroundEffect: blurredBackgroundEffect,
-      padding: padding,
-      shadowIntensity: shadowIntensity,
-      cornerRadius: cornerRadius,
-      aspectRatio: aspectRatio,
-      aspectRatioOrientation: aspectRatioOrientation
-    )
-  }
-
-  private func restoreCanvasPresetSelection(
-    preferredSelectedCanvasPresetId: UUID?,
-    preferredPresetDirtyState: Bool?
-  ) {
-    if let preferredSelectedCanvasPresetId,
-       canvasPresets.contains(where: { $0.id == preferredSelectedCanvasPresetId }) {
-      selectedCanvasPresetId = preferredSelectedCanvasPresetId
-      if let preferredPresetDirtyState {
-        isSelectedCanvasPresetDirty = preferredPresetDirtyState
-      } else {
-        recomputeCanvasPresetDirtyState()
-      }
-      return
-    }
-
-    guard let currentPayload = currentCanvasPresetPayload(),
-          let matchingPreset = canvasPresets.first(where: { $0.payload.approximatelyEquals(currentPayload) }) else {
-      selectedCanvasPresetId = nil
-      isSelectedCanvasPresetDirty = false
-      return
-    }
-
-    selectedCanvasPresetId = matchingPreset.id
-    isSelectedCanvasPresetDirty = false
-  }
-
-  private func uniqueCanvasPresetName(
-    from baseName: String,
-    excludingId: UUID? = nil
-  ) -> String {
-    let normalizedBaseName = baseName.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard normalizedBaseName.isEmpty == false else {
-      return nextSuggestedCanvasPresetName
-    }
-
-    let existingNames = Set(
-      canvasPresets
-        .filter { preset in
-          guard let excludingId else { return true }
-          return preset.id != excludingId
-        }
-        .map { $0.name.lowercased() }
-    )
-
-    if existingNames.contains(normalizedBaseName.lowercased()) == false {
-      return normalizedBaseName
-    }
-
-    var suffix = 2
-    while suffix < 1_000 {
-      let candidate = "\(normalizedBaseName) \(suffix)"
-      if existingNames.contains(candidate.lowercased()) == false {
-        return candidate
-      }
-      suffix += 1
-    }
-
-    return "\(normalizedBaseName) \(UUID().uuidString.prefix(4))"
-  }
-
-  private func persistCanvasPresets() {
-    canvasPresetStore.savePresets(canvasPresets)
-  }
-
-  private func applyDefaultCanvasPresetForNewImageIfNeeded() {
-    guard appliesDefaultCanvasPresetOnNewImages,
-          let defaultCanvasPreset else { return }
-    applyCanvasPreset(defaultCanvasPreset, marksUnsaved: false)
-  }
-
-  // MARK: - Preview Values (for smooth slider dragging)
-
-  /// Preview values during slider drag - nil when not dragging
-  @Published var previewPadding: CGFloat?
-  @Published var previewInset: CGFloat?
-  @Published var previewShadowIntensity: CGFloat?
-  @Published var previewCornerRadius: CGFloat?
-
-  /// Effective values for canvas rendering (preview overrides actual during drag)
-  var effectivePadding: CGFloat {
-    previewPadding ?? padding
-  }
-
-  var effectiveInset: CGFloat {
-    previewInset ?? inset
-  }
-
-  var effectiveShadowIntensity: CGFloat {
-    previewShadowIntensity ?? shadowIntensity
-  }
-
-  var effectiveCornerRadius: CGFloat {
-    previewCornerRadius ?? cornerRadius
-  }
-
-  // MARK: - Display Metrics (for inset padding layout)
+  // MARK: - Display Metrics
 
   /// Default canvas size when no image loaded
   private static let defaultCanvasWidth: CGFloat = 400
@@ -816,82 +273,12 @@ final class AnnotateState: ObservableObject {
     sourceImage?.size.height ?? Self.defaultCanvasHeight
   }
 
-  var imageAspectRatio: CGFloat {
-    imageWidth / imageHeight
-  }
-
   var sourceImageBounds: CGRect {
     CGRect(origin: .zero, size: CGSize(width: imageWidth, height: imageHeight))
   }
 
   var activeAnnotationBounds: CGRect {
     sourceImageBounds
-  }
-
-  /// Calculate display scale for given container size
-  /// Image shrinks to fit within (container - padding*2)
-  func displayScale(for containerSize: CGSize, margin: CGFloat = 40) -> CGFloat {
-    let availableWidth = containerSize.width - margin * 2
-    let availableHeight = containerSize.height - margin * 2
-
-    // Available space for image after padding
-    let imageAreaWidth = max(availableWidth - padding * 2, 1)
-    let imageAreaHeight = max(availableHeight - padding * 2, 1)
-
-    let scaleX = imageAreaWidth / imageWidth
-    let scaleY = imageAreaHeight / imageHeight
-
-    return min(scaleX, scaleY, 1.0) // Don't scale up
-  }
-
-  /// Calculate image offset within container based on alignment
-  /// Note: ZStack centers children, so offset is relative to center (not top-left)
-  /// - containerSize: The background size (already scaled)
-  /// - imageDisplaySize: The image size (already scaled)
-  /// - displayPadding: The padding in display coordinates (already scaled) - unused for seamless alignment
-  func imageOffset(for containerSize: CGSize, imageDisplaySize: CGSize, displayPadding _: CGFloat) -> CGPoint {
-    // For SEAMLESS edge alignment: use total extra space (container - image)
-    // This moves image to touch the background edge with NO gap
-    let totalExtraWidth = containerSize.width - imageDisplaySize.width
-    let totalExtraHeight = containerSize.height - imageDisplaySize.height
-
-    // In ZStack, children are centered. Offset is relative to center.
-    // For center: offset = 0
-    // For edges: offset = +/- totalExtraSpace/2 (moves image to touch edge)
-    let xOffset: CGFloat
-    let yOffset: CGFloat
-
-    switch imageAlignment {
-    case .center:
-      xOffset = 0
-      yOffset = 0
-    case .topLeft:
-      xOffset = -totalExtraWidth / 2
-      yOffset = -totalExtraHeight / 2 // Negative Y = move up toward top
-    case .top:
-      xOffset = 0
-      yOffset = -totalExtraHeight / 2
-    case .topRight:
-      xOffset = totalExtraWidth / 2
-      yOffset = -totalExtraHeight / 2
-    case .left:
-      xOffset = -totalExtraWidth / 2
-      yOffset = 0
-    case .right:
-      xOffset = totalExtraWidth / 2
-      yOffset = 0
-    case .bottomLeft:
-      xOffset = -totalExtraWidth / 2
-      yOffset = totalExtraHeight / 2 // Positive Y = move down toward bottom
-    case .bottom:
-      xOffset = 0
-      yOffset = totalExtraHeight / 2
-    case .bottomRight:
-      xOffset = totalExtraWidth / 2
-      yOffset = totalExtraHeight / 2
-    }
-
-    return CGPoint(x: xOffset, y: yOffset)
   }
 
   // MARK: - Annotations
@@ -959,19 +346,11 @@ final class AnnotateState: ObservableObject {
   private var redoStack: [AnnotationSnapshot] = []
   private var textEditingUndoTransaction: TextEditingUndoTransaction?
 
-  init(
-    defaults: UserDefaults = .standard,
-    canvasPresetStore: AnnotateCanvasPresetStore? = nil,
-    appliesDefaultCanvasPresetOnNewImages: Bool = true
-  ) {
+  init(defaults: UserDefaults = .standard) {
     self.defaults = defaults
-    self.canvasPresetStore = canvasPresetStore ?? AnnotateCanvasPresetStore.shared
-    self.appliesDefaultCanvasPresetOnNewImages = appliesDefaultCanvasPresetOnNewImages
     sourceImage = nil
     loadSharedAnnotationColor()
     loadSharedAnnotationParameterDefaults()
-    loadAnnotationToolProperties()
-    loadCanvasPresets()
   }
 
   // MARK: - Image Loading
@@ -997,24 +376,10 @@ final class AnnotateState: ObservableObject {
   /// off the main actor.
   func makeRenderSnapshot() -> AnnotateRenderSnapshot? {
     guard let sourceImage else { return nil }
-
-    return AnnotateRenderSnapshot(
-      sourceImage: sourceImage,
-      annotations: annotations,
-      backgroundStyle: backgroundStyle,
-      isBlurredBackgroundEffectActive: isBlurredBackgroundEffectActive,
-      blurredBackgroundEffect: blurredBackgroundEffect,
-      padding: padding,
-      cornerRadius: cornerRadius,
-      shadowIntensity: shadowIntensity,
-      imageAlignment: imageAlignment,
-      aspectRatio: aspectRatio,
-      aspectRatioOrientation: aspectRatioOrientation
-    )
+    return AnnotateRenderSnapshot(sourceImage: sourceImage, annotations: annotations)
   }
 
   private func resetCanvasForNewBaseImage(image: NSImage) {
-    let shouldApplyDefaultPreset = !hasImage
     sourceImage = image
     // Reset annotations for new image
     annotations.removeAll()
@@ -1026,55 +391,6 @@ final class AnnotateState: ObservableObject {
     canRedo = false
 
     hasUnsavedChanges = false
-    isDefaultCanvasPresetAutoApplied = false
-
-    if shouldApplyDefaultPreset {
-      applyDefaultCanvasPresetForNewImageIfNeeded()
-    }
-  }
-
-  /// Load image and adjust size for Retina displays
-  static func loadImageWithCorrectScale(from url: URL) -> NSImage? {
-    guard let image = SandboxFileAccessManager.shared.withScopedAccess(to: url, {
-      NSImage(contentsOf: url)
-    }) else { return nil }
-
-    let scaleFactor = NSScreen.main?.backingScaleFactor ?? 2.0
-    if let normalizedSize = normalizedRetinaLogicalSizeIfNeeded(for: image, scaleFactor: scaleFactor) {
-      image.size = normalizedSize
-    }
-
-    return image
-  }
-
-  private static func normalizedRetinaLogicalSizeIfNeeded(
-    for image: NSImage,
-    scaleFactor: CGFloat
-  ) -> NSSize? {
-    guard scaleFactor > 1 else { return nil }
-    guard let rep = image.representations.first, rep.pixelsWide > 0, rep.pixelsHigh > 0 else {
-      return nil
-    }
-
-    let pixelWidth = CGFloat(rep.pixelsWide)
-    let pixelHeight = CGFloat(rep.pixelsHigh)
-    let currentSize = image.size
-    let expectedSize = NSSize(
-      width: pixelWidth / scaleFactor,
-      height: pixelHeight / scaleFactor
-    )
-
-    let isAlreadyScaled =
-      abs(currentSize.width - expectedSize.width) < 0.5 &&
-      abs(currentSize.height - expectedSize.height) < 0.5
-    if isAlreadyScaled {
-      return nil
-    }
-
-    let isUnscaledLogicalSize =
-      abs(currentSize.width - pixelWidth) < 0.5 &&
-      abs(currentSize.height - pixelHeight) < 0.5
-    return isUnscaledLogicalSize ? expectedSize : nil
   }
 
   // MARK: - Undo/Redo Methods
@@ -1204,7 +520,6 @@ final class AnnotateState: ObservableObject {
   /// Reset unsaved changes flag after successful save
   func markAsSaved() {
     hasUnsavedChanges = false
-    isDefaultCanvasPresetAutoApplied = false
   }
 
   // MARK: - Annotation Selection
@@ -1337,18 +652,6 @@ final class AnnotateState: ObservableObject {
       annotations[index].type = .text(text)
     }
     annotations[index].bounds = newBounds
-    if annotations[index].properties.textPresentation == .callout,
-       let tailTarget = annotations[index].properties.calloutTailTarget,
-       TextBubbleGeometry.isDefaultTail(
-         tailTarget,
-         for: currentBounds,
-         fontSize: annotations[index].properties.fontSize
-       ) {
-      annotations[index].properties.calloutTailTarget = defaultCalloutTailTarget(
-        for: newBounds,
-        fontSize: annotations[index].properties.fontSize
-      )
-    }
     hasUnsavedChanges = true
   }
 
@@ -1426,35 +729,21 @@ final class AnnotateState: ObservableObject {
     strokeWidth: CGFloat? = nil,
     fontSize: CGFloat? = nil,
     strokeColor: Color? = nil,
-    fillColor: Color? = nil,
     cornerRadius: CGFloat? = nil,
-    spotlightOpacity: CGFloat? = nil,
     recordsUndo: Bool = false
   ) {
     guard let index = annotations.firstIndex(where: { $0.id == id }) else { return }
-    let colorUpdate = normalizedColorUpdate(
-      for: annotations[index],
-      strokeColor: strokeColor,
-      fillColor: fillColor
-    )
 
     guard annotationPropertiesWillChange(
       annotations[index],
       strokeWidth: strokeWidth,
       fontSize: fontSize,
-      strokeColor: colorUpdate.strokeColor,
-      fillColor: colorUpdate.fillColor,
-      cornerRadius: cornerRadius,
-      spotlightOpacity: spotlightOpacity
+      strokeColor: strokeColor,
+      cornerRadius: cornerRadius
     ) else { return }
 
     if recordsUndo {
-      if let snapshot = propertySliderGestureUndoSnapshot {
-        pushUndoSnapshot(snapshot, annotationCount: snapshot.annotations.count)
-        propertySliderGestureUndoSnapshot = nil
-      } else if !isPropertySliderGestureEditing {
-        saveState()
-      }
+      saveState()
     }
 
     let oldSelectionBounds = annotations[index].selectionBounds
@@ -1483,55 +772,14 @@ final class AnnotateState: ObservableObject {
         )
       }
     }
-    if let strokeColor = colorUpdate.strokeColor {
+    if let strokeColor {
       annotations[index].properties.strokeColor = strokeColor
-    }
-    if let fillColor = colorUpdate.fillColor {
-      annotations[index].properties.fillColor = fillColor
     }
     if let cornerRadius {
       annotations[index].properties.cornerRadius = max(0, cornerRadius)
     }
-    if let spotlightOpacity {
-      annotations[index].properties.spotlightOpacity = AnnotationProperties.clampedSpotlightOpacity(spotlightOpacity)
-    }
-
-    // Spotlight dimming paints the full canvas — its opacity edits need a full
-    // redraw; everything else is scoped to the edited annotation's bounds.
-    if spotlightOpacity != nil {
-      pendingFullCanvasInvalidation = true
-    } else {
-      pendingPropertyEditRects.append(oldSelectionBounds.union(annotations[index].selectionBounds))
-    }
+    pendingPropertyEditRects.append(oldSelectionBounds.union(annotations[index].selectionBounds))
     hasUnsavedChanges = true
-  }
-
-  func updateAnnotationPrimaryColor(
-    id: UUID,
-    color: Color,
-    recordsUndo: Bool = false
-  ) {
-    updateAnnotationProperties(
-      id: id,
-      strokeColor: color,
-      recordsUndo: recordsUndo
-    )
-    if isQuickPropertiesSyncEnabled {
-      rememberSharedAnnotationColor(color)
-    }
-  }
-
-  private func normalizedColorUpdate(
-    for annotation: AnnotationItem,
-    strokeColor: Color?,
-    fillColor: Color?
-  ) -> (strokeColor: Color?, fillColor: Color?) {
-    if case .filledRectangle = annotation.type,
-       let color = strokeColor ?? fillColor {
-      return (color, color)
-    }
-
-    return (strokeColor, fillColor)
   }
 
   private func annotationPropertiesWillChange(
@@ -1539,16 +787,9 @@ final class AnnotateState: ObservableObject {
     strokeWidth: CGFloat? = nil,
     fontSize: CGFloat? = nil,
     strokeColor: Color? = nil,
-    fillColor: Color? = nil,
-    cornerRadius: CGFloat? = nil,
-    spotlightOpacity: CGFloat? = nil
+    cornerRadius: CGFloat? = nil
   ) -> Bool {
     let properties = annotation.properties
-    let colorUpdate = normalizedColorUpdate(
-      for: annotation,
-      strokeColor: strokeColor,
-      fillColor: fillColor
-    )
 
     if let strokeWidth,
        properties.strokeWidth != AnnotationProperties.clampedControlValue(strokeWidth) {
@@ -1558,20 +799,12 @@ final class AnnotateState: ObservableObject {
        properties.fontSize != fontSize {
       return true
     }
-    if let strokeColor = colorUpdate.strokeColor,
+    if let strokeColor,
        properties.strokeColor != strokeColor {
-      return true
-    }
-    if let fillColor = colorUpdate.fillColor,
-       properties.fillColor != fillColor {
       return true
     }
     if let cornerRadius,
        properties.cornerRadius != max(0, cornerRadius) {
-      return true
-    }
-    if let spotlightOpacity,
-       properties.spotlightOpacity != AnnotationProperties.clampedSpotlightOpacity(spotlightOpacity) {
       return true
     }
     return false
@@ -1588,18 +821,15 @@ final class AnnotateState: ObservableObject {
     text: String,
     fontSize: CGFloat,
     origin: CGPoint,
-    fontName: String? = nil,
     constrainedWidth: CGFloat? = nil,
-    maximumHeight: CGFloat = AnnotateTextLayout.maxHeight,
-    presentation: TextPresentation = .plain
+    maximumHeight: CGFloat = AnnotateTextLayout.maxHeight
   ) -> CGRect {
     AnnotateTextLayout.bounds(
       text: text,
-      font: AnnotateTextLayout.font(size: fontSize, fontName: fontName),
+      font: AnnotateTextLayout.font(size: fontSize),
       origin: origin,
       constrainedWidth: constrainedWidth,
-      maximumHeight: maximumHeight,
-      presentation: presentation
+      maximumHeight: maximumHeight
     )
   }
 
@@ -1609,21 +839,20 @@ final class AnnotateState: ObservableObject {
     properties: AnnotationProperties,
     currentBounds: CGRect
   ) -> CGRect {
-    let font = AnnotateTextLayout.font(size: properties.fontSize, fontName: properties.fontName)
+    let font = AnnotateTextLayout.font(size: properties.fontSize)
     let annotationBounds = activeAnnotationBounds.standardized
     let topY = currentBounds.maxY
     let availableWidth = max(annotationBounds.maxX - currentBounds.minX, AnnotateTextLayout.minWidth)
     let availableHeight = max(
       topY - annotationBounds.minY,
-      AnnotateTextLayout.minimumHeight(for: font, presentation: properties.textPresentation)
+      AnnotateTextLayout.minimumHeight(for: font)
     )
     let targetWidth: CGFloat = if autoSizingTextAnnotationIDs.contains(id) {
       AnnotateTextLayout.preferredAutoWidth(
         text: text,
         font: font,
         minimumWidth: AnnotateTextLayout.minWidth,
-        maximumWidth: availableWidth,
-        presentation: properties.textPresentation
+        maximumWidth: availableWidth
       )
     } else {
       AnnotateTextLayout.clampedWidth(
@@ -1636,37 +865,11 @@ final class AnnotateState: ObservableObject {
       text: text,
       fontSize: properties.fontSize,
       origin: currentBounds.origin,
-      fontName: properties.fontName,
       constrainedWidth: targetWidth,
-      maximumHeight: availableHeight,
-      presentation: properties.textPresentation
+      maximumHeight: availableHeight
     )
     bounds.origin.y = topY - bounds.height
     return bounds
-  }
-
-  /// Get selected annotation if it's a text type
-  var selectedTextAnnotation: AnnotationItem? {
-    guard let annotation = selectedAnnotation,
-          case .text = annotation.type else {
-      return nil
-    }
-    return annotation
-  }
-
-  /// Get selected annotation (any type)
-  var selectedAnnotation: AnnotationItem? {
-    guard selectedAnnotationIds.count == 1,
-          let id = selectedAnnotationIds.first else { return nil }
-    return annotations.first { $0.id == id }
-  }
-
-  var selectedArrowAnnotation: AnnotationItem? {
-    guard let annotation = selectedAnnotation,
-          case .arrow = annotation.type else {
-      return nil
-    }
-    return annotation
   }
 
   private var selectedArrowAnnotations: [AnnotationItem] {
@@ -1854,7 +1057,11 @@ final class AnnotateState: ObservableObject {
 
     sharedAnnotationColor = color
     defaults.set(data, forKey: PreferencesKeys.annotatePrimaryColor)
-    applySharedAnnotationColorToToolDefaults(color)
+    if selectedTool.supportsQuickPropertiesBar {
+      syncActiveToolProperties()
+    } else {
+      strokeColor = color
+    }
   }
 
   private func loadSharedAnnotationParameterDefaults() {
@@ -1907,157 +1114,39 @@ final class AnnotateState: ObservableObject {
     )
   }
 
-  private func loadAnnotationToolProperties() {
-    guard let data = defaults.data(forKey: PreferencesKeys.annotateToolParameterDefaults),
-          let decoded = try? JSONDecoder().decode([String: PersistedAnnotationProperties].self, from: data)
-    else { return }
-
-    annotationToolProperties = decoded.reduce(into: [:]) { result, entry in
-      guard let tool = AnnotationToolType(rawValue: entry.key) else { return }
-      result[tool] = sanitizedAnnotationProperties(entry.value.annotationProperties, for: tool)
-    }
-  }
-
-  private func persistAnnotationToolProperties() {
-    let payload = annotationToolProperties.reduce(into: [String: PersistedAnnotationProperties]()) { result, entry in
-      guard let persisted = PersistedAnnotationProperties(entry.value) else { return }
-      result[entry.key.rawValue] = persisted
-    }
-
-    guard let data = try? JSONEncoder().encode(payload) else { return }
-    defaults.set(data, forKey: PreferencesKeys.annotateToolParameterDefaults)
-  }
-
-  private func sanitizedAnnotationProperties(
-    _ properties: AnnotationProperties,
-    for tool: AnnotationToolType
-  ) -> AnnotationProperties {
-    var sanitized = properties
-    sanitized.strokeWidth = AnnotationProperties.clampedControlValue(properties.strokeWidth)
-    sanitized.cornerRadius = max(0, properties.cornerRadius)
-    sanitized.fontSize = min(max(properties.fontSize, 12), 72)
-    sanitized.spotlightOpacity = AnnotationProperties.clampedSpotlightOpacity(properties.spotlightOpacity)
-    if tool == .filledRectangle {
-      sanitized.fillColor = sanitized.strokeColor
-    }
-    return sanitized
-  }
-
   private func rememberSharedAnnotationStrokeWidth(_ strokeWidth: CGFloat) {
     let clampedWidth = AnnotationProperties.clampedControlValue(strokeWidth)
     sharedAnnotationParameterDefaults.strokeWidth = clampedWidth
     persistSharedAnnotationParameterDefaults()
-
-    for tool in AnnotationToolType.allCases where tool.supportsQuickStrokeWidth {
-      updateDefaultAnnotationProperties(for: tool, strokeWidth: clampedWidth)
-    }
-
-    if !selectedTool.supportsQuickPropertiesBar {
-      self.strokeWidth = clampedWidth
-    }
+    syncActiveToolProperties()
   }
 
   private func rememberSharedAnnotationCornerRadius(_ cornerRadius: CGFloat) {
     let clampedRadius = max(0, cornerRadius)
     sharedAnnotationParameterDefaults.cornerRadius = clampedRadius
     persistSharedAnnotationParameterDefaults()
-
-    for tool in AnnotationToolType.allCases where tool.supportsQuickCornerRadius && tool != .spotlight {
-      updateDefaultAnnotationProperties(for: tool, cornerRadius: clampedRadius)
-    }
-
-    if !selectedTool.supportsQuickPropertiesBar {
-      rectangleCornerRadius = clampedRadius
-    }
+    syncActiveToolProperties()
   }
 
   private func rememberSharedSpotlightCornerRadius(_ cornerRadius: CGFloat) {
     let clampedRadius = max(0, cornerRadius)
     sharedAnnotationParameterDefaults.spotlightCornerRadius = clampedRadius
     persistSharedAnnotationParameterDefaults()
-    updateDefaultAnnotationProperties(for: .spotlight, cornerRadius: clampedRadius)
+    syncActiveToolProperties()
   }
 
   private func rememberSharedAnnotationFontSize(_ fontSize: CGFloat) {
     let clampedSize = min(max(fontSize, 12), 72)
     sharedAnnotationParameterDefaults.fontSize = clampedSize
     persistSharedAnnotationParameterDefaults()
-
-    updateDefaultAnnotationProperties(for: .text, fontSize: clampedSize)
-  }
-
-  private func rememberAnnotationPrimaryColor(_ color: Color, for tool: AnnotationToolType?) {
-    guard !isQuickPropertiesSyncEnabled else {
-      rememberSharedAnnotationColor(color)
-      return
-    }
-
-    if let tool, tool.supportsQuickStrokeColor {
-      updateDefaultAnnotationProperties(for: tool, strokeColor: color)
-    } else {
-      strokeColor = color
-    }
-  }
-
-  private func rememberAnnotationStrokeWidth(_ strokeWidth: CGFloat, for tool: AnnotationToolType?) {
-    guard !isQuickPropertiesSyncEnabled else {
-      rememberSharedAnnotationStrokeWidth(strokeWidth)
-      return
-    }
-
-    let clampedWidth = AnnotationProperties.clampedControlValue(strokeWidth)
-    if let tool, tool.supportsQuickStrokeWidth {
-      updateDefaultAnnotationProperties(for: tool, strokeWidth: clampedWidth)
-    } else {
-      self.strokeWidth = clampedWidth
-    }
+    syncActiveToolProperties()
   }
 
   private func rememberAnnotationCornerRadius(_ cornerRadius: CGFloat, for tool: AnnotationToolType?) {
-    guard !isQuickPropertiesSyncEnabled else {
-      if tool == .spotlight {
-        rememberSharedSpotlightCornerRadius(cornerRadius)
-      } else {
-        rememberSharedAnnotationCornerRadius(cornerRadius)
-      }
-      return
-    }
-
-    let clampedRadius = max(0, cornerRadius)
-    if let tool, tool.supportsQuickCornerRadius {
-      updateDefaultAnnotationProperties(for: tool, cornerRadius: clampedRadius)
+    if tool == .spotlight {
+      rememberSharedSpotlightCornerRadius(cornerRadius)
     } else {
-      rectangleCornerRadius = clampedRadius
-    }
-  }
-
-  private func rememberAnnotationFontSize(_ fontSize: CGFloat, for tool: AnnotationToolType?) {
-    guard !isQuickPropertiesSyncEnabled else {
-      rememberSharedAnnotationFontSize(fontSize)
-      return
-    }
-
-    let clampedSize = min(max(fontSize, 12), 72)
-    if let tool, tool == .text {
-      updateDefaultAnnotationProperties(for: tool, fontSize: clampedSize)
-    }
-  }
-
-  private func applySharedAnnotationColorToToolDefaults(_ color: Color) {
-    for tool in AnnotationToolType.allCases where tool.supportsQuickStrokeColor {
-      var properties = defaultAnnotationProperties(for: tool)
-      properties.strokeColor = color
-      if tool == .filledRectangle {
-        properties.fillColor = color
-      }
-      annotationToolProperties[tool] = properties
-    }
-    persistAnnotationToolProperties()
-
-    if selectedTool.supportsQuickPropertiesBar {
-      applyToolPropertiesToLegacyState(defaultAnnotationProperties(for: selectedTool), for: selectedTool)
-    } else {
-      strokeColor = color
+      rememberSharedAnnotationCornerRadius(cornerRadius)
     }
   }
 
@@ -2067,22 +1156,15 @@ final class AnnotateState: ObservableObject {
       applySharedParameterDefaults(to: &properties, for: nil)
       return properties
     }
-    var properties = annotationToolProperties[tool] ?? baseAnnotationProperties(for: tool)
-    if isQuickPropertiesSyncEnabled {
-      applySynchronizedQuickProperties(to: &properties, for: tool)
-    }
-
-    return properties
+    return baseAnnotationProperties(for: tool)
   }
 
   private func baseAnnotationProperties(for tool: AnnotationToolType) -> AnnotationProperties {
     if tool == .spotlight {
       var properties = AnnotationProperties(
         strokeColor: sharedAnnotationColor ?? .red,
-        fillColor: .clear,
         strokeWidth: 3,
-        cornerRadius: 14,
-        spotlightOpacity: spotlightOpacity
+        cornerRadius: 14
       )
       applySharedParameterDefaults(to: &properties, for: tool)
       return properties
@@ -2092,36 +1174,7 @@ final class AnnotateState: ObservableObject {
       properties.strokeWidth = AnnotationProperties.controlValueRange.lowerBound
     }
     applySharedParameterDefaults(to: &properties, for: tool)
-    if tool == .filledRectangle {
-      properties.fillColor = properties.strokeColor
-    }
     return properties
-  }
-
-  private func applySynchronizedQuickProperties(
-    to properties: inout AnnotationProperties,
-    for tool: AnnotationToolType
-  ) {
-    let sharedProperties = baseAnnotationProperties(for: tool)
-
-    if tool.supportsQuickStrokeColor {
-      properties.strokeColor = sharedProperties.strokeColor
-      if tool == .filledRectangle {
-        properties.fillColor = sharedProperties.strokeColor
-      }
-    }
-
-    if tool.supportsQuickStrokeWidth {
-      properties.strokeWidth = sharedProperties.strokeWidth
-    }
-
-    if tool.supportsQuickCornerRadius {
-      properties.cornerRadius = sharedProperties.cornerRadius
-    }
-
-    if tool == .text {
-      properties.fontSize = sharedProperties.fontSize
-    }
   }
 
   private func applySharedParameterDefaults(
@@ -2158,9 +1211,6 @@ final class AnnotateState: ObservableObject {
     if tool == .text, shouldUseRecommendedTextFontSize {
       properties.fontSize = recommendedTextFontSize()
     }
-    if tool == .filledRectangle {
-      properties.fillColor = properties.strokeColor
-    }
     return properties
   }
 
@@ -2175,55 +1225,7 @@ final class AnnotateState: ObservableObject {
   }
 
   private var shouldUseRecommendedTextFontSize: Bool {
-    sharedAnnotationParameterDefaults.fontSize == nil && annotationToolProperties[.text] == nil
-  }
-
-  private func updateDefaultAnnotationProperties(
-    for tool: AnnotationToolType,
-    strokeWidth: CGFloat? = nil,
-    strokeColor: Color? = nil,
-    fillColor: Color? = nil,
-    cornerRadius: CGFloat? = nil,
-    fontSize: CGFloat? = nil,
-    fontName: String? = nil,
-    spotlightOpacity: CGFloat? = nil
-  ) {
-    var properties = defaultAnnotationProperties(for: tool)
-
-    if let strokeWidth {
-      properties.strokeWidth = AnnotationProperties.clampedControlValue(strokeWidth)
-    }
-    if tool == .filledRectangle,
-       let color = strokeColor ?? fillColor {
-      properties.strokeColor = color
-      properties.fillColor = color
-    } else {
-      if let strokeColor {
-        properties.strokeColor = strokeColor
-      }
-      if let fillColor {
-        properties.fillColor = fillColor
-      }
-    }
-    if let cornerRadius {
-      properties.cornerRadius = max(0, cornerRadius)
-    }
-    if let fontSize {
-      properties.fontSize = min(max(fontSize, 12), 72)
-    }
-    if let fontName {
-      properties.fontName = fontName
-    }
-    if let spotlightOpacity {
-      properties.spotlightOpacity = AnnotationProperties.clampedSpotlightOpacity(spotlightOpacity)
-    }
-
-    let sanitized = sanitizedAnnotationProperties(properties, for: tool)
-    annotationToolProperties[tool] = sanitized
-    persistAnnotationToolProperties()
-    if selectedTool == tool {
-      applyToolPropertiesToLegacyState(sanitized, for: tool)
-    }
+    sharedAnnotationParameterDefaults.fontSize == nil
   }
 
   private func counterBounds(center: CGPoint, controlValue: CGFloat) -> CGRect {
@@ -2238,21 +1240,17 @@ final class AnnotateState: ObservableObject {
 
   private func syncActiveToolProperties() {
     guard selectedTool.supportsQuickPropertiesBar else { return }
-    applyToolPropertiesToLegacyState(defaultAnnotationProperties(for: selectedTool), for: selectedTool)
+    applyToolPropertiesToActiveState(defaultAnnotationProperties(for: selectedTool), for: selectedTool)
   }
 
-  private func applyToolPropertiesToLegacyState(
+  private func applyToolPropertiesToActiveState(
     _ properties: AnnotationProperties,
     for tool: AnnotationToolType
   ) {
     strokeColor = properties.strokeColor
-    fillColor = properties.fillColor
     strokeWidth = properties.strokeWidth
     if tool.supportsQuickCornerRadius {
       rectangleCornerRadius = properties.cornerRadius
-    }
-    if tool == .spotlight {
-      spotlightOpacity = properties.spotlightOpacity
     }
   }
 
@@ -2296,20 +1294,6 @@ final class AnnotateState: ObservableObject {
     }
   }
 
-  /// Marks a sidebar property slider drag as one undo gesture. The pre-gesture
-  /// snapshot is pushed once on the first actual change; a drag that changes
-  /// nothing records no undo entry.
-  func setPropertySliderGestureEditing(_ isEditing: Bool) {
-    if isEditing {
-      guard !isPropertySliderGestureEditing else { return }
-      isPropertySliderGestureEditing = true
-      propertySliderGestureUndoSnapshot = currentSnapshot()
-    } else {
-      isPropertySliderGestureEditing = false
-      propertySliderGestureUndoSnapshot = nil
-    }
-  }
-
   private func beginQuickPropertiesGestureUndoIfNeeded() {
     guard !isQuickPropertiesGestureEditing,
           !quickPropertiesSelectionTargets.isEmpty else { return }
@@ -2320,10 +1304,8 @@ final class AnnotateState: ObservableObject {
   private func updateQuickSelectionProperties(
     strokeWidth: CGFloat? = nil,
     strokeColor: Color? = nil,
-    fillColor: Color? = nil,
     cornerRadius: CGFloat? = nil,
     fontSize: CGFloat? = nil,
-    spotlightOpacity: CGFloat? = nil,
     recordsUndo: Bool = false,
     matching predicate: ((AnnotationType) -> Bool)? = nil
   ) -> Bool {
@@ -2338,9 +1320,7 @@ final class AnnotateState: ObservableObject {
         strokeWidth: strokeWidth,
         fontSize: fontSize,
         strokeColor: strokeColor,
-        fillColor: fillColor,
-        cornerRadius: cornerRadius,
-        spotlightOpacity: spotlightOpacity
+        cornerRadius: cornerRadius
       )
     })
 
@@ -2359,9 +1339,7 @@ final class AnnotateState: ObservableObject {
         strokeWidth: strokeWidth,
         fontSize: fontSize,
         strokeColor: strokeColor,
-        fillColor: fillColor,
-        cornerRadius: cornerRadius,
-        spotlightOpacity: spotlightOpacity
+        cornerRadius: cornerRadius
       )
     }
     return true
@@ -2483,100 +1461,6 @@ final class AnnotateState: ObservableObject {
     return quickPropertiesTool == .text
   }
 
-  var quickPropertiesSupportsTextBackground: Bool {
-    let selected = quickPropertiesSelectionAnnotations
-    if !selected.isEmpty {
-      return selected.contains {
-        if case .text = $0.type {
-          return true
-        }
-        return false
-      }
-    }
-
-    return quickPropertiesTool == .text
-  }
-
-  var quickPropertiesSupportsTextPresentation: Bool {
-    quickPropertiesSupportsTextBackground
-  }
-
-  var quickTextPresentation: TextPresentation {
-    quickSelectionTargets(matching: {
-      if case .text = $0 {
-        return true
-      }
-      return false
-    }).first?.properties.textPresentation
-      ?? defaultAnnotationProperties(for: quickPropertiesTool).textPresentation
-  }
-
-  func setTextPresentation(_ presentation: TextPresentation) {
-    let selected = quickSelectionTargets(matching: {
-      if case .text = $0 {
-        return true
-      }
-      return false
-    })
-
-    guard !selected.isEmpty else {
-      guard quickPropertiesTool == .text else { return }
-      var properties = defaultAnnotationProperties(for: .text)
-      properties.textPresentation = presentation
-      properties.calloutTailTarget = nil
-      if presentation != .plain, properties.fillColor == .clear {
-        properties.fillColor = .black
-      }
-      annotationToolProperties[.text] = properties
-      return
-    }
-
-    saveState()
-    for annotation in selected {
-      guard let index = annotations.firstIndex(where: { $0.id == annotation.id }) else { continue }
-      annotations[index].properties.textPresentation = presentation
-      if presentation == .plain {
-        annotations[index].properties.calloutTailTarget = nil
-      } else if presentation == .callout {
-        annotations[index].properties.calloutTailTarget = annotations[index].properties.calloutTailTarget
-          ?? defaultCalloutTailTarget(for: annotations[index].bounds, fontSize: annotations[index].properties.fontSize)
-      } else {
-        annotations[index].properties.calloutTailTarget = nil
-      }
-      if presentation != .plain, annotations[index].properties.fillColor == .clear {
-        annotations[index].properties.fillColor = .black
-      }
-    }
-    hasUnsavedChanges = true
-  }
-
-  func prepareTextCalloutTail(for id: UUID) {
-    guard let index = annotations.firstIndex(where: { $0.id == id }),
-          case .text = annotations[index].type,
-          annotations[index].properties.textPresentation == .callout,
-          annotations[index].properties.calloutTailTarget == nil else { return }
-    annotations[index].properties.calloutTailTarget = defaultCalloutTailTarget(
-      for: annotations[index].bounds,
-      fontSize: annotations[index].properties.fontSize
-    )
-  }
-
-  func updateTextCalloutTail(id: UUID, target: CGPoint) {
-    guard let index = annotations.firstIndex(where: { $0.id == id }),
-          case .text = annotations[index].type,
-          annotations[index].properties.textPresentation == .callout else { return }
-    annotations[index].properties.calloutTailTarget = TextBubbleGeometry.resolvedTailTarget(
-      in: annotations[index].bounds,
-      requestedTarget: target,
-      fontSize: annotations[index].properties.fontSize
-    )
-    hasUnsavedChanges = true
-  }
-
-  private func defaultCalloutTailTarget(for bounds: CGRect, fontSize: CGFloat) -> CGPoint {
-    TextBubbleGeometry.defaultTailTarget(for: bounds, fontSize: fontSize)
-  }
-
   var quickTextFontSizeBinding: Binding<CGFloat> {
     Binding(
       get: { [weak self] in
@@ -2602,39 +1486,7 @@ final class AnnotateState: ObservableObject {
             return false
           }
         ) {
-          rememberAnnotationFontSize(clampedSize, for: quickPropertiesTool)
-        }
-      }
-    )
-  }
-
-  var quickTextBackgroundBinding: Binding<Color> {
-    Binding(
-      get: { [weak self] in
-        guard let self else { return .clear }
-        return quickSelectionTargets(matching: {
-          if case .text = $0 {
-            return true
-          }
-          return false
-        }).first?.properties.fillColor
-          ?? defaultAnnotationProperties(for: quickPropertiesTool).fillColor
-      },
-      set: { [weak self] newColor in
-        guard let self else { return }
-        if !updateQuickSelectionProperties(
-          fillColor: newColor,
-          recordsUndo: true,
-          matching: {
-            if case .text = $0 {
-              return true
-            }
-            return false
-          }
-        ) {
-          if let tool = quickPropertiesTool {
-            updateDefaultAnnotationProperties(for: tool, fillColor: newColor)
-          }
+          rememberSharedAnnotationFontSize(clampedSize)
         }
       }
     )
@@ -2703,20 +1555,6 @@ final class AnnotateState: ObservableObject {
     return selectedTool
   }
 
-  var quickPropertiesSelectedAnnotationCount: Int {
-    quickPropertiesSelectionAnnotations.count
-  }
-
-  var quickPropertiesShowsSelectionStyle: Bool {
-    if quickPropertiesSelectionAnnotations.isEmpty {
-      return selectedTool == .selection
-    }
-
-    return quickPropertiesSelectionAnnotations.allSatisfy { annotation in
-      annotation.type.toolType == .selection || !annotation.type.supportsQuickPropertiesBar
-    }
-  }
-
   var showsQuickPropertiesBar: Bool {
     quickPropertiesMode != .hidden
   }
@@ -2745,13 +1583,6 @@ final class AnnotateState: ObservableObject {
       return quickSelectionAnySupport { $0.supportsQuickStrokeColor }
     }
     return quickPropertiesTool?.supportsQuickStrokeColor ?? false
-  }
-
-  var quickPropertiesSupportsFill: Bool {
-    if !quickPropertiesSelectionAnnotations.isEmpty {
-      return quickSelectionAnySupport { $0.supportsQuickFillColor }
-    }
-    return quickPropertiesTool?.supportsQuickFillColor ?? false
   }
 
   var quickPropertiesSupportsStrokeWidth: Bool {
@@ -2831,18 +1662,6 @@ final class AnnotateState: ObservableObject {
     return quickPropertiesTool?.supportsQuickCornerRadius ?? false
   }
 
-  var quickPropertiesSupportsSpotlightOpacity: Bool {
-    if !quickPropertiesSelectionAnnotations.isEmpty {
-      return quickSelectionAnySupport {
-        if case .spotlight = $0 {
-          return true
-        }
-        return false
-      }
-    }
-    return quickPropertiesTool == .spotlight
-  }
-
   var quickStrokeColorBinding: Binding<Color> {
     Binding(
       get: { [weak self] in
@@ -2852,45 +1671,12 @@ final class AnnotateState: ObservableObject {
       },
       set: { [weak self] newColor in
         guard let self else { return }
-        let didUpdateSelection = updateQuickSelectionProperties(
+        _ = updateQuickSelectionProperties(
           strokeColor: newColor,
           recordsUndo: true,
           matching: { $0.supportsQuickStrokeColor }
         )
-        if didUpdateSelection {
-          if isQuickPropertiesSyncEnabled {
-            rememberSharedAnnotationColor(newColor)
-          }
-        } else {
-          rememberAnnotationPrimaryColor(newColor, for: quickPropertiesTool)
-        }
-        if !didUpdateSelection, quickPropertiesTool == nil {
-          strokeColor = newColor
-        }
-      }
-    )
-  }
-
-  var quickFillColorBinding: Binding<Color> {
-    Binding(
-      get: { [weak self] in
-        guard let self else { return .clear }
-        return quickSelectionTargets(matching: { $0.supportsQuickFillColor }).first?.properties.fillColor
-          ?? defaultAnnotationProperties(for: quickPropertiesTool).fillColor
-      },
-      set: { [weak self] newColor in
-        guard let self else { return }
-        if !updateQuickSelectionProperties(
-          fillColor: newColor,
-          recordsUndo: true,
-          matching: { $0.supportsQuickFillColor }
-        ) {
-          if let tool = quickPropertiesTool {
-            updateDefaultAnnotationProperties(for: tool, fillColor: newColor)
-          } else {
-            fillColor = newColor
-          }
-        }
+        rememberSharedAnnotationColor(newColor)
       }
     )
   }
@@ -2909,7 +1695,7 @@ final class AnnotateState: ObservableObject {
           recordsUndo: true,
           matching: { $0.supportsQuickStrokeWidth }
         ) {
-          rememberAnnotationStrokeWidth(newWidth, for: quickPropertiesTool)
+          rememberSharedAnnotationStrokeWidth(newWidth)
         }
       }
     )
@@ -2934,45 +1720,6 @@ final class AnnotateState: ObservableObject {
         }
       }
     )
-  }
-
-  var quickSpotlightOpacityBinding: Binding<CGFloat> {
-    Binding(
-      get: { [weak self] in
-        guard let self else { return 0.5 }
-        return quickSelectionTargets(matching: {
-          if case .spotlight = $0 {
-            return true
-          }
-          return false
-        }).first?.properties.spotlightOpacity
-          ?? defaultAnnotationProperties(for: quickPropertiesTool).spotlightOpacity
-      },
-      set: { [weak self] newOpacity in
-        guard let self else { return }
-        if !updateQuickSelectionProperties(
-          spotlightOpacity: newOpacity,
-          recordsUndo: true,
-          matching: {
-            if case .spotlight = $0 {
-              return true
-            }
-            return false
-          }
-        ) {
-          rememberAnnotationSpotlightOpacity(newOpacity, for: quickPropertiesTool)
-        }
-      }
-    )
-  }
-
-  private func rememberAnnotationSpotlightOpacity(_ opacity: CGFloat, for tool: AnnotationToolType?) {
-    let clampedOpacity = AnnotationProperties.clampedSpotlightOpacity(opacity)
-    // Always sync the global published value so annotationCreationProperties picks it up for new regions.
-    spotlightOpacity = clampedOpacity
-    if let tool, tool == .spotlight {
-      updateDefaultAnnotationProperties(for: tool, spotlightOpacity: clampedOpacity)
-    }
   }
 
   func activateTool(_ tool: AnnotationToolType) {
@@ -3073,19 +1820,13 @@ nonisolated enum AnnotateTextLayout {
   static let maxWidth: CGFloat = 2000
   static let maxHeight: CGFloat = 2000
 
-  static func font(size: CGFloat, fontName: String? = nil) -> NSFont {
+  static func font(size: CGFloat) -> NSFont {
     let clampedSize = min(max(size, 8), 144)
-
-    if let fontName,
-       let namedFont = NSFont(name: fontName, size: clampedSize) {
-      return namedFont
-    }
-
-    return NSFont.systemFont(ofSize: clampedSize)
+    return NSFont(name: "SF Pro", size: clampedSize) ?? NSFont.systemFont(ofSize: clampedSize)
   }
 
-  static func displayFont(size: CGFloat, fontName: String? = nil, scale: CGFloat) -> NSFont {
-    let baseFont = font(size: size, fontName: fontName)
+  static func displayFont(size: CGFloat, scale: CGFloat) -> NSFont {
+    let baseFont = font(size: size)
     let displaySize = max(baseFont.pointSize * scale, 1)
 
     if let scaledFont = NSFont(descriptor: baseFont.fontDescriptor, size: displaySize) {
@@ -3100,21 +1841,19 @@ nonisolated enum AnnotateTextLayout {
     font: NSFont,
     origin: CGPoint,
     constrainedWidth: CGFloat? = nil,
-    maximumHeight: CGFloat = maxHeight,
-    presentation: TextPresentation = .plain
+    maximumHeight: CGFloat = maxHeight
   ) -> CGRect {
     let finalWidth: CGFloat = if let constrainedWidth {
       clampedWidth(constrainedWidth)
     } else {
-      preferredAutoWidth(text: text, font: font, presentation: presentation)
+      preferredAutoWidth(text: text, font: font)
     }
 
-    let insets = TextBubbleGeometry.contentInsets(for: presentation, fontSize: font.pointSize)
-    let contentWidth = max(finalWidth - insets.width * 2, minContentWidth)
+    let contentWidth = max(finalWidth - horizontalPadding * 2, minContentWidth)
     let contentHeight = ceil(contentSize(for: text, font: font, constrainedWidth: contentWidth).height)
     let resolvedMaximumHeight = max(minimumHeight(for: font), min(maximumHeight, maxHeight))
     let finalHeight = min(
-      max(contentHeight + insets.height * 2, minimumHeight(for: font, presentation: presentation)),
+      max(contentHeight + verticalPadding * 2, minimumHeight(for: font)),
       resolvedMaximumHeight
     )
 
@@ -3126,38 +1865,25 @@ nonisolated enum AnnotateTextLayout {
     )
   }
 
-  static func textRect(for text: String, font: NSFont, in bounds: CGRect,
-                       presentation: TextPresentation = .plain) -> CGRect {
-    let insets = TextBubbleGeometry.contentInsets(for: presentation, fontSize: font.pointSize)
-    let contentWidth = max(bounds.width - insets.width * 2, minContentWidth)
+  static func textRect(for text: String, font: NSFont, in bounds: CGRect) -> CGRect {
+    let contentWidth = max(bounds.width - horizontalPadding * 2, minContentWidth)
     let contentHeight = ceil(contentSize(for: text, font: font, constrainedWidth: contentWidth).height)
     let drawHeight = min(contentHeight, max(bounds.height, 0))
     let verticalInset = max((bounds.height - drawHeight) / 2, 0)
 
     return CGRect(
-      x: bounds.minX + insets.width,
+      x: bounds.minX + horizontalPadding,
       y: bounds.minY + verticalInset,
       width: contentWidth,
       height: drawHeight
     )
   }
 
-  static func measuredHeight(text: String, font: NSFont, constrainedWidth: CGFloat) -> CGFloat {
-    bounds(
-      text: text,
-      font: font,
-      origin: .zero,
-      constrainedWidth: constrainedWidth
-    ).height
-  }
-
-  static func textEditorInset(scale: CGFloat, presentation: TextPresentation = .plain,
-                              fontSize: CGFloat = 16) -> NSSize {
+  static func textEditorInset(scale: CGFloat) -> NSSize {
     let resolvedScale = max(scale, 0.0001)
-    let insets = TextBubbleGeometry.contentInsets(for: presentation, fontSize: fontSize)
     return NSSize(
-      width: insets.width * resolvedScale,
-      height: insets.height * resolvedScale
+      width: horizontalPadding * resolvedScale,
+      height: verticalPadding * resolvedScale
     )
   }
 
@@ -3170,19 +1896,16 @@ nonisolated enum AnnotateTextLayout {
     text: String,
     font: NSFont,
     minimumWidth: CGFloat = defaultInitialWidth,
-    maximumWidth: CGFloat = maxWidth,
-    presentation: TextPresentation = .plain
+    maximumWidth: CGFloat = maxWidth
   ) -> CGFloat {
-    let insets = TextBubbleGeometry.contentInsets(for: presentation, fontSize: font.pointSize)
-    let measuredWidth = ceil(singleLineSize(for: text, font: font).width) + insets.width * 2
+    let measuredWidth = ceil(singleLineSize(for: text, font: font).width) + horizontalPadding * 2
     let resolvedMaximumWidth = max(minWidth, min(maximumWidth, maxWidth))
     let resolvedMinimumWidth = min(max(minimumWidth, minWidth), resolvedMaximumWidth)
     return min(max(measuredWidth, resolvedMinimumWidth), resolvedMaximumWidth)
   }
 
-  static func minimumHeight(for font: NSFont, presentation: TextPresentation = .plain) -> CGFloat {
-    let insets = TextBubbleGeometry.contentInsets(for: presentation, fontSize: font.pointSize)
-    return ceil(font.ascender - font.descender + font.leading) + insets.height * 2
+  static func minimumHeight(for font: NSFont) -> CGFloat {
+    ceil(font.ascender - font.descender + font.leading) + verticalPadding * 2
   }
 
   private static func singleLineSize(for text: String, font: NSFont) -> CGSize {

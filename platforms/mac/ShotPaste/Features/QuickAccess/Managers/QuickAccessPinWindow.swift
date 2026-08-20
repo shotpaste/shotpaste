@@ -165,18 +165,6 @@ final class QuickAccessPinWindow: NSPanel {
     }
   }
 
-  private func removeEventMonitors() {
-    removeMouseMonitorsOnly()
-    if let localKeyMonitor {
-      NSEvent.removeMonitor(localKeyMonitor)
-      self.localKeyMonitor = nil
-    }
-    if let globalKeyMonitor {
-      NSEvent.removeMonitor(globalKeyMonitor)
-      self.globalKeyMonitor = nil
-    }
-  }
-
   private func removeMouseMonitorsOnly() {
     if let localMouseMonitor {
       NSEvent.removeMonitor(localMouseMonitor)

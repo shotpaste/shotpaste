@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="ShotPaste · 正在录制" SizeToContent="WidthAndHeight" WindowStyle="None" ResizeMode="NoResize"
         Background="{DynamicResource WindowBackdropBrush}" ShowInTaskbar="False" Topmost="True"
+        AutomationProperties.AutomationId="RecordingToolbarWindow" AutomationProperties.Name="录屏控制工具栏"
         MouseLeftButtonDown="OnWindowMouseDown">
   <Window.Resources>
     <Style x:Key="RecordingIconButton" TargetType="Button" BasedOn="{StaticResource HudIconButton}">
@@ -28,7 +29,8 @@
           BorderThickness="1" Padding="10,6">
     <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="24" ShadowDepth="8" Opacity="0.48"/></Border.Effect>
     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-      <Grid Width="20" Height="20" Opacity="0.42" ToolTip="拖动工具栏">
+      <Grid Width="20" Height="20" Opacity="0.42" ToolTip="拖动工具栏"
+            AutomationProperties.AutomationId="RecordingToolbarDragHandle">
         <Path Data="M5,7 H15 M5,10 H15 M5,13 H15" Stroke="{DynamicResource HudTextBrush}" StrokeThickness="1.4"
               StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
       </Grid>
@@ -52,28 +54,28 @@
       </StackPanel>
       <Border Style="{StaticResource RecordingDivider}"/>
 
-      <Button x:Name="PauseButton" AutomationProperties.AutomationId="RecordingPause" Style="{StaticResource RecordingIconButton}" Click="OnPause" ToolTip="暂停录制">
+      <Button x:Name="PauseButton" AutomationProperties.AutomationId="RecordingPause" AutomationProperties.Name="暂停录制" Style="{StaticResource RecordingIconButton}" Click="OnPause" ToolTip="暂停录制">
         <ContentControl x:Name="PauseGlyph" Content="{StaticResource Icon.Pause}" ContentTemplate="{StaticResource Icon.Template}" IsHitTestVisible="False"/>
       </Button>
-      <Button x:Name="PenButton" AutomationProperties.AutomationId="RecordingPen" Style="{StaticResource RecordingIconButton}" Click="OnPen" ToolTip="在录制画面上标注">
+      <Button x:Name="PenButton" AutomationProperties.AutomationId="RecordingPen" AutomationProperties.Name="打开录屏标注" Style="{StaticResource RecordingIconButton}" Click="OnPen" ToolTip="在录制画面上标注">
         <Path Data="M3,14 L4.2,10 L11.8,2.4 C12.5,1.7 13.5,1.7 14.2,2.4 L15.6,3.8 C16.3,4.5 16.3,5.5 15.6,6.2 L8,13.8 Z M10.5,3.7 L14.3,7.5"
               Stroke="{DynamicResource HudTextBrush}" StrokeThickness="1.5" StrokeLineJoin="Round"
               StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="17" Height="17" Stretch="Uniform"/>
       </Button>
       <Border Style="{StaticResource RecordingDivider}"/>
 
-      <Button Style="{StaticResource RecordingIconButton}" Click="OnRestart" ToolTip="重新录制">
+      <Button AutomationProperties.AutomationId="RecordingRestart" AutomationProperties.Name="重新录制" Style="{StaticResource RecordingIconButton}" Click="OnRestart" ToolTip="重新录制">
         <Path Data="M14,5 A6,6 0 1 0 15,10 M14,2 V6 H10" Stroke="{DynamicResource HudTextBrush}" StrokeThickness="1.6"
               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Width="17" Height="17" Stretch="Uniform"/>
       </Button>
-      <Button Style="{StaticResource RecordingIconButton}" Click="OnDelete" ToolTip="丢弃本次录制">
+      <Button AutomationProperties.AutomationId="RecordingDelete" AutomationProperties.Name="删除本次录制并移入回收站" Style="{StaticResource RecordingIconButton}" Click="OnDelete" ToolTip="丢弃本次录制">
         <Path Data="M3,5 H15 M6,5 V3 H12 V5 M5,7 V15 H13 V7 M8,8 V13 M10,8 V13"
               Stroke="{DynamicResource HudTextBrush}" StrokeThickness="1.5" StrokeStartLineCap="Round"
               StrokeEndLineCap="Round" Width="18" Height="18" Stretch="Uniform"/>
       </Button>
       <Border Style="{StaticResource RecordingDivider}"/>
 
-      <Button Content="停止" AutomationProperties.AutomationId="RecordingStop" Style="{StaticResource RecordingTextButton}" Click="OnStop" ToolTip="停止并保存"/>
+      <Button Content="停止" AutomationProperties.AutomationId="RecordingStop" AutomationProperties.Name="停止并保存录屏" Style="{StaticResource RecordingTextButton}" Click="OnStop" ToolTip="停止并保存"/>
     </StackPanel>
   </Border>
 </Window>

@@ -103,6 +103,39 @@ public static class LocalizationService
         new(BuildPhraseCatalog);
     private static readonly Lazy<IReadOnlyDictionary<string, string>> WindowsEnglishFallback =
         new(BuildWindowsEnglishFallback);
+    private static readonly Lazy<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>> WindowsLocaleOverrides =
+        new(BuildWindowsLocaleOverrides);
+    private static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> WindowsUxPhraseOverrides =
+        new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal)
+        {
+            ["保持打开"] = LocalizedUxPhrase(
+                "Keep Open", "保持開啟", "開いたままにする", "열어 두기", "Geöffnet lassen",
+                "Garder ouvert", "Mantener abierto", "Оставить открытым", "Giữ mở"),
+            ["重试保存"] = LocalizedUxPhrase(
+                "Retry Save", "重試儲存", "保存を再試行", "저장 다시 시도", "Speichern wiederholen",
+                "Réessayer d’enregistrer", "Reintentar guardado", "Повторить сохранение", "Thử lưu lại"),
+            ["长图保存失败 · 成果仍保留"] = LocalizedUxPhrase(
+                "Scrolling capture save failed · Result preserved", "長截圖儲存失敗 · 結果仍保留",
+                "スクロールキャプチャの保存に失敗 · 結果は保持されています", "스크롤 캡처 저장 실패 · 결과 유지됨",
+                "Scrollaufnahme konnte nicht gespeichert werden · Ergebnis bleibt erhalten",
+                "Échec de l’enregistrement de la capture défilante · Résultat conservé",
+                "Error al guardar la captura con desplazamiento · Resultado conservado",
+                "Не удалось сохранить снимок с прокруткой · Результат сохранён",
+                "Không thể lưu ảnh chụp cuộn · Kết quả vẫn được giữ"),
+            ["可恢复"] = LocalizedUxPhrase(
+                "Recoverable", "可復原", "復元可能", "복구 가능", "Wiederherstellbar",
+                "Récupérable", "Recuperable", "Можно восстановить", "Có thể khôi phục"),
+            ["保存失败，成果仍保留；可重试、另存或复制"] = LocalizedUxPhrase(
+                "Save failed; the result is preserved. Retry, save elsewhere, or copy it.",
+                "儲存失敗，結果仍保留；可重試、另存或複製。",
+                "保存に失敗しました。結果は保持されています。再試行、別の場所への保存、またはコピーができます。",
+                "저장에 실패했습니다. 결과는 유지됩니다. 다시 시도하거나 다른 위치에 저장하거나 복사할 수 있습니다.",
+                "Speichern fehlgeschlagen. Das Ergebnis bleibt erhalten. Erneut versuchen, an einem anderen Ort speichern oder kopieren.",
+                "Échec de l’enregistrement. Le résultat est conservé. Réessayez, enregistrez ailleurs ou copiez-le.",
+                "No se pudo guardar. El resultado se conserva. Reintenta, guarda en otra ubicación o cópialo.",
+                "Не удалось сохранить. Результат сохранён. Повторите попытку, выберите другую папку или скопируйте его.",
+                "Lưu không thành công. Kết quả vẫn được giữ. Hãy thử lại, lưu ở nơi khác hoặc sao chép.")
+        };
     private static readonly Lazy<IReadOnlyDictionary<string, IReadOnlyDictionary<char, IReadOnlyList<KeyValuePair<string, string>>>>> CompositeCatalog =
         new(BuildCompositeCatalog);
     private static readonly ConditionalWeakTable<DependencyObject, ElementLocalizationState> ElementStates = new();
@@ -167,6 +200,12 @@ public static class LocalizationService
         if (string.IsNullOrWhiteSpace(value)) return value ?? string.Empty;
         var normalized = Resolve(language ?? CurrentLanguage);
         if (normalized == "zh-CN") return value;
+        if (WindowsLocaleOverrides.Value.TryGetValue(normalized, out var windowsOverrides) &&
+            windowsOverrides.TryGetValue(value, out var windowsTranslation))
+            return windowsTranslation;
+        if (WindowsUxPhraseOverrides.TryGetValue(value, out var uxPhrase) &&
+            uxPhrase.TryGetValue(normalized, out var uxTranslation))
+            return uxTranslation;
         if (normalized == "en-US" && value is ("选择语言" or "麦克风" or "媒体编码组件") &&
             WindowsEnglishFallback.Value.TryGetValue(value, out var windowsEnglish))
             return windowsEnglish;
@@ -191,8 +230,30 @@ public static class LocalizationService
         }
         if (!WindowsEnglishFallback.Value.TryGetValue(value, out var english)) return composite;
         if (normalized == "en-US") return english;
-        return phrases.TryGetValue(english, out var localizedEnglish) ? localizedEnglish : english;
+        return phrases.TryGetValue(english, out var localizedEnglish) ? localizedEnglish : composite;
     }
+
+    private static IReadOnlyDictionary<string, string> LocalizedUxPhrase(
+        string english,
+        string traditionalChinese,
+        string japanese,
+        string korean,
+        string german,
+        string french,
+        string spanish,
+        string russian,
+        string vietnamese) => new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["en-US"] = english,
+        ["zh-TW"] = traditionalChinese,
+        ["ja-JP"] = japanese,
+        ["ko-KR"] = korean,
+        ["de-DE"] = german,
+        ["fr-FR"] = french,
+        ["es-ES"] = spanish,
+        ["ru-RU"] = russian,
+        ["vi-VN"] = vietnamese
+    };
 
     private static string ConvertToTraditionalChinese(string value)
     {
@@ -364,6 +425,24 @@ public static class LocalizationService
                new Dictionary<string, string>(StringComparer.Ordinal);
     }
 
+    private static IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> BuildWindowsLocaleOverrides()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var result = new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var language in SupportedLanguages.Where(language => language.Code is not ("zh-CN" or "en-US")))
+        {
+            var suffix = $"WindowsLocalization.{language.Code}.json";
+            var resourceName = assembly.GetManifestResourceNames()
+                .FirstOrDefault(name => name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase));
+            if (resourceName is null) continue;
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream is null) continue;
+            result[language.Code] = JsonSerializer.Deserialize<Dictionary<string, string>>(stream) ??
+                                    new Dictionary<string, string>(StringComparer.Ordinal);
+        }
+        return result;
+    }
+
     private static bool ContainsCjk(string value) => value.Any(character => character is >= '\u3400' and <= '\u9fff');
 
     private static bool TryReadLocalization(JsonElement localizations, string locale, out string value)
@@ -385,9 +464,9 @@ public static class LocalizationService
                 {
                     foreach (var (source, english) in WindowsEnglishFallback.Value)
                     {
-                        values[source] = locale.Key == "en-US"
-                            ? english
-                            : locale.Value.TryGetValue(english, out var localizedEnglish) ? localizedEnglish : english;
+                        if (locale.Key == "en-US") values[source] = english;
+                        else if (locale.Value.TryGetValue(english, out var localizedEnglish))
+                            values[source] = localizedEnglish;
                     }
                 }
                 return (IReadOnlyDictionary<char, IReadOnlyList<KeyValuePair<string, string>>>)values

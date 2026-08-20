@@ -184,4 +184,35 @@ public sealed class OcrServiceTests
         Assert.Equal("en-US", candidates[0]);
         Assert.Equal(3, candidates.Count);
     }
+
+    [Fact]
+    public void ComposeOcrAndQrPayload_DeduplicatesPayloadsAndLabelsAdditionalQrResults()
+    {
+        var result = OcrService.ComposeOcrAndQrPayload(
+            "Recognized\nhttps://shotpaste.local/already",
+            ["https://shotpaste.local/already", "https://shotpaste.local/new", "https://shotpaste.local/new"],
+            "QR Codes");
+
+        Assert.NotNull(result);
+        Assert.Equal(1, result!.Split("https://shotpaste.local/already").Length - 1);
+        Assert.Equal(1, result.Split("https://shotpaste.local/new").Length - 1);
+        Assert.Contains($"{Environment.NewLine}{Environment.NewLine}QR Codes:{Environment.NewLine}", result,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RecognizeDetailedAsync_DisablesLinkDetectionWhenVisibleSettingIsOff()
+    {
+        var service = new OcrService(
+            null,
+            _ => Task.FromResult<string?>("Visit https://shotpaste.local/private"),
+            _ => [],
+            () => false);
+        using var bitmap = new System.Drawing.Bitmap(32, 32);
+
+        var result = await service.RecognizeDetailedAsync(bitmap);
+
+        Assert.Contains("https://shotpaste.local/private", result.Text, StringComparison.Ordinal);
+        Assert.Empty(result.Links);
+    }
 }

@@ -11,29 +11,8 @@ import Foundation
 /// Contextual metadata about the capture source, used for template token replacement.
 struct CaptureContext: Equatable {
   let appName: String?
-  let windowTitle: String?
 
-  nonisolated static let empty = CaptureContext(appName: nil, windowTitle: nil)
-
-  /// Max characters for windowTitle in filenames to prevent excessively long paths.
-  private static let maxTitleLength = 80
-
-  var sanitizedWindowTitle: String? {
-    guard let title = windowTitle, !title.isEmpty else { return nil }
-    if title.count <= Self.maxTitleLength {
-      return title
-    }
-    return String(title.prefix(Self.maxTitleLength))
-  }
-
-  /// Creates a CaptureContext from a process ID, resolving app name from NSRunningApplication.
-  static func fromPID(_ pid: Int32?, windowTitle: String? = nil) -> CaptureContext {
-    guard let pid else { return CaptureContext(appName: nil, windowTitle: windowTitle) }
-    let app = NSRunningApplication(processIdentifier: pid)
-    let name = app?.localizedName
-      ?? app?.bundleIdentifier.flatMap { $0.split(separator: ".").last.map(String.init) }
-    return CaptureContext(appName: name, windowTitle: windowTitle)
-  }
+  nonisolated static let empty = CaptureContext(appName: nil)
 
   /// Creates a CaptureContext from the frontmost application (for fullscreen/area captures).
   static func fromFrontmostApp() -> CaptureContext {
@@ -43,10 +22,7 @@ struct CaptureContext: Equatable {
     if app.bundleIdentifier == ownBundleID {
       return .empty
     }
-    return CaptureContext(
-      appName: app.localizedName,
-      windowTitle: nil
-    )
+    return CaptureContext(appName: app.localizedName)
   }
 }
 

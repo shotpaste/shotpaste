@@ -58,21 +58,74 @@ public sealed class ImageFileService(SettingsStore settings)
 
     private void SaveEncoded(Drawing.Bitmap bitmap, string path, SKEncodedImageFormat format, int quality)
     {
-        using var buffer = new MemoryStream();
-        bitmap.Save(buffer, ImageFormat.Png);
-        buffer.Position = 0;
-        using var source = SKBitmap.Decode(buffer) ?? throw new InvalidOperationException("无法解码截图。");
+        Drawing.Bitmap? converted = null;
+        var source = bitmap;
+        if (bitmap.PixelFormat is not (PixelFormat.Format32bppArgb or
+            PixelFormat.Format32bppPArgb or PixelFormat.Format32bppRgb))
+        {
+            converted = new Drawing.Bitmap(bitmap.Width, bitmap.Height, PixelFormat.Format32bppPArgb);
+            using var graphics = Drawing.Graphics.FromImage(converted);
+            graphics.CompositingMode = Drawing.Drawing2D.CompositingMode.SourceCopy;
+            graphics.DrawImageUnscaled(bitmap, 0, 0);
+            source = converted;
+        }
+
         using var colorSpace = settings.Current.ScreenshotColorSpace == "DisplayP3"
             ? SKColorSpace.CreateCicp(SKColorspacePrimariesCicp.SmpteEg4321, SKColorspaceTransferFnCicp.Iec6196621)
             : SKColorSpace.CreateSrgb();
-        var info = new SKImageInfo(source.Width, source.Height, SKColorType.Bgra8888, SKAlphaType.Premul, colorSpace);
-        using var surface = SKSurface.Create(info) ?? throw new InvalidOperationException("无法创建色彩空间画布。");
-        surface.Canvas.Clear(SKColors.Transparent);
-        surface.Canvas.DrawBitmap(source, 0, 0, new SKSamplingOptions(SKFilterMode.Nearest));
-        surface.Canvas.Flush();
-        using var image = surface.Snapshot();
-        using var encoded = image.Encode(format, quality);
-        using var output = File.Create(path);
-        encoded.SaveTo(output);
+        var rectangle = new Drawing.Rectangle(0, 0, source.Width, source.Height);
+        var data = source.LockBits(rectangle, ImageLockMode.ReadOnly, source.PixelFormat);
+        try
+        {
+            var alphaType = source.PixelFormat switch
+            {
+                PixelFormat.Format32bppPArgb => SKAlphaType.Premul,
+                PixelFormat.Format32bppRgb => SKAlphaType.Opaque,
+                _ => SKAlphaType.Unpremul,
+            };
+            var info = new SKImageInfo(
+                source.Width,
+                source.Height,
+                SKColorType.Bgra8888,
+                alphaType,
+                colorSpace);
+            var pixelAddress = data.Stride >= 0
+                ? data.Scan0
+                : IntPtr.Add(data.Scan0, data.Stride * (source.Height - 1));
+            using var pixmap = new SKPixmap(info, pixelAddress, Math.Abs(data.Stride));
+            using var image = SKImage.FromPixels(pixmap) ??
+                              throw new InvalidOperationException("无法解码截图。");
+            using var encoded = image.Encode(format, quality) ??
+                                throw new InvalidOperationException("无法解码截图。");
+            SaveAtomically(encoded, path);
+        }
+        finally
+        {
+            source.UnlockBits(data);
+            converted?.Dispose();
+        }
+    }
+
+    private static void SaveAtomically(SKData encoded, string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        var directory = Path.GetDirectoryName(fullPath) ?? throw new IOException("保存路径缺少有效目录。");
+        Directory.CreateDirectory(directory);
+        var temporaryPath = Path.Combine(directory, $".{Path.GetFileName(fullPath)}.{Guid.NewGuid():N}.tmp");
+        try
+        {
+            using (var output = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                encoded.SaveTo(output);
+                output.Flush(true);
+            }
+            File.Move(temporaryPath, fullPath, true);
+        }
+        finally
+        {
+            try { if (File.Exists(temporaryPath)) File.Delete(temporaryPath); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
     }
 }

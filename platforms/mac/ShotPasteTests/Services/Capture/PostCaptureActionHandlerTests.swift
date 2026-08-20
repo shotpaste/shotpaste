@@ -6,9 +6,7 @@
 //
 
 import AppKit
-import ImageIO
 @testable import ShotPaste
-import SwiftUI
 import XCTest
 
 @MainActor
@@ -17,15 +15,11 @@ final class PostCaptureActionHandlerTests: XCTestCase {
   private var preferences: PreferencesManager!
   private var tempDirectory: URL!
   private var tempFileURL: URL!
-  private var canvasPresetStore: AnnotateCanvasPresetStore!
-  private var screenshotPresetAutoApplier: ScreenshotPresetAutoApplier!
 
   override func setUp() async throws {
     try await super.setUp()
     defaults = UserDefaultsFactory.make()
     preferences = PreferencesManager(defaults: defaults)
-    canvasPresetStore = AnnotateCanvasPresetStore(defaults: defaults)
-    screenshotPresetAutoApplier = ScreenshotPresetAutoApplier(presetStore: canvasPresetStore)
     resetAfterCaptureActionsToDefaults()
 
     tempDirectory = FileManager.default.temporaryDirectory
@@ -76,47 +70,8 @@ final class PostCaptureActionHandlerTests: XCTestCase {
     PostCaptureActionHandler(
       preferences: preferences,
       quickAccess: quickAccess,
-      fileAccess: SandboxFileAccessManager.shared,
-      screenshotPresetAutoApplier: screenshotPresetAutoApplier
+      fileAccess: SandboxFileAccessManager.shared
     )
-  }
-
-  private func writeTestImage(to url: URL, width: Int = 100, height: Int = 100) throws {
-    guard let image = TestImageFactory.solidColor(width: width, height: height) else {
-      XCTFail("Failed to create test image")
-      return
-    }
-    let bitmapRep = NSBitmapImageRep(cgImage: image)
-    let pngData = bitmapRep.representation(using: .png, properties: [:])
-    try pngData?.write(to: url)
-  }
-
-  private func imagePixelSize(at url: URL) -> CGSize? {
-    guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-          let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any],
-          let width = properties[kCGImagePropertyPixelWidth as String] as? CGFloat,
-          let height = properties[kCGImagePropertyPixelHeight as String] as? CGFloat else {
-      return nil
-    }
-    return CGSize(width: width, height: height)
-  }
-
-  private func saveDefaultPreset(
-    padding: CGFloat = 10,
-    backgroundStyle: ShotPaste.BackgroundStyle = .solidColor(SwiftUI.Color.red)
-  ) -> AnnotateCanvasPreset {
-    let preset = AnnotateCanvasPreset(
-      name: "Default Share",
-      payload: AnnotateCanvasPresetPayload(
-        backgroundStyle: CodableBackgroundStyle(from: backgroundStyle)!,
-        padding: padding,
-        shadowIntensity: 0,
-        cornerRadius: 0
-      )
-    )
-    canvasPresetStore.savePresets([preset])
-    canvasPresetStore.saveDefaultPresetId(preset.id)
-    return preset
   }
 
   // MARK: - PreferencesManager Routing Logic
@@ -216,55 +171,6 @@ final class PostCaptureActionHandlerTests: XCTestCase {
     await handler.handleVideoCapture(url: videoURL)
 
     XCTAssertEqual(fakeQuickAccess.addedVideos, [videoURL])
-  }
-
-  func testScreenshotPresetAutoApplier_noDefaultPreset_preservesOriginalFile() throws {
-    let beforeData = try Data(contentsOf: tempFileURL)
-
-    let didApply = screenshotPresetAutoApplier.applyDefaultPresetIfNeeded(to: tempFileURL)
-
-    XCTAssertFalse(didApply)
-    XCTAssertEqual(try Data(contentsOf: tempFileURL), beforeData)
-  }
-
-  func testScreenshotPresetAutoApplier_validPresetRendersFlattenedFile() throws {
-    _ = saveDefaultPreset(padding: 12)
-    let beforeSize = try XCTUnwrap(imagePixelSize(at: tempFileURL))
-    let beforeData = try Data(contentsOf: tempFileURL)
-
-    let didApply = screenshotPresetAutoApplier.applyDefaultPresetIfNeeded(to: tempFileURL)
-    let afterSize = try XCTUnwrap(imagePixelSize(at: tempFileURL))
-
-    XCTAssertTrue(didApply)
-    XCTAssertGreaterThan(afterSize.width, beforeSize.width)
-    XCTAssertGreaterThan(afterSize.height, beforeSize.height)
-    XCTAssertNotEqual(try Data(contentsOf: tempFileURL), beforeData)
-  }
-
-  func testScreenshotPresetAutoApplier_stalePresetClearsDefaultAndPreservesFile() throws {
-    defaults.set(UUID().uuidString, forKey: PreferencesKeys.annotateDefaultCanvasPresetId)
-    let beforeData = try Data(contentsOf: tempFileURL)
-
-    let didApply = screenshotPresetAutoApplier.applyDefaultPresetIfNeeded(to: tempFileURL)
-
-    XCTAssertFalse(didApply)
-    XCTAssertNil(defaults.string(forKey: PreferencesKeys.annotateDefaultCanvasPresetId))
-    XCTAssertEqual(try Data(contentsOf: tempFileURL), beforeData)
-  }
-
-  func testHandleScreenshotCapture_appliesPresetBeforeQuickAccessReceivesURL() async throws {
-    preferences.setAction(.copyFile, for: .screenshot, enabled: false)
-    _ = saveDefaultPreset(padding: 12)
-    let beforeSize = try XCTUnwrap(imagePixelSize(at: tempFileURL))
-    let fakeQuickAccess = FakeQuickAccessManager()
-    let handler = makeHandler(quickAccess: fakeQuickAccess)
-
-    await handler.handleScreenshotCapture(url: tempFileURL)
-    let afterSize = try XCTUnwrap(imagePixelSize(at: tempFileURL))
-
-    XCTAssertEqual(fakeQuickAccess.addedScreenshots, [tempFileURL])
-    XCTAssertGreaterThan(afterSize.width, beforeSize.width)
-    XCTAssertGreaterThan(afterSize.height, beforeSize.height)
   }
 
   func testHandleScreenshotCapture_pinToScreenPinsCreatedQuickAccessItem() async throws {

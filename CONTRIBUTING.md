@@ -53,8 +53,13 @@ swift -module-cache-path build/swift-module-cache platforms/mac/Tools/Localizati
 Windows PowerShell baseline:
 
 ```powershell
-./scripts/build-windows.ps1 -Configuration Debug
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1 -Configuration Debug
 ```
+
+This command runs the x64 restore, unit-test passes, build-identity check, and
+headless Windows parity gate. See [the Windows development guide](docs/DEVELOPMENT.md)
+for Release, publish, interactive parity, artifact paths, and `dotnet` PATH
+troubleshooting.
 
 A successful compile is not sufficient for capture, recording, permission,
 shortcut, DPI, or window-management changes. Include the affected OS/hardware
@@ -69,7 +74,7 @@ acceptance. The repository owner maintains the project directly; pull requests
 remain the contribution path for everyone else.
 
 1. The repository owner may commit and push directly to `main`, or merge any
-   non-`release` branch into `main` and push the result. A pull request into
+   development branch into `main` and push the result. A pull request into
    `main` is optional for owner-maintained work.
 2. Normal pushes to `main` are allowed. Force-pushing or deleting `main` is
    prohibited.
@@ -78,10 +83,11 @@ remain the contribution path for everyone else.
    the upstream `main`. External contributions do not target `release`.
 4. `release` accepts changes only through pull requests. Direct commits and
    direct pushes to `release`, force-pushing it, and deleting it are prohibited.
-5. To prepare a release, the repository owner opens a pull request from `main`
-   to `release`. Do not cherry-pick selected changes or apply a hotfix directly
-   to `release`; complete the change on `main` first and use the same
-   `main`-to-`release` path.
+5. To prepare a release, the repository owner opens and merges a pull request
+   directly from `main` to `release`. Do not create a promotion or staging
+   branch, cherry-pick selected changes, or apply a hotfix directly to
+   `release`; complete the change on `main` first and refresh the same direct
+   `main`-to-`release` pull request.
 6. After the pull request is merged, the resulting `release` commit must pass
    the applicable builds and CI checks for both native platforms. The repository
    owner must also complete manual acceptance before creating a tag.
@@ -94,29 +100,29 @@ remain the contribution path for everyone else.
 ShotPaste 使用 `main` 作为日常迭代分支，使用 `release` 作为发布前验收分支。
 项目由仓库 Owner 直接维护，其他贡献者统一通过 Pull Request 贡献代码。
 
-1. 仓库 Owner 可以直接在 `main` 提交并正常推送，也可以将任意非 `release`
-   分支合入 `main` 后推送；Owner 自己维护的改动不强制要求 Pull Request。
+1. 仓库 Owner 可以直接在 `main` 提交并正常推送，也可以将任意开发分支
+   合入 `main` 后推送；Owner 自己维护的改动不强制要求 Pull Request。
 2. `main` 允许正常推送，但禁止强制推送，也禁止删除。
 3. 外部贡献者必须先 fork 仓库，在自己的 fork 中创建一个非 `main`、职责单一
    的分支，然后从该分支向上游 `main` 发起 Pull Request。外部贡献不得直接
    以 `release` 为目标分支。
 4. `release` 只允许通过 Pull Request 合入。禁止直接在 `release` 提交或
    推送，禁止强制推送，也禁止删除。
-5. 需要发版时，由仓库 Owner 从 `main` 向 `release` 发起 Pull Request。
-   不再通过 cherry-pick 挑选提交，也不直接在 `release` 修复；任何修复都先
-   进入 `main`，再沿用 `main` 到 `release` 的流程。
+5. 需要发版时，由仓库 Owner 直接从 `main` 向 `release` 发起并合并 Pull
+   Request。不创建发版晋级或 staging 中间分支，不通过 cherry-pick 挑选
+   提交，也不直接在 `release` 修复；任何修复都先进入 `main`，再刷新同一个
+   `main` 到 `release` 的 Pull Request。
 6. Pull Request 合并后，`release` 上的候选提交必须通过两个原生平台适用的
    构建与 CI 检查，并由仓库 Owner 完成人工验收，之后才能创建 tag。
 7. 只有 `release` 上已经验收通过的提交可以创建不可变的正式 tag：
    `macos-vMAJOR.MINOR.PATCH` 或 `windows-vMAJOR.MINOR.PATCH`。每个 tag 只
    触发对应平台的发布工作流和 GitHub Release。
 
-### Promotion flow / 分支推进示意图
+### Release flow / 发版流程示意图
 
 ```mermaid
 flowchart LR
     ownerDirect["Owner direct work / Owner 直接维护"]
-    ownerBranch["Owner non-release branch / Owner 非 release 分支"]
     forkBranch["Fork non-main branch / Fork 非 main 分支"]
     mainBranch["main / 日常迭代"]
     releaseBranch["release / 发布前验收"]
@@ -127,9 +133,8 @@ flowchart LR
     windowsRelease["Windows GitHub Release"]
 
     ownerDirect -->|"Normal push / 正常推送"| mainBranch
-    ownerBranch -->|"Merge and normal push / 合并并正常推送"| mainBranch
     forkBranch -->|"PR / 贡献 PR"| mainBranch
-    mainBranch -->|"PR only / 仅 PR"| releaseBranch
+    mainBranch -->|"Direct owner PR / Owner 直接 PR"| releaseBranch
     releaseBranch --> acceptance
     acceptance -->|"Owner tag / Owner 打标"| macTag
     acceptance -->|"Owner tag / Owner 打标"| windowsTag
@@ -148,8 +153,9 @@ flowchart LR
    from the latest `main` for one coherent change.
 2. Open the contribution pull request against the upstream `main`; do not target
    `release`.
-3. A release pull request is maintained by the repository owner and must use
-   `main` as its source and `release` as its target.
+3. A release pull request is maintained by the repository owner, uses `main` as
+   its source, and targets `release` directly. Do not introduce an intermediate
+   promotion branch. If it needs changes, update `main` and refresh this PR.
 4. Add or update tests and user-facing documentation where relevant.
 5. Validate every changed native platform on that operating system.
 6. Complete the pull request template with exact evidence and known limits.

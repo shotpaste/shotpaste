@@ -11,12 +11,10 @@ import CoreGraphics
 struct SpotlightRegion {
   let rect: CGRect
   let cornerRadius: CGFloat
-  let opacity: CGFloat // darkness strength, clamped 0.1...0.9
 }
 
 nonisolated enum SpotlightCompositor {
-  /// Darken canvasRect except the union of spotlight regions. Opacity is sourced from regions themselves,
-  /// so per-item slider changes reflect immediately without a global state sync cycle.
+  /// Darken canvasRect except the union of spotlight regions.
   static func drawOverlay(
     regions: [SpotlightRegion], // committed spotlight items (canvas coord space)
     previewRegion: SpotlightRegion?, // in-progress drag rect; nil for export
@@ -26,15 +24,10 @@ nonisolated enum SpotlightCompositor {
     let holes = regions + (previewRegion.map { [$0] } ?? [])
     guard !holes.isEmpty else { return }
 
-    // All regions share a single global opacity (per design). Source from first committed region;
-    // fall back to preview region when no committed regions exist yet (first drag).
-    let opacity = (regions.first ?? previewRegion)?.opacity ?? 0.5
-    guard opacity > 0 else { return }
-
     context.saveGState()
     context.beginTransparencyLayer(auxiliaryInfo: nil)
 
-    context.setFillColor(NSColor.black.withAlphaComponent(opacity).cgColor)
+    context.setFillColor(NSColor.black.withAlphaComponent(AnnotationProperties.spotlightOverlayOpacity).cgColor)
     context.fill(canvasRect)
 
     context.setBlendMode(.clear)

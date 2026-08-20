@@ -36,7 +36,7 @@ final class AnnotateImageOpsTests: XCTestCase {
 
     state.loadImage(image)
 
-    XCTAssertTrue(state.hasImage)
+    XCTAssertNotNil(state.sourceImage)
     XCTAssertEqual(state.sourceImage?.size.width ?? 0, 240, accuracy: 0.0001)
     XCTAssertEqual(state.sourceImage?.size.height ?? 0, 160, accuracy: 0.0001)
     XCTAssertEqual(state.imageWidth, 240, accuracy: 0.0001)

@@ -69,7 +69,7 @@ final class ShortcutCoreTests: XCTestCase {
     XCTAssertFalse(GlobalShortcutKind.allCases.map(\.rawValue).contains("annotate"))
   }
 
-  func testRemovedLegacyShortcutKindsAreIgnoredWhenLoadingDisabledPreferences() {
+  func testDisabledShortcutSetIgnoresUnknownRawValues() {
     let freshDefaults = KeyboardShortcutManager.disabledShortcutSet(from: nil)
     XCTAssertTrue(freshDefaults.isEmpty)
 

@@ -178,38 +178,6 @@ final class CaptureHistoryStoreTests: XCTestCase {
     XCTAssertTrue(updatedPaths.contains("/tmp/other.png"))
   }
 
-  // MARK: - markFileChanged
-
-  func testMarkFileChanged_setsThumbnailNilAndUpdatesFileSize() {
-    let fileURL = testDirectory.appendingPathComponent("changed.png")
-    try? Data("pngdata".utf8).write(to: fileURL)
-    let record = makeRecord(filePath: fileURL.path, thumbnailPath: "/tmp/thumb.png")
-    CaptureHistoryStore.shared.add(record)
-    CaptureHistoryStore.shared.refreshRecords()
-
-    let expectation = expectation(forNotification: .captureHistoryFileDidChange,
-                                  object: CaptureHistoryStore.shared) { notification in
-      guard let ids = notification.userInfo?["recordIDs"] as? [UUID] else { return false }
-      return ids.contains(record.id)
-    }
-
-    let updatedIds = CaptureHistoryStore.shared.markFileChanged(at: fileURL)
-    XCTAssertEqual(updatedIds, [record.id])
-
-    wait(for: [expectation], timeout: 2.0)
-
-    CaptureHistoryStore.shared.refreshRecords()
-    XCTAssertNil(CaptureHistoryStore.shared.records.first?.thumbnailPath)
-    XCTAssertEqual(CaptureHistoryStore.shared.records.first?.fileSize, 7)
-    XCTAssertEqual(CaptureHistoryStore.shared.records.first?.fileName, "changed.png")
-  }
-
-  func testMarkFileChanged_returnsEmptyForUnknownFile() {
-    let fileURL = testDirectory.appendingPathComponent("unknown.png")
-    let updatedIds = CaptureHistoryStore.shared.markFileChanged(at: fileURL)
-    XCTAssertTrue(updatedIds.isEmpty)
-  }
-
   // MARK: - hasRecord
 
   func testHasRecord_trueForExistingPath() {
@@ -315,18 +283,6 @@ final class CaptureHistoryStoreTests: XCTestCase {
 
     XCTAssertNil(CaptureHistoryStore.shared.records.first?.thumbnailPath)
     XCTAssertNil(CaptureHistoryStore.shared.records.last?.thumbnailPath)
-  }
-
-  // MARK: - recentRecords
-
-  func testRecentReturnsPrefix() {
-    for i in 0 ..< 5 {
-      CaptureHistoryStore.shared.add(makeRecord(capturedAt: Date().addingTimeInterval(-Double(i))))
-    }
-    CaptureHistoryStore.shared.refreshRecords()
-
-    let recent = CaptureHistoryStore.shared.recentRecords(limit: 3)
-    XCTAssertEqual(recent.count, 3)
   }
 
   // MARK: - Helpers

@@ -99,6 +99,20 @@ public partial class MouseClickOverlayWindow : Window
         Canvas.SetTop(ellipse, center.Y - radius);
         RippleCanvas.Children.Add(ellipse);
 
+        if (ShotPaste.Windows.Services.AccessibilityPreferences.ReduceMotion)
+        {
+            ellipse.RenderTransform = Transform.Identity;
+            ellipse.Opacity = _opacity;
+            var timer = new System.Windows.Threading.DispatcherTimer { Interval = _duration };
+            timer.Tick += (_, _) =>
+            {
+                timer.Stop();
+                if (!_closed) RippleCanvas.Children.Remove(ellipse);
+            };
+            timer.Start();
+            return;
+        }
+
         var delayFraction = _rippleCount == 1 ? 0d : index * 0.14d;
         var delay = TimeSpan.FromMilliseconds(_duration.TotalMilliseconds * delayFraction);
         var animationDuration = TimeSpan.FromMilliseconds(Math.Max(80d, _duration.TotalMilliseconds - delay.TotalMilliseconds));

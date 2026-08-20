@@ -151,18 +151,6 @@ func catalog(from url: URL) throws -> Catalog {
   return Catalog(sourceLanguage: sourceLanguage, version: version, strings: strings)
 }
 
-func canonicalData(for object: Any) throws -> Data {
-  guard JSONSerialization.isValidJSONObject(object) else {
-    throw ToolError.invalidManifest("JSON object is not serializable")
-  }
-
-  var data = try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys])
-  if data.last != 0x0A {
-    data.append(0x0A)
-  }
-  return data
-}
-
 func sourceDirectoryURL(_ manifest: Manifest) -> URL {
   repoRoot.appendingPathComponent(manifest.sourceDirectory)
 }

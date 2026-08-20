@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Interop;
 using Drawing = System.Drawing;
 using ShotPaste.Windows.Interop;
+using ShotPaste.Windows.Services;
 
 namespace ShotPaste.Windows.Views;
 
@@ -41,7 +42,7 @@ public partial class ScrollingRegionOverlayWindow : Window
         var toolWindowStyle = App.UiTestMode ? 0 : NativeMethods.WsExToolWindow;
         NativeMethods.SetWindowLongPtr(handle, NativeMethods.GwlExStyle,
             new IntPtr(style | NativeMethods.WsExTransparent | toolWindowStyle | NativeMethods.WsExNoActivate));
-        NativeMethods.SetWindowDisplayAffinity(handle, NativeMethods.WdaExcludeFromCapture);
+        WindowCaptureExclusionService.ExcludeCaptureControl(handle);
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
