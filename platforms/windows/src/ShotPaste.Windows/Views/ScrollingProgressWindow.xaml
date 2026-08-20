@@ -1,57 +1,52 @@
 <Window x:Class="ShotPaste.Windows.Views.ScrollingProgressWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="ShotPaste · 滚动截屏" Width="360" SizeToContent="Height"
+        Title="ShotPaste · 滚动截屏" SizeToContent="WidthAndHeight"
         WindowStyle="None" ResizeMode="NoResize"
-        WindowStartupLocation="Manual" Background="{DynamicResource WindowBackdropBrush}" ShowInTaskbar="False"
-        ShowActivated="False" Focusable="True" Topmost="True"
+        WindowStartupLocation="Manual" Background="Transparent" AllowsTransparency="True"
+        ShowInTaskbar="False" ShowActivated="False" Focusable="True" Topmost="True"
         AutomationProperties.AutomationId="ScrollingProgressWindow" AutomationProperties.Name="滚动截屏控制">
-  <Border CornerRadius="{DynamicResource Radius.Card}" Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="12">
-    <Grid>
-      <Grid.RowDefinitions>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="Auto"/>
-      </Grid.RowDefinitions>
-
-      <Grid>
-        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-        <StackPanel Margin="0,0,8,0">
-          <TextBlock Text="滚动截屏" Foreground="{DynamicResource HudTextBrush}" FontWeight="SemiBold" FontSize="13"/>
-          <TextBlock x:Name="ProgressText" Text="正在锁定首帧…" Foreground="{DynamicResource HudSecondaryTextBrush}" Margin="0,3,0,0" FontSize="11" TextWrapping="Wrap"
-                     AutomationProperties.LiveSetting="Polite"/>
-        </StackPanel>
-        <Border Grid.Column="1" CornerRadius="{DynamicResource Radius.Sm}" Background="{DynamicResource SuccessSoftBrush}" Padding="7,3" VerticalAlignment="Top">
-          <TextBlock x:Name="TruthBadge" Text="已捕获" Foreground="{DynamicResource SuccessBrush}" FontSize="10" FontWeight="SemiBold"/>
-        </Border>
-      </Grid>
-
-      <TextBlock x:Name="GuidanceText" Grid.Row="1" Text="把鼠标放回选区，可向上补齐顶部或向下继续滚动；停下不会结束。"
-                 Foreground="{DynamicResource HudTextBrush}" Opacity="0.82" FontSize="11" TextWrapping="Wrap" Margin="1,10,1,10"/>
-
-      <Grid x:Name="CaptureActions" Grid.Row="2">
-        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-        <TextBlock x:Name="FooterHint" Text="换向前稍作停顿，保持平稳滚动" Foreground="{DynamicResource HudSecondaryTextBrush}" Opacity="0.65" FontSize="10" VerticalAlignment="Center"/>
-        <Button x:Name="CancelButton" Grid.Column="1" Content="取消" Margin="8,0,0,0" Padding="14,5"
-                Style="{StaticResource HudTextButton}" Click="OnCancel"
-                AutomationProperties.AutomationId="ScrollingCancel" AutomationProperties.Name="取消滚动截屏"/>
-        <Button x:Name="AutoScrollButton" Grid.Column="2" Content="自动滚动" Margin="8,0,0,0" Padding="10,5"
-                Visibility="Collapsed" IsEnabled="False" Style="{StaticResource HudTextButton}" Click="OnAutoScroll"
-                AutomationProperties.AutomationId="ScrollingAutoScroll" AutomationProperties.Name="切换自动滚动"/>
-        <Button x:Name="PrimaryButton" Grid.Column="3" Content="开始截取" Margin="8,0,0,0" Padding="16,5"
+  <Grid>
+    <Border x:Name="CompactHud" CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource HudBrush}"
+            BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="8">
+      <Grid x:Name="CaptureActions">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <Button x:Name="PrimaryButton" Grid.Column="0" Content="开始截取" Padding="14,5"
                 Style="{StaticResource AccentButton}" Click="OnPrimary"
                 AutomationProperties.AutomationId="ScrollingPrimary" AutomationProperties.Name="开始或完成滚动截屏"/>
+        <Button x:Name="CancelButton" Grid.Column="1" Content="{StaticResource Icon.Close}"
+                ContentTemplate="{StaticResource Icon.Template}" Width="30" Height="28" Margin="8,0,0,0" Padding="0"
+                Style="{StaticResource HudTextButton}" Click="OnCancel"
+                AutomationProperties.AutomationId="ScrollingCancel" AutomationProperties.Name="取消滚动截屏"/>
       </Grid>
-      <WrapPanel x:Name="SaveRecoveryActions" Grid.Row="2" HorizontalAlignment="Right" Visibility="Collapsed">
-        <Button x:Name="CopyResultButton" Content="复制" Style="{StaticResource HudTextButton}" Padding="10,5" Margin="0,0,6,0" Click="OnCopyResult"
-                AutomationProperties.AutomationId="ScrollingRecoveryCopy" AutomationProperties.Name="复制"/>
-        <Button x:Name="SaveAsButton" Content="另存为..." Style="{StaticResource HudTextButton}" Padding="10,5" Margin="0,0,6,0" Click="OnSaveAs"
-                AutomationProperties.AutomationId="ScrollingRecoverySaveAs" AutomationProperties.Name="另存为..."/>
-        <Button x:Name="DiscardResultButton" Content="不要保存" Style="{StaticResource HudTextButton}" Padding="10,5" Margin="0,0,6,0" Click="OnDiscardResult"
-                AutomationProperties.AutomationId="ScrollingRecoveryDiscard" AutomationProperties.Name="不要保存"/>
-        <Button x:Name="RetrySaveButton" Content="重试保存" Style="{StaticResource AccentButton}" Padding="12,5" Click="OnRetrySave"
-                AutomationProperties.AutomationId="ScrollingRecoveryRetry" AutomationProperties.Name="重试保存长图"/>
-      </WrapPanel>
-    </Grid>
-  </Border>
+    </Border>
+
+    <Border x:Name="SaveRecoveryPanel" Visibility="Collapsed" MinWidth="360" MaxWidth="520"
+            CornerRadius="{DynamicResource Radius.Card}" Background="{DynamicResource HudBrush}"
+            BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="12">
+      <StackPanel>
+        <TextBlock x:Name="RecoveryTitle" Text="长图保存失败 · 成果仍保留"
+                   Foreground="{DynamicResource HudTextBrush}" FontWeight="SemiBold" FontSize="13"/>
+        <TextBlock x:Name="RecoveryDetail" Foreground="{DynamicResource HudSecondaryTextBrush}"
+                   FontSize="11" TextWrapping="Wrap" Margin="0,7,0,10"/>
+        <WrapPanel HorizontalAlignment="Right">
+          <Button x:Name="CopyResultButton" Content="复制" Style="{StaticResource HudTextButton}"
+                  Padding="10,5" Margin="0,0,6,0" Click="OnCopyResult"
+                  AutomationProperties.AutomationId="ScrollingRecoveryCopy" AutomationProperties.Name="复制"/>
+          <Button x:Name="SaveAsButton" Content="另存为..." Style="{StaticResource HudTextButton}"
+                  Padding="10,5" Margin="0,0,6,0" Click="OnSaveAs"
+                  AutomationProperties.AutomationId="ScrollingRecoverySaveAs" AutomationProperties.Name="另存为..."/>
+          <Button x:Name="DiscardResultButton" Content="不要保存" Style="{StaticResource HudTextButton}"
+                  Padding="10,5" Margin="0,0,6,0" Click="OnDiscardResult"
+                  AutomationProperties.AutomationId="ScrollingRecoveryDiscard" AutomationProperties.Name="不要保存"/>
+          <Button x:Name="RetrySaveButton" Content="重试保存" Style="{StaticResource AccentButton}"
+                  Padding="12,5" Click="OnRetrySave"
+                  AutomationProperties.AutomationId="ScrollingRecoveryRetry" AutomationProperties.Name="重试保存长图"/>
+        </WrapPanel>
+      </StackPanel>
+    </Border>
+  </Grid>
 </Window>

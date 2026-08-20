@@ -35,6 +35,10 @@ public sealed class WindowCaptureExclusionService : IDisposable
 
     public bool IsEnabled => _enabled;
 
+    public static bool ExcludeCaptureControl(IntPtr handle) =>
+        handle != IntPtr.Zero &&
+        NativeMethods.SetWindowDisplayAffinity(handle, NativeMethods.WdaExcludeFromCapture);
+
     internal bool IsHandleExcluded(IntPtr handle) =>
         handle != IntPtr.Zero && _previousAffinities.ContainsKey(handle);
 

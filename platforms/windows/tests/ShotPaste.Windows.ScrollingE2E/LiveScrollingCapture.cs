@@ -49,11 +49,24 @@ internal static class LiveScrollingCapture
         TaskCompletionSource<int> completion)
     {
         var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        // The E2E host is not started through ShotPaste's App.xaml. Provide the two
-        // style keys needed to instantiate the real scrolling HUD and exercise its
-        // routed click/state logic; production uses the full App.xaml definitions.
-        application.Resources["HudTextButton"] = new Style(typeof(Button));
-        application.Resources["AccentButton"] = new Style(typeof(Button));
+        // The E2E host is not started through ShotPaste's App.xaml. Load the
+        // production tokens/icons/button styles used by the compact HUD and the
+        // independent auto-scroll capsule so XAML construction is representative.
+        var productAssembly = typeof(ScrollingProgressWindow).Assembly.GetName().Name;
+        foreach (var resource in new[]
+                 {
+                     "Resources/DesignTokens.xaml",
+                     "Resources/Icons.xaml",
+                     "Resources/Controls/Buttons.xaml"
+                 })
+        {
+            application.Resources.MergedDictionaries.Add(new ResourceDictionary
+            {
+                Source = new Uri(
+                    $"pack://application:,,,/{productAssembly};component/{resource}",
+                    UriKind.Absolute)
+            });
+        }
         var window = BuildFixture(out var scrollViewer);
         var renderedOffsetBits = BitConverter.DoubleToInt64Bits(0);
         var capturedOffsets = new ConcurrentQueue<double>();
@@ -195,6 +208,7 @@ internal static class LiveScrollingCapture
     private static void VerifyProgressHudState(Drawing.Rectangle region)
     {
         var hud = new ScrollingProgressWindow();
+        var autoScrollWindow = new ScrollingAutoScrollWindow();
         try
         {
             hud.ShowReady(region);
@@ -204,15 +218,12 @@ internal static class LiveScrollingCapture
                           throw new InvalidOperationException("Scrolling HUD primary button was not created.");
             var cancel = hud.FindName("CancelButton") as Button ??
                          throw new InvalidOperationException("Scrolling HUD cancel button was not created.");
-            var autoScroll = hud.FindName("AutoScrollButton") as Button ??
-                             throw new InvalidOperationException("Scrolling HUD auto-scroll button was not created.");
             if (!Equals(primary.Content, "开始截取") || !primary.IsEnabled || !cancel.IsEnabled ||
-                autoScroll.Visibility != Visibility.Collapsed)
+                hud.FindName("AutoScrollButton") is not null)
                 throw new InvalidOperationException("Scrolling HUD did not enter the ready/start state.");
-            if (Grid.GetColumn(cancel) >= Grid.GetColumn(autoScroll) ||
-                Grid.GetColumn(autoScroll) >= Grid.GetColumn(primary))
+            if (Grid.GetColumn(primary) >= Grid.GetColumn(cancel))
                 throw new InvalidOperationException(
-                    "Scrolling HUD action order does not match macOS: Cancel, Auto Scroll, Done.");
+                    "Scrolling HUD ready action order does not match macOS: Start, Cancel.");
 
             var startRequests = 0;
             hud.StartRequested += (_, _) => startRequests++;
@@ -222,18 +233,31 @@ internal static class LiveScrollingCapture
                     "Scrolling HUD did not leave the start state synchronously after clicking.");
 
             hud.BeginCapture(autoScrollAvailable: true);
+            autoScrollWindow.ShowForCapture(region);
+            autoScrollWindow.UpdateProgress(new ScrollingCaptureProgress(
+                1,
+                region.Height,
+                null,
+                "首帧已锁定"));
             hud.UpdateLayout();
-            if (!Equals(primary.Content, "完成") || !primary.IsEnabled || !hud.IsCapturing)
+            var autoScroll = autoScrollWindow.FindName("ToggleButton") as Button ??
+                             throw new InvalidOperationException("Independent auto-scroll capsule was not created.");
+            if (primary.Content is not Geometry || !primary.IsEnabled || !hud.IsCapturing ||
+                !autoScrollWindow.IsVisible || !autoScroll.IsEnabled)
                 throw new InvalidOperationException("Scrolling HUD did not expose the finish action during capture.");
+            if (Grid.GetColumn(cancel) >= Grid.GetColumn(primary))
+                throw new InvalidOperationException(
+                    "Scrolling HUD capture action order does not match macOS: Cancel, Done.");
 
             hud.BeginFinalizing();
-            if (!Equals(primary.Content, "完成中") || primary.IsEnabled || cancel.IsEnabled ||
-                autoScroll.IsEnabled || !hud.IsInteractionLocked)
+            if (primary.Content is not Geometry || primary.IsEnabled || cancel.IsEnabled ||
+                !hud.IsInteractionLocked)
                 throw new InvalidOperationException("Scrolling HUD did not enter the finalizing state.");
+            autoScrollWindow.StopAndHide();
 
             hud.BeginSaving();
-            if (!Equals(primary.Content, "保存中") || primary.IsEnabled || cancel.IsEnabled ||
-                autoScroll.IsEnabled || !hud.IsInteractionLocked)
+            if (primary.Content is not Geometry || primary.IsEnabled || cancel.IsEnabled ||
+                !hud.IsInteractionLocked)
                 throw new InvalidOperationException("Scrolling HUD did not enter the locked saving state.");
 
             var recovery = hud.WaitForSaveRecoveryActionAsync("Injected save failure for lifecycle verification.");
@@ -245,6 +269,7 @@ internal static class LiveScrollingCapture
         }
         finally
         {
+            autoScrollWindow.CloseAfterWorkflow();
             hud.CloseAfterWorkflow();
         }
     }

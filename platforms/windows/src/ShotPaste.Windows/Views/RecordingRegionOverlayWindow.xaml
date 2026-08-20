@@ -19,5 +19,15 @@
                MouseMove="OnSelectionMouseMove"
                MouseEnter="OnSelectionMouseEnter"
                MouseLeftButtonUp="OnSelectionMouseUp"/>
+    <StackPanel x:Name="ScrollingGuidance" Visibility="Collapsed" IsHitTestVisible="False"
+                HorizontalAlignment="Center">
+      <StackPanel.Effect>
+        <DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="1" Opacity="0.82"/>
+      </StackPanel.Effect>
+      <TextBlock x:Name="ScrollingGuidanceTitle" Foreground="{DynamicResource HudTextBrush}" FontSize="15" FontWeight="SemiBold"
+                 TextAlignment="Center" TextWrapping="Wrap"/>
+      <TextBlock x:Name="ScrollingGuidanceDetail" Foreground="{DynamicResource HudTextBrush}" Opacity="0.9" FontSize="12" FontWeight="Medium"
+                 TextAlignment="Center" TextWrapping="Wrap" Margin="0,4,0,0"/>
+    </StackPanel>
   </Canvas>
 </Window>

@@ -418,7 +418,6 @@ public sealed class AppController : IDisposable
         var workflow = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         _activeScrollingWorkflow = workflow;
         _scrolling = CreateScrollingCaptureService();
-        HideApplicationWindows();
         var region = initialRegion;
         using var cancellation = new CancellationTokenSource();
         var outline = new RecordingRegionOverlayWindow(
@@ -426,7 +425,9 @@ public sealed class AppController : IDisposable
             _capture.VirtualBounds,
             constrainToRegionScreen: true);
         var preview = new ScrollingPreviewWindow();
-        var window = new ScrollingProgressWindow(_settings.Current.ScrollingShowHints, preview);
+        var showHints = _settings.Current.ScrollingShowHints;
+        var window = new ScrollingProgressWindow(showHints, preview);
+        var autoScrollWindow = new ScrollingAutoScrollWindow();
         _activeScrollingWindow = window;
         var startCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var discard = false;
@@ -441,6 +442,7 @@ public sealed class AppController : IDisposable
             // immediately while the tail fence, final crop, encoding, and
             // history insertion continue in the protected workflow.
             window.Hide();
+            autoScrollWindow.StopAndHide();
             preview.Hide();
             outline.Hide();
         };
@@ -449,20 +451,23 @@ public sealed class AppController : IDisposable
             discard = true;
             startCompletion.TrySetResult(false);
             cancellation.Cancel();
+            autoScrollWindow.StopAndHide();
         };
-        window.AutoScrollRequested += (_, _) =>
-            Volatile.Write(ref autoScrollState, window.IsAutoScrollEnabled ? 1 : 0);
+        autoScrollWindow.ToggleRequested += (_, _) =>
+            Volatile.Write(ref autoScrollState, autoScrollWindow.IsAutoScrollEnabled ? 1 : 0);
         window.Closed += (_, _) => startCompletion.TrySetResult(false);
         outline.RegionChanged += updatedRegion =>
         {
             region = updatedRegion;
             window.UpdateReadyRegion(updatedRegion);
+            autoScrollWindow.PositionInside(updatedRegion);
         };
         outline.SetScrollingAppearance(capturing: false);
+        if (showHints)
+            outline.SetScrollingGuidance("可拖动选区或八个边缘调整范围；只框选会滚动的内容，然后点击开始。");
         window.ShowReady(region);
         window.PositionNear(region);
         outline.Show();
-        preview.Show();
         window.Show();
         Bitmap? captured = null;
         try
@@ -473,7 +478,9 @@ public sealed class AppController : IDisposable
                 if (!shouldStart || discard) return;
 
                 outline.SetScrollingAppearance(capturing: true);
+                if (showHints) outline.SetScrollingGuidance("正在锁定选区和首帧，请稍候。");
                 window.BeginCapture(true);
+                autoScrollWindow.ShowForCapture(region);
                 window.PositionNear(region);
                 await window.Dispatcher.InvokeAsync(
                     window.UpdateLayout,
@@ -486,7 +493,17 @@ public sealed class AppController : IDisposable
                 var scrollTarget = NativeMethods.GetAncestor(NativeMethods.WindowFromPoint(center), NativeMethods.GaRoot);
                 using var wheelMonitor = new MouseWheelMonitor();
                 wheelMonitor.Start(region);
-                var progress = new Progress<ScrollingCaptureProgress>(window.UpdateProgress);
+                var progress = new Progress<ScrollingCaptureProgress>(progress =>
+                {
+                    window.UpdateProgress(progress);
+                    autoScrollWindow.UpdateProgress(progress);
+                    if (showHints)
+                    {
+                        outline.SetScrollingGuidance(
+                            progress.Status,
+                            progress.Height > 0 ? $"已拼接 {progress.Frames} 帧 · {progress.Height:N0} px" : null);
+                    }
+                });
                 captured = await _scrolling.CaptureAsync(
                     region,
                     scrollTarget,
@@ -517,9 +534,9 @@ public sealed class AppController : IDisposable
         finally
         {
             window.CloseAfterWorkflow();
+            autoScrollWindow.CloseAfterWorkflow();
             preview.Close();
             outline.Close();
-            RestoreMainWindowIfNeeded();
             workflow.TrySetResult(true);
             if (ReferenceEquals(_activeScrollingWorkflow, workflow)) _activeScrollingWorkflow = null;
             if (ReferenceEquals(_activeScrollingWindow, window)) _activeScrollingWindow = null;
@@ -1037,11 +1054,11 @@ public sealed class AppController : IDisposable
         _recordingToolbar?.SetPenActive(false);
     }
 
-    private async Task<CaptureHistoryItem> FinishImageCaptureAsync(string path, CaptureKind kind, Bitmap image)
+    private async Task<CaptureHistoryItem> FinishImageCaptureAsync(string path, CaptureKind kind, Bitmap _)
     {
         if (_settings.Current.CopyScreenshots)
         {
-            ClipboardWriter.SetImage(BitmapSourceFactory.FromBitmap(image));
+            await ClipboardWriter.SetImageFileAsync(path);
         }
         var item = await _history.AddFileAsync(path, kind);
         if (_settings.Current.ShowQuickAccess && _settings.Current.ShowQuickAccessForScreenshots) ShowQuickAccess(item);
@@ -1553,13 +1570,18 @@ public sealed class AppController : IDisposable
         _settings.Current.HideDesktopWidgetsInScreenshots,
         _settings.Current.ExcludeOwnApplicationFromScreenshots);
 
-    private ScrollingCaptureService CreateScrollingCaptureService() => new(
-        _capture,
-        captureOptionsProvider: () => new ScreenCaptureOptions(
+    internal static ScreenCaptureOptions ScrollingCaptureOptions => new(
             IncludeCursor: false,
             HideDesktopIcons: false,
             HideDesktopWidgets: false,
-            ExcludeOwnApplication: _settings.Current.ExcludeOwnApplicationFromScreenshots));
+            // Scrolling capture keeps shareable ShotPaste windows visible. Its
+            // region outline, compact HUD, auto-scroll capsule, and preview rail
+            // each opt out through WDA_EXCLUDEFROMCAPTURE.
+            ExcludeOwnApplication: false);
+
+    private ScrollingCaptureService CreateScrollingCaptureService() => new(
+        _capture,
+        captureOptionsProvider: () => ScrollingCaptureOptions);
 
     private Drawing.Bitmap PrepareScreenshot(Drawing.Bitmap source)
     {

@@ -25,6 +25,12 @@ public sealed class AppControllerFlowTests
     }
 
     [Fact]
+    public void ScrollingCapture_KeepsShareableShotPasteWindowsVisible()
+    {
+        Assert.False(AppController.ScrollingCaptureOptions.ExcludeOwnApplication);
+    }
+
+    [Fact]
     public void RecordingToolbar_ExposesMicrophoneLevelAndDistinctStateFeedback()
     {
         var xaml = File.ReadAllText(FindRepositoryFile(
