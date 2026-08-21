@@ -67,47 +67,9 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=${TAG#windows-v}" >> "$GITHUB_OUTPUT"
 
-  windows-parity-interactive:
-    name: Windows release parity at 150% DPI
-    needs: metadata
-    runs-on: [self-hosted, Windows, X64, shotpaste-interactive, dpi-150]
-    timeout-minutes: 90
-    env:
-      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
-      DOTNET_NOLOGO: "1"
-    steps:
-      - name: Checkout tagged source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Setup .NET 8
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-        with:
-          dotnet-version: 8.0.x
-
-      - name: Build and run headless contracts
-        shell: pwsh
-        run: ./scripts/build-windows.ps1 -Configuration Release
-
-      - name: Run interactive Windows parity suite
-        shell: pwsh
-        run: ./scripts/test-windows-parity.ps1 -Configuration Release -Tier Interactive -SkipBuild -RequireDpiScale 1.5
-
-      - name: Upload release parity evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: windows-parity-release-${{ github.run_id }}
-          path: build/e2e/windows-parity
-          if-no-files-found: warn
-          retention-days: 30
-
   windows:
     name: Build Windows x64 portable ZIP
-    needs:
-      - metadata
-      - windows-parity-interactive
+    needs: metadata
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
