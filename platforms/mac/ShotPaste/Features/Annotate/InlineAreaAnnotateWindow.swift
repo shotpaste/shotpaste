@@ -1179,8 +1179,12 @@ private struct InlineAreaAnnotateRootView: View {
 
   @ViewBuilder
   private func resizeHandles(rect: CGRect, desktopRect: CGRect) -> some View {
+    let visualOutset = InlineAreaResizeHandleChrome.visualOutset
     InlineAreaResizeHandlesOverlay()
-      .frame(width: rect.width, height: rect.height)
+      .frame(
+        width: rect.width + visualOutset * 2,
+        height: rect.height + visualOutset * 2
+      )
       .position(x: rect.midX, y: rect.midY)
       .allowsHitTesting(false)
 
@@ -1776,55 +1780,66 @@ private enum InlineAreaResizeHandle: CaseIterable, Identifiable {
 }
 
 private enum InlineAreaResizeHandleChrome {
-  static let borderWidth: CGFloat = 1.5
+  // Keep the visible resize chrome aligned with Windows so each of the eight
+  // handles reads as a separate draggable target instead of a heavy border.
+  static let borderWidth: CGFloat = 1.4
   static let hitSize: CGFloat = 24
-  static let cornerLength: CGFloat = 20
-  static let edgeLength: CGFloat = 24
-  static let thickness: CGFloat = 3
+  static let cornerSize: CGFloat = 16
+  static let cornerPathInset: CGFloat = 1
+  static let edgeLength: CGFloat = 22
+  static let thickness: CGFloat = 2.4
+  static let shadowOffset: CGFloat = 1
+  static let visualOutset: CGFloat = cornerSize / 2 + thickness / 2 + shadowOffset
 }
 
 private struct InlineAreaResizeHandlesOverlay: View {
   var body: some View {
     Canvas { context, size in
-      let rect = CGRect(origin: .zero, size: size)
+      let visualOutset = InlineAreaResizeHandleChrome.visualOutset
+      let rect = CGRect(
+        x: visualOutset,
+        y: visualOutset,
+        width: max(0, size.width - visualOutset * 2),
+        height: max(0, size.height - visualOutset * 2)
+      )
       let shortestSide = min(rect.width, rect.height)
-      let cornerLength = min(
-        InlineAreaResizeHandleChrome.cornerLength,
+      let cornerSize = min(
+        InlineAreaResizeHandleChrome.cornerSize,
         max(10, shortestSide * 0.38)
       )
 
-      drawCornerHandles(in: rect, length: cornerLength, context: &context)
-      drawEdgeHandles(in: rect, cornerLength: cornerLength, context: &context)
+      drawCornerHandles(in: rect, size: cornerSize, context: &context)
+      drawEdgeHandles(in: rect, cornerSize: cornerSize, context: &context)
     }
   }
 
   private func drawCornerHandles(
     in rect: CGRect,
-    length: CGFloat,
+    size: CGFloat,
     context: inout GraphicsContext
   ) {
     drawCorner(
       at: CGPoint(x: rect.minX, y: rect.minY),
       corner: .topLeft,
-      length: length,
+      size: size,
       context: &context
     )
     drawCorner(
       at: CGPoint(x: rect.maxX, y: rect.minY),
       corner: .topRight,
-      length: length,
+      size: size,
       context: &context
     )
     drawCorner(
       at: CGPoint(x: rect.minX, y: rect.maxY),
       corner: .bottomLeft,
-      length: length,
+      size: size,
       context: &context
     )
     drawCorner(
       at: CGPoint(x: rect.maxX, y: rect.maxY),
       corner: .bottomRight,
-      length: length,
+      size: size,
       context: &context
     )
   }
@@ -1832,30 +1847,36 @@ private struct InlineAreaResizeHandlesOverlay: View {
   private func drawCorner(
     at point: CGPoint,
     corner: InlineAreaResizeHandle,
-    length: CGFloat,
+    size: CGFloat,
     context: inout GraphicsContext
   ) {
     let thickness = InlineAreaResizeHandleChrome.thickness
+    let outerOffset = max(0, size / 2 - InlineAreaResizeHandleChrome.cornerPathInset)
+    let innerExtent = size / 2
+    let armLength = outerOffset + innerExtent
 
     let horizontalRect: CGRect
     let verticalRect: CGRect
 
     switch corner {
-    case .topLeft:
-      horizontalRect = CGRect(x: point.x, y: point.y, width: length, height: thickness)
-      verticalRect = CGRect(x: point.x, y: point.y, width: thickness, height: length)
-    case .topRight:
-      horizontalRect = CGRect(x: point.x - length, y: point.y, width: length, height: thickness)
-      verticalRect = CGRect(x: point.x - thickness, y: point.y, width: thickness, height: length)
-    case .bottomLeft:
-      horizontalRect = CGRect(x: point.x, y: point.y - thickness, width: length, height: thickness)
-      verticalRect = CGRect(x: point.x, y: point.y - length, width: thickness, height: length)
-    case .bottomRight:
+    case .topLeft, .topRight, .bottomLeft, .bottomRight:
+      let isLeft = corner.adjustsLeft
+      let isTop = corner.adjustsTop
+      let elbow = CGPoint(
+        x: point.x + (isLeft ? -outerOffset : outerOffset),
+        y: point.y + (isTop ? -outerOffset : outerOffset)
+      )
       horizontalRect = CGRect(
-        x: point.x - length, y: point.y - thickness, width: length, height: thickness
+        x: isLeft ? elbow.x : elbow.x - armLength,
+        y: elbow.y - thickness / 2,
+        width: armLength,
+        height: thickness
       )
       verticalRect = CGRect(
-        x: point.x - thickness, y: point.y - length, width: thickness, height: length
+        x: elbow.x - thickness / 2,
+        y: isTop ? elbow.y : elbow.y - armLength,
+        width: thickness,
+        height: armLength
       )
     default:
       return
@@ -1867,43 +1888,59 @@ private struct InlineAreaResizeHandlesOverlay: View {
 
   private func drawEdgeHandles(
     in rect: CGRect,
-    cornerLength: CGFloat,
+    cornerSize: CGFloat,
     context: inout GraphicsContext
   ) {
     let thickness = InlineAreaResizeHandleChrome.thickness
     let minimumGap: CGFloat = 12
 
-    if rect.width >= cornerLength * 2 + minimumGap {
+    if rect.width >= cornerSize * 2 + minimumGap {
       let length = min(
         InlineAreaResizeHandleChrome.edgeLength,
-        max(10, rect.width - cornerLength * 2 - 8)
+        max(10, rect.width - cornerSize * 2 - 8)
       )
       let halfLength = length / 2
       drawHandleBar(
-        CGRect(x: rect.midX - halfLength, y: rect.minY, width: length, height: thickness),
+        CGRect(
+          x: rect.midX - halfLength,
+          y: rect.minY - thickness / 2,
+          width: length,
+          height: thickness
+        ),
         context: &context
       )
       drawHandleBar(
         CGRect(
-          x: rect.midX - halfLength, y: rect.maxY - thickness, width: length, height: thickness
+          x: rect.midX - halfLength,
+          y: rect.maxY - thickness / 2,
+          width: length,
+          height: thickness
         ),
         context: &context
       )
     }
 
-    if rect.height >= cornerLength * 2 + minimumGap {
+    if rect.height >= cornerSize * 2 + minimumGap {
       let length = min(
         InlineAreaResizeHandleChrome.edgeLength,
-        max(10, rect.height - cornerLength * 2 - 8)
+        max(10, rect.height - cornerSize * 2 - 8)
       )
       let halfLength = length / 2
       drawHandleBar(
-        CGRect(x: rect.minX, y: rect.midY - halfLength, width: thickness, height: length),
+        CGRect(
+          x: rect.minX - thickness / 2,
+          y: rect.midY - halfLength,
+          width: thickness,
+          height: length
+        ),
         context: &context
       )
       drawHandleBar(
         CGRect(
-          x: rect.maxX - thickness, y: rect.midY - halfLength, width: thickness, height: length
+          x: rect.maxX - thickness / 2,
+          y: rect.midY - halfLength,
+          width: thickness,
+          height: length
         ),
         context: &context
       )
@@ -1912,7 +1949,12 @@ private struct InlineAreaResizeHandlesOverlay: View {
 
   private func drawHandleBar(_ rect: CGRect, context: inout GraphicsContext) {
     context.fill(
-      Path(rect.offsetBy(dx: 0, dy: 1)),
+      Path(
+        rect.offsetBy(
+          dx: 0,
+          dy: InlineAreaResizeHandleChrome.shadowOffset
+        )
+      ),
       with: .color(.black.opacity(0.5))
     )
     context.fill(Path(rect), with: .color(.white))

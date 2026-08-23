@@ -47,6 +47,8 @@ public sealed class TrayIconServiceTests
         Assert.Contains("OneShotRequested", method, StringComparison.Ordinal);
         Assert.Contains("HistoryRequested", method, StringComparison.Ordinal);
         Assert.Contains("UpdateQuickAccessMenuVisibility();", method, StringComparison.Ordinal);
+        Assert.Contains("ActivateMenuForOutsideClickDismissal(menu);", method, StringComparison.Ordinal);
+        Assert.Contains("NativeMethods.SetForegroundWindow(handle)", method, StringComparison.Ordinal);
         Assert.Contains("menu.PlacementTarget = null;", method, StringComparison.Ordinal);
         Assert.Contains("menu.PlacementTarget = _menuPlacementTarget?.Invoke();", source, StringComparison.Ordinal);
         Assert.Contains("if (_menu?.IsOpen == true)", source, StringComparison.Ordinal);
