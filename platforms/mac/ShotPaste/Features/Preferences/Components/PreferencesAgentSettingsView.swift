@@ -10,6 +10,7 @@ import SwiftUI
 struct AgentSettingsView: View {
   @ObservedObject private var agentMode = AgentModeController.shared
   @ObservedObject private var screenCaptureManager = ScreenCaptureManager.shared
+  @ObservedObject private var navigationState = PreferencesNavigationState.shared
 
   @AppStorage(PreferencesKeys.agentProviderEndpoint)
   private var endpoint = AgentProviderConfiguration.defaultEndpoint
@@ -21,6 +22,12 @@ struct AgentSettingsView: View {
   @AppStorage(PreferencesKeys.agentProviderSendsImages) private var sendsImages = true
   @AppStorage(PreferencesKeys.agentScreenshotRetentionEnabled) private var retainsScreenshots = false
   @AppStorage(PreferencesKeys.agentMaxActions) private var maxActions = 30
+  @AppStorage(PreferencesKeys.agentTranslationTimeoutSeconds) private var translationTimeoutSeconds = 15
+  @AppStorage(PreferencesKeys.agentTranslationPromptMode) private var translationPromptModeRaw = TranslationPromptMode
+    .builtin.rawValue
+  @AppStorage(PreferencesKeys.agentTranslationPrompt) private var translationPrompt = ""
+  @AppStorage(PreferencesKeys.agentTranslationSendsRecognizedText)
+  private var sendsRecognizedText = TranslationSettingsMigration.sendRecognizedText()
 
   @State private var apiKey = ""
   @State private var maskedStoredKey = AgentCredentialStore.shared.maskedStoredAPIKey()
@@ -29,182 +36,291 @@ struct AgentSettingsView: View {
   @State private var agentShortcut = KeyboardShortcutManager.shared.shortcut(for: .agentMode)
   @State private var shortcutIssue: ShortcutValidationIssue?
   @State private var accessibilityGranted = AXIsProcessTrusted()
+  @State private var highlightsTranslation = false
 
   private let credentialStore = AgentCredentialStore.shared
   private let shortcutManager = KeyboardShortcutManager.shared
   private let shortcutValidator = ShortcutValidationService.shared
 
   var body: some View {
-    Form {
-      Section {
-        SettingRow(
-          icon: "cursorarrow.motionlines",
-          title: L10n.Agent.modeTitle,
-          description: L10n.Agent.modeDescription
-        ) {
-          Toggle("", isOn: modeEnabledBinding)
-            .labelsHidden()
+    ScrollViewReader { proxy in
+      Form {
+        Section {
+          SettingRow(
+            icon: "cursorarrow.motionlines",
+            title: L10n.Agent.modeTitle,
+            description: L10n.Agent.modeDescription
+          ) {
+            Toggle("", isOn: modeEnabledBinding)
+              .labelsHidden()
+          }
+
+          HStack(spacing: 8) {
+            Circle()
+              .fill(agentMode.isEnabled ? Color.purple : Color.secondary)
+              .frame(width: 8, height: 8)
+            Text(agentMode.isEnabled ? L10n.Agent.modeEnabledStatus : L10n.Agent.modeDisabledStatus)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+            if agentMode.isEnabled {
+              Text("· \(agentMode.statusMessage)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+          }
         }
 
-        HStack(spacing: 8) {
-          Circle()
-            .fill(agentMode.isEnabled ? Color.purple : Color.secondary)
-            .frame(width: 8, height: 8)
-          Text(agentMode.isEnabled ? L10n.Agent.modeEnabledStatus : L10n.Agent.modeDisabledStatus)
+        Section(L10n.Agent.controlsSection) {
+          ShortcutRecorderView(
+            label: L10n.Agent.shortcutTitle,
+            icon: "keyboard",
+            description: L10n.Agent.shortcutDescription,
+            shortcut: $agentShortcut,
+            defaultShortcut: .defaultAgentMode,
+            isEnabled: shortcutEnabledBinding,
+            validationIssue: shortcutIssue,
+            onShortcutChanged: updateShortcut
+          )
+
+          SettingRow(
+            icon: "number.circle",
+            title: L10n.Agent.maxActionsTitle,
+            description: "\(maxActions)"
+          ) {
+            Stepper("", value: $maxActions, in: 1 ... 100)
+              .labelsHidden()
+          }
+        }
+
+        Section(L10n.Agent.providerSection) {
+          SettingRow(
+            icon: "arrow.left.arrow.right",
+            title: L10n.Agent.protocolTitle,
+            description: ""
+          ) {
+            Picker("", selection: protocolBinding) {
+              Text(L10n.Agent.protocolOpenAICompatible)
+                .tag(AgentProviderAPIProtocol.openAICompatible)
+              Text(L10n.Agent.protocolAnthropicMessages)
+                .tag(AgentProviderAPIProtocol.anthropicMessages)
+            }
+            .labelsHidden()
+            .frame(width: 300)
+          }
+
+          SettingRow(
+            icon: "link",
+            title: L10n.Agent.endpointTitle,
+            description: endpointConfiguration.isValid ? endpointHost : AgentProviderError.invalidConfiguration
+              .localizedDescription
+          ) {
+            TextField(
+              AgentProviderConfiguration.defaultEndpoint(for: selectedProtocol),
+              text: $endpoint
+            )
+            .textFieldStyle(.roundedBorder)
+            .frame(width: 300)
+          }
+
+          SettingRow(
+            icon: "cpu",
+            title: L10n.Agent.modelTitle,
+            description: ""
+          ) {
+            TextField(
+              AgentProviderConfiguration.defaultModel(for: selectedProtocol),
+              text: $model
+            )
+            .textFieldStyle(.roundedBorder)
+            .frame(width: 220)
+          }
+
+          SettingRow(
+            icon: "brain.head.profile",
+            title: L10n.Agent.thinkingTitle,
+            description: ""
+          ) {
+            Toggle("", isOn: $thinkingEnabled)
+              .labelsHidden()
+          }
+
+          SettingRow(
+            icon: "photo",
+            title: L10n.Agent.sendImagesTitle,
+            description: L10n.Agent.sendImagesDescription
+          ) {
+            Toggle("", isOn: $sendsImages)
+              .labelsHidden()
+          }
+
+          VStack(alignment: .leading, spacing: 10) {
+            SettingRow(
+              icon: "key.fill",
+              title: L10n.Agent.apiKeyTitle,
+              description: L10n.Agent.apiKeyDescription
+            ) {
+              SecureField(maskedStoredKey ?? "API key", text: $apiKey)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 220)
+              Button(L10n.Agent.saveKey, action: saveAPIKey)
+                .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+
+            HStack(spacing: 10) {
+              Text(storedKeyStatus)
+                .font(.caption)
+                .foregroundStyle(maskedStoredKey == nil ? Color.secondary : Color.green)
+              Spacer()
+              Button(L10n.Agent.importKey) {
+                importAPIKeyFromShell()
+              }
+              .disabled(isImportingKey)
+              Button(L10n.Agent.removeKey, action: removeAPIKey)
+                .disabled(maskedStoredKey == nil)
+            }
+
+            if let keyOperationMessage {
+              Text(keyOperationMessage)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+          }
+        }
+
+        Section(L10n.Agent.translationSection) {
+          SettingRow(
+            icon: "text.bubble",
+            title: L10n.Agent.translationPromptModeTitle,
+            description: L10n.Agent.translationPromptModeDescription
+          ) {
+            Picker("", selection: translationPromptModeBinding) {
+              Text(L10n.Agent.translationPromptBuiltin).tag(TranslationPromptMode.builtin)
+              Text(L10n.Agent.translationPromptCustom).tag(TranslationPromptMode.custom)
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .frame(width: 300)
+            .accessibilityIdentifier("agent-translation-prompt-mode")
+          }
+
+          VStack(alignment: .leading, spacing: 7) {
+            Text(L10n.Agent.translationPromptTitle)
+              .font(.headline)
+            if translationPromptMode == .builtin {
+              Text(TranslationPreferences.builtinUserPrompt)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
+            } else {
+              TextEditor(text: $translationPrompt)
+                .font(.body)
+                .frame(minHeight: 96)
+                .overlay(
+                  RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color.secondary.opacity(0.25), lineWidth: 1)
+                )
+                .accessibilityIdentifier("agent-translation-custom-prompt")
+              Text(L10n.Agent.translationPromptVariables)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+            Button(L10n.Agent.translationRestoreBuiltin) {
+              translationPromptModeRaw = TranslationPromptMode.builtin.rawValue
+              translationPrompt = ""
+            }
+            .buttonStyle(.bordered)
+          }
+
+          SettingRow(
+            icon: "clock",
+            title: L10n.Agent.translationTimeoutTitle,
+            description: L10n.Agent.translationTimeoutDescription(translationTimeoutSeconds)
+          ) {
+            Stepper("", value: translationTimeoutBinding, in: TranslationPreferences.timeoutRange)
+              .labelsHidden()
+              .accessibilityIdentifier("agent-translation-timeout")
+          }
+
+          SettingRow(
+            icon: "text.bubble",
+            title: L10n.Agent.translationProviderModeTitle,
+            description: L10n.Agent.translationProviderModeDescription
+          ) {
+            translationAvailabilityBadge
+          }
+          .accessibilityIdentifier("agent-translation-provider-mode")
+
+          SettingRow(
+            icon: "lock.shield",
+            title: L10n.Agent.translationSendRecognizedTextTitle,
+            description: L10n.Agent.translationSendRecognizedTextDescription
+          ) {
+            Toggle("", isOn: $sendsRecognizedText)
+              .labelsHidden()
+              .accessibilityIdentifier("agent-translation-send-recognized-text")
+              .accessibilityLabel(L10n.Agent.translationSendRecognizedTextTitle)
+          }
+
+          Text(L10n.Agent.translationOCRCoverageDescription)
             .font(.caption)
             .foregroundStyle(.secondary)
-          if agentMode.isEnabled {
-            Text("· \(agentMode.statusMessage)")
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("agent-translation-ocr-coverage")
+
+          if !sendsRecognizedText {
+            Text(L10n.Agent.translationSendRecognizedTextDisabled)
               .font(.caption)
-              .foregroundStyle(.secondary)
+              .foregroundStyle(.orange)
+          } else if case .unavailable(let failure) = translationAvailability {
+            Text(translationAvailabilityDescription(for: failure))
+              .font(.caption)
+              .foregroundStyle(.orange)
           }
         }
-      }
-
-      Section(L10n.Agent.controlsSection) {
-        ShortcutRecorderView(
-          label: L10n.Agent.shortcutTitle,
-          icon: "keyboard",
-          description: L10n.Agent.shortcutDescription,
-          shortcut: $agentShortcut,
-          defaultShortcut: .defaultAgentMode,
-          isEnabled: shortcutEnabledBinding,
-          validationIssue: shortcutIssue,
-          onShortcutChanged: updateShortcut
+        .id("agent-translation")
+        .padding(8)
+        .background(
+          RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .fill(highlightsTranslation ? Color.accentColor.opacity(0.12) : .clear)
         )
 
-        SettingRow(
-          icon: "number.circle",
-          title: L10n.Agent.maxActionsTitle,
-          description: "\(maxActions)"
-        ) {
-          Stepper("", value: $maxActions, in: 1 ... 100)
-            .labelsHidden()
-        }
-      }
-
-      Section(L10n.Agent.providerSection) {
-        SettingRow(
-          icon: "arrow.left.arrow.right",
-          title: L10n.Agent.protocolTitle,
-          description: ""
-        ) {
-          Picker("", selection: protocolBinding) {
-            Text(L10n.Agent.protocolOpenAICompatible)
-              .tag(AgentProviderAPIProtocol.openAICompatible)
-            Text(L10n.Agent.protocolAnthropicMessages)
-              .tag(AgentProviderAPIProtocol.anthropicMessages)
-          }
-          .labelsHidden()
-          .frame(width: 300)
-        }
-
-        SettingRow(
-          icon: "link",
-          title: L10n.Agent.endpointTitle,
-          description: endpointConfiguration.isValid ? endpointHost : AgentProviderError.invalidConfiguration
-            .localizedDescription
-        ) {
-          TextField(
-            AgentProviderConfiguration.defaultEndpoint(for: selectedProtocol),
-            text: $endpoint
-          )
-          .textFieldStyle(.roundedBorder)
-          .frame(width: 300)
-        }
-
-        SettingRow(
-          icon: "cpu",
-          title: L10n.Agent.modelTitle,
-          description: ""
-        ) {
-          TextField(
-            AgentProviderConfiguration.defaultModel(for: selectedProtocol),
-            text: $model
-          )
-          .textFieldStyle(.roundedBorder)
-          .frame(width: 220)
-        }
-
-        SettingRow(
-          icon: "brain.head.profile",
-          title: L10n.Agent.thinkingTitle,
-          description: ""
-        ) {
-          Toggle("", isOn: $thinkingEnabled)
-            .labelsHidden()
-        }
-
-        SettingRow(
-          icon: "photo",
-          title: L10n.Agent.sendImagesTitle,
-          description: L10n.Agent.sendImagesDescription
-        ) {
-          Toggle("", isOn: $sendsImages)
-            .labelsHidden()
-        }
-
-        VStack(alignment: .leading, spacing: 10) {
+        Section(L10n.Agent.safetySection) {
           SettingRow(
-            icon: "key.fill",
-            title: L10n.Agent.apiKeyTitle,
-            description: L10n.Agent.apiKeyDescription
+            icon: "externaldrive.badge.timemachine",
+            title: L10n.Agent.retainScreenshotsTitle,
+            description: L10n.Agent.retainScreenshotsDescription
           ) {
-            SecureField(maskedStoredKey ?? "API key", text: $apiKey)
-              .textFieldStyle(.roundedBorder)
-              .frame(width: 220)
-            Button(L10n.Agent.saveKey, action: saveAPIKey)
-              .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            Toggle("", isOn: $retainsScreenshots)
+              .labelsHidden()
           }
 
-          HStack(spacing: 10) {
-            Text(storedKeyStatus)
-              .font(.caption)
-              .foregroundStyle(maskedStoredKey == nil ? Color.secondary : Color.green)
-            Spacer()
-            Button(L10n.Agent.importKey) {
-              importAPIKeyFromShell()
+          SettingRow(
+            icon: "lock.shield",
+            title: L10n.Agent.permissionTitle,
+            description: permissionDescription
+          ) {
+            Button(L10n.Agent.openPermissions) {
+              AppStatusBarController.shared.openPreferencesWindow(tab: .permissions)
             }
-            .disabled(isImportingKey)
-            Button(L10n.Agent.removeKey, action: removeAPIKey)
-              .disabled(maskedStoredKey == nil)
-          }
-
-          if let keyOperationMessage {
-            Text(keyOperationMessage)
-              .font(.caption)
-              .foregroundStyle(.secondary)
+            .buttonStyle(.bordered)
+            .controlSize(.small)
           }
         }
       }
-
-      Section(L10n.Agent.safetySection) {
-        SettingRow(
-          icon: "externaldrive.badge.timemachine",
-          title: L10n.Agent.retainScreenshotsTitle,
-          description: L10n.Agent.retainScreenshotsDescription
-        ) {
-          Toggle("", isOn: $retainsScreenshots)
-            .labelsHidden()
-        }
-
-        SettingRow(
-          icon: "lock.shield",
-          title: L10n.Agent.permissionTitle,
-          description: permissionDescription
-        ) {
-          Button(L10n.Agent.openPermissions) {
-            AppStatusBarController.shared.openPreferencesWindow(tab: .permissions)
-          }
-          .buttonStyle(.bordered)
-          .controlSize(.small)
-        }
+      .formStyle(.grouped)
+      .onAppear {
+        TranslationSettingsMigration.applyIfNeeded()
+        sendsRecognizedText = TranslationSettingsMigration.sendRecognizedText()
+        refreshState()
+        revealTranslationIfRequested(using: proxy)
       }
-    }
-    .formStyle(.grouped)
-    .onAppear(perform: refreshState)
-    .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
-      refreshState()
+      .onChange(of: navigationState.agentAnchor) { _ in
+        revealTranslationIfRequested(using: proxy)
+      }
+      .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+        refreshState()
+      }
     }
   }
 
@@ -253,6 +369,84 @@ struct AgentSettingsView: View {
       maxActions: maxActions,
       apiProtocol: selectedProtocol
     )
+  }
+
+  private var translationPromptMode: TranslationPromptMode {
+    TranslationPromptMode(rawValue: translationPromptModeRaw) ?? .builtin
+  }
+
+  private var translationPromptModeBinding: Binding<TranslationPromptMode> {
+    Binding(
+      get: { translationPromptMode },
+      set: { translationPromptModeRaw = $0.rawValue }
+    )
+  }
+
+  private var translationTimeoutBinding: Binding<Int> {
+    Binding(
+      get: {
+        min(
+          max(translationTimeoutSeconds, TranslationPreferences.timeoutRange.lowerBound),
+          TranslationPreferences.timeoutRange.upperBound
+        )
+      },
+      set: { value in
+        translationTimeoutSeconds = min(
+          max(value, TranslationPreferences.timeoutRange.lowerBound),
+          TranslationPreferences.timeoutRange.upperBound
+        )
+      }
+    )
+  }
+
+  private var translationAvailability: TranslationAvailability {
+    let apiKey = try? credentialStore.resolvedAPIKey()
+    return TranslationAvailability.evaluate(
+      configuration: endpointConfiguration,
+      apiKey: apiKey ?? nil,
+      sendRecognizedText: sendsRecognizedText
+    )
+  }
+
+  @ViewBuilder
+  private var translationAvailabilityBadge: some View {
+    switch translationAvailability {
+    case .available:
+      Label(L10n.Agent.translationProviderReady, systemImage: "checkmark.circle.fill")
+        .foregroundStyle(.green)
+        .font(.caption)
+    case .unavailable(.recognizedTextSharingDisabled):
+      Label(L10n.Agent.translationSendRecognizedTextDisabled, systemImage: "lock.shield.fill")
+        .foregroundStyle(.orange)
+        .font(.caption)
+    case .unavailable:
+      Label(L10n.Agent.translationProviderUnavailable, systemImage: "exclamationmark.triangle.fill")
+        .foregroundStyle(.orange)
+        .font(.caption)
+    }
+  }
+
+  private func translationAvailabilityDescription(for failure: TranslationFailure) -> String {
+    switch failure {
+    case .recognizedTextSharingDisabled: L10n.Agent.translationSendRecognizedTextDisabled
+    case .missingAPIKey: L10n.OneShot.translationMissingAPIKey
+    case .invalidConfiguration: L10n.OneShot.translationInvalidConfiguration
+    default: L10n.Agent.translationProviderUnavailable
+    }
+  }
+
+  private func revealTranslationIfRequested(using proxy: ScrollViewProxy) {
+    guard navigationState.agentAnchor == .translation else { return }
+    withAnimation(.easeInOut(duration: 0.2)) {
+      proxy.scrollTo("agent-translation", anchor: .center)
+      highlightsTranslation = true
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+      withAnimation(.easeOut(duration: 0.35)) {
+        highlightsTranslation = false
+      }
+    }
+    navigationState.agentAnchor = nil
   }
 
   private var endpointHost: String {

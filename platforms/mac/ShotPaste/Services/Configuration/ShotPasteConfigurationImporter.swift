@@ -640,6 +640,31 @@ enum ShotPasteConfigurationImporter {
     collectBool(&reader, "agent", "retain_screenshots", mutations: &mutations) {
       defaults.set($0, forKey: PreferencesKeys.agentScreenshotRetentionEnabled)
     }
+    if let engine = reader.string("agent", "translation", "engine"), engine != "provider_text" {
+      reader.error("agent.translation.engine must be provider_text")
+    }
+    collectInt(
+      &reader,
+      "agent", "translation", "timeout_seconds",
+      range: TranslationPreferences.timeoutRange,
+      mutations: &mutations
+    ) {
+      defaults.set($0, forKey: PreferencesKeys.agentTranslationTimeoutSeconds)
+    }
+    collectEnumString(
+      &reader,
+      "agent", "translation", "prompt_mode",
+      allowed: TranslationPromptMode.allCases.map(\.rawValue),
+      mutations: &mutations
+    ) {
+      defaults.set($0, forKey: PreferencesKeys.agentTranslationPromptMode)
+    }
+    collectString(&reader, "agent", "translation", "prompt", mutations: &mutations) {
+      defaults.set($0, forKey: PreferencesKeys.agentTranslationPrompt)
+    }
+    collectBool(&reader, "agent", "translation", "send_recognized_text", mutations: &mutations) {
+      defaults.set($0, forKey: PreferencesKeys.agentTranslationSendsRecognizedText)
+    }
   }
 
   private static func collectBool(

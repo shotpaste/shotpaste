@@ -230,7 +230,12 @@ enum ClipboardHelper {
   /// then writing the file URL. This ensures the pasted result uses the correct format.
   ///
   /// Used by annotation copy where the image is rendered on-the-fly.
-  static func copyImage(_ image: NSImage, format: ImageFormatOption? = nil) {
+  @discardableResult
+  static func copyImage(
+    _ image: NSImage,
+    format: ImageFormatOption? = nil,
+    recordInHistory: Bool = false
+  ) -> URL? {
     DiagnosticLogger.shared.log(
       .info,
       .clipboard,
@@ -253,7 +258,7 @@ enum ClipboardHelper {
       pasteboard.clearContents()
       pasteboard.writeObjects([image])
       markInternalWrite(on: pasteboard)
-      return
+      return nil
     }
 
     // Write to a temp file so the pasteboard can reference it
@@ -272,7 +277,7 @@ enum ClipboardHelper {
       pasteboard.clearContents()
       pasteboard.writeObjects([image])
       markInternalWrite(on: pasteboard)
-      return
+      return nil
     }
 
     let pasteboard = NSPasteboard.general
@@ -286,7 +291,19 @@ enum ClipboardHelper {
       encodedType: pasteboardImageType(for: ext)
     )
 
+    if recordInHistory {
+      let bitmap = image.representations.first as? NSBitmapImageRep
+      CaptureHistoryStore.shared.addCapture(
+        url: tempURL,
+        captureType: .screenshot,
+        origin: .clipboard,
+        width: bitmap?.pixelsWide,
+        height: bitmap?.pixelsHigh
+      )
+    }
+
     logger.info("Clipboard: copied rendered image as \(ext) via temp file")
+    return tempURL
   }
 
   // MARK: - Helpers

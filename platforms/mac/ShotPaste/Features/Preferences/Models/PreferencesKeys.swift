@@ -46,6 +46,13 @@ nonisolated enum PreferencesKeys {
   static let agentProviderSendsImages = "agent.provider.sendsImages"
   static let agentMaxActions = "agent.session.maxActions"
   static let agentScreenshotRetentionEnabled = "agent.session.retainScreenshots"
+  static let agentTranslationTimeoutSeconds = "agent.translation.timeoutSeconds"
+  static let agentTranslationPromptMode = "agent.translation.promptMode"
+  static let agentTranslationPrompt = "agent.translation.prompt"
+  /// Controls whether local OCR text may be sent to the configured translation provider.
+  /// This is intentionally independent from `agentProviderSendsImages`, which only
+  /// controls screenshots sent by Agent Mode.
+  static let agentTranslationSendsRecognizedText = "agent.translation.sendRecognizedText"
 
   // Screenshot
   static let screenshotFormat = "screenshot.format"

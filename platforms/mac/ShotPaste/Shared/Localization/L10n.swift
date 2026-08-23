@@ -442,12 +442,13 @@ nonisolated enum L10n {
       "agent.thinking-title", defaultValue: "Thinking mode", comment: "Agent thinking toggle title"
     )
     static let sendImagesTitle = string(
-      "agent.send-images-title", defaultValue: "Send clean screenshots", comment: "Agent image sending toggle title"
+      "agent.send-images-title", defaultValue: "Send Agent Mode screenshots",
+      comment: "Agent Mode screenshot sending toggle title"
     )
     static let sendImagesDescription = string(
       "agent.send-images-description",
-      defaultValue: "For vision-capable providers; local OCR and Accessibility context are always sent",
-      comment: "Agent image sending description"
+      defaultValue: "Controls screenshots sent by Agent Mode only; it does not control text translation.",
+      comment: "Agent Mode screenshot sending description"
     )
     static let retainScreenshotsTitle = string(
       "agent.retain-screenshots-title", defaultValue: "Retain session screenshots",
@@ -471,6 +472,85 @@ nonisolated enum L10n {
     )
     static let openPermissions = string(
       "agent.open-permissions", defaultValue: "Open Permissions", comment: "Open Agent permissions action"
+    )
+    static let translationSection = string(
+      "agent.translation-section", defaultValue: "Translation", comment: "Screen translation settings section"
+    )
+    static let translationPromptModeTitle = string(
+      "agent.translation-prompt-mode-title", defaultValue: "Translation prompt",
+      comment: "Translation prompt mode setting title"
+    )
+    static let translationPromptModeDescription = string(
+      "agent.translation-prompt-mode-description",
+      defaultValue: "The safety and response-format rules are always enforced.",
+      comment: "Translation prompt mode setting description"
+    )
+    static let translationPromptBuiltin = string(
+      "agent.translation-prompt-builtin", defaultValue: "Built-in", comment: "Built-in translation prompt option"
+    )
+    static let translationPromptCustom = string(
+      "agent.translation-prompt-custom", defaultValue: "Custom", comment: "Custom translation prompt option"
+    )
+    static let translationPromptTitle = string(
+      "agent.translation-prompt-title", defaultValue: "Translation preference",
+      comment: "Translation prompt editor title"
+    )
+    static let translationPromptVariables = string(
+      "agent.translation-prompt-variables",
+      defaultValue: "Supported placeholders: {{source_language}}, {{target_language}}",
+      comment: "Translation prompt variable help"
+    )
+    static let translationRestoreBuiltin = string(
+      "agent.translation-restore-builtin", defaultValue: "Restore built-in prompt",
+      comment: "Restore built-in translation prompt action"
+    )
+    static let translationTimeoutTitle = string(
+      "agent.translation-timeout-title", defaultValue: "Translation timeout",
+      comment: "Translation hard timeout setting title"
+    )
+    static func translationTimeoutDescription(_ seconds: Int) -> String {
+      format(
+        "agent.translation-timeout-description",
+        defaultValue: "%lld seconds for frozen crop, local OCR, paragraph and language analysis, network, retry, response parsing, and layout",
+        comment: "Translation timeout description. %lld is seconds and covers the complete frozen-image text pipeline.", Int64(seconds)
+      )
+    }
+
+    static let translationProviderModeTitle = string(
+      "agent.translation-provider-mode-title", defaultValue: "Configured Provider (text mode)",
+      comment: "Translation provider mode setting title"
+    )
+    static let translationProviderModeDescription = string(
+      "agent.translation-provider-mode-description",
+      defaultValue: "Reuses the Agent protocol, endpoint, model, and credentials. Screen images are never uploaded.",
+      comment: "Translation provider mode setting description"
+    )
+    static let translationSendRecognizedTextTitle = string(
+      "agent.translation-send-recognized-text-title",
+      defaultValue: "Allow sending recognized text to Provider",
+      comment: "Translation recognized-text privacy toggle title"
+    )
+    static let translationSendRecognizedTextDescription = string(
+      "agent.translation-send-recognized-text-description",
+      defaultValue: "Screen images are never uploaded. ShotPaste recognizes text locally and sends only recognized text to the configured API.",
+      comment: "Translation recognized-text privacy toggle description"
+    )
+    static let translationSendRecognizedTextDisabled = string(
+      "agent.translation-send-recognized-text-disabled",
+      defaultValue: "Recognized-text sharing is disabled; enable it before translating.",
+      comment: "Translation disabled privacy toggle warning"
+    )
+    static let translationProviderReady = string(
+      "agent.translation-provider-ready", defaultValue: "Provider is ready", comment: "Translation provider status"
+    )
+    static let translationProviderUnavailable = string(
+      "agent.translation-provider-unavailable", defaultValue: "Provider configuration needs attention",
+      comment: "Translation provider unavailable status"
+    )
+    static let translationOCRCoverageDescription = string(
+      "agent.translation-ocr-coverage-description",
+      defaultValue: "Source-language coverage is limited by the languages supported by macOS Vision OCR on this Mac.",
+      comment: "Translation OCR source-language coverage limitation"
     )
   }
 
@@ -909,6 +989,121 @@ nonisolated enum L10n {
       "one-shot.switch-color-hint",
       defaultValue: "Shift Switch HEX/RGB",
       comment: "One Shot magnifier color format shortcut hint"
+    )
+    static let translationTab = string(
+      "one-shot.translation-tab", defaultValue: "Translate", comment: "One Shot top switcher translation tab"
+    )
+    static let translationFullScreen = string(
+      "one-shot.translation-full-screen", defaultValue: "Full Screen Translate",
+      comment: "Translate current physical screen action"
+    )
+    static let translationSelection = string(
+      "one-shot.translation-selection", defaultValue: "Selection Translate",
+      comment: "Translate selected screenshot area action"
+    )
+    static let translationInProgress = string(
+      "one-shot.translation-in-progress", defaultValue: "Translating…", comment: "Translation request in progress label"
+    )
+    static let translationTranslated = string(
+      "one-shot.translation-translated", defaultValue: "Translated", comment: "Translation result action label"
+    )
+    static let translationAutomaticLanguage = string(
+      "one-shot.translation-automatic-language", defaultValue: "Automatic", comment: "Automatic source language option"
+    )
+    static let translationCurrentLanguage = string(
+      "one-shot.translation-current-language", defaultValue: "Current Language",
+      comment: "Current target language option"
+    )
+    static let translationSearchLanguage = string(
+      "one-shot.translation-search-language", defaultValue: "Search languages",
+      comment: "Search field placeholder for source language"
+    )
+    static let translationOpenSettings = string(
+      "one-shot.translation-open-settings", defaultValue: "Open Settings",
+      comment: "Translation error action to open settings"
+    )
+    static let translationCopyResult = string(
+      "one-shot.translation-copy-result", defaultValue: "Copy Result",
+      comment: "Copy translated frozen image action"
+    )
+    static let translationCopied = string(
+      "one-shot.translation-copied", defaultValue: "Translated image copied to clipboard",
+      comment: "Translation result copied toast"
+    )
+    static let translationMissingAPIKey = string(
+      "one-shot.translation-missing-api-key", defaultValue: "Translation needs an API key in Agent settings.",
+      comment: "Translation missing API key error"
+    )
+    static let translationInvalidConfiguration = string(
+      "one-shot.translation-invalid-configuration", defaultValue: "The translation API endpoint or model is invalid.",
+      comment: "Translation invalid provider configuration error"
+    )
+    static let translationRecognizedTextSharingDisabled = string(
+      "one-shot.translation-recognized-text-sharing-disabled",
+      defaultValue: "Allow sending locally recognized text in Agent → Translation settings before translating.",
+      comment: "Translation recognized-text privacy setting disabled error"
+    )
+    static let translationRecognizingText = string(
+      "one-shot.translation-recognizing-text",
+      defaultValue: "Recognizing text…",
+      comment: "Translation local OCR progress label"
+    )
+    static let translationDetectingLanguage = string(
+      "one-shot.translation-detecting-language",
+      defaultValue: "Detecting language…",
+      comment: "Translation local language detection progress label"
+    )
+    static let translationTranslatingText = string(
+      "one-shot.translation-translating-text",
+      defaultValue: "Translating text…",
+      comment: "Translation text provider progress label"
+    )
+    static let translationLayingOut = string(
+      "one-shot.translation-laying-out",
+      defaultValue: "Laying out translation…",
+      comment: "Translation local layout progress label"
+    )
+    static let translationLowConfidence = string(
+      "one-shot.translation-low-confidence",
+      defaultValue: "Some areas were recognized with low confidence; only the recognized areas were translated.",
+      comment: "Translation partial low-confidence result notice"
+    )
+    static let translationTimedOut = string(
+      "one-shot.translation-timed-out", defaultValue: "Translation timed out.",
+      comment: "Translation hard timeout error"
+    )
+    static let translationCancelled = string(
+      "one-shot.translation-cancelled", defaultValue: "Translation cancelled.",
+      comment: "Translation cancellation message"
+    )
+    static let translationNoText = string(
+      "one-shot.translation-no-text", defaultValue: "No translatable text was found.",
+      comment: "Translation no text result"
+    )
+    static let translationInvalidResponse = string(
+      "one-shot.translation-invalid-response",
+      defaultValue: "The provider did not return the complete strict translation response; nothing was rendered.",
+      comment: "Translation strict structured response validation error"
+    )
+    static func translationProviderStatus(_ status: Int) -> String {
+      format(
+        "one-shot.translation-provider-status", defaultValue: "The translation provider returned HTTP %lld.",
+        comment: "Translation provider error. %lld is HTTP status.",
+        Int64(status)
+      )
+    }
+
+    static let translationInputTooLarge = string(
+      "one-shot.translation-input-too-large", defaultValue: "This frozen range is too large to translate safely.",
+      comment: "Translation image input limit error"
+    )
+    static let translationCaptureFailed = string(
+      "one-shot.translation-capture-failed", defaultValue: "The frozen image could not be prepared for translation.",
+      comment: "Translation frozen image crop error"
+    )
+    static let translationUnavailable = string(
+      "one-shot.translation-unavailable", defaultValue: "Translation is currently unavailable. Try again.",
+      comment: "Translation generic availability error"
     )
     static func coordinates(_ x: Int, _ y: Int) -> String {
       format(

@@ -120,6 +120,181 @@ final class ShotPasteConfigurationImporterTests: XCTestCase {
     XCTAssertEqual(defaults.integer(forKey: PreferencesKeys.mcpServerPort), 49_222)
   }
 
+  func testImportAppliesTranslationPreferencesWithoutAcceptingAnAPIKey() {
+    let defaults = UserDefaultsFactory.make()
+    let source = """
+    schema_version = 1
+
+    [agent.translation]
+    timeout_seconds = 24
+    prompt_mode = "custom"
+    prompt = "Keep {{target_language}} terminology concise."
+    """
+
+    let result = ShotPasteConfigurationImporter.importTOML(source, defaults: defaults)
+
+    XCTAssertFalse(result.hasErrors)
+    XCTAssertEqual(defaults.integer(forKey: PreferencesKeys.agentTranslationTimeoutSeconds), 24)
+    XCTAssertEqual(defaults.string(forKey: PreferencesKeys.agentTranslationPromptMode), "custom")
+    XCTAssertEqual(
+      defaults.string(forKey: PreferencesKeys.agentTranslationPrompt),
+      "Keep {{target_language}} terminology concise."
+    )
+    XCTAssertNil(defaults.string(forKey: PreferencesKeys.agentProviderAPIKey))
+  }
+
+  func testImportRejectsTranslationTimeoutOutsideHardLimit() {
+    let defaults = UserDefaultsFactory.make()
+    let source = """
+    schema_version = 1
+
+    [agent.translation]
+    timeout_seconds = 121
+    """
+
+    let result = ShotPasteConfigurationImporter.importTOML(source, defaults: defaults)
+
+    XCTAssertTrue(result.hasErrors)
+    XCTAssertEqual(result.appliedChangeCount, 0)
+  }
+
+  func testDefaultDocumentIncludesTextTranslationDefaults() throws {
+    let document = try SimpleTOMLParser.parse(ShotPasteConfigurationDefaultDocument.toml())
+
+    XCTAssertEqual(document.value(at: "agent", "translation", "engine")?.stringValue, "provider_text")
+    XCTAssertEqual(
+      document.value(at: "agent", "translation", "timeout_seconds")?.intValue,
+      TranslationPreferences.defaultTimeoutSeconds
+    )
+    XCTAssertEqual(document.value(at: "agent", "translation", "prompt_mode")?.stringValue, "builtin")
+    XCTAssertEqual(document.value(at: "agent", "translation", "prompt")?.stringValue, "")
+    XCTAssertEqual(
+      document.value(at: "agent", "translation", "send_recognized_text")?.boolValue,
+      TranslationSettingsMigration.defaultSendRecognizedText
+    )
+  }
+
+  func testDefaultDocumentRoundTripsThroughImporterWithoutApplyingAnAPIKey() {
+    let defaults = UserDefaultsFactory.make()
+    defaults.set("preserved-test-token", forKey: PreferencesKeys.agentProviderAPIKey)
+    let result = ShotPasteConfigurationImporter.importTOML(
+      ShotPasteConfigurationDefaultDocument.toml(),
+      defaults: defaults
+    )
+
+    XCTAssertFalse(result.hasErrors, result.issues.map(\.message).joined(separator: "\n"))
+    XCTAssertEqual(
+      defaults.string(forKey: PreferencesKeys.agentTranslationPromptMode),
+      TranslationPromptMode.builtin.rawValue
+    )
+    XCTAssertEqual(
+      defaults.integer(forKey: PreferencesKeys.agentTranslationTimeoutSeconds),
+      TranslationPreferences.defaultTimeoutSeconds
+    )
+    XCTAssertEqual(
+      defaults.bool(forKey: PreferencesKeys.agentTranslationSendsRecognizedText),
+      TranslationSettingsMigration.defaultSendRecognizedText
+    )
+    XCTAssertEqual(defaults.string(forKey: PreferencesKeys.agentProviderAPIKey), "preserved-test-token")
+  }
+
+  func testTranslationSettingsMigrationDefaultsToTrueWhenLegacyPreferenceIsUnsetAndIsIdempotent() {
+    let defaults = UserDefaultsFactory.make()
+
+    XCTAssertTrue(TranslationSettingsMigration.applyIfNeeded(defaults: defaults))
+    XCTAssertEqual(
+      defaults.object(forKey: PreferencesKeys.agentTranslationSendsRecognizedText) as? Bool,
+      true
+    )
+    XCTAssertFalse(TranslationSettingsMigration.applyIfNeeded(defaults: defaults))
+  }
+
+  func testTranslationSettingsMigrationMapsLegacyFalseAndDoesNotFollowLaterLegacyChanges() {
+    let defaults = UserDefaultsFactory.make()
+    defaults.set(false, forKey: PreferencesKeys.agentProviderSendsImages)
+
+    XCTAssertTrue(TranslationSettingsMigration.applyIfNeeded(defaults: defaults))
+    XCTAssertEqual(
+      defaults.object(forKey: PreferencesKeys.agentTranslationSendsRecognizedText) as? Bool,
+      false
+    )
+
+    defaults.set(true, forKey: PreferencesKeys.agentProviderSendsImages)
+    XCTAssertFalse(TranslationSettingsMigration.applyIfNeeded(defaults: defaults))
+    XCTAssertEqual(
+      defaults.object(forKey: PreferencesKeys.agentTranslationSendsRecognizedText) as? Bool,
+      false
+    )
+  }
+
+  func testTranslationSettingsMigrationPreservesExplicitNewTrueOrFalseValue() {
+    let defaults = UserDefaultsFactory.make()
+    defaults.set(false, forKey: PreferencesKeys.agentTranslationSendsRecognizedText)
+    defaults.set(true, forKey: PreferencesKeys.agentProviderSendsImages)
+
+    XCTAssertFalse(TranslationSettingsMigration.applyIfNeeded(defaults: defaults))
+    XCTAssertFalse(defaults.bool(forKey: PreferencesKeys.agentTranslationSendsRecognizedText))
+
+    defaults.removeObject(forKey: PreferencesKeys.agentTranslationSendsRecognizedText)
+    defaults.set(true, forKey: PreferencesKeys.agentTranslationSendsRecognizedText)
+    defaults.set(false, forKey: PreferencesKeys.agentProviderSendsImages)
+    XCTAssertFalse(TranslationSettingsMigration.applyIfNeeded(defaults: defaults))
+    XCTAssertTrue(defaults.bool(forKey: PreferencesKeys.agentTranslationSendsRecognizedText))
+  }
+
+  func testImportAppliesExplicitRecognizedTextPrivacyValue() {
+    let defaults = UserDefaultsFactory.make()
+    defaults.set(false, forKey: PreferencesKeys.agentProviderSendsImages)
+    let source = """
+    schema_version = 1
+
+    [agent.translation]
+    engine = "provider_text"
+    send_recognized_text = true
+    """
+
+    let result = ShotPasteConfigurationImporter.importTOML(source, defaults: defaults)
+
+    XCTAssertFalse(result.hasErrors)
+    XCTAssertTrue(defaults.bool(forKey: PreferencesKeys.agentTranslationSendsRecognizedText))
+    XCTAssertFalse(TranslationSettingsMigration.applyIfNeeded(defaults: defaults))
+  }
+
+  func testImportRejectsUnsupportedTranslationEngineBeforeMutating() {
+    let defaults = UserDefaultsFactory.make()
+    defaults.set(15, forKey: PreferencesKeys.agentTranslationTimeoutSeconds)
+    let source = """
+    schema_version = 1
+
+    [agent.translation]
+    engine = "vision"
+    timeout_seconds = 30
+    """
+
+    let result = ShotPasteConfigurationImporter.importTOML(source, defaults: defaults)
+
+    XCTAssertTrue(result.hasErrors)
+    XCTAssertEqual(result.appliedChangeCount, 0)
+    XCTAssertEqual(defaults.integer(forKey: PreferencesKeys.agentTranslationTimeoutSeconds), 15)
+  }
+
+  func testImportRejectsInvalidTranslationEngineAndPrivacyTypes() {
+    let defaults = UserDefaultsFactory.make()
+    let source = """
+    schema_version = 1
+
+    [agent.translation]
+    engine = true
+    send_recognized_text = "yes"
+    """
+
+    let result = ShotPasteConfigurationImporter.importTOML(source, defaults: defaults)
+
+    XCTAssertTrue(result.hasErrors)
+    XCTAssertEqual(result.appliedChangeCount, 0)
+    XCTAssertNil(defaults.object(forKey: PreferencesKeys.agentTranslationSendsRecognizedText))
+  }
+
   func testImportRejectsPrivilegedMCPServerPort() {
     let defaults = UserDefaultsFactory.make()
     let source = """

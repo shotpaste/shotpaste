@@ -18,11 +18,21 @@ enum PreferencesTab: Hashable {
   case advanced
 }
 
+enum PreferencesAgentAnchor: Hashable {
+  case translation
+}
+
 @MainActor
 final class PreferencesNavigationState: ObservableObject {
   static let shared = PreferencesNavigationState()
 
   @Published var selectedTab: PreferencesTab = .general
+  @Published var agentAnchor: PreferencesAgentAnchor?
+
+  func showAgentTranslation() {
+    selectedTab = .agent
+    agentAnchor = .translation
+  }
 
   private init() {}
 }

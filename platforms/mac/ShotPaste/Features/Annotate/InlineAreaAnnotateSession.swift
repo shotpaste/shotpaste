@@ -9,6 +9,7 @@ import AppKit
 import Combine
 import CoreGraphics
 import Foundation
+import SwiftUI
 
 struct InlineAreaAnnotateDisplay: Identifiable {
   let displayID: CGDirectDisplayID
@@ -100,6 +101,7 @@ final class InlineAreaAnnotateSession: ObservableObject {
   private let outputFormat: ImageFormat
   private let context: CaptureContext
   let oneShotState: OneShotSessionState
+  let translationCoordinator: TranslationSessionCoordinator
   private let onOneShotHandoff: (OneShotHandoff) -> Void
   private let onComplete: (CaptureResult) -> Void
   private let windows = NSHashTable<NSWindow>.weakObjects()
@@ -110,7 +112,11 @@ final class InlineAreaAnnotateSession: ObservableObject {
   private var oneShotOCRSelectionStartPoint: CGPoint?
   private var stateChangeCancellable: AnyCancellable?
   private var oneShotStateCancellable: AnyCancellable?
+  private var translationStateCancellable: AnyCancellable?
   private var displayChangeCancellable: AnyCancellable?
+  private var workspaceSleepCancellable: AnyCancellable?
+  private var workspaceLockCancellable: AnyCancellable?
+  private var translationOriginalSelectionRect: CGRect?
   private var didComplete = false
   private var isDismissingOverlayForScreenshotExecution = false
 
@@ -123,6 +129,7 @@ final class InlineAreaAnnotateSession: ObservableObject {
     outputFormat: ImageFormat,
     context: CaptureContext = .empty,
     oneShotState: OneShotSessionState,
+    translationCoordinator: TranslationSessionCoordinator? = nil,
     onOneShotHandoff: @escaping (OneShotHandoff) -> Void,
     onComplete: @escaping (CaptureResult) -> Void
   ) {
@@ -137,6 +144,7 @@ final class InlineAreaAnnotateSession: ObservableObject {
     self.outputFormat = outputFormat
     self.context = context
     self.oneShotState = oneShotState
+    self.translationCoordinator = translationCoordinator ?? TranslationSessionCoordinator()
     self.onOneShotHandoff = onOneShotHandoff
     self.onComplete = onComplete
     stateChangeCancellable = state.objectWillChange.sink { [weak self] _ in
@@ -149,8 +157,30 @@ final class InlineAreaAnnotateSession: ObservableObject {
         self?.objectWillChange.send()
       }
     }
+    translationStateCancellable = self.translationCoordinator.objectWillChange.sink { [weak self] _ in
+      Task { @MainActor in
+        self?.objectWillChange.send()
+      }
+    }
+    self.translationCoordinator.onTerminalExit = { [weak self] failure in
+      self?.handleTranslationTerminalExit(failure)
+    }
     displayChangeCancellable = NotificationCenter.default.publisher(
       for: NSApplication.didChangeScreenParametersNotification
+    ).sink { [weak self] _ in
+      Task { @MainActor in
+        self?.cancel()
+      }
+    }
+    workspaceSleepCancellable = NSWorkspace.shared.notificationCenter.publisher(
+      for: NSWorkspace.screensDidSleepNotification
+    ).sink { [weak self] _ in
+      Task { @MainActor in
+        self?.cancel()
+      }
+    }
+    workspaceLockCancellable = NSWorkspace.shared.notificationCenter.publisher(
+      for: NSWorkspace.sessionDidResignActiveNotification
     ).sink { [weak self] _ in
       Task { @MainActor in
         self?.cancel()
@@ -355,6 +385,15 @@ final class InlineAreaAnnotateSession: ObservableObject {
 
   func selectOneShotTab(_ tab: OneShotTab) {
     guard tab != oneShotState.activeTab else { return }
+    if tab == .translation {
+      switch translationCoordinator.availability() {
+      case .available:
+        break
+      case .unavailable(let failure):
+        endTranslationForSettings(failure)
+        return
+      }
+    }
     let previousTab = oneShotState.activeTab
     switch oneShotState.requestTab(tab) {
     case .switched:
@@ -423,6 +462,210 @@ final class InlineAreaAnnotateSession: ObservableObject {
       rect: screenRect(for: rect),
       options: oneShotState.recordingOptions
     ))
+  }
+
+  func startOneShotFullScreenTranslation() {
+    guard oneShotState.activeTab == .translation,
+          let selectionRect,
+          let displayFrame = screenFramesByDisplayID[controlDisplayID(for: selectionRect)]
+    else { return }
+    translationOriginalSelectionRect = translationOriginalSelectionRect ?? selectionRect
+    startOneShotTranslation(for: displayFrame, animatesSelection: true)
+  }
+
+  func startOneShotSelectionTranslation() {
+    guard oneShotState.activeTab == .translation,
+          let selectionRect = translationOriginalSelectionRect ?? selectionRect
+    else { return }
+    translationOriginalSelectionRect = selectionRect
+    startOneShotTranslation(for: screenRect(for: selectionRect), animatesSelection: false)
+  }
+
+  func openTranslationSettings() {
+    let failure: TranslationFailure = if case .failed(let currentFailure) = translationCoordinator.phase {
+      currentFailure
+    } else {
+      .invalidConfiguration
+    }
+    endTranslationForSettings(failure)
+  }
+
+  func copyTranslationResult() {
+    guard translationCoordinator.copyRenderedResult() else { return }
+    SoundManager.play("Pop")
+    AppToastManager.shared.show(
+      message: L10n.OneShot.translationCopied,
+      style: .success,
+      position: .bottomCenter
+    )
+  }
+
+  private func startOneShotTranslation(
+    for requestedScreenRect: CGRect,
+    animatesSelection: Bool
+  ) {
+    // The button event owns the one absolute deadline. It must be captured
+    // before readiness checks or frozen-image cropping so those local stages
+    // consume the same budget as OCR, networking, and layout.
+    let startedAt = Date()
+    let deadline = translationCoordinator.requestDeadline(startedAt: startedAt)
+    // Capture all user-selected language values in the same synchronous
+    // critical section as the button timestamp. The target resolver turns
+    // `.currentLanguage` into a concrete identifier before crop work can
+    // observe a changed app language; the source enum is a value snapshot.
+    let frozenSourceLanguage = translationCoordinator.sourceLanguage
+    let frozenTargetLanguage = translationCoordinator.resolveTargetLanguage()
+
+    switch translationCoordinator.availability() {
+    case .available:
+      break
+    case .unavailable(let failure):
+      endTranslationForSettings(failure)
+      return
+    }
+
+    // Lock the selection and hide the One Shot switcher before doing any
+    // synchronous crop work. A retry from the committed translation mode is
+    // still allowed, but user resize/tab changes are not.
+    guard commitOneShotInteraction(.translationStart) else { return }
+
+    let input: TranslationInput
+    do {
+      input = try translationInput(for: requestedScreenRect, deadline: deadline)
+    } catch let failure as TranslationFailure {
+      translationCoordinator.fail(failure)
+      if failure == .timedOut {
+        // A crop timeout is terminal just like an OCR/network timeout: cancel
+        // the generation first, then leave the frozen overlay and notify.
+        handleTranslationTerminalExit(failure)
+      }
+      return
+    } catch is CancellationError {
+      translationCoordinator.cancel()
+      complete(.failure(.cancelled))
+      return
+    } catch {
+      // Crop failures are distinct from deadline failures. Keep the frozen
+      // selection available so the user can retry after a transient issue.
+      DiagnosticLogger.shared.log(
+        .warning,
+        .capture,
+        "Frozen snapshot could not be prepared for screen translation",
+        context: [
+          "height": "\(Int(requestedScreenRect.height.rounded()))",
+          "width": "\(Int(requestedScreenRect.width.rounded()))",
+        ]
+      )
+      translationCoordinator.fail(.captureFailed)
+      return
+    }
+
+    // Use the exact pixel-aligned crop rectangle as the locked visual region;
+    // this keeps result coordinates and the frozen selection in one space.
+    let updateSelection = {
+      self.selectionRect = self.clampedSelectionRect(
+        Self.localRect(for: input.screenRect, in: self.desktopFrame)
+      )
+      self.syncOneShotSelection(isFinal: false)
+    }
+    if animatesSelection {
+      withAnimation(.easeInOut(duration: 0.22), updateSelection)
+    } else {
+      updateSelection()
+    }
+    translationCoordinator.begin(
+      input: input,
+      deadline: deadline,
+      startedAt: startedAt,
+      sourceLanguage: frozenSourceLanguage,
+      targetLanguage: frozenTargetLanguage
+    )
+  }
+
+  private func translationInput(
+    for requestedScreenRect: CGRect,
+    deadline: Date
+  ) throws -> TranslationInput {
+    let displayIDs = Self.displayIDsIntersecting(
+      requestedScreenRect,
+      screenFramesByDisplayID: screenFramesByDisplayID
+    )
+    guard let displayID = Self.primaryDisplayID(
+      for: requestedScreenRect,
+      screenFramesByDisplayID: screenFramesByDisplayID,
+      fallback: primaryDisplayID
+    ) else {
+      throw CaptureError.captureFailed(L10n.ScreenCapture.selectionOutsideDisplayBounds)
+    }
+    let selection = AreaSelectionResult(
+      rect: requestedScreenRect,
+      displayID: displayID,
+      displayIDs: displayIDs.isEmpty ? [displayID] : displayIDs
+    )
+    let crop: FrozenAreaCropResult = try Self.withTranslationCropDeadline(deadline: deadline) {
+      selection.spansMultipleDisplays
+        ? try frozenSession.cropCompositeImage(for: selection)
+        : try frozenSession.cropImage(for: selection)
+    }
+    return TranslationInput(image: crop.image, screenRect: crop.screenRect)
+  }
+
+  /// Synchronous frozen cropping has no intermediate cancellation callback,
+  /// so the shared absolute deadline is checked immediately before and after
+  /// the single-display/composite operation. This keeps crop time inside the
+  /// same budget without ever taking a new screen capture.
+  nonisolated static func withTranslationCropDeadline<Value>(
+    deadline: Date,
+    crop: () throws -> Value
+  ) throws -> Value {
+    try TranslationOCRDeadline.check(deadline)
+    let value = try crop()
+    try TranslationOCRDeadline.check(deadline)
+    return value
+  }
+
+  private func handleTranslationTerminalExit(_ failure: TranslationFailure) {
+    guard !didComplete else { return }
+    translationCoordinator.cancel()
+    if failure.requiresProviderSettings {
+      endTranslationForSettings(failure)
+      return
+    }
+    let message = translationMessage(for: failure)
+    complete(.failure(.cancelled))
+    DispatchQueue.main.async {
+      AppToastManager.shared.show(message: message, style: .error, position: .bottomCenter, duration: 4)
+    }
+  }
+
+  private func endTranslationForSettings(_ failure: TranslationFailure) {
+    guard !didComplete else { return }
+    translationCoordinator.cancel()
+    let message = translationMessage(for: failure)
+    selectionRect = nil
+    oneShotState.beginTerminating(clearSelection: true)
+    complete(.failure(.cancelled))
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+      PreferencesNavigationState.shared.showAgentTranslation()
+      AppStatusBarController.shared.openPreferencesWindow(tab: .agent)
+      AppToastManager.shared.show(message: message, style: .warning, position: .bottomCenter, duration: 4)
+    }
+  }
+
+  private func translationMessage(for failure: TranslationFailure) -> String {
+    switch failure {
+    case .missingAPIKey: L10n.OneShot.translationMissingAPIKey
+    case .invalidConfiguration: L10n.OneShot.translationInvalidConfiguration
+    case .recognizedTextSharingDisabled: L10n.OneShot.translationRecognizedTextSharingDisabled
+    case .timedOut: L10n.OneShot.translationTimedOut
+    case .cancelled: L10n.OneShot.translationCancelled
+    case .noText: L10n.OneShot.translationNoText
+    case .invalidResponse: L10n.OneShot.translationInvalidResponse
+    case .providerStatus(let status): L10n.OneShot.translationProviderStatus(status)
+    case .inputTooLarge: L10n.OneShot.translationInputTooLarge
+    case .captureFailed: L10n.OneShot.translationCaptureFailed
+    case .unavailable: L10n.OneShot.translationUnavailable
+    }
   }
 
   func clampedSelectionPreview(for localRect: CGRect) -> CGRect {
@@ -546,6 +789,12 @@ final class InlineAreaAnnotateSession: ObservableObject {
     guard activePrompt == nil else {
       resolveActivePrompt(.cancel)
       return false
+    }
+
+    if oneShotState.activeTab == .translation {
+      translationCoordinator.cancel()
+      complete(.failure(.cancelled))
+      return true
     }
 
     if phase == .annotating {
@@ -858,6 +1107,8 @@ final class InlineAreaAnnotateSession: ObservableObject {
     guard !didComplete else { return }
     didComplete = true
     displayChangeCancellable = nil
+    workspaceSleepCancellable = nil
+    workspaceLockCancellable = nil
     isMoveModifierActive = false
     isSelectingOneShotOCR = false
     oneShotOCRSelectionRect = nil
@@ -866,6 +1117,7 @@ final class InlineAreaAnnotateSession: ObservableObject {
     activePromptDisplayID = nil
     removeKeyMonitors()
     removeSelectionMonitor()
+    translationCoordinator.cancel()
     frozenSession.invalidate()
 
     // Restore cursor before closing windows — the inline overlay uses a
@@ -885,6 +1137,8 @@ final class InlineAreaAnnotateSession: ObservableObject {
     guard !didComplete else { return }
     didComplete = true
     displayChangeCancellable = nil
+    workspaceSleepCancellable = nil
+    workspaceLockCancellable = nil
     isMoveModifierActive = false
     isSelectingOneShotOCR = false
     oneShotOCRSelectionRect = nil
@@ -893,6 +1147,7 @@ final class InlineAreaAnnotateSession: ObservableObject {
     activePromptDisplayID = nil
     removeKeyMonitors()
     removeSelectionMonitor()
+    translationCoordinator.cancel()
     frozenSession.invalidate()
     NSCursor.arrow.set()
     for window in windows.allObjects {
@@ -905,11 +1160,14 @@ final class InlineAreaAnnotateSession: ObservableObject {
     guard !isDismissingOverlayForScreenshotExecution else { return }
     isDismissingOverlayForScreenshotExecution = true
     displayChangeCancellable = nil
+    workspaceSleepCancellable = nil
+    workspaceLockCancellable = nil
     isMoveModifierActive = false
     activePrompt = nil
     activePromptDisplayID = nil
     removeKeyMonitors()
     removeSelectionMonitor()
+    translationCoordinator.cancel()
     frozenSession.invalidate()
     NSCursor.arrow.set()
     for window in windows.allObjects {
@@ -933,6 +1191,8 @@ final class InlineAreaAnnotateSession: ObservableObject {
       oneShotState.updateSelection(globalRect, displayIDs: displayIDs)
     } else if allowsCommittedResize {
       oneShotState.updateResizableSelection(globalRect, displayIDs: displayIDs)
+    } else if oneShotState.phase == .committed, oneShotState.activeTab == .translation {
+      oneShotState.updateLockedTranslationSelection(globalRect, displayIDs: displayIDs)
     } else {
       oneShotState.updateEditableSelection(globalRect, displayIDs: displayIDs)
     }

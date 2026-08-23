@@ -179,6 +179,13 @@ enum ShotPasteConfigurationDefaultDocument {
     writer.value("send_images", true)
     writer.value("max_actions", 30)
     writer.value("retain_screenshots", false)
+
+    writer.section("agent.translation")
+    writer.value("engine", "provider_text")
+    writer.value("timeout_seconds", TranslationPreferences.defaultTimeoutSeconds)
+    writer.value("prompt_mode", TranslationPromptMode.builtin.rawValue)
+    writer.value("prompt", "")
+    writer.value("send_recognized_text", TranslationSettingsMigration.defaultSendRecognizedText)
   }
 
   private static func writeShortcuts(_ writer: inout SimpleTOMLWriter) {

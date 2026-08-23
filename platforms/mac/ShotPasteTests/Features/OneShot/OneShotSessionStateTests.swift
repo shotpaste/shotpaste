@@ -68,7 +68,7 @@ final class OneShotSessionStateTests: XCTestCase {
   }
 
   func testAutomationCanPreselectScrollingOrRecordingWhenArming() {
-    for initialTab in [OneShotTab.scrolling, .recording] {
+    for initialTab in [OneShotTab.scrolling, .recording, .translation] {
       let state = OneShotSessionState(
         initialTab: initialTab,
         recordingOptions: recordingOptions
@@ -130,11 +130,45 @@ final class OneShotSessionStateTests: XCTestCase {
     let rect = CGRect(x: -320, y: 80, width: 1_200, height: 720)
     let state = makeSelectedState(rect: rect)
 
-    for tab in [OneShotTab.scrolling, .recording, .screenshot] {
+    for tab in [OneShotTab.scrolling, .recording, .translation, .screenshot] {
       XCTAssertEqual(state.requestTab(tab), .switched)
       XCTAssertEqual(state.selectionRectGlobal, rect)
       XCTAssertEqual(state.selectionDisplayIDs, [displayA, displayB])
     }
+  }
+
+  func testTranslationTabFollowsRecordingAndLocksSelectionAfterRequestStarts() {
+    XCTAssertEqual(
+      OneShotTab.allCases,
+      [.screenshot, .scrolling, .recording, .translation, .clipboard]
+    )
+    let state = makeSelectedState()
+
+    XCTAssertEqual(state.requestTab(.translation), .switched)
+    XCTAssertTrue(state.selectionIsEditable)
+    XCTAssertTrue(state.commitModeInteraction(.translationStart))
+
+    XCTAssertEqual(state.activeTab, .translation)
+    XCTAssertEqual(state.commitReason, .translationStart)
+    XCTAssertFalse(state.selectionIsEditable)
+    XCTAssertFalse(state.selectionIsResizable)
+    XCTAssertFalse(state.showsTopSwitcher)
+    XCTAssertEqual(state.requestTab(.screenshot), .rejected)
+  }
+
+  func testTranslationCoordinatorCanReplaceLockedFullscreenWithOriginalSelection() throws {
+    let state = makeSelectedState()
+    let original = try XCTUnwrap(state.selectionRectGlobal)
+    let fullScreen = CGRect(x: 0, y: 0, width: 1_920, height: 1_080)
+
+    XCTAssertEqual(state.requestTab(.translation), .switched)
+    XCTAssertTrue(state.commitModeInteraction(.translationStart))
+    state.updateLockedTranslationSelection(fullScreen, displayIDs: [displayA])
+    state.updateLockedTranslationSelection(original, displayIDs: [displayA, displayB])
+
+    XCTAssertEqual(state.selectionRectGlobal, original)
+    XCTAssertEqual(state.selectionDisplayIDs, [displayA, displayB])
+    XCTAssertFalse(state.selectionIsResizable)
   }
 
   func testOS016MovingAndResizingSelectionKeepsTabsSwitchable() {
