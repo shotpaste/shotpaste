@@ -130,6 +130,8 @@ public sealed class AppBuildIdentityTests
             "platforms", "windows", "src", "ShotPaste.Windows", "Assets", "shotpaste-debug-icon.png");
         var debugIco = FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Assets", "shotpaste-debug-icon.ico");
+        var releaseIco = FindRepositoryFile(
+            "platforms", "windows", "src", "ShotPaste.Windows", "Assets", "shotpaste-icon.ico");
 
         Assert.Contains("Config\\AppVariant.$(Configuration).props", project, StringComparison.Ordinal);
         Assert.Contains("<AssemblyName>$(ShotPasteAssemblyName)</AssemblyName>", project, StringComparison.Ordinal);
@@ -143,15 +145,19 @@ public sealed class AppBuildIdentityTests
         Assert.Contains("<ShotPasteVariant>release</ShotPasteVariant>", releaseConfiguration, StringComparison.Ordinal);
         Assert.Contains("<ShotPasteAssemblyName>ShotPaste</ShotPasteAssemblyName>", releaseConfiguration,
             StringComparison.Ordinal);
+        Assert.Contains("<ShotPasteApplicationIcon>Assets\\shotpaste-icon.ico</ShotPasteApplicationIcon>",
+            releaseConfiguration, StringComparison.Ordinal);
         Assert.Contains("name=\"com.ahtcfg24.shotpaste.windows.debug\"", debugManifest, StringComparison.Ordinal);
         Assert.Contains("name=\"com.ahtcfg24.shotpaste.windows\"", releaseManifest, StringComparison.Ordinal);
         Assert.DoesNotContain("name=\"com.ahtcfg24.shotpaste.windows\" />", debugManifest, StringComparison.Ordinal);
         Assert.Contains("..\\..\\..\\..\\assets\\shotpaste-icon.png", project, StringComparison.Ordinal);
         Assert.True(File.Exists(debugPng));
         Assert.True(File.Exists(debugIco));
+        Assert.True(File.Exists(releaseIco));
         Assert.False(File.ReadAllBytes(FindRepositoryFile("assets", "shotpaste-icon.png"))
             .SequenceEqual(File.ReadAllBytes(debugPng)));
         Assert.True(new FileInfo(debugIco).Length > 0);
+        Assert.True(new FileInfo(releaseIco).Length > 0);
     }
 
     [Fact]
