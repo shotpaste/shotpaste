@@ -175,7 +175,11 @@ public sealed class TrayIconService : IDisposable
     {
         var menu = new WpfContextMenu { StaysOpen = false };
         menu.SetResourceReference(FrameworkElement.StyleProperty, "TrayContextMenu");
-        menu.Opened += (_, _) => UpdateQuickAccessMenuVisibility();
+        menu.Opened += (_, _) =>
+        {
+            UpdateQuickAccessMenuVisibility();
+            ActivateMenuForOutsideClickDismissal(menu);
+        };
         menu.Closed += (_, _) =>
         {
             menu.PlacementTarget = null;
@@ -214,6 +218,12 @@ public sealed class TrayIconService : IDisposable
         menu.Items.Add(CreateMenuItem("退出 ShotPaste", null, "Icon.Exit", settings,
             () => ExitRequested?.Invoke(this, EventArgs.Empty)));
         return menu;
+    }
+
+    private static void ActivateMenuForOutsideClickDismissal(WpfContextMenu menu)
+    {
+        var handle = (PresentationSource.FromVisual(menu) as HwndSource)?.Handle ?? IntPtr.Zero;
+        if (handle != IntPtr.Zero) NativeMethods.SetForegroundWindow(handle);
     }
 
     private void UpdateQuickAccessMenuVisibility()
