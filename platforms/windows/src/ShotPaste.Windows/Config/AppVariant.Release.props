@@ -8,6 +8,6 @@
     <ShotPasteUrlScheme>shotpaste</ShotPasteUrlScheme>
     <ShotPasteNativeManifestIdentity>com.ahtcfg24.shotpaste.windows</ShotPasteNativeManifestIdentity>
     <ShotPasteApplicationManifest>app.manifest</ShotPasteApplicationManifest>
-    <ShotPasteApplicationIcon></ShotPasteApplicationIcon>
+    <ShotPasteApplicationIcon>Assets\shotpaste-icon.ico</ShotPasteApplicationIcon>
   </PropertyGroup>
 </Project>

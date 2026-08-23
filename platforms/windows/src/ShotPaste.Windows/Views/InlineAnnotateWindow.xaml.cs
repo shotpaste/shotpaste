@@ -1132,13 +1132,6 @@ public partial class InlineAnnotateWindow : Window
         _saveSettings?.Invoke();
     }
 
-    private async void OnShowOneShotGuide(object sender, RoutedEventArgs e)
-    {
-        InstructionBadge.Visibility = Visibility.Visible;
-        await Task.Delay(TimeSpan.FromSeconds(6));
-        if (IsLoaded) InstructionBadge.Visibility = Visibility.Collapsed;
-    }
-
     private void OffsetAnnotationsForSelectionChange(Drawing.Rectangle previous, Drawing.Rectangle current)
     {
         if (previous.Width <= 0 || previous.Height <= 0) return;
