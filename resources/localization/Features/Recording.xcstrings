@@ -4008,6 +4008,2246 @@
           }
         }
       }
+    },
+    "recording.transcription.settings-section": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Automatic Transcript (Volcengine)"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Automatisches Transkript (Volcengine)"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Transcripción automática (Volcengine)"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Transcription automatique (Volcengine)"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "自動文字起こし（Volcengine）"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "자동 녹취록(Volcengine)"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Автоматическая расшифровка (Volcengine)"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Bản chép lời tự động (Volcengine)"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "自动文字稿（火山同传）"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "自動逐字稿（火山同傳）"
+                }
+            }
+        }
+    },
+    "recording.transcription.api-key-title": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine API Key"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine-API-Schlüssel"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Clave de API de Volcengine"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Clé API Volcengine"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine API Key"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine API 키"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Ключ API Volcengine"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Khóa API Volcengine"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "火山引擎 API Key"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "火山引擎 API Key"
+                }
+            }
+        }
+    },
+    "recording.transcription.api-key-description": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Stored securely and never written to logs"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Sicher gespeichert und niemals in Protokolle geschrieben"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Se guarda de forma segura y nunca se escribe en los registros"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Stockée de manière sécurisée et jamais écrite dans les journaux"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "安全に保存され、ログには記録されません"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "안전하게 저장되며 로그에 기록되지 않습니다"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Хранится безопасно и никогда не записывается в журналы"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Được lưu an toàn và không bao giờ ghi vào nhật ký"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "安全存储，且不会写入日志"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "安全儲存，且不會寫入日誌"
+                }
+            }
+        }
+    },
+    "recording.transcription.model-id-title": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Model ID"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Modell-ID"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ID del modelo"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ID du modèle"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "モデル ID"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "모델 ID"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ID модели"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ID mô hình"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "模型 ID"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "模型 ID"
+                }
+            }
+        }
+    },
+    "recording.transcription.model-id-description": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Model ID for your enabled simultaneous interpretation model"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Modell-ID des freigeschalteten Simultandolmetschmodells"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ID del modelo de interpretación simultánea habilitado"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ID du modèle d’interprétation simultanée activé"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "有効化済みの同時通訳モデルの Model ID"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "활성화된 동시통역 모델의 Model ID"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ID подключенной модели синхронного перевода"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Model ID của mô hình phiên dịch đồng thời đã bật"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "已开通同声传译模型的 Model ID"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "已開通同聲傳譯模型的 Model ID"
+                }
+            }
+        }
+    },
+    "recording.transcription.source-language-title": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Spoken Language"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Gesprochene Sprache"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Idioma hablado"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Langue parlée"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "録画の音声言語"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "녹화 음성 언어"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Язык речи"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Ngôn ngữ lời nói"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "录屏语音语言"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "錄影語音語言"
+                }
+            }
+        }
+    },
+    "recording.transcription.source-language-description": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Currently supports Chinese and English"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Derzeit werden Chinesisch und Englisch unterstützt"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Actualmente admite chino e inglés"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Prend actuellement en charge le chinois et l’anglais"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "現在は中国語と英語に対応しています"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "현재 중국어와 영어를 지원합니다"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Сейчас поддерживаются китайский и английский"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Hiện hỗ trợ tiếng Trung và tiếng Anh"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "当前支持中文和英文"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "目前支援中文與英文"
+                }
+            }
+        }
+    },
+    "recording.transcription.language-chinese": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Chinese"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Chinesisch"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Chino"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Chinois"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "中国語"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "중국어"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Китайский"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Tiếng Trung"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "中文"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "中文"
+                }
+            }
+        }
+    },
+    "recording.transcription.language-english": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "English"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Englisch"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Inglés"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Anglais"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "英語"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "영어"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Английский"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Tiếng Anh"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "English"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "English"
+                }
+            }
+        }
+    },
+    "recording.transcription.privacy-description": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "After a recording with audio ends, its audio is sent to Volcengine automatically. Video frames are never uploaded. The transcript stays in memory until you explicitly copy or save it."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Nach dem Ende einer Aufnahme mit Ton wird nur die Audiospur automatisch an Volcengine gesendet. Videobilder werden nie hochgeladen. Das Transkript bleibt im Speicher, bis Sie es ausdrücklich kopieren oder speichern."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Al terminar una grabación con audio, la pista de audio se envía automáticamente a Volcengine. Los fotogramas de vídeo nunca se suben. La transcripción permanece en memoria hasta que la copies o guardes explícitamente."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "À la fin d’un enregistrement avec du son, sa piste audio est envoyée automatiquement à Volcengine. Les images vidéo ne sont jamais téléversées. La transcription reste en mémoire jusqu’à ce que vous la copiiez ou l’enregistriez explicitement."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "音声付きの録画が終了すると、音声トラックだけが Volcengine に自動送信されます。映像フレームはアップロードされません。文字起こしは明示的にコピーまたは保存するまでメモリ内にだけ保持されます。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "오디오가 포함된 녹화가 끝나면 오디오 트랙만 Volcengine으로 자동 전송됩니다. 비디오 프레임은 업로드되지 않습니다. 녹취록은 명시적으로 복사하거나 저장할 때까지 메모리에만 유지됩니다."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "После завершения записи со звуком аудиодорожка автоматически отправляется в Volcengine. Кадры видео никогда не загружаются. Расшифровка остается в памяти, пока вы явно не скопируете или не сохраните ее."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Sau khi bản ghi có âm thanh kết thúc, chỉ bản âm thanh được tự động gửi đến Volcengine. Khung hình video không bao giờ được tải lên. Bản chép lời chỉ nằm trong bộ nhớ cho đến khi bạn chủ động sao chép hoặc lưu."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "带音频的录屏结束后，音轨会自动发送到火山引擎。绝不会上传视频画面；文字稿只在你明确复制或保存后持久化。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "含音訊的螢幕錄影結束後，音軌會自動傳送到火山引擎。絕不會上傳影片畫面；逐字稿只會在你明確複製或儲存後持久化。"
+                }
+            }
+        }
+    },
+    "recording.transcription.credential-save-failed": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Could not save the API Key securely. Check the credential and try again."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Der API-Schlüssel konnte nicht sicher gespeichert werden. Prüfen Sie die Anmeldedaten und versuchen Sie es erneut."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "No se pudo guardar la clave de API de forma segura. Revisa la credencial e inténtalo de nuevo."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Impossible d’enregistrer la clé API de manière sécurisée. Vérifiez l’identifiant et réessayez."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "API Key を安全に保存できませんでした。認証情報を確認してもう一度お試しください。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "API 키를 안전하게 저장할 수 없습니다. 자격 증명을 확인하고 다시 시도하세요."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Не удалось безопасно сохранить ключ API. Проверьте учетные данные и повторите попытку."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Không thể lưu khóa API an toàn. Hãy kiểm tra thông tin xác thực rồi thử lại."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "无法安全保存 API Key，请检查凭证后重试。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "無法安全儲存 API Key，請檢查憑證後再試一次。"
+                }
+            }
+        }
+    },
+    "recording.transcription.window-title": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste · Recording Transcript"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste · Aufnahmetranskript"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste · Transcripción de la grabación"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste · Transcription de l’enregistrement"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste · 録画の文字起こし"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste · 녹화 녹취록"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste · Расшифровка записи"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste · Bản chép lời ghi màn hình"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste · 录屏文字稿"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste · 螢幕錄影逐字稿"
+                }
+            }
+        }
+    },
+    "recording.transcription.processing-title": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Generating Transcript"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Transkript wird erstellt"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Generando transcripción"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Génération de la transcription"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "文字起こしを生成中"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "녹취록 생성 중"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Создание расшифровки"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Đang tạo bản chép lời"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "正在生成文字稿"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "正在產生逐字稿"
+                }
+            }
+        }
+    },
+    "recording.transcription.processing-description": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste is transcribing the recording audio with Volcengine."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste transkribiert die Audiospur mit Volcengine."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste está transcribiendo el audio de la grabación con Volcengine."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste transcrit l’audio de l’enregistrement avec Volcengine."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste が Volcengine で録画音声を文字起こししています。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste가 Volcengine으로 녹화 오디오를 변환하고 있습니다."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste расшифровывает звук записи с помощью Volcengine."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste đang dùng Volcengine để chép lời âm thanh của bản ghi."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste 正在使用火山引擎转写录屏音轨。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "ShotPaste 正在使用火山引擎轉寫螢幕錄影音軌。"
+                }
+            }
+        }
+    },
+    "recording.transcription.processing-privacy-note": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Only the audio track is sent; video frames are not uploaded. Processing takes approximately the recording's playback duration."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Nur die Audiospur wird gesendet; Videobilder werden nicht hochgeladen. Die Verarbeitung dauert ungefähr so lange wie die Wiedergabe."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Solo se envía la pista de audio; los fotogramas de vídeo no se suben. El proceso tarda aproximadamente lo mismo que la reproducción."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Seule la piste audio est envoyée ; les images vidéo ne sont pas téléversées. Le traitement dure environ aussi longtemps que la lecture."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "音声トラックだけを送信し、映像フレームはアップロードしません。処理時間は録画の再生時間とほぼ同じです。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "오디오 트랙만 전송하며 비디오 프레임은 업로드하지 않습니다. 처리 시간은 녹화 재생 시간과 비슷합니다."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Отправляется только аудиодорожка; кадры видео не загружаются. Обработка занимает примерно столько же времени, сколько воспроизведение записи."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Chỉ gửi bản âm thanh, không tải khung hình video lên. Thời gian xử lý xấp xỉ thời lượng phát của bản ghi."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "只发送音轨，不上传视频画面；处理时长大致等于录屏播放时长。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "只傳送音軌，不上傳影片畫面；處理時間大致等於螢幕錄影播放時間。"
+                }
+            }
+        }
+    },
+    "recording.transcription.completed-title": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Transcript Ready"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Transkript ist fertig"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Transcripción lista"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Transcription prête"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "文字起こしが完了しました"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "녹취록 준비 완료"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Расшифровка готова"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Bản chép lời đã sẵn sàng"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "文字稿已生成"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "逐字稿已產生"
+                }
+            }
+        }
+    },
+    "recording.transcription.completed-description": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Review the text, then copy it or save it as a separate text file."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Prüfen Sie den Text und kopieren oder speichern Sie ihn anschließend als separate Textdatei."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Revisa el texto y después cópialo o guárdalo como un archivo de texto independiente."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Vérifiez le texte, puis copiez-le ou enregistrez-le dans un fichier texte séparé."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "内容を確認してから、コピーするか別のテキストファイルとして保存できます。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "텍스트를 확인한 뒤 복사하거나 별도의 텍스트 파일로 저장하세요."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Проверьте текст, затем скопируйте его или сохраните отдельным текстовым файлом."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Kiểm tra văn bản, sau đó sao chép hoặc lưu thành tệp văn bản riêng."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "检查文字后，可复制或单独保存为文本文件。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "檢查文字後，可複製或另存為文字檔案。"
+                }
+            }
+        }
+    },
+    "recording.transcription.failed-title": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Transcription Failed"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Transkription fehlgeschlagen"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Error de transcripción"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Échec de la transcription"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "文字起こしに失敗しました"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "녹취록 생성 실패"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Не удалось создать расшифровку"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Không thể tạo bản chép lời"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "文字稿生成失败"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "逐字稿產生失敗"
+                }
+            }
+        }
+    },
+    "recording.transcription.failed-description": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "The video recording was saved safely and will not be changed."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Die Videoaufnahme wurde sicher gespeichert und wird nicht verändert."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "La grabación de vídeo se ha guardado de forma segura y no se modificará."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "L’enregistrement vidéo a été sauvegardé et ne sera pas modifié."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "動画の録画は安全に保存され、変更されません。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "비디오 녹화는 안전하게 저장되었으며 변경되지 않습니다."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Видеозапись безопасно сохранена и не будет изменена."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Bản ghi video đã được lưu an toàn và sẽ không bị thay đổi."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "视频录屏已安全保存且不会被修改。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "螢幕錄影已安全儲存且不會被修改。"
+                }
+            }
+        }
+    },
+    "recording.transcription.save-button": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Save Transcript"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Transkript speichern"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Guardar transcripción"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Enregistrer la transcription"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "文字起こしを保存"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "녹취록 저장"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Сохранить расшифровку"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Lưu bản chép lời"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "保存文字稿"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "儲存逐字稿"
+                }
+            }
+        }
+    },
+    "recording.transcription.save-panel-title": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Save Recording Transcript"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Aufnahmetranskript speichern"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Guardar transcripción de la grabación"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Enregistrer la transcription de l’enregistrement"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "録画の文字起こしを保存"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "녹화 녹취록 저장"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Сохранить расшифровку записи"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Lưu bản chép lời ghi màn hình"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "保存录屏文字稿"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "儲存螢幕錄影逐字稿"
+                }
+            }
+        }
+    },
+    "recording.transcription.copied": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Transcript copied"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Transkript kopiert"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Transcripción copiada"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Transcription copiée"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "文字起こしをコピーしました"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "녹취록을 복사했습니다"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Расшифровка скопирована"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Đã sao chép bản chép lời"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "文字稿已复制"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "逐字稿已複製"
+                }
+            }
+        }
+    },
+    "recording.transcription.saved": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "%@ saved"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "%@ gespeichert"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "%@ guardado"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "%@ enregistré"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "%@ を保存しました"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "%@ 저장됨"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "%@ сохранен"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Đã lưu %@"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "已保存 %@"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "已儲存 %@"
+                }
+            }
+        }
+    },
+    "recording.transcription.save-failed": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Could not save the transcript. Choose another location and try again."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Das Transkript konnte nicht gespeichert werden. Wählen Sie einen anderen Speicherort und versuchen Sie es erneut."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "No se pudo guardar la transcripción. Elige otra ubicación e inténtalo de nuevo."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Impossible d’enregistrer la transcription. Choisissez un autre emplacement et réessayez."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "文字起こしを保存できませんでした。別の場所を選んでもう一度お試しください。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "녹취록을 저장할 수 없습니다. 다른 위치를 선택하고 다시 시도하세요."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Не удалось сохранить расшифровку. Выберите другое место и повторите попытку."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Không thể lưu bản chép lời. Hãy chọn vị trí khác rồi thử lại."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "无法保存文字稿，请选择其他位置后重试。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "無法儲存逐字稿，請選擇其他位置後再試一次。"
+                }
+            }
+        }
+    },
+    "recording.transcription.error-invalid-configuration": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "The Volcengine API Key or Model ID is invalid. Check Recording settings."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Der Volcengine-API-Schlüssel oder die Modell-ID ist ungültig. Prüfen Sie die Aufnahmeeinstellungen."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "La clave de API o el ID de modelo de Volcengine no son válidos. Revisa los ajustes de grabación."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "La clé API ou l’ID de modèle Volcengine est invalide. Vérifiez les réglages d’enregistrement."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine の API Key またはモデル ID が無効です。録画設定を確認してください。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine API 키 또는 모델 ID가 올바르지 않습니다. 녹화 설정을 확인하세요."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Недействительный ключ API или ID модели Volcengine. Проверьте настройки записи."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Khóa API hoặc Model ID của Volcengine không hợp lệ. Hãy kiểm tra cài đặt ghi màn hình."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "火山引擎 API Key 或模型 ID 无效，请检查录屏设置。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "火山引擎 API Key 或模型 ID 無效，請檢查螢幕錄影設定。"
+                }
+            }
+        }
+    },
+    "recording.transcription.error-invalid-recording": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "The completed recording cannot be read."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Die fertige Aufnahme kann nicht gelesen werden."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "No se puede leer la grabación terminada."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Impossible de lire l’enregistrement terminé."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "完了した録画を読み取れません。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "완료된 녹화를 읽을 수 없습니다."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Не удается прочитать завершенную запись."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Không thể đọc bản ghi đã hoàn tất."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "无法读取已完成的录屏文件。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "無法讀取已完成的螢幕錄影檔案。"
+                }
+            }
+        }
+    },
+    "recording.transcription.error-no-audio": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "This recording does not contain a readable audio track."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Diese Aufnahme enthält keine lesbare Audiospur."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Esta grabación no contiene una pista de audio legible."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Cet enregistrement ne contient aucune piste audio lisible."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "この録画には読み取り可能な音声トラックがありません。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "이 녹화에는 읽을 수 있는 오디오 트랙이 없습니다."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "В этой записи нет доступной аудиодорожки."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Bản ghi này không có bản âm thanh có thể đọc."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "录屏中没有可读取的音轨。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "螢幕錄影中沒有可讀取的音軌。"
+                }
+            }
+        }
+    },
+    "recording.transcription.error-audio-too-long": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine simultaneous interpretation supports recordings up to two hours."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine-Simultandolmetschen unterstützt Aufnahmen bis zu zwei Stunden."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "La interpretación simultánea de Volcengine admite grabaciones de hasta dos horas."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "L’interprétation simultanée Volcengine prend en charge les enregistrements de deux heures maximum."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine の同時通訳は 2 時間以内の録音に対応しています。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine 동시통역은 최대 2시간 길이의 녹음을 지원합니다."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Синхронный перевод Volcengine поддерживает записи длительностью до двух часов."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Phiên dịch đồng thời của Volcengine hỗ trợ bản ghi dài tối đa hai giờ."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "火山引擎同声传译仅支持两小时以内的录音。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "火山引擎同聲傳譯僅支援兩小時以內的錄音。"
+                }
+            }
+        }
+    },
+    "recording.transcription.error-audio-decode": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "The recording audio could not be decoded for transcription."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Die Audiospur der Aufnahme konnte nicht für die Transkription decodiert werden."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "No se pudo decodificar el audio de la grabación para transcribirlo."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Impossible de décoder l’audio de l’enregistrement pour la transcription."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "文字起こし用に録画音声をデコードできませんでした。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "녹화 오디오를 녹취용으로 디코딩할 수 없습니다."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Не удалось декодировать аудио записи для расшифровки."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Không thể giải mã âm thanh bản ghi để chép lời."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "无法解码录屏音轨。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "無法解碼螢幕錄影音軌。"
+                }
+            }
+        }
+    },
+    "recording.transcription.error-connection": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Could not connect to Volcengine simultaneous interpretation. Check the network, credentials, model access, and invite-only service entitlement."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Keine Verbindung zum Volcengine-Simultandolmetschen möglich. Prüfen Sie Netzwerk, Anmeldedaten, Modellzugriff und die Freischaltung des Einladungsdienstes."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "No se pudo conectar con la interpretación simultánea de Volcengine. Revisa la red, las credenciales, el acceso al modelo y la habilitación del servicio por invitación."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Impossible de se connecter à l’interprétation simultanée Volcengine. Vérifiez le réseau, les identifiants, l’accès au modèle et l’éligibilité au service sur invitation."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine の同時通訳に接続できません。ネットワーク、認証情報、モデル権限、招待制サービスの利用資格を確認してください。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine 동시통역에 연결할 수 없습니다. 네트워크, 자격 증명, 모델 권한 및 초대형 서비스 사용 자격을 확인하세요."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Не удалось подключиться к синхронному переводу Volcengine. Проверьте сеть, учетные данные, доступ к модели и право на участие в закрытом тестировании."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Không thể kết nối phiên dịch đồng thời Volcengine. Hãy kiểm tra mạng, thông tin xác thực, quyền mô hình và quyền dùng dịch vụ thử nghiệm theo lời mời."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "无法连接火山引擎同声传译。请检查网络、凭证、模型权限和邀测资格。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "無法連線火山引擎同聲傳譯。請檢查網路、憑證、模型權限和邀測資格。"
+                }
+            }
+        }
+    },
+    "recording.transcription.error-service": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine error (%@): %@"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine-Fehler (%@): %@"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Error de Volcengine (%@): %@"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Erreur Volcengine (%@) : %@"
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine エラー（%@）：%@"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine 오류(%@): %@"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Ошибка Volcengine (%@): %@"
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Lỗi Volcengine (%@): %@"
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "火山引擎错误（%@）：%@"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "火山引擎錯誤（%@）：%@"
+                }
+            }
+        }
+    },
+    "recording.transcription.error-invalid-response": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine returned an invalid transcription response."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine hat eine ungültige Transkriptionsantwort zurückgegeben."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine devolvió una respuesta de transcripción no válida."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine a renvoyé une réponse de transcription invalide."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine から無効な文字起こし応答が返されました。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine이 잘못된 녹취 응답을 반환했습니다."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine вернул недопустимый ответ расшифровки."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine trả về phản hồi chép lời không hợp lệ."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "火山引擎返回了无效的文字稿响应。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "火山引擎傳回了無效的逐字稿回應。"
+                }
+            }
+        }
+    },
+    "recording.transcription.error-response-too-large": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "The returned transcript exceeded ShotPaste's safety limit."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Das zurückgegebene Transkript überschreitet die Sicherheitsgrenze von ShotPaste."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "La transcripción devuelta superó el límite de seguridad de ShotPaste."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "La transcription renvoyée dépasse la limite de sécurité de ShotPaste."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "返された文字起こしが ShotPaste の安全上限を超えました。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "반환된 녹취록이 ShotPaste의 안전 크기 제한을 초과했습니다."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Размер полученной расшифровки превысил безопасный предел ShotPaste."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Bản chép lời trả về vượt quá giới hạn an toàn của ShotPaste."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "返回的文字稿超过安全大小限制。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "傳回的逐字稿超過安全大小限制。"
+                }
+            }
+        }
+    },
+    "recording.transcription.error-empty-transcript": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "No speech was detected in the recording."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "In der Aufnahme wurde keine Sprache erkannt."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "No se detectó voz en la grabación."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Aucune parole n’a été détectée dans l’enregistrement."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "録画から音声を検出できませんでした。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "녹화에서 음성이 감지되지 않았습니다."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "В записи не обнаружена речь."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Không phát hiện lời nói trong bản ghi."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "录屏中没有识别到语音。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "螢幕錄影中未識別到語音。"
+                }
+            }
+        }
+    },
+    "recording.transcription.error-timeout": {
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Transcription timed out before Volcengine finished processing the audio."
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Die Transkription wurde beendet, bevor Volcengine die Audiospur vollständig verarbeitet hatte."
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "La transcripción agotó el tiempo antes de que Volcengine terminara de procesar el audio."
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "La transcription a expiré avant que Volcengine ne termine le traitement de l’audio."
+                }
+            },
+            "ja": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine の音声処理が完了する前に文字起こしがタイムアウトしました。"
+                }
+            },
+            "ko": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Volcengine의 오디오 처리가 끝나기 전에 녹취 시간이 초과되었습니다."
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Время ожидания истекло до завершения обработки аудио в Volcengine."
+                }
+            },
+            "vi": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Đã hết thời gian trước khi Volcengine xử lý xong âm thanh."
+                }
+            },
+            "zh-Hans": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "文字稿生成超时。"
+                }
+            },
+            "zh-Hant": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "逐字稿產生逾時。"
+                }
+            }
+        }
     }
   },
   "version": "1.0"

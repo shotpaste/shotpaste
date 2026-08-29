@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using ShotPaste.Windows.Services;
 
 namespace ShotPaste.Windows.Models;
 
@@ -77,6 +78,15 @@ public sealed class AppSettings
     public RecordingOutputMode RecordingOutputMode { get; set; } = RecordingOutputMode.Video;
     public string RecordingVideoFormat { get; set; } = "Mp4";
     public string RecordingVideoCodec { get; set; } = "H264";
+    public string RecordingTranscriptionApiKeyProtected { get; set; } = string.Empty;
+    [JsonIgnore]
+    public string RecordingTranscriptionApiKey
+    {
+        get => RecordingTranscriptionCredentialProtector.Unprotect(RecordingTranscriptionApiKeyProtected);
+        set => RecordingTranscriptionApiKeyProtected = RecordingTranscriptionCredentialProtector.Protect(value);
+    }
+    public string RecordingTranscriptionModelId { get; set; } = string.Empty;
+    public string RecordingTranscriptionSourceLanguage { get; set; } = "zh";
     public bool ClipboardHistoryEnabled { get; set; } = true;
     public bool LaunchAtStartup { get; set; }
     public bool UrlSchemeEnabled { get; set; } = true;

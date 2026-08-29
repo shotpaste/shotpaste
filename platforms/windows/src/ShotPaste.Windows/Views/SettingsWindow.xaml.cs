@@ -34,6 +34,7 @@ public partial class SettingsWindow : Window
         _settingsApplied = settingsApplied;
         _draft = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(store.Current)) ?? new AppSettings();
         DataContext = _draft;
+        RefreshRecordingTranscriptionPassword();
         UpdateStatus.Text = $"{LocalizedDialogService.Text("当前版本")}: {_updateService.CurrentVersionString}";
         SelectInitialTab(initialTab);
         Loaded += async (_, _) =>
@@ -177,6 +178,22 @@ public partial class SettingsWindow : Window
     private void OnLiveSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) => ScheduleLiveApply();
     private void OnLiveRangeChanged(object sender, RoutedPropertyChangedEventArgs<double> e) => ScheduleLiveApply();
     private void OnLiveKeyboardFocusLost(object sender, KeyboardFocusChangedEventArgs e) => ScheduleLiveApply();
+
+    private void OnRecordingTranscriptionApiKeyChanged(object sender, RoutedEventArgs e)
+    {
+        if (_refreshingBindings || sender is not System.Windows.Controls.PasswordBox passwordBox) return;
+        try
+        {
+            _draft.RecordingTranscriptionApiKey = passwordBox.Password;
+            RecordingTranscriptionCredentialStatus.Text = string.Empty;
+            ScheduleLiveApply();
+        }
+        catch (ArgumentException)
+        {
+            RecordingTranscriptionCredentialStatus.Text = LocalizationService.TranslatePhrase(
+                "无法安全保存 API Key，请检查凭证后重试。");
+        }
+    }
 
     private void ScheduleLiveApply()
     {
@@ -502,9 +519,23 @@ public partial class SettingsWindow : Window
         {
             DataContext = null;
             DataContext = _draft;
+            RefreshRecordingTranscriptionPassword();
         }
         finally { _refreshingBindings = false; }
         ScheduleLiveApply();
+    }
+
+    private void RefreshRecordingTranscriptionPassword()
+    {
+        if (RecordingTranscriptionApiKeyBox is null) return;
+        var wasRefreshing = _refreshingBindings;
+        _refreshingBindings = true;
+        try
+        {
+            RecordingTranscriptionApiKeyBox.Password = _draft.RecordingTranscriptionApiKey;
+            RecordingTranscriptionCredentialStatus.Text = string.Empty;
+        }
+        finally { _refreshingBindings = wasRefreshing; }
     }
 
     private void EnsureQuickActionSlots()

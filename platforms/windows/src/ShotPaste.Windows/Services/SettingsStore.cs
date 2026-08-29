@@ -181,6 +181,15 @@ public sealed class SettingsStore
         settings.RecordingToolbarTop = NormalizeWindowCoordinate(settings.RecordingToolbarTop);
         settings.RecordingVideoFormat = settings.RecordingVideoFormat.Equals("Mov", StringComparison.OrdinalIgnoreCase) ? "Mov" : "Mp4";
         settings.RecordingVideoCodec = settings.RecordingVideoCodec.Equals("Hevc", StringComparison.OrdinalIgnoreCase) ? "Hevc" : "H264";
+        settings.RecordingTranscriptionApiKeyProtected = settings.RecordingTranscriptionApiKeyProtected?.Length <= 32_768
+            ? settings.RecordingTranscriptionApiKeyProtected
+            : string.Empty;
+        settings.RecordingTranscriptionModelId = (settings.RecordingTranscriptionModelId ?? string.Empty).Trim();
+        if (settings.RecordingTranscriptionModelId.Length > 512)
+            settings.RecordingTranscriptionModelId = settings.RecordingTranscriptionModelId[..512];
+        settings.RecordingTranscriptionSourceLanguage = settings.RecordingTranscriptionSourceLanguage is "zh" or "en"
+            ? settings.RecordingTranscriptionSourceLanguage
+            : "zh";
         settings.RecordingAnnotationWidth = Math.Clamp(settings.RecordingAnnotationWidth, 1, 20);
         settings.RecordingAnnotationClearSeconds = Math.Clamp(settings.RecordingAnnotationClearSeconds, 1, 3600);
         settings.RecordingAnnotationMaxCount = Math.Clamp(settings.RecordingAnnotationMaxCount, 1, 200);

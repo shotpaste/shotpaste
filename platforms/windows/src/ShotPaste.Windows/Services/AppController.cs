@@ -44,6 +44,7 @@ public sealed class AppController : IDisposable
     private System.Windows.Threading.DispatcherTimer? _historyMaintenanceTimer;
     private ShotPasteMcpServer? _mcpServer;
     private readonly Dictionary<Guid, PinnedImageWindow> _activePins = [];
+    private readonly HashSet<RecordingTranscriptWindow> _recordingTranscriptWindows = [];
     private Rectangle? _currentRecordingRectangle;
     private TaskCompletionSource<bool>? _activeRecordingWorkflow;
     private TaskCompletionSource<bool>? _activeScrollingWorkflow;
@@ -855,6 +856,7 @@ public sealed class AppController : IDisposable
         var workflow = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         _activeRecordingWorkflow = workflow;
         var completedSafely = false;
+        string? recordingToTranscribe = null;
         ApplyRecordingRequestSettings(request);
         var target = request.Target;
         var rectangle = target.Bounds;
@@ -921,11 +923,15 @@ public sealed class AppController : IDisposable
                 if (_settings.Current.ShowQuickAccess && _settings.Current.ShowQuickAccessForRecordings) ShowQuickAccess(item);
                 if (_settings.Current.ShowCaptureNotifications)
                     _tray?.ShowMessage("录屏已保存", Path.GetFileName(path));
+                if (kind == CaptureKind.Recording && (request.SystemAudio || request.Microphone))
+                    recordingToTranscribe = path;
             }
             while (_restartRecording);
             _currentRecordingRectangle = null;
             _recordingRegionOverlay?.Close(); _recordingRegionOverlay = null;
             RestoreMainWindowIfNeeded();
+            if (recordingToTranscribe is not null)
+                PresentRecordingTranscriptIfConfigured(recordingToTranscribe);
             completedSafely = true;
         }
         catch (Exception exception)
@@ -960,6 +966,33 @@ public sealed class AppController : IDisposable
             if (ReferenceEquals(_recordingToolbar, toolbar)) _recordingToolbar = null;
         };
         toolbar.Show();
+    }
+
+    private void PresentRecordingTranscriptIfConfigured(string recordingPath)
+    {
+        RecordingTranscriptWindow? window = null;
+        try
+        {
+            var configuration = RecordingTranscriptionConfiguration.FromSettings(_settings.Current);
+            if (configuration is null || _exitInProgress) return;
+            window = new RecordingTranscriptWindow(recordingPath, configuration);
+            _recordingTranscriptWindows.Add(window);
+            window.Closed += (_, _) => _recordingTranscriptWindows.Remove(window);
+            window.Show();
+            window.Activate();
+        }
+        catch (Exception)
+        {
+            if (window is not null)
+            {
+                _recordingTranscriptWindows.Remove(window);
+                try { window.Close(); } catch (InvalidOperationException) { }
+            }
+            _tray?.ShowMessage(
+                LocalizationService.TranslatePhrase("文字稿生成失败"),
+                LocalizationService.TranslatePhrase("视频录屏已安全保存且不会被修改。"),
+                Forms.ToolTipIcon.Warning);
+        }
     }
 
     private void RequestRecordingRestart()
@@ -1751,6 +1784,8 @@ public sealed class AppController : IDisposable
         _recordingRegionOverlay?.Close();
         foreach (var pinned in _activePins.Values.ToArray()) pinned.Close();
         _activePins.Clear();
+        foreach (var transcript in _recordingTranscriptWindows.ToArray()) transcript.Close();
+        _recordingTranscriptWindows.Clear();
         _quickAccess?.Dispose();
         _clipboard?.Dispose();
         _hotkeys?.Dispose();

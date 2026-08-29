@@ -387,6 +387,46 @@
                   <TextBlock Text="系统声音音量" VerticalAlignment="Center"/><Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding RecordingSystemAudioVolume}"/>
                   <TextBlock Grid.Column="2" Text="麦克风音量" VerticalAlignment="Center" Margin="12,0,0,0"/><Slider Grid.Column="3" Minimum="0" Maximum="1" Value="{Binding RecordingMicrophoneVolume}"/>
                 </Grid>
+                <TextBlock Text="自动文字稿（火山同传）" Style="{StaticResource SectionTitle}" Margin="0,14,0,8"/>
+                <Border Padding="12" CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource SurfaceSecondaryBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                  <StackPanel>
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="170"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                      <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="火山引擎 API Key" Style="{StaticResource SettingRowTitle}"/>
+                        <TextBlock Text="安全存储，且不会写入日志" Style="{StaticResource SettingHint}"/>
+                      </StackPanel>
+                      <PasswordBox x:Name="RecordingTranscriptionApiKeyBox" Grid.Column="1" PasswordChanged="OnRecordingTranscriptionApiKeyChanged"
+                                   VerticalContentAlignment="Center" AutomationProperties.AutomationId="RecordingTranscriptionApiKey"/>
+                    </Grid>
+                    <Border Style="{StaticResource SettingDivider}"/>
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="170"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                      <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="模型 ID" Style="{StaticResource SettingRowTitle}"/>
+                        <TextBlock Text="已开通同声传译模型的 Model ID" Style="{StaticResource SettingHint}"/>
+                      </StackPanel>
+                      <TextBox Grid.Column="1" Text="{Binding RecordingTranscriptionModelId, UpdateSourceTrigger=PropertyChanged}"
+                               VerticalContentAlignment="Center" AutomationProperties.AutomationId="RecordingTranscriptionModelId"/>
+                    </Grid>
+                    <Border Style="{StaticResource SettingDivider}"/>
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="170"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                      <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="录屏语音语言" Style="{StaticResource SettingRowTitle}"/>
+                        <TextBlock Text="当前支持中文和英文" Style="{StaticResource SettingHint}"/>
+                      </StackPanel>
+                      <ComboBox Grid.Column="1" SelectedValue="{Binding RecordingTranscriptionSourceLanguage}" SelectedValuePath="Tag"
+                                AutomationProperties.AutomationId="RecordingTranscriptionSourceLanguage">
+                        <ComboBoxItem Content="中文" Tag="zh"/><ComboBoxItem Content="English" Tag="en"/>
+                      </ComboBox>
+                    </Grid>
+                    <TextBlock Text="带音频的录屏结束后，音轨会自动发送到火山引擎。绝不会上传视频画面；文字稿只在你明确复制或保存后持久化。"
+                               Style="{StaticResource SettingHint}" Margin="0,10,0,0" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="RecordingTranscriptionCredentialStatus" Style="{StaticResource SettingHint}" Margin="0,5,0,0" TextWrapping="Wrap"/>
+                  </StackPanel>
+                </Border>
                 <TextBlock Text="实时标注" Style="{StaticResource SectionTitle}" Margin="0,14,0,8"/>
                 <WrapPanel>
                   <TextBlock Text="颜色" VerticalAlignment="Center" Margin="0,0,8,0"/>

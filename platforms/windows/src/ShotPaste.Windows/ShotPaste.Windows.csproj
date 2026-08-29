@@ -33,6 +33,8 @@
     <PackageReference Include="ScreenRecorderLib" Version="6.6.0" ExcludeAssets="build;buildTransitive" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.29" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.12" />
+    <PackageReference Include="NAudio" Version="2.3.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
     <Reference Include="ScreenRecorderLib" Condition="'$(Platform)' == 'x64'">
       <HintPath>$(NuGetPackageRoot)screenrecorderlib\6.6.0\build\x64\ScreenRecorderLib.dll</HintPath>
       <Private>true</Private>

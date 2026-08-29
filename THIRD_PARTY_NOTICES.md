@@ -12,6 +12,8 @@ kept here without abbreviation.
 | libwebp | WebP codec | BSD-3-Clause with patent grant | [webmproject/libwebp](https://chromium.googlesource.com/webm/libwebp) |
 | ScreenRecorderLib | Windows recording | MIT | [sskodje/ScreenRecorderLib](https://github.com/sskodje/ScreenRecorderLib) |
 | Microsoft.Data.Sqlite | Windows SQLite access | MIT | [dotnet/efcore](https://github.com/dotnet/efcore) |
+| NAudio | Windows recording-audio decoding and resampling | MIT | [naudio/NAudio](https://github.com/naudio/NAudio) |
+| System.Security.Cryptography.ProtectedData | Windows credential encryption | MIT | [dotnet/runtime](https://github.com/dotnet/runtime) |
 | SQLitePCLRaw | Native SQLite packaging | Apache-2.0 | [ericsink/SQLitePCL.raw](https://github.com/ericsink/SQLitePCL.raw) |
 | SQLite | Database engine | Public Domain | [sqlite.org](https://www.sqlite.org/copyright.html) |
 | SkiaSharp | Windows drawing and image processing | MIT | [mono/SkiaSharp](https://github.com/mono/SkiaSharp) |
@@ -119,6 +121,36 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## NAudio
+
+MIT License
+
+Copyright 2020 Mark Heath
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## System.Security.Cryptography.ProtectedData
+
+This .NET runtime component is Copyright (c) .NET Foundation and Contributors
+and is distributed under the MIT License reproduced in the
+Microsoft.Data.Sqlite section above.
 
 ## SQLitePCLRaw
 

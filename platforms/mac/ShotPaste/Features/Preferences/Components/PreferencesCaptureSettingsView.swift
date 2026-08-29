@@ -69,6 +69,13 @@ struct CaptureSettingsView: View {
   @AppStorage(PreferencesKeys.recordingShowTimeOnMenuBar) private var recordingShowTimeOnMenuBar = true
   @AppStorage(PreferencesKeys.recordingHighlightClicks) private var recordingHighlightClicks = false
   @AppStorage(PreferencesKeys.recordingShowKeystrokes) private var recordingShowKeystrokes = false
+  @AppStorage(PreferencesKeys.recordingTranscriptionModelID)
+  private var recordingTranscriptionModelID = ""
+  @AppStorage(PreferencesKeys.recordingTranscriptionSourceLanguage)
+  private var recordingTranscriptionSourceLanguage = RecordingTranscriptionLanguage.chinese.rawValue
+  @State private var recordingTranscriptionAPIKey = ""
+  @State private var recordingTranscriptionCredentialError: String?
+  @State private var didLoadRecordingTranscriptionAPIKey = false
 
   // Mouse Highlight settings
   @AppStorage(PreferencesKeys.mouseHighlightSize) private var mouseHighlightSize: Double = 48
@@ -758,6 +765,62 @@ struct CaptureSettingsView: View {
         }
 
         if selectedPane == .recording {
+          Section(L10n.RecordingTranscription.settingsSection) {
+            SettingRow(
+              icon: "key.fill",
+              title: L10n.RecordingTranscription.apiKeyTitle,
+              description: L10n.RecordingTranscription.apiKeyDescription
+            ) {
+              SecureField("", text: $recordingTranscriptionAPIKey)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 260)
+            }
+
+            SettingRow(
+              icon: "shippingbox.fill",
+              title: L10n.RecordingTranscription.modelIDTitle,
+              description: L10n.RecordingTranscription.modelIDDescription
+            ) {
+              TextField("", text: $recordingTranscriptionModelID)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 260)
+            }
+
+            SettingRow(
+              icon: "waveform",
+              title: L10n.RecordingTranscription.sourceLanguageTitle,
+              description: L10n.RecordingTranscription.sourceLanguageDescription
+            ) {
+              Picker("", selection: $recordingTranscriptionSourceLanguage) {
+                ForEach(RecordingTranscriptionLanguage.allCases) { language in
+                  Text(language.displayName).tag(language.rawValue)
+                }
+              }
+              .labelsHidden()
+              .pickerStyle(.menu)
+              .frame(width: 160)
+            }
+
+            HStack(alignment: .top, spacing: 7) {
+              Image(systemName: "lock.shield.fill")
+                .foregroundStyle(Color.blue)
+                .font(.system(size: 12))
+                .padding(.top, 1)
+              Text(L10n.RecordingTranscription.privacyDescription)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let recordingTranscriptionCredentialError {
+              Text(recordingTranscriptionCredentialError)
+                .font(.system(size: 11))
+                .foregroundStyle(.red)
+            }
+          }
+        }
+
+        if selectedPane == .recording {
           Section(L10n.PreferencesCapture.liveAnnotationSection) {
             SettingRow(
               icon: "paintbrush.pointed",
@@ -887,6 +950,20 @@ struct CaptureSettingsView: View {
         }
       }
       .formStyle(.grouped)
+      .onAppear {
+        guard !didLoadRecordingTranscriptionAPIKey else { return }
+        recordingTranscriptionAPIKey = RecordingTranscriptionCredentialStore.shared.loadAPIKey()
+        didLoadRecordingTranscriptionAPIKey = true
+      }
+      .onChange(of: recordingTranscriptionAPIKey) { newValue in
+        guard didLoadRecordingTranscriptionAPIKey else { return }
+        do {
+          try RecordingTranscriptionCredentialStore.shared.saveAPIKey(newValue)
+          recordingTranscriptionCredentialError = nil
+        } catch {
+          recordingTranscriptionCredentialError = L10n.RecordingTranscription.credentialSaveFailed
+        }
+      }
     }
   }
 

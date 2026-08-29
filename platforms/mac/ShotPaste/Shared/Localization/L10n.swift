@@ -3337,6 +3337,193 @@ nonisolated enum L10n {
     )
   }
 
+  enum RecordingTranscription {
+    static let settingsSection = string(
+      "recording.transcription.settings-section",
+      defaultValue: "Automatic Transcript (Volcengine)",
+      comment: "Recording preferences section title for automatic transcription"
+    )
+    static let apiKeyTitle = string(
+      "recording.transcription.api-key-title",
+      defaultValue: "Volcengine API Key",
+      comment: "Recording transcription API key setting title"
+    )
+    static let apiKeyDescription = string(
+      "recording.transcription.api-key-description",
+      defaultValue: "Stored securely in Keychain and never written to logs",
+      comment: "Recording transcription API key setting description"
+    )
+    static let modelIDTitle = string(
+      "recording.transcription.model-id-title",
+      defaultValue: "Model ID",
+      comment: "Recording transcription model setting title"
+    )
+    static let modelIDDescription = string(
+      "recording.transcription.model-id-description",
+      defaultValue: "Model ID for your enabled simultaneous interpretation model",
+      comment: "Recording transcription model setting description"
+    )
+    static let sourceLanguageTitle = string(
+      "recording.transcription.source-language-title",
+      defaultValue: "Spoken Language",
+      comment: "Recording transcription source language setting title"
+    )
+    static let sourceLanguageDescription = string(
+      "recording.transcription.source-language-description",
+      defaultValue: "Language spoken in recordings; currently Chinese and English are supported",
+      comment: "Recording transcription source language setting description"
+    )
+    static let chinese = string(
+      "recording.transcription.language-chinese",
+      defaultValue: "Chinese",
+      comment: "Chinese recording transcription language option"
+    )
+    static let english = string(
+      "recording.transcription.language-english",
+      defaultValue: "English",
+      comment: "English recording transcription language option"
+    )
+    static let privacyDescription = string(
+      "recording.transcription.privacy-description",
+      defaultValue: "After a recording with audio ends, its audio is sent to Volcengine automatically. Video frames are never uploaded. The transcript stays in memory until you explicitly copy or save it.",
+      comment: "Privacy explanation for automatic recording transcription"
+    )
+    static let credentialSaveFailed = string(
+      "recording.transcription.credential-save-failed",
+      defaultValue: "Could not save the API Key securely. Check Keychain access and try again.",
+      comment: "Error shown when the recording transcription API key cannot be saved"
+    )
+    static let windowTitle = string(
+      "recording.transcription.window-title",
+      defaultValue: "ShotPaste · Recording Transcript",
+      comment: "Recording transcript result window title"
+    )
+    static let processingTitle = string(
+      "recording.transcription.processing-title",
+      defaultValue: "Generating Transcript",
+      comment: "Recording transcript processing title"
+    )
+    static let processingDescription = string(
+      "recording.transcription.processing-description",
+      defaultValue: "ShotPaste is transcribing the recording audio with Volcengine.",
+      comment: "Recording transcript processing description"
+    )
+    static let processingPrivacyNote = string(
+      "recording.transcription.processing-privacy-note",
+      defaultValue: "Only the audio track is sent. Processing runs at approximately the recording's playback duration.",
+      comment: "Recording transcript processing privacy and duration note"
+    )
+    static let completedTitle = string(
+      "recording.transcription.completed-title",
+      defaultValue: "Transcript Ready",
+      comment: "Recording transcript completion title"
+    )
+    static let completedDescription = string(
+      "recording.transcription.completed-description",
+      defaultValue: "Review the text, then copy it or save it as a separate text file.",
+      comment: "Recording transcript completion description"
+    )
+    static let failedTitle = string(
+      "recording.transcription.failed-title",
+      defaultValue: "Transcription Failed",
+      comment: "Recording transcript failure title"
+    )
+    static let failedDescription = string(
+      "recording.transcription.failed-description",
+      defaultValue: "The video recording is safe and unchanged.",
+      comment: "Recording transcript failure reassurance"
+    )
+    static let saveButton = string(
+      "recording.transcription.save-button",
+      defaultValue: "Save Transcript",
+      comment: "Button that saves a recording transcript separately"
+    )
+    static let savePanelTitle = string(
+      "recording.transcription.save-panel-title",
+      defaultValue: "Save Recording Transcript",
+      comment: "Recording transcript save panel title"
+    )
+    static let copied = string(
+      "recording.transcription.copied",
+      defaultValue: "Transcript copied",
+      comment: "Status shown after copying a recording transcript"
+    )
+    static func saved(_ fileName: String) -> String {
+      format(
+        "recording.transcription.saved",
+        defaultValue: "%@ saved",
+        comment: "Status shown after saving a transcript. %@ is the saved filename.",
+        fileName
+      )
+    }
+
+    static let saveFailed = string(
+      "recording.transcription.save-failed",
+      defaultValue: "Could not save the transcript. Choose another location and try again.",
+      comment: "Recording transcript save failure status"
+    )
+    static let invalidConfiguration = string(
+      "recording.transcription.error-invalid-configuration",
+      defaultValue: "The Volcengine API Key or Model ID is invalid. Check Recording settings.",
+      comment: "Recording transcription invalid configuration error"
+    )
+    static let invalidRecording = string(
+      "recording.transcription.error-invalid-recording",
+      defaultValue: "The completed recording cannot be read.",
+      comment: "Recording transcription invalid recording error"
+    )
+    static let noAudioTrack = string(
+      "recording.transcription.error-no-audio",
+      defaultValue: "This recording does not contain a readable audio track.",
+      comment: "Recording transcription missing audio error"
+    )
+    static let audioTooLong = string(
+      "recording.transcription.error-audio-too-long",
+      defaultValue: "Volcengine simultaneous interpretation supports recordings up to two hours.",
+      comment: "Recording transcription audio duration limit error"
+    )
+    static let audioDecodeFailed = string(
+      "recording.transcription.error-audio-decode",
+      defaultValue: "The recording audio could not be decoded for transcription.",
+      comment: "Recording transcription audio decode error"
+    )
+    static let connectionFailed = string(
+      "recording.transcription.error-connection",
+      defaultValue: "Could not connect to Volcengine simultaneous interpretation. Check the network, credentials, model access, and invite-only service entitlement.",
+      comment: "Recording transcription connection error"
+    )
+    static func serviceError(_ code: String, _ message: String) -> String {
+      format(
+        "recording.transcription.error-service",
+        defaultValue: "Volcengine error (%@): %@",
+        comment: "Recording transcription service error. The placeholders are service code and message.",
+        code,
+        message
+      )
+    }
+
+    static let invalidResponse = string(
+      "recording.transcription.error-invalid-response",
+      defaultValue: "Volcengine returned an invalid transcription response.",
+      comment: "Recording transcription invalid response error"
+    )
+    static let responseTooLarge = string(
+      "recording.transcription.error-response-too-large",
+      defaultValue: "The returned transcript exceeded ShotPaste's safety limit.",
+      comment: "Recording transcription response size error"
+    )
+    static let emptyTranscript = string(
+      "recording.transcription.error-empty-transcript",
+      defaultValue: "No speech was detected in the recording.",
+      comment: "Recording transcription empty result error"
+    )
+    static let timeout = string(
+      "recording.transcription.error-timeout",
+      defaultValue: "Transcription timed out before Volcengine finished processing the audio.",
+      comment: "Recording transcription timeout error"
+    )
+  }
+
   enum Recording {
     static let quitConfirmationTitle = string(
       "recording.quit-confirmation-title",

@@ -776,6 +776,7 @@ final class RecordingCoordinator: ObservableObject {
 
     // Capture output mode before cleanup closes the toolbar
     let outputMode = toolbarWindow?.state.outputMode ?? .video
+    let recordedAudio = toolbarWindow?.captureAudio == true || toolbarWindow?.captureMicrophone == true
 
     Task {
       let url = await recorder.stopRecording()
@@ -805,6 +806,9 @@ final class RecordingCoordinator: ObservableObject {
           } else {
             // Video mode: normal post-capture flow
             await PostCaptureActionHandler.shared.handleVideoCapture(url: url)
+            if recordedAudio {
+              RecordingTranscriptWindowManager.presentIfConfigured(recordingURL: url)
+            }
           }
         }
       }

@@ -101,6 +101,8 @@ nonisolated enum PreferencesKeys {
   static let recordingHoverBarVisible = "recording.hoverBarVisible"
   static let recordingShowTimeOnMenuBar = "recording.showTimeOnMenuBar"
   static let recordingHoverBarFrameOrigin = "recording.hoverBarFrameOrigin"
+  static let recordingTranscriptionModelID = "recording.transcription.volcengine.modelID"
+  static let recordingTranscriptionSourceLanguage = "recording.transcription.sourceLanguage"
 
   // Mouse Highlight Customization
   static let mouseHighlightSize = "recording.mouseHighlight.size"
