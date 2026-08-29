@@ -185,4 +185,7 @@ platforms/windows/src/ShotPaste.Windows/bin/x64/Debug/net8.0-windows10.0.19041.0
 - [`.github/workflows/ci.yml`](.github/workflows/ci.yml)：Pull Request、`main`、`release` 的平台验证矩阵。
 - [`.github/workflows/release-macos.yml`](.github/workflows/release-macos.yml) 与 [`.github/workflows/release-windows.yml`](.github/workflows/release-windows.yml)：两个平台独立的正式发布流水线。
 
+## 8. 任务范围提示
+
+- 做历史数据恢复兼容方案前，先判断是否有必要做，未合入 release 分支意味着没有真实用户，不要过度考虑兼容。
 

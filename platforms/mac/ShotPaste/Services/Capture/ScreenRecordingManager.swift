@@ -90,6 +90,95 @@ enum VideoQuality: String, CaseIterable, Codable {
   }
 }
 
+/// Identifies the owner of a recording session without changing the existing
+/// screen-recording defaults. The audio adapter uses a deliberately tiny,
+/// deterministic video stream as a clock/compatibility carrier for its audio
+/// tracks; it is not a user-facing screen recording.
+nonisolated enum RecordingPurpose: Equatable, Sendable {
+  case screenVideo
+  case audioAdapter
+}
+
+/// Metadata-only notification payload for an unexpected SCStream retirement.
+/// Consumers should call `stopRecording()` to finish and preserve the writer
+/// output; the capture core never discards the file as part of this signal.
+nonisolated struct RecordingStreamFailureEvent: Sendable, Equatable {
+  static let userInfoKey = "recordingStreamFailureEvent"
+
+  let generation: UInt64
+  let purpose: RecordingPurpose
+  let wasFirstVideoFrameReady: Bool
+  let wasCapturing: Bool
+  let errorType: String
+  /// True when the adapter had already atomically entered its active-start
+  /// boundary.  Such a failure is recoverable by the coordinator through
+  /// `stopRecording()` and must not be mistaken for a healthy capture.
+  let wasAdapterStartClaimed: Bool
+
+  init(
+    generation: UInt64,
+    purpose: RecordingPurpose,
+    wasFirstVideoFrameReady: Bool,
+    wasCapturing: Bool,
+    errorType: String,
+    wasAdapterStartClaimed: Bool = false
+  ) {
+    self.generation = generation
+    self.purpose = purpose
+    self.wasFirstVideoFrameReady = wasFirstVideoFrameReady
+    self.wasCapturing = wasCapturing
+    self.errorType = errorType
+    self.wasAdapterStartClaimed = wasAdapterStartClaimed
+  }
+}
+
+nonisolated struct RecordingStreamFailureGateObservation: Sendable, Equatable {
+  let wasAdapterStartClaimed: Bool
+}
+
+extension Notification.Name {
+  static let recordingStreamDidFail = Notification.Name("ShotPaste.recordingStreamDidFail")
+}
+
+/// Pure constants and settings for the tiny audio-adapter video track.
+/// Keeping this separate from the user quality presets prevents a 32x32, 1 FPS
+/// stream from inheriting the normal screen recorder's megabit floor.
+nonisolated enum AudioAdapterCaptureCore {
+  static let outputWidth = 32
+  static let outputHeight = 32
+  static let frameRate = 1
+  static let minimumVideoBitrate = 32_000
+  static let maximumVideoBitrate = 64_000
+  static let videoBitrate = 48_000
+  static let firstVideoFrameTimeout: TimeInterval = 2
+
+  static func effectiveFormat(for requested: VideoFormat, purpose: RecordingPurpose) -> VideoFormat {
+    purpose == .audioAdapter ? .mov : requested
+  }
+
+  static func acceptsVideoDimensions(width: Int, height: Int) -> Bool {
+    width == outputWidth && height == outputHeight
+  }
+
+  /// The fixed mid-range bitrate is intentional: the adapter's video is a
+  /// stable low-cost carrier, not content whose quality should track the
+  /// selected screen-recording preset.
+  static func videoBitrate(width _: Int, height _: Int, fps _: Int) -> Int {
+    min(max(videoBitrate, minimumVideoBitrate), maximumVideoBitrate)
+  }
+
+  static func makeVideoSettings() -> [String: Any] {
+    RecordingVideoEncodingSettings.makeVideoSettings(
+      width: outputWidth,
+      height: outputHeight,
+      fps: frameRate,
+      quality: .low,
+      codec: .h264,
+      bitrate: videoBitrate(width: outputWidth, height: outputHeight, fps: frameRate)
+    )
+  }
+}
+
 enum RecordingVideoEncodingSettings {
   static func calculatedBitrate(
     width: Int,
@@ -192,6 +281,104 @@ nonisolated enum RecordingAudioEncodingSettings {
     var layout = AudioChannelLayout()
     layout.mChannelLayoutTag = kAudioChannelLayoutTag_Stereo
     return Data(bytes: &layout, count: MemoryLayout<AudioChannelLayout>.size)
+  }
+}
+
+/// Track-level role metadata shared by the capture writer and the audio
+/// adapter's AVAsset reader.  The role is carried by the track itself so
+/// extraction never depends on AVFoundation's track enumeration order.
+nonisolated enum RecordingAudioTrackRoleMetadata {
+  static let key = AudioAdapterTrackRoleMetadataContract.key
+  static let identifier = AudioAdapterTrackRoleMetadataContract.identifier
+  static let dataType = kCMMetadataBaseDataType_UTF8 as String
+
+  enum Error: Swift.Error, Equatable {
+    case unsupportedRole(String)
+    case invalidMetadata
+  }
+
+  /// Creates one QuickTime metadata item for a supported capture role.
+  /// `.mixed` is intentionally rejected because it is an output of the
+  /// adapter pipeline, not one of the independent capture tracks.
+  static func items(for role: AudioAdapterTrackRole) throws -> [AVMetadataItem] {
+    guard role == .system || role == .microphone else {
+      throw Error.unsupportedRole(role.rawValue)
+    }
+
+    let item = AVMutableMetadataItem()
+    // Set both the canonical identifier and its key-space/key representation.
+    // AVAssetWriter uses the latter when serializing a custom mdta entry, while
+    // AVAssetTrack.load(.metadata) exposes the former after MOV reload.
+    item.identifier = AVMetadataIdentifier(identifier)
+    item.keySpace = .quickTimeMetadata
+    item.key = key as NSString
+    item.value = role.rawValue as NSString
+    item.dataType = dataType
+
+    let result: [AVMetadataItem] = [item]
+    try validate(result, expectedRole: role)
+    return result
+  }
+
+  /// String overload used at boundaries where a role came from persisted or
+  /// external data. Unknown values and `.mixed` are rejected before creating
+  /// a metadata item.
+  static func items(for roleValue: String) throws -> [AVMetadataItem] {
+    let normalized = roleValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    guard let role = AudioAdapterTrackRole(rawValue: normalized),
+          role == .system || role == .microphone else {
+      throw Error.unsupportedRole(roleValue)
+    }
+    return try items(for: role)
+  }
+
+  /// Validates the exact metadata shape accepted by the audio adapter. In
+  /// addition to checking the identifier/value pair, this rejects duplicate
+  /// identifiers or values so a malformed track cannot be interpreted as two
+  /// competing roles.
+  static func validate(
+    _ items: [AVMetadataItem],
+    expectedRole: AudioAdapterTrackRole? = nil
+  ) throws {
+    guard !items.isEmpty else {
+      throw Error.invalidMetadata
+    }
+
+    let identifiers = items.compactMap { $0.identifier?.rawValue }
+    let values = items.compactMap { stringValue($0.value) }
+    guard identifiers.count == items.count,
+          values.count == items.count,
+          Set(identifiers).count == identifiers.count,
+          Set(values).count == values.count,
+          items.allSatisfy({ item in
+            item.identifier == AVMetadataIdentifier(identifier)
+              && item.keySpace == .quickTimeMetadata
+              && (item.key as? String) == key
+              && item.dataType == dataType
+          }),
+          let value = values.first,
+          (value == AudioAdapterTrackRole.system.rawValue
+            || value == AudioAdapterTrackRole.microphone.rawValue),
+          expectedRole.map({ value == $0.rawValue }) ?? true else {
+      throw Error.invalidMetadata
+    }
+  }
+
+  static func isValid(
+    _ items: [AVMetadataItem],
+    expectedRole: AudioAdapterTrackRole? = nil
+  ) -> Bool {
+    (try? validate(items, expectedRole: expectedRole)) != nil
+  }
+
+  private static func stringValue(_ value: Any?) -> String? {
+    if let value = value as? String {
+      return value
+    }
+    if let value = value as? NSString {
+      return value as String
+    }
+    return nil
   }
 }
 
@@ -573,6 +760,68 @@ enum RecordingState: Equatable {
   }
 }
 
+/// The operation that owns asynchronous teardown for one capture generation.
+/// Stop, cancel, and a failed start all use the same owner so no two paths can
+/// remove a stream or touch the writer concurrently.
+nonisolated enum RecordingTeardownOperation: Equatable, Sendable {
+  case stop
+  case cancel
+  case startFailure
+}
+
+nonisolated struct RecordingTeardownOwner: Equatable, Sendable {
+  let generation: UInt64
+  let operation: RecordingTeardownOperation
+}
+
+/// Small lifecycle predicates shared by the manager's async paths and pure
+/// tests.  Keeping the stale-task check as one policy prevents a failure path
+/// from mutating the session before it discovers that its generation retired.
+nonisolated enum RecordingCaptureLifecyclePolicy {
+  static func canMutateCapturedGeneration(
+    capturedGeneration: UInt64,
+    currentGeneration: UInt64?,
+    sessionGenerationIsCurrent: Bool
+  ) -> Bool {
+    currentGeneration == capturedGeneration && sessionGenerationIsCurrent
+  }
+
+  static func canEnterRecording(
+    capturedGeneration: UInt64,
+    currentGeneration: UInt64?,
+    sessionGenerationIsCurrent: Bool,
+    state: RecordingState,
+    firstVideoFrameReady: Bool,
+    streamFailed: Bool
+  ) -> Bool {
+    canMutateCapturedGeneration(
+      capturedGeneration: capturedGeneration,
+      currentGeneration: currentGeneration,
+      sessionGenerationIsCurrent: sessionGenerationIsCurrent
+    ) && state == .preparing && firstVideoFrameReady && !streamFailed
+  }
+
+  static func canClaimTeardown(
+    capturedGeneration: UInt64,
+    currentGeneration: UInt64?,
+    state: RecordingState,
+    owner: RecordingTeardownOwner?,
+    operation: RecordingTeardownOperation
+  ) -> Bool {
+    guard currentGeneration == capturedGeneration, owner == nil else { return false }
+
+    switch operation {
+    case .stop:
+      return state == .recording || state == .paused
+    case .cancel:
+      return state != .idle && state != .stopping
+    case .startFailure:
+      return state == .preparing
+    }
+  }
+
+}
+
 enum RecordingCancellationOutcome: Equatable {
   case disposed
   case noOutput
@@ -612,6 +861,123 @@ enum RecordingError: Error, LocalizedError {
   }
 }
 
+/// Cross-queue identity gate for a recording capture.  The manager is
+/// `@MainActor`, while SCStream and microphone callbacks arrive on dedicated
+/// queues; keeping only opaque object identities here lets those callbacks
+/// reject stale generations without touching main-actor state.
+final nonisolated class RecordingCaptureGenerationGate: @unchecked Sendable {
+  private let lock = NSLock()
+  private var nextGeneration: UInt64 = 0
+  private var currentGeneration: UInt64?
+  private var failedGenerations = Set<UInt64>()
+  private var adapterStartClaimedGenerations = Set<UInt64>()
+  private var streamGenerations: [ObjectIdentifier: UInt64] = [:]
+  private var microphoneGenerations: [ObjectIdentifier: UInt64] = [:]
+
+  func begin() -> UInt64 {
+    lock.withLock {
+      nextGeneration &+= 1
+      currentGeneration = nextGeneration
+      failedGenerations.removeAll()
+      adapterStartClaimedGenerations.removeAll()
+      streamGenerations.removeAll()
+      microphoneGenerations.removeAll()
+      return nextGeneration
+    }
+  }
+
+  func current() -> UInt64? {
+    lock.withLock { currentGeneration }
+  }
+
+  func isCurrent(_ generation: UInt64) -> Bool {
+    lock.withLock { currentGeneration == generation }
+  }
+
+  func isHealthy(_ generation: UInt64) -> Bool {
+    lock.withLock {
+      currentGeneration == generation && !failedGenerations.contains(generation)
+    }
+  }
+
+  /// Claim the adapter's final transition to user-visible recording.  The
+  /// generation/health check and the one-shot claim are one locked operation:
+  /// a didStop callback that wins first makes this return false, while a
+  /// callback that arrives after a successful claim observes an active start.
+  func claimAdapterRecordingStart(_ generation: UInt64) -> Bool {
+    lock.withLock {
+      guard currentGeneration == generation,
+            !failedGenerations.contains(generation),
+            !adapterStartClaimedGenerations.contains(generation)
+      else {
+        return false
+      }
+      adapterStartClaimedGenerations.insert(generation)
+      return true
+    }
+  }
+
+  func adapterRecordingStartWasClaimed(_ generation: UInt64) -> Bool {
+    lock.withLock {
+      currentGeneration == generation && adapterStartClaimedGenerations.contains(generation)
+    }
+  }
+
+  /// A stream-stop callback reports whether the adapter start had already
+  /// claimed the lifecycle transition.  The result is captured under the same
+  /// lock as the failure mark so the event cannot misclassify the boundary.
+  func markStreamFailed(_ generation: UInt64) -> RecordingStreamFailureGateObservation? {
+    lock.withLock {
+      guard currentGeneration == generation, !failedGenerations.contains(generation) else {
+        return nil
+      }
+      failedGenerations.insert(generation)
+      return RecordingStreamFailureGateObservation(
+        wasAdapterStartClaimed: adapterStartClaimedGenerations.contains(generation)
+      )
+    }
+  }
+
+  func bind(stream: SCStream, generation: UInt64) {
+    lock.withLock {
+      guard currentGeneration == generation else { return }
+      streamGenerations[ObjectIdentifier(stream)] = generation
+    }
+  }
+
+  func bind(microphone: MicrophoneAudioCapturer, generation: UInt64) {
+    lock.withLock {
+      guard currentGeneration == generation else { return }
+      microphoneGenerations[ObjectIdentifier(microphone)] = generation
+    }
+  }
+
+  func generation(for stream: SCStream) -> UInt64? {
+    lock.withLock {
+      let generation = streamGenerations[ObjectIdentifier(stream)]
+      return generation == currentGeneration ? generation : nil
+    }
+  }
+
+  func generation(for microphone: MicrophoneAudioCapturer) -> UInt64? {
+    lock.withLock {
+      let generation = microphoneGenerations[ObjectIdentifier(microphone)]
+      return generation == currentGeneration ? generation : nil
+    }
+  }
+
+  func invalidate(_ generation: UInt64) {
+    lock.withLock {
+      guard currentGeneration == generation else { return }
+      currentGeneration = nil
+      failedGenerations.remove(generation)
+      adapterStartClaimedGenerations.remove(generation)
+      streamGenerations.removeAll()
+      microphoneGenerations.removeAll()
+    }
+  }
+}
+
 // MARK: - Screen Recording Manager
 
 @MainActor
@@ -623,6 +989,9 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
   @Published private(set) var state: RecordingState = .idle
   @Published private(set) var elapsedSeconds: Int = 0
   @Published private(set) var error: RecordingError?
+  /// Main-actor state mirror of the latest current-generation stream failure.
+  /// The matching notification lets coordinators call stop and preserve output.
+  @Published private(set) var streamFailureEvent: RecordingStreamFailureEvent?
 
   var formattedDuration: String {
     let mins = elapsedSeconds / 60
@@ -662,6 +1031,7 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
   // MARK: - Configuration
 
   private var recordingRect: CGRect = .zero
+  private var recordingPurpose: RecordingPurpose = .screenVideo
   private var videoFormat: VideoFormat = .mov
   private var videoQuality: VideoQuality = .high
   private var fps: Int = 30
@@ -681,6 +1051,13 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
   private var mouseTracker: RecordingMouseTracker?
   private var exportDirectoryAccess: SandboxFileAccessManager.ScopedAccess?
   private var registeredOutputTypes: Set<SCStreamOutputType> = []
+  private var registeredOutputTypesByGeneration: [UInt64: Set<SCStreamOutputType>] = [:]
+  private var streamsByGeneration: [UInt64: SCStream] = [:]
+  private let captureGenerationGate = RecordingCaptureGenerationGate()
+  /// Main-actor single-flight owner.  The generation is part of the owner so
+  /// an old async task cannot release a newer teardown, and the operation is
+  /// part of the owner so stop/cancel/start-failure all share one latch.
+  private var teardownOwner: RecordingTeardownOwner?
 
   private struct CaptureGeometry {
     let sourceRect: CGRect
@@ -726,9 +1103,10 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     excludeDesktopWidgets: Bool = false,
     excludeOwnApplication: Bool = true,
     excludedWindowIDs: [CGWindowID] = [],
-    context: CaptureContext = .empty
+    context: CaptureContext = .empty,
+    purpose: RecordingPurpose = .screenVideo
   ) async throws {
-    guard state == .idle else {
+    guard state == .idle, teardownOwner == nil else {
       DiagnosticLogger.shared.log(.debug, .recording, "prepareRecording blocked: recorder busy", context: [
         "state": "\(state)",
       ])
@@ -736,19 +1114,41 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     }
     state = .preparing
     error = nil
-    session.sessionStarted = false
+    streamFailureEvent = nil
+    let generation = captureGenerationGate.begin()
+    session.beginGeneration(generation)
+
+    // A prior failed/cancelled setup may still own a stream while its async
+    // teardown is winding down.  Retire those streams before creating any new
+    // stream, while their callbacks are already rejected by the new generation.
+    let obsoleteStreams = streamsByGeneration
+      .filter { $0.key != generation }
+      .map { ($0.key, $0.value) }
+    for (obsoleteGeneration, obsoleteStream) in obsoleteStreams {
+      await teardownStream(obsoleteStream, generation: obsoleteGeneration)
+    }
+    guard captureGenerationGate.isCurrent(generation) else {
+      throw RecordingError.cancelled
+    }
+
+    let effectiveFormat = AudioAdapterCaptureCore.effectiveFormat(for: format, purpose: purpose)
+    let effectiveQuality: VideoQuality = purpose == .audioAdapter ? .low : quality
+    let effectiveFPS = purpose == .audioAdapter ? AudioAdapterCaptureCore.frameRate : fps
+    let effectiveShowCursor = purpose == .audioAdapter ? false : showCursor
+    let effectiveExcludeOwnApplication = purpose == .audioAdapter ? true : excludeOwnApplication
 
     DiagnosticLogger.shared.log(.info, .recording, "Recording prepare started", context: [
       "rect": "\(Int(rect.width))x\(Int(rect.height))",
       "origin": "\(Int(rect.origin.x)),\(Int(rect.origin.y))",
-      "format": format.rawValue,
-      "quality": quality.rawValue,
-      "fps": "\(fps)",
+      "format": effectiveFormat.rawValue,
+      "quality": effectiveQuality.rawValue,
+      "fps": "\(effectiveFPS)",
+      "purpose": purpose == .audioAdapter ? "audioAdapter" : "screenVideo",
       "systemAudio": "\(captureSystemAudio)",
       "microphone": "\(captureMicrophone)",
       "microphoneDevice": microphoneDeviceID ?? RecordingMicrophoneDeviceProvider.systemDefaultID,
-      "showCursor": "\(showCursor)",
-      "excludeOwnApp": "\(excludeOwnApplication)",
+      "showCursor": "\(effectiveShowCursor)",
+      "excludeOwnApp": "\(effectiveExcludeOwnApplication)",
       "excludeDesktopIcons": "\(excludeDesktopIcons)",
       "excludeDesktopWidgets": "\(excludeDesktopWidgets)",
       "excludedWindows": "\(excludedWindowIDs.count)",
@@ -756,14 +1156,15 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
       "processingDirectory": processingDirectory?.lastPathComponent ?? "same-as-final",
     ])
 
-    videoFormat = format
-    videoQuality = quality
-    self.fps = fps
+    recordingPurpose = purpose
+    videoFormat = effectiveFormat
+    videoQuality = effectiveQuality
+    self.fps = effectiveFPS
     self.captureSystemAudio = captureSystemAudio
     self.captureMicrophone = captureMicrophone
     self.microphoneDeviceID = microphoneDeviceID
-    showCursorInRecording = showCursor
-    excludeOwnApplicationFromCapture = excludeOwnApplication
+    showCursorInRecording = effectiveShowCursor
+    excludeOwnApplicationFromCapture = effectiveExcludeOwnApplication
     excludeDesktopIconsFromCapture = excludeDesktopIcons
     excludeDesktopWidgetsFromCapture = excludeDesktopWidgets
     self.excludedWindowIDs = Set(excludedWindowIDs)
@@ -771,22 +1172,28 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
 
     let captureManager = ScreenCaptureManager.shared
     await captureManager.checkPermission()
+    guard captureGenerationGate.isCurrent(generation) else {
+      throw RecordingError.cancelled
+    }
 
     if case .notGranted = captureManager.permissionStatus {
       _ = await captureManager.requestPermission()
+      guard captureGenerationGate.isCurrent(generation) else {
+        throw RecordingError.cancelled
+      }
     }
 
     switch captureManager.permissionStatus {
     case .notGranted:
       DiagnosticLogger.shared.log(.warning, .recording, "Recording permission denied")
-      state = .idle
+      cleanup(generation: generation)
       error = .permissionDenied
       throw RecordingError.permissionDenied
     case .grantedButUnavailableDueToAppIdentity(let reason):
       DiagnosticLogger.shared.log(.warning, .recording, "Recording permission unavailable for app identity", context: [
         "reason": reason,
       ])
-      state = .idle
+      cleanup(generation: generation)
       error = .setupFailed(reason)
       throw RecordingError.setupFailed(reason)
     case .granted:
@@ -798,11 +1205,17 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     do {
       content = try await loadShareableContentForCurrentFilters()
     } catch {
+      guard captureGenerationGate.isCurrent(generation) else {
+        throw RecordingError.cancelled
+      }
       DiagnosticLogger.shared.logError(.recording, error, "Failed to load shareable content for recording")
-      state = .idle
       let message = L10n.Recording.shareableContentLoadFailed(error.localizedDescription)
+      cleanup(generation: generation)
       self.error = .setupFailed(message)
       throw RecordingError.setupFailed(message)
+    }
+    guard captureGenerationGate.isCurrent(generation) else {
+      throw RecordingError.cancelled
     }
 
     let requestedRect = rect
@@ -852,7 +1265,7 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
         "availableDisplays": "\(content.displays.count)",
         "screens": "\(NSScreen.screens.count)",
       ])
-      state = .idle
+      cleanup(generation: generation)
       error = .noDisplayFound
       throw RecordingError.noDisplayFound
     }
@@ -869,7 +1282,7 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
       2.0
     }
 
-    let captureGeometry: CaptureGeometry
+    var captureGeometry: CaptureGeometry
     do {
       captureGeometry = try resolveCaptureGeometry(
         display: display,
@@ -882,8 +1295,21 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
         "scaleFactor": String(format: "%.2f", scaleFactor),
         "requestedRect": "\(Int(requestedRect.width))x\(Int(requestedRect.height))",
       ])
-      cleanup()
+      cleanup(generation: generation)
       throw error
+    }
+
+    if purpose == .audioAdapter {
+      // Keep the source rectangle selected by the caller, but force the
+      // ScreenCaptureKit output dimensions to the adapter's physical carrier
+      // size. This also makes the invariant hold on Retina and non-Retina
+      // displays regardless of the selection's point dimensions.
+      captureGeometry = CaptureGeometry(
+        sourceRect: captureGeometry.sourceRect,
+        globalCaptureRect: captureGeometry.globalCaptureRect,
+        outputWidth: AudioAdapterCaptureCore.outputWidth,
+        outputHeight: AudioAdapterCaptureCore.outputHeight
+      )
     }
     recordingRect = captureGeometry.globalCaptureRect
     DiagnosticLogger.shared.log(.debug, .recording, "Recording geometry resolved", context: [
@@ -917,10 +1343,7 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
       try FileManager.default.createDirectory(at: writerDirectory, withIntermediateDirectories: true)
     } catch {
       DiagnosticLogger.shared.logError(.recording, error, "Failed to create recording save directory")
-      cleanupRecordingProcessingDirectoryIfNeeded()
-      exportDirectoryAccess?.stop()
-      exportDirectoryAccess = nil
-      state = .idle
+      cleanup(generation: generation)
       self.error = .writeFailed(error.localizedDescription)
       throw RecordingError.writeFailed(error.localizedDescription)
     }
@@ -928,7 +1351,7 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     finalOutputURL = CaptureOutputNaming.makeUniqueFileURL(
       in: scopedSaveDirectory,
       baseName: resolvedFileName,
-      fileExtension: format.fileExtension
+      fileExtension: effectiveFormat.fileExtension
     )
     if let finalOutputURL {
       do {
@@ -938,10 +1361,7 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
         )
       } catch {
         DiagnosticLogger.shared.logError(.recording, error, "Failed to create recording output subdirectory")
-        cleanupRecordingProcessingDirectoryIfNeeded()
-        exportDirectoryAccess?.stop()
-        exportDirectoryAccess = nil
-        state = .idle
+        cleanup(generation: generation)
         self.error = .writeFailed(error.localizedDescription)
         throw RecordingError.writeFailed(error.localizedDescription)
       }
@@ -950,7 +1370,7 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     outputURL = CaptureOutputNaming.makeUniqueFileURL(
       in: writerDirectory,
       baseName: writerBaseName,
-      fileExtension: format.fileExtension
+      fileExtension: effectiveFormat.fileExtension
     )
     DiagnosticLogger.shared.log(.debug, .recording, "Recording output file prepared", context: [
       "file": finalOutputURL?.lastPathComponent ?? "nil",
@@ -972,17 +1392,26 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
         captureGeometry: captureGeometry,
         captureSystemAudio: captureSystemAudio,
         captureMicrophone: captureMicrophone,
-        content: content
+        content: content,
+        generation: generation
       )
+      guard captureGenerationGate.isCurrent(generation) else {
+        throw RecordingError.cancelled
+      }
 
       // Setup independent microphone capture if requested
       if captureMicrophone {
         let capturer = MicrophoneAudioCapturer(preferredDeviceID: microphoneDeviceID)
         capturer.delegate = self
+        captureGenerationGate.bind(microphone: capturer, generation: generation)
         microphoneCapturer = capturer
       }
 
-      mouseTracker = RecordingMouseTracker(recordingRect: captureGeometry.globalCaptureRect, fps: fps)
+      if purpose == .screenVideo {
+        mouseTracker = RecordingMouseTracker(recordingRect: captureGeometry.globalCaptureRect, fps: fps)
+      } else {
+        mouseTracker = nil
+      }
       DiagnosticLogger.shared.log(.info, .recording, "Recording prepare completed", context: [
         "file": outputURL?.lastPathComponent ?? "nil",
         "outputSize": "\(captureGeometry.outputWidth)x\(captureGeometry.outputHeight)",
@@ -991,7 +1420,9 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
       DiagnosticLogger.shared.logError(.recording, error, "Recording preparation failed", context: [
         "stage": "writer-or-stream",
       ])
-      cleanup()
+      let failure = (error as? RecordingError)
+        ?? (Task.isCancelled ? RecordingError.cancelled : .setupFailed(error.localizedDescription))
+      await teardownFailedStart(generation: generation, failure: failure)
       throw error
     }
   }
@@ -1003,6 +1434,23 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
         "state": "\(state)",
       ])
       throw RecordingError.alreadyActive
+    }
+
+    guard let generation = captureGenerationGate.current() else {
+      cleanup()
+      throw RecordingError.cancelled
+    }
+
+    guard RecordingCaptureLifecyclePolicy.canMutateCapturedGeneration(
+      capturedGeneration: generation,
+      currentGeneration: captureGenerationGate.current(),
+      sessionGenerationIsCurrent: session.isCurrentGeneration(generation)
+    ),
+    captureGenerationGate.isHealthy(generation),
+    !session.hasStreamFailure(generation: generation)
+    else {
+      await teardownFailedStart(generation: generation, failure: .cancelled)
+      throw RecordingError.cancelled
     }
 
     DiagnosticLogger.shared.log(.debug, .recording, "Recording writer start requested")
@@ -1018,34 +1466,125 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
           "writerStatus": "\(session.assetWriter?.status.rawValue ?? -1)",
         ])
       }
-      state = .idle
-      error = .setupFailed(errorMsg)
-      throw RecordingError.setupFailed(errorMsg)
+      let failure = RecordingError.setupFailed(errorMsg)
+      await teardownFailedStart(generation: generation, failure: failure)
+      throw failure
     }
 
     // Session will start lazily when first sample buffer arrives
     // This ensures timestamp synchronization with SCStream
 
+    guard captureGenerationGate.isHealthy(generation),
+          !session.hasStreamFailure(generation: generation),
+          state == .preparing
+    else {
+      await teardownFailedStart(generation: generation, failure: .cancelled)
+      throw RecordingError.cancelled
+    }
+
     session.isCapturing = true
-    session.setOnFirstVideoFrame { [weak self] in
+    session.setOnFirstVideoFrame(generation: generation) { [weak self] in
       Task { @MainActor [weak self] in
-        self?.mouseTracker?.start()
+        guard let self,
+              self.captureGenerationGate.isHealthy(generation),
+              !self.session.hasStreamFailure(generation: generation)
+        else { return }
+        self.mouseTracker?.start()
       }
     }
 
     do {
-      try await stream?.startCapture()
+      guard let activeStream = streamsByGeneration[generation] else {
+        throw RecordingError.setupFailed(L10n.Recording.failedToStartWriting)
+      }
+      try await activeStream.startCapture()
     } catch {
       DiagnosticLogger.shared.logError(.recording, error, "Failed to start stream capture")
-      session.isCapturing = false
-      session.setOnFirstVideoFrame(nil)
-      self.error = .setupFailed(error.localizedDescription)
-      if let activeStream = stream {
-        await teardownStream(activeStream)
+      let failure = (error as? RecordingError)
+        ?? RecordingError.setupFailed(error.localizedDescription)
+      await teardownFailedStart(generation: generation, failure: failure)
+      throw failure
+    }
+
+    if Task.isCancelled {
+      await teardownFailedStart(generation: generation, failure: .cancelled)
+      throw RecordingError.cancelled
+    }
+
+    guard RecordingCaptureLifecyclePolicy.canMutateCapturedGeneration(
+      capturedGeneration: generation,
+      currentGeneration: captureGenerationGate.current(),
+      sessionGenerationIsCurrent: session.isCurrentGeneration(generation)
+    ),
+    captureGenerationGate.isHealthy(generation),
+    !session.hasStreamFailure(generation: generation),
+    state == .preparing
+    else {
+      await teardownFailedStart(generation: generation, failure: .cancelled)
+      throw RecordingError.cancelled
+    }
+
+    if recordingPurpose == .audioAdapter {
+      // A tiny adapter recording is not considered started until ScreenCaptureKit
+      // has delivered its first complete video sample. This prevents microphone
+      // timestamps and user-visible state/timing from getting ahead of the
+      // writer's source-time anchor.
+      let firstFrameReady = await waitForAudioAdapterFirstVideoFrame(generation: generation)
+      let canCompleteAdapterStart = RecordingCaptureLifecyclePolicy.canEnterRecording(
+        capturedGeneration: generation,
+        currentGeneration: captureGenerationGate.current(),
+        sessionGenerationIsCurrent: session.isCurrentGeneration(generation),
+        state: state,
+        firstVideoFrameReady: firstFrameReady && session.firstVideoFrameReady,
+        streamFailed: !captureGenerationGate.isHealthy(generation) || session.hasStreamFailure(generation: generation)
+      )
+      guard canCompleteAdapterStart else {
+        let failure: RecordingError = Task.isCancelled
+          ? .cancelled
+          : .setupFailed(L10n.Recording.failedToStartWriting)
+        await teardownFailedStart(generation: generation, failure: failure)
+        throw failure
       }
-      session.cancelWriting()
-      cleanup()
-      throw RecordingError.setupFailed(error.localizedDescription)
+
+      // This is the atomic health-check/one-shot claim.  didStopWithError
+      // marks the generation failed under the same gate lock; if it wins
+      // first, this claim fails.  Once claimed, do not await or re-check
+      // health before the microphone/state/timer transition: a later failure
+      // is an active failure event for the coordinator to stop and preserve.
+      guard captureGenerationGate.claimAdapterRecordingStart(generation) else {
+        await teardownFailedStart(generation: generation, failure: .cancelled)
+        throw RecordingError.cancelled
+      }
+
+      // Start the independent microphone only after the first video frame has
+      // anchored the writer timeline. State and the user timer follow it too.
+      microphoneCapturer?.start()
+      state = .recording
+      DiagnosticLogger.shared.log(.info, .recording, "Audio adapter recording started", context: [
+        "rect": "\(Int(recordingRect.width))x\(Int(recordingRect.height))",
+        "fps": "\(fps)",
+        "format": videoFormat.rawValue,
+        "systemAudio": "\(captureSystemAudio)",
+        "microphone": "\(captureMicrophone)",
+      ])
+      startTime = Date()
+      elapsedSeconds = 0
+      pausedDuration = 0
+      startTimer()
+      return
+    }
+
+    guard RecordingCaptureLifecyclePolicy.canMutateCapturedGeneration(
+      capturedGeneration: generation,
+      currentGeneration: captureGenerationGate.current(),
+      sessionGenerationIsCurrent: session.isCurrentGeneration(generation)
+    ),
+    captureGenerationGate.isHealthy(generation),
+    !session.hasStreamFailure(generation: generation),
+    state == .preparing
+    else {
+      await teardownFailedStart(generation: generation, failure: .cancelled)
+      throw RecordingError.cancelled
     }
 
     // Start independent microphone capture
@@ -1182,26 +1721,64 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
 
   /// Stop the recording and save the file
   func stopRecording() async -> URL? {
-    guard state == .recording || state == .paused else {
-      DiagnosticLogger.shared.log(.debug, .recording, "stopRecording ignored", context: ["state": "\(state)"])
+    let requestedState = state
+    guard let generation = captureGenerationGate.current(),
+          RecordingCaptureLifecyclePolicy.canMutateCapturedGeneration(
+            capturedGeneration: generation,
+            currentGeneration: captureGenerationGate.current(),
+            sessionGenerationIsCurrent: session.isCurrentGeneration(generation)
+          ),
+          claimTeardown(generation: generation, operation: .stop)
+    else {
+      DiagnosticLogger.shared.log(.debug, .recording, "stopRecording ignored", context: [
+        "state": "\(state)",
+        "teardownOwner": "\(String(describing: teardownOwner))",
+      ])
       return nil
     }
+    let owner = RecordingTeardownOwner(generation: generation, operation: .stop)
+    defer {
+      cleanup(generation: generation, owner: owner)
+      releaseTeardown(owner)
+    }
+
     DiagnosticLogger.shared.log(.info, .recording, "Recording stop requested", context: [
-      "state": "\(state)",
+      "state": "\(requestedState)",
       "elapsedSeconds": "\(elapsedSeconds)",
       "outputFile": outputURL?.lastPathComponent ?? "nil",
     ])
 
-    session.isCapturing = false
-    session.setOnFirstVideoFrame(nil)
+    // Snapshot every value used after an await. A stop belongs to this
+    // generation even if a stale task is resumed after a later preparation.
+    let isAudioAdapter = recordingPurpose == .audioAdapter
+    let stopVideoFormat = videoFormat
+    let stopCaptureSystemAudio = captureSystemAudio
+    let stopCaptureMicrophone = captureMicrophone
+    let stopRecordingRect = recordingRect
+    let stopFPS = fps
+    let stopElapsedSeconds = elapsedSeconds
+    let stopFinalOutputURL = finalOutputURL
+    let writerURL = outputURL
+    let stopAudioTrackVolumes = configuredAudioTrackVolumes
+    let mouseSamples = isAudioAdapter ? [] : (mouseTracker?.stop() ?? [])
+    let mouseSamplesPerSecond = mouseTracker?.samplesPerSecond ?? stopFPS
+    let mouseDiagnostics = mouseTracker?.diagnostics
 
-    state = .stopping
+    session.isCapturing = false
+    session.setOnFirstVideoFrame(generation: generation, nil)
 
     timer?.invalidate()
     timer = nil
 
-    if let activeStream = stream {
-      await teardownStream(activeStream)
+    if let activeStream = streamsByGeneration[generation] {
+      await teardownStream(activeStream, generation: generation)
+    }
+    guard RecordingCaptureLifecyclePolicy.canMutateCapturedGeneration(
+      capturedGeneration: generation,
+      currentGeneration: captureGenerationGate.current(),
+      sessionGenerationIsCurrent: session.isCurrentGeneration(generation)
+    ) else {
+      return nil
     }
 
     microphoneCapturer?.stop()
@@ -1209,71 +1786,128 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     session.finishInputs()
 
     await session.finishWriting()
+    guard RecordingCaptureLifecyclePolicy.canMutateCapturedGeneration(
+      capturedGeneration: generation,
+      currentGeneration: captureGenerationGate.current(),
+      sessionGenerationIsCurrent: session.isCurrentGeneration(generation)
+    ) else {
+      return nil
+    }
 
     let videoWriteStats = session.videoWriteStats()
 
-    let mouseSamples = mouseTracker?.stop() ?? []
-    let writerURL = outputURL
-    await logRecordingFrameDiagnostics(outputURL: writerURL, stats: videoWriteStats)
-    let audioNormalization = await normalizeRecordingAudioForCompatibilityIfNeeded(writerURL: writerURL)
-    let editorAudioSourceURL = storeRecordingAudioSourceIfNeeded(audioNormalization.audioSourceURL)
-    let url = finalizeRecordingOutput(writerURL: audioNormalization.outputURL)
+    await logRecordingFrameDiagnostics(outputURL: writerURL, stats: videoWriteStats, configuredFPS: stopFPS)
+    guard RecordingCaptureLifecyclePolicy.canMutateCapturedGeneration(
+      capturedGeneration: generation,
+      currentGeneration: captureGenerationGate.current(),
+      sessionGenerationIsCurrent: session.isCurrentGeneration(generation)
+    ) else {
+      return nil
+    }
+
+    let audioNormalization = if isAudioAdapter {
+      // The adapter deliberately exposes the writer's original separate audio
+      // tracks. Do not invoke the compatibility exporter or create an editor
+      // audio-source sidecar for this internal MOV.
+      RecordingAudioNormalizationResult(outputURL: writerURL, audioSourceURL: nil)
+    } else {
+      await normalizeRecordingAudioForCompatibilityIfNeeded(
+        writerURL: writerURL,
+        fileType: stopVideoFormat.fileType,
+        audioTrackVolumes: stopAudioTrackVolumes
+      )
+    }
+    guard RecordingCaptureLifecyclePolicy.canMutateCapturedGeneration(
+      capturedGeneration: generation,
+      currentGeneration: captureGenerationGate.current(),
+      sessionGenerationIsCurrent: session.isCurrentGeneration(generation)
+    ) else {
+      return nil
+    }
+    let editorAudioSourceURL = isAudioAdapter
+      ? nil
+      : storeRecordingAudioSourceIfNeeded(audioNormalization.audioSourceURL)
+    let url: URL?
+    if isAudioAdapter {
+      // The adapter's processing directory is caller-owned (the tiny-region
+      // session directory). Return the writer's original MOV and leave that
+      // directory intact; moving/exporting it would either alter the internal
+      // artifact or let generic processing cleanup delete the caller's file.
+      url = audioNormalization.outputURL
+      recordingProcessingDirectory = nil
+    } else {
+      url = finalizeRecordingOutput(
+        writerURL: audioNormalization.outputURL,
+        proposedFinalURL: stopFinalOutputURL
+      )
+    }
     outputURL = url
     if let url {
-      let audioSourceTrackRoles = editorAudioSourceURL == nil ? [] : RecordingAudioSourceTrackRole.roles(
-        capturesSystemAudio: captureSystemAudio,
-        capturesMicrophone: captureMicrophone
-      )
-      let audioSourceTracks = await recordingAudioSourceTracks(
-        for: editorAudioSourceURL,
-        roles: audioSourceTrackRoles
-      )
-      if mouseSamples.count >= 2 || editorAudioSourceURL != nil {
-        do {
-          let metadata = RecordingMetadata(
-            coordinateSpace: .topLeftNormalized,
-            captureSize: recordingRect.size,
-            samplesPerSecond: mouseTracker?.samplesPerSecond ?? fps,
-            mouseSamples: mouseSamples,
-            audioSourceURL: editorAudioSourceURL,
-            audioSourceTrackRoles: audioSourceTrackRoles,
-            audioSourceTracks: audioSourceTracks
-          )
-          try RecordingMetadataStore.save(metadata, for: url)
-          DiagnosticLogger.shared.log(.info, .recording, "Recording metadata saved", context: [
-            "file": url.lastPathComponent,
-            "samples": "\(mouseSamples.count)",
-            "hasEditorAudioSource": editorAudioSourceURL == nil ? "false" : "true",
-            "editorAudioSourceRoles": audioSourceTrackRoles.map(\.rawValue).joined(separator: ","),
-            "editorAudioSourceTrackIDs": audioSourceTracks.map { "\($0.trackID):\($0.role.rawValue)" }
-              .joined(separator: ","),
-          ])
-        } catch {
-          DiagnosticLogger.shared.logError(.recording, error, "Failed to save recording metadata")
-          deleteStoredRecordingAudioSourceIfUnused(editorAudioSourceURL)
+      if !isAudioAdapter {
+        let audioSourceTrackRoles = editorAudioSourceURL == nil ? [] : RecordingAudioSourceTrackRole.roles(
+          capturesSystemAudio: stopCaptureSystemAudio,
+          capturesMicrophone: stopCaptureMicrophone
+        )
+        let audioSourceTracks = await recordingAudioSourceTracks(
+          for: editorAudioSourceURL,
+          roles: audioSourceTrackRoles
+        )
+        guard RecordingCaptureLifecyclePolicy.canMutateCapturedGeneration(
+          capturedGeneration: generation,
+          currentGeneration: captureGenerationGate.current(),
+          sessionGenerationIsCurrent: session.isCurrentGeneration(generation)
+        ) else {
+          return nil
         }
-      } else {
-        DiagnosticLogger.shared.log(.debug, .recording, "Recording metadata skipped", context: [
-          "samples": "\(mouseSamples.count)",
-        ])
+        if mouseSamples.count >= 2 || editorAudioSourceURL != nil {
+          do {
+            let metadata = RecordingMetadata(
+              coordinateSpace: .topLeftNormalized,
+              captureSize: stopRecordingRect.size,
+              samplesPerSecond: mouseSamplesPerSecond,
+              mouseSamples: mouseSamples,
+              audioSourceURL: editorAudioSourceURL,
+              audioSourceTrackRoles: audioSourceTrackRoles,
+              audioSourceTracks: audioSourceTracks
+            )
+            try RecordingMetadataStore.save(metadata, for: url)
+            DiagnosticLogger.shared.log(.info, .recording, "Recording metadata saved", context: [
+              "file": url.lastPathComponent,
+              "samples": "\(mouseSamples.count)",
+              "hasEditorAudioSource": editorAudioSourceURL == nil ? "false" : "true",
+              "editorAudioSourceRoles": audioSourceTrackRoles.map(\.rawValue).joined(separator: ","),
+              "editorAudioSourceTrackIDs": audioSourceTracks.map { "\($0.trackID):\($0.role.rawValue)" }
+                .joined(separator: ","),
+            ])
+          } catch {
+            DiagnosticLogger.shared.logError(.recording, error, "Failed to save recording metadata")
+            deleteStoredRecordingAudioSourceIfUnused(editorAudioSourceURL)
+          }
+        } else {
+          DiagnosticLogger.shared.log(.debug, .recording, "Recording metadata skipped", context: [
+            "samples": "\(mouseSamples.count)",
+          ])
+        }
+        if let diagnostics = mouseDiagnostics {
+          DiagnosticLogger.shared.log(.info, .recording, "Mouse tracking diagnostics", context: [
+            "samples": "\(diagnostics.sampleCount)",
+            "durationSeconds": String(format: "%.3f", diagnostics.duration),
+            "effectiveSamplesPerSecond": String(format: "%.2f", diagnostics.effectiveSamplesPerSecond),
+            "averageIntervalMs": String(format: "%.2f", diagnostics.averageIntervalMs),
+            "p95IntervalMs": String(format: "%.2f", diagnostics.p95IntervalMs),
+          ])
+        }
       }
-      if let diagnostics = mouseTracker?.diagnostics {
-        DiagnosticLogger.shared.log(.info, .recording, "Mouse tracking diagnostics", context: [
-          "samples": "\(diagnostics.sampleCount)",
-          "durationSeconds": String(format: "%.3f", diagnostics.duration),
-          "effectiveSamplesPerSecond": String(format: "%.2f", diagnostics.effectiveSamplesPerSecond),
-          "averageIntervalMs": String(format: "%.2f", diagnostics.averageIntervalMs),
-          "p95IntervalMs": String(format: "%.2f", diagnostics.p95IntervalMs),
-        ])
-      }
-      DiagnosticLogger.shared.log(.info, .recording, "Recording stopped: \(url.lastPathComponent) (\(elapsedSeconds)s)")
+      DiagnosticLogger.shared.log(.info, .recording, "Recording stopped: \(url.lastPathComponent) (\(stopElapsedSeconds)s)")
     } else {
-      deleteStoredRecordingAudioSourceIfUnused(editorAudioSourceURL)
+      if !isAudioAdapter {
+        deleteStoredRecordingAudioSourceIfUnused(editorAudioSourceURL)
+      }
       DiagnosticLogger.shared.log(.error, .recording, "Recording stopped without output URL")
     }
 
     // Reset state
-    cleanup()
+    cleanup(generation: generation)
 
     return url
   }
@@ -1281,33 +1915,62 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
   /// Cancel the recording without saving
   @discardableResult
   func cancelRecording(moveOutputToTrash: Bool = false) async -> RecordingCancellationOutcome {
-    guard state != .idle else {
-      DiagnosticLogger.shared.log(.debug, .recording, "cancelRecording ignored: recorder idle")
+    let requestedState = state
+    guard let generation = captureGenerationGate.current(),
+          RecordingCaptureLifecyclePolicy.canMutateCapturedGeneration(
+            capturedGeneration: generation,
+            currentGeneration: captureGenerationGate.current(),
+            sessionGenerationIsCurrent: session.isCurrentGeneration(generation)
+          ),
+          claimTeardown(generation: generation, operation: .cancel)
+    else {
+      DiagnosticLogger.shared.log(.debug, .recording, "cancelRecording ignored", context: [
+        "state": "\(state)",
+        "teardownOwner": "\(String(describing: teardownOwner))",
+      ])
       return .noOutput
     }
+    let owner = RecordingTeardownOwner(generation: generation, operation: .cancel)
+    defer {
+      cleanup(generation: generation, owner: owner)
+      releaseTeardown(owner)
+    }
+
     DiagnosticLogger.shared.log(.info, .recording, "Recording cancel requested", context: [
-      "state": "\(state)",
+      "state": "\(requestedState)",
       "outputFile": outputURL?.lastPathComponent ?? "nil",
     ])
+
+    let cancellationOutputURL = outputURL
+
+    session.isCapturing = false
+    session.cancelFirstVideoFrameWait(generation: generation)
+    session.setOnFirstVideoFrame(generation: generation, nil)
 
     timer?.invalidate()
     timer = nil
 
-    if let activeStream = stream {
-      await teardownStream(activeStream)
+    if let activeStream = streamsByGeneration[generation] {
+      await teardownStream(activeStream, generation: generation)
+    }
+    guard RecordingCaptureLifecyclePolicy.canMutateCapturedGeneration(
+      capturedGeneration: generation,
+      currentGeneration: captureGenerationGate.current(),
+      sessionGenerationIsCurrent: session.isCurrentGeneration(generation)
+    ) else {
+      return .noOutput
     }
 
     microphoneCapturer?.stop()
-    session.setOnFirstVideoFrame(nil)
     session.cancelWriting()
     mouseTracker?.reset()
     DiagnosticLogger.shared.log(.info, .recording, "Recording cancelled")
-    if let url = outputURL {
+    if let url = cancellationOutputURL {
       guard FileManager.default.fileExists(atPath: url.path) else {
         DiagnosticLogger.shared.log(.debug, .recording, "Cancelled recording output was not created", context: [
           "file": url.lastPathComponent,
         ])
-        cleanup()
+        cleanup(generation: generation)
         return .noOutput
       }
       do {
@@ -1320,7 +1983,7 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
           "file": url.lastPathComponent,
           "destination": moveOutputToTrash ? "trash" : "removed",
         ])
-        cleanup()
+        cleanup(generation: generation)
         return .disposed
       } catch {
         shouldPreserveProcessingOutputOnCleanup = true
@@ -1328,19 +1991,21 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
           "file": url.lastPathComponent,
           "destination": moveOutputToTrash ? "trash" : "removed",
         ])
-        cleanup()
+        cleanup(generation: generation)
         return .preserved(url)
       }
     }
 
-    cleanup()
+    cleanup(generation: generation)
     return .noOutput
   }
 
   // MARK: - Private Methods
 
   private func normalizeRecordingAudioForCompatibilityIfNeeded(
-    writerURL: URL?
+    writerURL: URL?,
+    fileType: AVFileType,
+    audioTrackVolumes: [Float]
   ) async -> RecordingAudioNormalizationResult {
     guard let writerURL else {
       return RecordingAudioNormalizationResult(outputURL: nil, audioSourceURL: nil)
@@ -1349,9 +2014,9 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     do {
       let result = try await RecordingAudioCompatibilityExporter.normalizeIfNeeded(
         at: writerURL,
-        fileType: videoFormat.fileType,
+        fileType: fileType,
         appliesMixdownHeadroom: true,
-        audioTrackVolumes: configuredAudioTrackVolumes
+        audioTrackVolumes: audioTrackVolumes
       )
       if result.didNormalize {
         DiagnosticLogger.shared.log(.info, .recording, "Recording audio normalized for compatibility", context: [
@@ -1474,7 +2139,7 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     }
   }
 
-  private func finalizeRecordingOutput(writerURL: URL?) -> URL? {
+  private func finalizeRecordingOutput(writerURL: URL?, proposedFinalURL: URL?) -> URL? {
     guard let writerURL else { return nil }
 
     guard FileManager.default.fileExists(atPath: writerURL.path) else {
@@ -1488,7 +2153,7 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
       return nil
     }
 
-    guard let proposedFinalURL = finalOutputURL else {
+    guard let proposedFinalURL else {
       cleanupRecordingProcessingDirectoryIfNeeded()
       return writerURL
     }
@@ -1615,20 +2280,27 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     let writer = try AVAssetWriter(outputURL: url, fileType: videoFormat.fileType)
     writer.shouldOptimizeForNetworkUse = videoFormat == .mp4
     session.assetWriter = writer
-    session.configureExpectedVideoDimensions(width: width, height: height)
-
-    var selectedCodec = preferredVideoCodec()
-    var selectedBitrate = calculatedVideoBitrate(width: width, height: height, codec: selectedCodec)
-    var videoSettings = makeVideoSettings(
+    session.configureExpectedVideoDimensions(
       width: width,
       height: height,
-      codec: selectedCodec,
-      bitrate: selectedBitrate
+      requiresExact: recordingPurpose == .audioAdapter
     )
+
+    let isAudioAdapter = recordingPurpose == .audioAdapter
+    var selectedCodec = isAudioAdapter ? AVVideoCodecType.h264 : preferredVideoCodec()
+    var selectedBitrate = calculatedVideoBitrate(width: width, height: height, codec: selectedCodec)
+    var videoSettings = isAudioAdapter
+      ? AudioAdapterCaptureCore.makeVideoSettings()
+      : makeVideoSettings(
+        width: width,
+        height: height,
+        codec: selectedCodec,
+        bitrate: selectedBitrate
+      )
 
     var videoIn = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
     // If HEVC cannot be added (unsupported path), fallback to H.264.
-    if !writer.canAdd(videoIn), selectedCodec == .hevc {
+    if !isAudioAdapter, !writer.canAdd(videoIn), selectedCodec == .hevc {
       DiagnosticLogger.shared.log(
         .warning,
         .recording,
@@ -1689,6 +2361,11 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
         DiagnosticLogger.shared.log(.error, .recording, "Cannot add system audio writer input")
         throw RecordingError.setupFailed(L10n.Recording.cannotAddSystemAudioWriterInput)
       }
+      // Track-level metadata is assigned before startWriting so AVAssetWriter
+      // serializes the role into the audio track's mdta atom. Keep this on the
+      // shared screen-writer path: ordinary screen recordings retain the same
+      // AAC settings and gain only a harmless, correctly-scoped role label.
+      audioIn.metadata = try RecordingAudioTrackRoleMetadata.items(for: .system)
       session.audioInput = audioIn
       writer.add(audioIn)
     }
@@ -1702,6 +2379,9 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
         DiagnosticLogger.shared.log(.error, .recording, "Cannot add microphone writer input")
         throw RecordingError.setupFailed(L10n.Recording.cannotAddMicrophoneWriterInput)
       }
+      // See the system-audio input above. The role is carried by this track,
+      // never inferred from the order in which AVAsset exposes tracks.
+      micIn.metadata = try RecordingAudioTrackRoleMetadata.items(for: .microphone)
       session.microphoneInput = micIn
       writer.add(micIn)
     }
@@ -1713,7 +2393,10 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
   }
 
   private func calculatedVideoBitrate(width: Int, height: Int, codec: AVVideoCodecType) -> Int {
-    RecordingVideoEncodingSettings.calculatedBitrate(
+    if recordingPurpose == .audioAdapter {
+      return AudioAdapterCaptureCore.videoBitrate(width: width, height: height, fps: fps)
+    }
+    return RecordingVideoEncodingSettings.calculatedBitrate(
       width: width,
       height: height,
       fps: fps,
@@ -1833,7 +2516,8 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     captureGeometry: CaptureGeometry,
     captureSystemAudio: Bool,
     captureMicrophone: Bool,
-    content: SCShareableContent
+    content: SCShareableContent,
+    generation: UInt64
   ) async throws {
     let filter = makeContentFilter(display: display, content: content)
 
@@ -1847,7 +2531,12 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     config.showsCursor = showCursorInRecording
     config.sourceRect = captureGeometry.sourceRect
     let captureResolutionMode: String
-    if #available(macOS 14.2, *) {
+    if recordingPurpose == .audioAdapter, #available(macOS 14.0, *) {
+      // `.nominal` honors the explicit 32x32 dimensions instead of promoting
+      // this tiny carrier to the display's native resolution.
+      config.captureResolution = .nominal
+      captureResolutionMode = "nominal"
+    } else if #available(macOS 14.2, *) {
       config.captureResolution = .best
       captureResolutionMode = "best"
     } else {
@@ -1871,6 +2560,9 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
       case .notDetermined:
         DiagnosticLogger.shared.log(.debug, .recording, "Requesting microphone permission for recording")
         let granted = await AVCaptureDevice.requestAccess(for: .audio)
+        guard captureGenerationGate.isCurrent(generation) else {
+          throw RecordingError.cancelled
+        }
         if !granted {
           DiagnosticLogger.shared.log(.warning, .recording, "Microphone permission denied during request")
           throw RecordingError.microphonePermissionDenied
@@ -1887,14 +2579,34 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
       }
     }
 
-    stream = SCStream(filter: filter, configuration: config, delegate: self)
-    registeredOutputTypes.removeAll()
-    try stream?.addStreamOutput(self, type: .screen, sampleHandlerQueue: videoProcessingQueue)
-    registeredOutputTypes.insert(.screen)
+    guard captureGenerationGate.isCurrent(generation) else {
+      throw RecordingError.cancelled
+    }
 
-    if captureSystemAudio {
-      try stream?.addStreamOutput(self, type: .audio, sampleHandlerQueue: audioProcessingQueue)
-      registeredOutputTypes.insert(.audio)
+    let activeStream = SCStream(filter: filter, configuration: config, delegate: self)
+    stream = activeStream
+    streamsByGeneration[generation] = activeStream
+    captureGenerationGate.bind(stream: activeStream, generation: generation)
+    registeredOutputTypesByGeneration[generation] = []
+    registeredOutputTypes = []
+
+    do {
+      try activeStream.addStreamOutput(self, type: .screen, sampleHandlerQueue: videoProcessingQueue)
+      registeredOutputTypesByGeneration[generation, default: []].insert(.screen)
+      registeredOutputTypes.insert(.screen)
+
+      if captureSystemAudio {
+        try activeStream.addStreamOutput(self, type: .audio, sampleHandlerQueue: audioProcessingQueue)
+        registeredOutputTypesByGeneration[generation, default: []].insert(.audio)
+        registeredOutputTypes.insert(.audio)
+      }
+    } catch {
+      // Do not teardown here. The outer prepareRecording catch claims the
+      // generation-scoped start-failure owner before awaiting teardown. Keep
+      // the successful registrations above so that owner can remove every
+      // output (including a partial screen-only registration) and stop the
+      // stream exactly once.
+      throw error
     }
 
     DiagnosticLogger.shared.log(.info, .recording, "Stream configuration", context: [
@@ -2044,6 +2756,54 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     }
   }
 
+  /// Race the one-shot first-frame waiter with a bounded timeout. The waiter is
+  /// explicitly cancelled on timeout (and on task cancellation), so no
+  /// continuation can survive a failed adapter start or resume later into a
+  /// subsequent recording.
+  private func waitForAudioAdapterFirstVideoFrame(generation: UInt64) async -> Bool {
+    guard captureGenerationGate.isHealthy(generation),
+          session.isCurrentGeneration(generation),
+          !session.hasStreamFailure(generation: generation)
+    else {
+      return false
+    }
+
+    let session = session
+    let gate = captureGenerationGate
+    return await withTaskGroup(of: Bool.self) { group in
+      group.addTask {
+        await session.waitForFirstVideoFrame(generation: generation)
+      }
+      group.addTask {
+        do {
+          try await Task.sleep(
+            nanoseconds: UInt64(AudioAdapterCaptureCore.firstVideoFrameTimeout * 1_000_000_000)
+          )
+          if gate.isCurrent(generation) {
+            session.cancelFirstVideoFrameWait(generation: generation)
+          }
+          return false
+        } catch {
+          // Parent/task cancellation is also a failed start. A successful
+          // frame wins before this timeout child is cancelled and is observed
+          // through the other child below.
+          return false
+        }
+      }
+
+      let result = await group.next() ?? false
+      group.cancelAll()
+      if !result, gate.isCurrent(generation) {
+        session.cancelFirstVideoFrameWait(generation: generation)
+      }
+      return result
+        && gate.isHealthy(generation)
+        && session.isCurrentGeneration(generation)
+        && !session.hasStreamFailure(generation: generation)
+        && !Task.isCancelled
+    }
+  }
+
   private func startTimer() {
     timer = Timer.scheduledTimer(
       timeInterval: 1.0,
@@ -2059,7 +2819,11 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     elapsedSeconds = Int(Date().timeIntervalSince(start) - pausedDuration)
   }
 
-  private func logRecordingFrameDiagnostics(outputURL: URL?, stats: RecordingSession.VideoWriteStats) async {
+  private func logRecordingFrameDiagnostics(
+    outputURL: URL?,
+    stats: RecordingSession.VideoWriteStats,
+    configuredFPS: Int
+  ) async {
     guard stats.receivedFrames > 0 || outputURL != nil else { return }
 
     let droppedFrames = stats.droppedFramesDueToBackpressure + stats.failedAppendFrames
@@ -2068,7 +2832,7 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
       : 0
 
     var context: [String: String] = [
-      "configuredFPS": "\(fps)",
+      "configuredFPS": "\(configuredFPS)",
       "receivedFrames": "\(stats.receivedFrames)",
       "appendedFrames": "\(stats.appendedFrames)",
       "droppedBackpressure": "\(stats.droppedFramesDueToBackpressure)",
@@ -2106,7 +2870,93 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     DiagnosticLogger.shared.log(.info, .recording, "Recording frame diagnostics", context: context)
   }
 
-  private func cleanup() {
+  private func claimTeardown(
+    generation: UInt64,
+    operation: RecordingTeardownOperation
+  ) -> Bool {
+    guard RecordingCaptureLifecyclePolicy.canClaimTeardown(
+      capturedGeneration: generation,
+      currentGeneration: captureGenerationGate.current(),
+      state: state,
+      owner: teardownOwner,
+      operation: operation
+    ) else {
+      return false
+    }
+
+    teardownOwner = RecordingTeardownOwner(generation: generation, operation: operation)
+    // This write is deliberately part of the synchronous claim.  A stop or
+    // cancel task that resumes later cannot enter while the owner is active.
+    state = .stopping
+    return true
+  }
+
+  private func releaseTeardown(_ owner: RecordingTeardownOwner) {
+    guard teardownOwner == owner else { return }
+    teardownOwner = nil
+  }
+
+  /// Idempotent cleanup for every startCapture/post-await failure.  It claims
+  /// the same teardown owner as stop/cancel; if either already owns the
+  /// generation, that owner performs the actual stream/writer cleanup.
+  private func teardownFailedStart(
+    generation: UInt64,
+    failure: RecordingError
+  ) async {
+    guard captureGenerationGate.isCurrent(generation),
+          session.isCurrentGeneration(generation),
+          claimTeardown(generation: generation, operation: .startFailure)
+    else {
+      return
+    }
+
+    let owner = RecordingTeardownOwner(generation: generation, operation: .startFailure)
+    defer {
+      cleanup(generation: generation, owner: owner)
+      releaseTeardown(owner)
+    }
+
+    error = failure
+    session.isCapturing = false
+    session.cancelFirstVideoFrameWait(generation: generation)
+    session.setOnFirstVideoFrame(generation: generation, nil)
+    microphoneCapturer?.stop()
+
+    if let activeStream = streamsByGeneration[generation] {
+      await teardownStream(activeStream, generation: generation)
+    }
+
+    guard RecordingCaptureLifecyclePolicy.canMutateCapturedGeneration(
+      capturedGeneration: generation,
+      currentGeneration: captureGenerationGate.current(),
+      sessionGenerationIsCurrent: session.isCurrentGeneration(generation)
+    ) else {
+      return
+    }
+    session.cancelWriting()
+  }
+
+  private func cleanup(
+    generation: UInt64? = nil,
+    owner: RecordingTeardownOwner? = nil
+  ) {
+    let resolvedGeneration = generation ?? captureGenerationGate.current()
+    // A start task that loses a stop/cancel race must not reset the session
+    // underneath the active owner.  The owner will clean it after its await.
+    if let activeOwner = teardownOwner,
+       activeOwner.generation == resolvedGeneration,
+       activeOwner != owner {
+      return
+    }
+
+    if let resolvedGeneration {
+      guard captureGenerationGate.isCurrent(resolvedGeneration) else { return }
+      captureGenerationGate.invalidate(resolvedGeneration)
+      session.cancelFirstVideoFrameWait(generation: resolvedGeneration)
+    } else {
+      session.cancelFirstVideoFrameWait()
+    }
+
     timer?.invalidate()
     timer = nil
     startTime = nil
@@ -2114,10 +2964,10 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     pausedDuration = 0
     exportDirectoryAccess?.stop()
     exportDirectoryAccess = nil
-    registeredOutputTypes.removeAll()
     excludedWindowIDs.removeAll()
     exceptedWindowIDs.removeAll()
-    session.setOnFirstVideoFrame(nil)
+    session.setOnFirstVideoFrame((nil as (() -> Void)?))
+    session.cancelFirstVideoFrameWait()
     microphoneDeviceID = nil
     showCursorInRecording = true
     excludeOwnApplicationFromCapture = true
@@ -2127,16 +2977,25 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
     microphoneCapturer = nil
     audioLevelMeter.reset()
     session.reset()
+    recordingPurpose = .screenVideo
     cleanupRecordingProcessingDirectoryIfNeeded()
     finalOutputURL = nil
     outputURL = nil
+    streamFailureEvent = nil
     state = .idle
     elapsedSeconds = 0
   }
 
-  private func teardownStream(_ activeStream: SCStream) async {
+  private func teardownStream(_ activeStream: SCStream, generation: UInt64? = nil) async {
+    let resolvedGeneration = generation ?? streamsByGeneration.first {
+      $0.value === activeStream
+    }?.key
+    let outputTypes = resolvedGeneration.flatMap {
+      registeredOutputTypesByGeneration[$0]
+    } ?? (stream === activeStream ? registeredOutputTypes : [])
+
     // Remove outputs first so SCStream can release pipeline buffers immediately.
-    for outputType in registeredOutputTypes {
+    for outputType in outputTypes {
       do {
         try activeStream.removeStreamOutput(self, type: outputType)
       } catch {
@@ -2145,7 +3004,6 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
         ])
       }
     }
-    registeredOutputTypes.removeAll()
 
     do {
       try await activeStream.stopCapture()
@@ -2153,7 +3011,16 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
       DiagnosticLogger.shared.logError(.recording, error, "Failed to stop recording stream during teardown")
     }
 
-    stream = nil
+    // Only clear each registration set after all removal attempts.  A stale
+    // teardown must not erase a newer stream's registrations.
+    if let resolvedGeneration {
+      registeredOutputTypesByGeneration.removeValue(forKey: resolvedGeneration)
+      streamsByGeneration.removeValue(forKey: resolvedGeneration)
+    }
+    if stream === activeStream {
+      registeredOutputTypes.removeAll()
+      stream = nil
+    }
   }
 
   /// Add a window to the active recording filter.
@@ -2214,8 +3081,13 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
 // MARK: - MicrophoneAudioCapturerDelegate
 
 extension ScreenRecordingManager: MicrophoneAudioCapturerDelegate {
-  nonisolated func microphoneCapturer(_: MicrophoneAudioCapturer, didOutput sampleBuffer: CMSampleBuffer) {
-    session.appendMicrophoneSample(sampleBuffer)
+  nonisolated func microphoneCapturer(
+    _ capturer: MicrophoneAudioCapturer,
+    didOutput sampleBuffer: CMSampleBuffer
+  ) {
+    guard let generation = captureGenerationGate.generation(for: capturer) else { return }
+    session.appendMicrophoneSample(sampleBuffer, generation: generation)
+    guard captureGenerationGate.isHealthy(generation), !session.hasStreamFailure(generation: generation) else { return }
     audioLevelMeter.ingest(sampleBuffer, source: .microphone)
   }
 }
@@ -2224,22 +3096,25 @@ extension ScreenRecordingManager: MicrophoneAudioCapturerDelegate {
 
 extension ScreenRecordingManager: SCStreamOutput {
   nonisolated func stream(
-    _: SCStream,
+    _ activeStream: SCStream,
     didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
     of type: SCStreamOutputType
   ) {
     autoreleasepool {
       guard sampleBuffer.isValid else { return }
+      guard let generation = captureGenerationGate.generation(for: activeStream) else { return }
 
       // Write frames using the thread-safe session (no @MainActor crossing)
       switch type {
       case .screen:
-        session.appendVideoSample(sampleBuffer)
+        session.appendVideoSample(sampleBuffer, generation: generation)
       case .audio:
-        session.appendAudioSample(sampleBuffer)
+        session.appendAudioSample(sampleBuffer, generation: generation)
+        guard captureGenerationGate.isHealthy(generation), !session.hasStreamFailure(generation: generation) else { return }
         audioLevelMeter.ingest(sampleBuffer, source: .system)
       case .microphone:
-        session.appendMicrophoneSample(sampleBuffer)
+        session.appendMicrophoneSample(sampleBuffer, generation: generation)
+        guard captureGenerationGate.isHealthy(generation), !session.hasStreamFailure(generation: generation) else { return }
         audioLevelMeter.ingest(sampleBuffer, source: .microphone)
       @unknown default:
         break
@@ -2251,7 +3126,45 @@ extension ScreenRecordingManager: SCStreamOutput {
 // MARK: - SCStreamDelegate
 
 extension ScreenRecordingManager: SCStreamDelegate {
-  nonisolated func stream(_: SCStream, didStopWithError error: Error) {
+  nonisolated func stream(_ activeStream: SCStream, didStopWithError error: Error) {
+    guard let generation = captureGenerationGate.generation(for: activeStream) else { return }
     DiagnosticLogger.shared.logError(.recording, error, "Screen recording stream stopped unexpectedly")
+    // Mark the cross-queue gate first.  An adapter start claim and this
+    // failure are serialized by one lock: failure-first rejects the claim;
+    // claim-first is reported as an active failure for the coordinator.
+    guard let gateObservation = captureGenerationGate.markStreamFailed(generation),
+          let observation = session.markStreamFailure(generation: generation)
+    else {
+      return
+    }
+
+    // Publish only on the main actor, and only while this generation remains
+    // current.  The event is metadata-only; a coordinator can call
+    // stopRecording() to finish and preserve the original writer output.
+    let errorType = String(describing: type(of: error))
+    Task { @MainActor [weak self] in
+      guard let self,
+            self.captureGenerationGate.isCurrent(generation),
+            self.session.isCurrentGeneration(generation),
+            self.state != .idle,
+            self.state != .stopping,
+            self.recordingPurpose == .screenVideo || gateObservation.wasAdapterStartClaimed
+      else { return }
+
+      let event = RecordingStreamFailureEvent(
+        generation: generation,
+        purpose: self.recordingPurpose,
+        wasFirstVideoFrameReady: observation.wasFirstVideoFrameReady,
+        wasCapturing: observation.wasCapturing,
+        errorType: errorType,
+        wasAdapterStartClaimed: gateObservation.wasAdapterStartClaimed
+      )
+      self.streamFailureEvent = event
+      NotificationCenter.default.post(
+        name: .recordingStreamDidFail,
+        object: self,
+        userInfo: [RecordingStreamFailureEvent.userInfoKey: event]
+      )
+    }
   }
 }

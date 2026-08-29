@@ -101,3 +101,10 @@ unavailable.
 - OCR and QR payloads are treated as text and are not executed automatically.
 - Screen capture, microphone, accessibility/input, file, and startup permissions
   are requested only for features that need them.
+- To obtain macOS system audio, ShotPaste may internally use a very small
+  temporary screen media stream. Ultimately, only the audio selected by the
+  user and derived content are retained; temporary video never enters history
+  or the user directory and is deleted after audio saving completes. If saving
+  fails, it remains only in a private recovery session and is never exposed as
+  video. This boundary does not claim that pixels are never captured during
+  this internal step.

@@ -2,7 +2,7 @@
 //  QuickAccessItem.swift
 //  ShotPaste
 //
-//  Data model for a captured item (screenshot or video) in the quick access stack
+//  Data model for a captured item (screenshot, video, or audio) in the quick access stack
 //
 
 import AppKit
@@ -12,6 +12,7 @@ import Foundation
 enum QuickAccessItemType: Equatable {
   case screenshot
   case video
+  case audio
 }
 
 /// Processing state for quick access item (annotation, conversion, etc.)
@@ -29,7 +30,7 @@ enum QuickAccessProcessingState: Equatable {
   }
 }
 
-/// Represents a single item (screenshot or video) in the quick access preview stack
+/// Represents a single item (screenshot, video, or audio) in the quick access preview stack
 struct QuickAccessItem: Identifiable, Equatable {
   let id: UUID
   let url: URL
@@ -102,6 +103,21 @@ struct QuickAccessItem: Identifiable, Equatable {
   /// Whether this item is a video
   var isVideo: Bool {
     itemType == .video
+  }
+
+  /// Whether this item carries media-file clipboard/open semantics.
+  var isMedia: Bool {
+    switch itemType {
+    case .video, .audio:
+      true
+    case .screenshot:
+      false
+    }
+  }
+
+  /// Whether this item can be pinned as an image window.
+  var supportsPinning: Bool {
+    itemType == .screenshot
   }
 
   /// Formatted duration string for display (e.g., "01:30s")

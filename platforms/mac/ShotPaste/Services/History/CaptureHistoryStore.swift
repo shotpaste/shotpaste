@@ -12,6 +12,43 @@ import os.log
 
 private let logger = Logger(subsystem: "ShotPaste", category: "CaptureHistoryStore")
 
+/// Decodes history rows one at a time so a future/foreign enum value cannot
+/// take down the whole observation. This helper intentionally logs only the
+/// malformed column name and never the row's paths, payloads, or raw values.
+enum CaptureHistoryRecordResilientDecoder {
+  static func decode(rows: [Row]) -> [CaptureHistoryRecord] {
+    rows.compactMap { row in
+      do {
+        return try CaptureHistoryRecord(row: row)
+      } catch {
+        let reason = invalidEnumColumn(in: row) ?? "record"
+        logger.warning("Skipped malformed capture history row; reason=\(reason)")
+        DiagnosticLogger.shared.log(
+          .warning,
+          .history,
+          "Capture history row skipped",
+          context: ["reason": reason]
+        )
+        return nil
+      }
+    }
+  }
+
+  private static func invalidEnumColumn(in row: Row) -> String? {
+    let captureType = row["captureType"] as? String
+    if let captureType, CaptureHistoryType(rawValue: captureType) == nil {
+      return "captureType"
+    }
+
+    let origin = row["origin"] as? String
+    if let origin, CaptureHistoryOrigin(rawValue: origin) == nil {
+      return "origin"
+    }
+
+    return nil
+  }
+}
+
 /// Manages persistent storage of capture history records using SQLite via GRDB
 @MainActor
 final class CaptureHistoryStore: ObservableObject {
@@ -49,9 +86,11 @@ final class CaptureHistoryStore: ObservableObject {
     guard let dbPool = resolveDatabasePool(for: "start observation") else { return }
 
     let observation = ValueObservation.tracking { db in
-      try CaptureHistoryRecord
-        .order(Column("capturedAt").desc)
-        .fetchAll(db)
+      let rows = try Row.fetchAll(
+        db,
+        sql: "SELECT * FROM captureHistoryRecord ORDER BY capturedAt DESC"
+      )
+      return CaptureHistoryRecordResilientDecoder.decode(rows: rows)
     }
     if DatabaseManager.isRunningUnderXCTest {
       cancellable = observation.start(
@@ -87,8 +126,18 @@ final class CaptureHistoryStore: ObservableObject {
 
   /// Add a new capture record.
   /// Respects the `historyEnabled` preference; no-op if disabled.
-  func add(_ record: CaptureHistoryRecord) {
-    guard let dbPool = requireDatabase(for: "add capture history record") else { return }
+  @discardableResult
+  func add(_ record: CaptureHistoryRecord) -> Bool {
+    addReturningID(record) != nil
+  }
+
+  /// Inserts a pre-created record and returns its actual durable UUID only
+  /// after SQLite has accepted the row.  Audio recovery uses this identity as
+  /// the history side of the session deletion gate; callers must never treat a
+  /// generated-but-uninserted UUID as evidence of persistence.
+  @discardableResult
+  func addReturningID(_ record: CaptureHistoryRecord) -> UUID? {
+    guard let dbPool = requireDatabase(for: "add capture history record") else { return nil }
 
     guard userDefaults.bool(forKey: PreferencesKeys.historyEnabled) else {
       logger.debug("History disabled, skipping record for \(record.fileName)")
@@ -98,7 +147,7 @@ final class CaptureHistoryStore: ObservableObject {
         "Capture history add skipped; history disabled",
         context: ["fileName": record.fileName, "type": record.captureType.rawValue]
       )
-      return
+      return nil
     }
 
     do {
@@ -116,6 +165,8 @@ final class CaptureHistoryStore: ObservableObject {
           "fileSize": "\(record.fileSize)",
         ]
       )
+      refreshRecords()
+      return record.id
     } catch {
       logger.error("Failed to add capture history record: \(error.localizedDescription)")
       DiagnosticLogger.shared.logError(
@@ -124,6 +175,7 @@ final class CaptureHistoryStore: ObservableObject {
         "Capture history record add failed",
         context: ["fileName": record.fileName, "type": record.captureType.rawValue]
       )
+      return nil
     }
   }
 
@@ -345,6 +397,39 @@ final class CaptureHistoryStore: ObservableObject {
     }
   }
 
+  /// Update lazily loaded media metadata without changing the history schema.
+  /// Audio duration can therefore be filled after insertion without delaying
+  /// the capture writer's completion path.
+  func updateDuration(id: UUID, duration: TimeInterval?) {
+    guard let dbPool = requireDatabase(for: "update capture history duration") else { return }
+
+    do {
+      try dbPool.write { db in
+        if var record = try CaptureHistoryRecord.fetchOne(db, id: id) {
+          record.duration = duration
+          try record.update(db)
+        }
+      }
+      DiagnosticLogger.shared.log(
+        .debug,
+        .history,
+        "Capture history duration updated",
+        context: [
+          "recordId": id.uuidString,
+          "duration": duration.map { "\($0)" } ?? "unknown",
+        ]
+      )
+    } catch {
+      logger.error("Failed to update duration: \(error.localizedDescription)")
+      DiagnosticLogger.shared.logError(
+        .history,
+        error,
+        "Capture history duration update failed",
+        context: ["recordId": id.uuidString]
+      )
+    }
+  }
+
   /// Update matching record paths after a temp file is moved to a new location.
   @discardableResult
   func updateFilePath(from oldPath: String, to newPath: String) -> Int {
@@ -396,15 +481,25 @@ final class CaptureHistoryStore: ObservableObject {
 
   /// Check whether an active history record exists for a given file path
   func hasRecord(forFilePath filePath: String) -> Bool {
-    guard let dbPool = requireDatabase(for: "check capture history record existence") else { return false }
+    record(forFilePath: filePath) != nil
+  }
+
+  /// Finds an existing row using the stable audio-session identity first and
+  /// the final file path second. Recovery can therefore safely retry after a
+  /// crash without creating a second history row.
+  func record(forFilePath filePath: String, preferredID: UUID? = nil) -> CaptureHistoryRecord? {
+    guard let dbPool = requireDatabase(for: "check capture history record existence") else { return nil }
 
     do {
-      let count = try dbPool.read { db in
-        try CaptureHistoryRecord
+      return try dbPool.read { db in
+        if let preferredID, let record = try CaptureHistoryRecord.fetchOne(db, id: preferredID) {
+          return record
+        }
+        return try CaptureHistoryRecord
           .filter(Column("filePath") == filePath)
-          .fetchCount(db)
+          .order(Column("capturedAt").desc)
+          .fetchOne(db)
       }
-      return count > 0
     } catch {
       logger.error("Failed to check record existence: \(error.localizedDescription)")
       DiagnosticLogger.shared.logError(
@@ -413,7 +508,7 @@ final class CaptureHistoryStore: ObservableObject {
         "Capture history record existence check failed",
         context: ["fileName": (filePath as NSString).lastPathComponent]
       )
-      return false
+      return nil
     }
   }
 
@@ -498,6 +593,7 @@ final class CaptureHistoryStore: ObservableObject {
   }
 
   /// Convenience: build and add a record from a capture URL
+  @discardableResult
   func addCapture(
     url: URL,
     captureType: CaptureHistoryType,
@@ -505,8 +601,39 @@ final class CaptureHistoryStore: ObservableObject {
     duration: TimeInterval? = nil,
     width: Int? = nil,
     height: Int? = nil,
-    fileName: String? = nil
-  ) {
+    fileName: String? = nil,
+    preferredID: UUID? = nil
+  ) -> Bool {
+    addCaptureReturningID(
+      url: url,
+      captureType: captureType,
+      origin: origin,
+      duration: duration,
+      width: width,
+      height: height,
+      fileName: fileName,
+      preferredID: preferredID
+    ) != nil
+  }
+
+  /// Builds a capture record with a caller-independent UUID and returns that
+  /// UUID only after the database insert succeeds. Existing Bool callers keep
+  /// using `addCapture`; audio handoff uses this identity-bearing variant.
+  @discardableResult
+  func addCaptureReturningID(
+    url: URL,
+    captureType: CaptureHistoryType,
+    origin: CaptureHistoryOrigin = .capture,
+    duration: TimeInterval? = nil,
+    width: Int? = nil,
+    height: Int? = nil,
+    fileName: String? = nil,
+    id: UUID = UUID(),
+    preferredID: UUID? = nil
+  ) -> UUID? {
+    if let existing = record(forFilePath: url.path, preferredID: preferredID ?? id) {
+      return existing.id
+    }
     let fileSize: Int64
     do {
       let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
@@ -522,7 +649,7 @@ final class CaptureHistoryStore: ObservableObject {
     }
 
     let record = CaptureHistoryRecord(
-      id: UUID(),
+      id: id,
       filePath: url.path,
       fileName: fileName ?? url.lastPathComponent,
       captureType: captureType,
@@ -536,7 +663,7 @@ final class CaptureHistoryStore: ObservableObject {
       origin: origin
     )
 
-    add(record)
+    return addReturningID(record)
   }
 
   /// Clear all thumbnail paths without deleting records
@@ -564,9 +691,11 @@ final class CaptureHistoryStore: ObservableObject {
 
     do {
       records = try dbPool.read { db in
-        try CaptureHistoryRecord
-          .order(Column("capturedAt").desc)
-          .fetchAll(db)
+        let rows = try Row.fetchAll(
+          db,
+          sql: "SELECT * FROM captureHistoryRecord ORDER BY capturedAt DESC"
+        )
+        return CaptureHistoryRecordResilientDecoder.decode(rows: rows)
       }
     } catch {
       logger.error("Failed to refresh capture history records: \(error.localizedDescription)")

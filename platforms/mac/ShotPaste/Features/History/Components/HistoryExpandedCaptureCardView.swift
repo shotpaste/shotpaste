@@ -22,6 +22,9 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
   @Environment(\.colorScheme) private var colorScheme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var thumbnailImage: NSImage?
+  @State private var resolvedAudioDuration: TimeInterval?
+  @State private var resolvedAudioDurationRecordID: UUID?
+  @State private var resolvedAudioProcessingStatus: CaptureHistoryAudioProcessingStatus?
   @State private var isHovering = false
   @State private var fileExists = true
   @State private var isVisible = false
@@ -40,6 +43,13 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
         Text(relativeTimeString(from: record.capturedAt))
           .font(.system(size: 9.5, weight: .medium))
           .foregroundColor(.secondary)
+
+        if let status = resolvedAudioProcessingStatus ?? record.audioProcessingStatus {
+          Text(status.displayName)
+            .font(.system(size: 9, weight: .medium))
+            .foregroundColor(.secondary.opacity(0.82))
+            .lineLimit(1)
+        }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -67,14 +77,23 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
     )
     .onAppear {
       isVisible = true
+      resolvedAudioProcessingStatus = record.audioProcessingStatus
       checkFileExistence()
     }
     .onDisappear {
       isVisible = false
     }
+    .onReceive(NotificationCenter.default.publisher(
+      for: AudioHistoryProcessingStatusStore.didChangeNotification
+    )) { _ in
+      resolvedAudioProcessingStatus = record.audioProcessingStatus
+    }
     .task(id: thumbnailTaskID, priority: .utility) {
       guard isVisible else { return }
       await loadThumbnail()
+    }
+    .task(id: audioMetadataTaskID, priority: .utility) {
+      await loadAudioMetadataIfNeeded()
     }
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(record.displayTitle)
@@ -92,7 +111,7 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
   private var accessibilityValue: String {
     [
       record.formattedDate,
-      record.formattedDuration,
+      displayedDuration,
       fileExists ? record.formattedFileSize : L10n.Common.fileMissing,
     ]
     .compactMap { $0 }
@@ -112,6 +131,14 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
             .lineLimit(7)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding(12)
+        } else if record.captureType == .audio {
+          VStack(spacing: 8) {
+            Image(systemName: record.captureType.systemIconName)
+              .font(.system(size: 34, weight: .medium))
+            Text(record.fileURL.pathExtension.uppercased())
+              .font(.system(size: 10, weight: .semibold, design: .monospaced))
+          }
+          .foregroundColor(.secondary.opacity(0.68))
         } else if isVisible, let thumbnailImage {
           Image(nsImage: thumbnailImage)
             .resizable()
@@ -136,7 +163,7 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
           .foregroundColor(.white)
         }
 
-        if let duration = record.formattedDuration, record.captureType != .screenshot {
+        if let duration = displayedDuration, record.captureType != .screenshot {
           Text(duration)
             .font(.caption2.weight(.semibold))
             .padding(.horizontal, 7)
@@ -219,6 +246,10 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
 
   @MainActor
   private func loadThumbnail() async {
+    guard record.captureType != .audio else {
+      thumbnailImage = nil
+      return
+    }
     let image = await HistoryThumbnailGenerator.shared.loadThumbnailImage(for: record)
     guard !Task.isCancelled else { return }
     thumbnailImage = image
@@ -227,6 +258,31 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
   private var thumbnailTaskID: String {
     let id = record.thumbnailPath ?? record.id.uuidString
     return isVisible ? id : "hidden-\(record.id.uuidString)"
+  }
+
+  private var audioMetadataTaskID: String {
+    "\(record.id.uuidString)-audio-duration-\(record.duration.map { "\($0)" } ?? "missing")"
+  }
+
+  private var displayedDuration: String? {
+    if resolvedAudioDurationRecordID == record.id, let duration = resolvedAudioDuration {
+      return CaptureHistoryRecord.formattedDuration(for: duration)
+    }
+    return record.formattedDuration
+  }
+
+  @MainActor
+  private func loadAudioMetadataIfNeeded() async {
+    guard record.captureType == .audio,
+          record.duration == nil,
+          FileManager.default.fileExists(atPath: record.filePath)
+    else { return }
+
+    let duration = await AudioHistoryMetadataLoader.duration(for: record.fileURL)
+    guard !Task.isCancelled, let duration else { return }
+    resolvedAudioDurationRecordID = record.id
+    resolvedAudioDuration = duration
+    CaptureHistoryStore.shared.updateDuration(id: record.id, duration: duration)
   }
 
   private func checkFileExistence() {

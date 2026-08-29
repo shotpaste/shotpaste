@@ -1,2 +1,3 @@
-"NSMicrophoneUsageDescription" = "ShotPaste требуется доступ к микрофону для записи звука вместе с записями экрана.";
+"NSMicrophoneUsageDescription" = "ShotPaste требуется доступ к микрофону для аудиозаписей и записей экрана.";
+"NSSpeechRecognitionUsageDescription" = "ShotPaste требуется доступ к распознаванию речи, чтобы расшифровывать аудиозаписи на этом Mac.";
 "NSScreenCaptureUsageDescription" = "ShotPaste требуется разрешение на запись экрана, чтобы делать снимки экрана и записывать ваш экран.";

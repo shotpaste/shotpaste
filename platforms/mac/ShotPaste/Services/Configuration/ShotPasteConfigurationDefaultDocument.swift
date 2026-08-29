@@ -226,6 +226,7 @@ enum ShotPasteConfigurationDefaultDocument {
     case .oneShot: .defaultOneShot
     case .translation: nil
     case .agentMode: .defaultAgentMode
+    case .startAudioRecording: nil
     case .pauseResumeRecording: nil
     case .togglePenRecording: nil
     case .restartRecording: nil

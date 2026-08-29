@@ -20,7 +20,9 @@
 	<key>LSMultipleInstancesProhibited</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>ShotPaste needs microphone access to record audio with your screen recordings.</string>
+	<string>ShotPaste needs microphone access for audio recordings and screen recordings.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>ShotPaste needs speech recognition access to transcribe audio recordings on this Mac.</string>
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>ShotPaste needs screen recording permission to capture screenshots and record your screen.</string>
 </dict>

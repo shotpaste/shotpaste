@@ -13,6 +13,35 @@ import os.log
 
 private let logger = Logger(subsystem: "ShotPaste", category: "PostCaptureActionHandler")
 
+/// Compatibility name for callers of the audio post-capture API. The shared
+/// validator owns the rejection vocabulary so every audio entry point reports
+/// the same reason.
+typealias AudioCapturePostProcessingRejection = AudioAssetValidationRejection
+
+/// Outcome returned to an audio coordinator after all post-capture actions
+/// have been awaited. The coordinator can start transcription only when
+/// `transcriptionCanContinue` is true, and can distinguish that from history
+/// persistence being disabled or failing.
+@MainActor
+struct AudioCapturePostProcessingResult: Equatable {
+  let accepted: Bool
+  let historyPersisted: Bool
+  /// The UUID returned by SQLite after the history row was actually inserted.
+  /// A generated UUID is never returned for disabled/failed history writes.
+  let historyRecordID: UUID?
+  let transcriptionCanContinue: Bool
+  let quickAccessItem: QuickAccessItem?
+  let rejection: AudioCapturePostProcessingRejection?
+
+  var succeeded: Bool {
+    accepted && historyPersisted
+  }
+
+  var canContinueTranscription: Bool {
+    transcriptionCanContinue
+  }
+}
+
 /// Handles execution of post-capture actions based on user preferences
 @MainActor
 final class PostCaptureActionHandler {
@@ -38,6 +67,26 @@ final class PostCaptureActionHandler {
 
   // MARK: - Public API
 
+  /// Media kind used to route clipboard and Quick Access operations while the
+  /// preferences matrix continues to use `CaptureType.recording` for all
+  /// recording-like outputs.
+  private enum PostCaptureMediaKind: Equatable {
+    case screenshot
+    case video
+    case audio
+
+    var label: String {
+      switch self {
+      case .screenshot:
+        "screenshot"
+      case .video:
+        "video"
+      case .audio:
+        "audio"
+      }
+    }
+  }
+
   /// Execute all enabled post-capture actions for a screenshot
   @discardableResult
   func handleScreenshotCapture(
@@ -49,7 +98,8 @@ final class PostCaptureActionHandler {
     let quickAccessItem = await executeActions(
       for: .screenshot,
       url: url,
-      pinToScreen: pinToScreen
+      pinToScreen: pinToScreen,
+      mediaKind: .screenshot
     )
 
     // Add to capture history
@@ -112,12 +162,120 @@ final class PostCaptureActionHandler {
   /// Execute all enabled post-capture actions for a video recording
   /// - Parameter skipQuickAccess: When true, skip adding to QuickAccess (e.g. GIF flow already added it)
   func handleVideoCapture(url: URL, skipQuickAccess: Bool = false) async {
-    await executeActions(for: .recording, url: url, skipQuickAccess: skipQuickAccess)
+    await executeActions(
+      for: .recording,
+      url: url,
+      skipQuickAccess: skipQuickAccess,
+      mediaKind: .video
+    )
 
     // Add to capture history
     if await addVideoToHistory(url: url) {
       showSuccessNotificationIfEnabled(for: .recording)
     }
+  }
+
+  /// Execute post-capture actions for an audio-only recording.
+  ///
+  /// Audio uses the recording preference matrix, but is deliberately routed
+  /// through `addAudio`/file-URL clipboard handling. MOV and MP4 are rejected
+  /// even if their tracks happen to contain audio.
+  @discardableResult
+  func handleAudioCapture(
+    url: URL,
+    skipQuickAccess: Bool = false,
+    preferredHistoryID: UUID? = nil
+  ) async -> AudioCapturePostProcessingResult {
+    let validation = await AudioAssetValidator.validate(url: url)
+    guard validation.isValid, let duration = validation.duration else {
+      let rejection = validation.rejection ?? .invalidDuration
+      logAudioRejection(rejection, url: url)
+      return AudioCapturePostProcessingResult(
+        accepted: false,
+        historyPersisted: false,
+        historyRecordID: nil,
+        transcriptionCanContinue: false,
+        quickAccessItem: nil,
+        rejection: rejection
+      )
+    }
+
+    let existingRecord = CaptureHistoryStore.shared.record(
+      forFilePath: url.path,
+      preferredID: preferredHistoryID
+    )
+    let historyRecordID = addAudioToHistory(
+      url: url,
+      duration: duration,
+      preferredID: preferredHistoryID
+    )
+    let quickAccessItem: QuickAccessItem?
+    if let historyRecordID {
+      AudioHistoryProcessingStatusStore.shared.preparePostCapture(
+        historyRecordID: historyRecordID,
+        sessionID: preferredHistoryID ?? historyRecordID
+      )
+      var actionState = AudioHistoryProcessingStatusStore.shared.postActionState(
+        for: historyRecordID
+      )
+      // A row without a checkpoint predates this idempotent handoff. Do not
+      // replay external actions during launch recovery.
+      if existingRecord != nil {
+        actionState = .init(clipboardCompleted: true, quickAccessCompleted: true)
+        AudioHistoryProcessingStatusStore.shared.markPostAction(
+          historyRecordID: historyRecordID,
+          clipboardCompleted: true,
+          quickAccessCompleted: true
+        )
+      }
+      quickAccessItem = await executeActions(
+        for: .recording,
+        url: url,
+        skipQuickAccess: skipQuickAccess || actionState.quickAccessCompleted,
+        mediaKind: .audio,
+        skipClipboard: actionState.clipboardCompleted
+      )
+      AudioHistoryProcessingStatusStore.shared.markPostAction(
+        historyRecordID: historyRecordID,
+        clipboardCompleted: true,
+        quickAccessCompleted: true
+      )
+    } else {
+      // Preserve the existing behavior when history is disabled: explicitly
+      // enabled clipboard/Quick Access actions may still run.
+      quickAccessItem = await executeActions(
+        for: .recording,
+        url: url,
+        skipQuickAccess: skipQuickAccess,
+        mediaKind: .audio
+      )
+    }
+    if historyRecordID != nil {
+      showSuccessNotificationIfEnabled(for: .recording)
+    }
+
+    return AudioCapturePostProcessingResult(
+      accepted: true,
+      historyPersisted: historyRecordID != nil,
+      historyRecordID: historyRecordID,
+      // The coordinator persists the transcription task after this method, so
+      // only a real history row is a durable hand-off point. A disabled or
+      // failed history store must not claim transcription eligibility.
+      transcriptionCanContinue: historyRecordID != nil,
+      quickAccessItem: quickAccessItem,
+      rejection: nil
+    )
+  }
+
+  func handleAudioCapture(
+    url: URL,
+    skipQuickAccess: Bool
+  ) async -> AudioCapturePostProcessingResult {
+    await handleAudioCapture(
+      url: url,
+      skipQuickAccess: skipQuickAccess,
+      preferredHistoryID: nil
+    )
   }
 
   /// Add a video or GIF to capture history
@@ -175,6 +333,36 @@ final class PostCaptureActionHandler {
       ]
     )
     return true
+  }
+
+  /// Add an audio file to history using metadata from the already completed
+  /// validation gate. This intentionally performs no second weak extension or
+  /// duration check after any post-capture side effect.
+  private func addAudioToHistory(
+    url: URL,
+    duration: TimeInterval,
+    preferredID: UUID? = nil
+  ) -> UUID? {
+    let persistedID = CaptureHistoryStore.shared.addCaptureReturningID(
+      url: url,
+      captureType: .audio,
+      duration: duration,
+      fileName: url.lastPathComponent,
+      id: preferredID ?? UUID(),
+      preferredID: preferredID
+    )
+    DiagnosticLogger.shared.log(
+      .debug,
+      .history,
+      "Audio queued for history",
+      context: [
+        "fileName": url.lastPathComponent,
+        "type": CaptureHistoryType.audio.rawValue,
+        "duration": "\(duration)",
+          "persisted": persistedID == nil ? "false" : "true",
+      ]
+    )
+    return persistedID
   }
 
   /// Re-run clipboard automation after an in-place edit save succeeds.
@@ -236,7 +424,9 @@ final class PostCaptureActionHandler {
     for captureType: CaptureType,
     url: URL,
     skipQuickAccess: Bool = false,
-    pinToScreen: Bool = false
+    pinToScreen: Bool = false,
+    mediaKind: PostCaptureMediaKind,
+    skipClipboard: Bool = false
   ) async -> QuickAccessItem? {
     let scopedAccess = fileAccess.beginAccessingURL(url)
     defer { scopedAccess.stop() }
@@ -259,7 +449,7 @@ final class PostCaptureActionHandler {
       )
     let isTempCapture = TempCaptureManager.shared.isTempFile(url)
     let locationLabel = isTempCapture ? "temp" : "export"
-    let typeLabel = captureType == .screenshot ? "screenshot" : "recording"
+    let typeLabel = mediaKind.label
     DiagnosticLogger.shared.log(
       .info,
       .action,
@@ -275,9 +465,9 @@ final class PostCaptureActionHandler {
     // Copy file to clipboard before slower UI actions. Auto-copy is expected
     // to update immediately after capture; it must not depend on thumbnail
     // generation, Quick Access animations, or editor opening.
-    if preferences.isActionEnabled(.copyFile, for: captureType) {
-      await copyToClipboard(url: url, isVideo: captureType == .recording)
-      let label = captureType == .screenshot ? "screenshot" : "recording"
+    if !skipClipboard && preferences.isActionEnabled(.copyFile, for: captureType) {
+      await copyToClipboard(url: url, mediaKind: mediaKind)
+      let label = mediaKind.label
       logger.debug("Clipboard copy executed for \(url.lastPathComponent)")
       DiagnosticLogger.shared.log(
         .info,
@@ -294,7 +484,16 @@ final class PostCaptureActionHandler {
       case .screenshot:
         quickAccessItem = await quickAccess.addScreenshot(url: url)
       case .recording:
-        quickAccessItem = await quickAccess.addVideo(url: url)
+        switch mediaKind {
+        case .video:
+          quickAccessItem = await quickAccess.addVideo(url: url)
+        case .audio:
+          quickAccessItem = await quickAccess.addAudio(url: url)
+        case .screenshot:
+          // This is unreachable because screenshot captures use the outer
+          // branch, but keeping it explicit protects future callers.
+          quickAccessItem = nil
+        }
       }
       logger.debug("Quick access overlay shown for \(url.lastPathComponent)")
       DiagnosticLogger.shared.log(
@@ -333,15 +532,15 @@ final class PostCaptureActionHandler {
     return quickAccessItem
   }
 
-  /// Copy file to clipboard (format-aware image data for screenshots, file URL for videos)
-  private func copyToClipboard(url: URL, isVideo: Bool) async {
-    if isVideo {
+  /// Copy screenshots as image data and audio/video as file URLs.
+  private func copyToClipboard(url: URL, mediaKind: PostCaptureMediaKind) async {
+    if mediaKind != .screenshot {
       ClipboardHelper.copyMediaFile(from: url)
       DiagnosticLogger.shared.log(
         .debug,
         .clipboard,
         "File URL written to clipboard",
-        context: ["fileName": url.lastPathComponent, "kind": "video"]
+        context: ["fileName": url.lastPathComponent, "kind": mediaKind.label]
       )
     } else {
       await ClipboardHelper.copyImageOffMain(from: url)
@@ -352,5 +551,21 @@ final class PostCaptureActionHandler {
         context: ["fileName": url.lastPathComponent]
       )
     }
+  }
+
+  private func logAudioRejection(
+    _ rejection: AudioCapturePostProcessingRejection,
+    url: URL
+  ) {
+    DiagnosticLogger.shared.log(
+      .warning,
+      .action,
+      "Audio post-capture rejected",
+      context: [
+        "reason": rejection.rawValue,
+        "fileName": url.lastPathComponent,
+        "extension": url.pathExtension.lowercased(),
+      ]
+    )
   }
 }

@@ -2,7 +2,7 @@
 //  ThumbnailGenerator.swift
 //  ShotPaste
 //
-//  Efficient thumbnail generation from image and video files
+//  Efficient thumbnail generation from image, video, and audio files
 //
 
 import AppKit
@@ -26,11 +26,15 @@ enum ThumbnailGenerator {
     videoExtensions.contains(url.pathExtension.lowercased())
   }
 
-  /// Generate thumbnail from image or video URL
+  private static func isAudioFile(_ url: URL) -> Bool {
+    CaptureHistoryAudioURLPolicy.accepts(url)
+  }
+
+  /// Generate thumbnail from image, video, or audio URL.
   /// - Parameters:
-  ///   - url: Source file URL (image or video)
+  ///   - url: Source file URL (image, video, or audio)
   ///   - maxSize: Maximum dimension for thumbnail
-  /// - Returns: ThumbnailResult with thumbnail and optional duration (for videos)
+  /// - Returns: ThumbnailResult with thumbnail and optional duration (for media)
   static func generate(from url: URL, maxSize: CGFloat = 200) async -> ThumbnailResult {
     let scopedAccess = await MainActor.run {
       SandboxFileAccessManager.shared.beginAccessingURL(url)
@@ -39,6 +43,8 @@ enum ThumbnailGenerator {
 
     if isVideoFile(url) {
       return await generateFromVideo(url: url, maxSize: maxSize)
+    } else if isAudioFile(url) {
+      return await generateAudio(from: url, maxSize: maxSize)
     } else {
       let thumbnail = await generateFromImage(url: url, maxSize: maxSize)
       return ThumbnailResult(thumbnail: thumbnail, duration: nil)
@@ -80,6 +86,25 @@ enum ThumbnailGenerator {
     NSBezierPath(ovalIn: iconRect).fill()
     image.unlockFocus()
     return image
+  }
+
+  /// Generate a waveform placeholder and lazily read duration for audio.
+  /// No AVAssetImageGenerator is used for audio, so an audio URL can never
+  /// accidentally produce a video frame.
+  static func generateAudio(from url: URL, maxSize: CGFloat = 200) async -> ThumbnailResult {
+    guard isAudioFile(url) else {
+      return ThumbnailResult(thumbnail: nil, duration: nil)
+    }
+
+    let validation = await AudioAssetValidator.validate(url: url)
+    guard validation.isValid else {
+      return ThumbnailResult(thumbnail: nil, duration: nil)
+    }
+
+    let thumbnail = await MainActor.run {
+      audioPlaceholderThumbnail(size: maxSize)
+    }
+    return ThumbnailResult(thumbnail: thumbnail, duration: validation.duration)
   }
 
   // MARK: - Private Methods
@@ -166,6 +191,14 @@ enum ThumbnailGenerator {
       logger.error("Failed to generate video thumbnail: \(error.localizedDescription)")
       return ThumbnailResult(thumbnail: nil, duration: duration)
     }
+  }
+
+  @MainActor
+  static func audioPlaceholderThumbnail(size: CGFloat = 200) -> NSImage {
+    let image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Audio")
+      ?? placeholderThumbnail(size: size)
+    image.size = NSSize(width: size, height: size)
+    return image
   }
 
   private static func scaleImage(_ image: NSImage, maxSize: CGFloat) -> NSImage {

@@ -33,6 +33,7 @@ nonisolated enum PreferencesKeys {
   // Shortcuts
   static let oneShotShortcut = "oneShotShortcut"
   static let translationShortcut = "translationShortcut"
+  static let startAudioRecordingShortcut = "startAudioRecordingShortcut"
   static let disabledGlobalShortcuts = "shortcuts.disabledGlobalActions"
   static let clearedGlobalShortcuts = "shortcuts.clearedGlobalActions"
 
@@ -101,6 +102,15 @@ nonisolated enum PreferencesKeys {
   static let recordingHoverBarVisible = "recording.hoverBarVisible"
   static let recordingShowTimeOnMenuBar = "recording.showTimeOnMenuBar"
   static let recordingHoverBarFrameOrigin = "recording.hoverBarFrameOrigin"
+
+  // Audio recording
+  static let audioRecordingSystemAudio = "audioRecording.systemAudio"
+  static let audioRecordingMicrophone = "audioRecording.microphone"
+  static let audioRecordingMicrophoneDeviceID = "audioRecording.microphoneDeviceID"
+  static let audioRecordingPrimaryLanguage = "audioRecording.primaryLanguage"
+  static let audioRecordingTemplate = "audioRecording.template"
+  static let audioRecordingAutomaticTranscription = "audioRecording.automaticTranscription"
+  static let audioRecordingAutomaticAI = "audioRecording.automaticAI"
 
   // Mouse Highlight Customization
   static let mouseHighlightSize = "recording.mouseHighlight.size"

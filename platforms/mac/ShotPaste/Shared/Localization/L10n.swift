@@ -41,6 +41,7 @@ nonisolated enum L10n {
     ("keystroke-position.", "Recording"),
     ("microphone.", "Recording"),
     ("recording.", "Recording"),
+    ("audio-recording.", "Recording"),
     ("recording-annotation.", "Recording"),
     ("recording-toolbar.", "Recording"),
     ("annotate.", "Annotate"),
@@ -3473,6 +3474,284 @@ nonisolated enum L10n {
       "recording.error.cancelled",
       defaultValue: "Recording cancelled",
       comment: "Error description when recording is cancelled"
+    )
+  }
+
+  enum AudioRecording {
+    static let automaticAI = string(
+      "audio-recording.automatic-ai",
+      defaultValue: "Automatic AI processing",
+      comment: "Audio recording automatic AI processing toggle"
+    )
+    static let automaticTranscription = string(
+      "audio-recording.automatic-transcription",
+      defaultValue: "Automatic transcription",
+      comment: "Audio recording automatic transcription toggle"
+    )
+    static let completed = string(
+      "audio-recording.completed",
+      defaultValue: "Audio recording complete",
+      comment: "Audio recording completion status"
+    )
+    static let delete = string(
+      "audio-recording.delete",
+      defaultValue: "Delete",
+      comment: "Audio recording delete action"
+    )
+    static let deleteConfirmMessage = string(
+      "audio-recording.delete-confirmation-message",
+      defaultValue: "The current audio recording will be moved to Trash. This cannot be undone in ShotPaste.",
+      comment: "Confirmation message before deleting an audio recording"
+    )
+    static let deleteConfirmTitle = string(
+      "audio-recording.delete-confirmation-title",
+      defaultValue: "Delete Audio Recording?",
+      comment: "Confirmation title before deleting an audio recording"
+    )
+    static let endedEarlySaved = string(
+      "audio-recording.ended-early-saved",
+      defaultValue: "Audio recording ended early and was saved.",
+      comment: "Message shown when an audio recording ends early but is saved"
+    )
+    static let extractionRecoverable = string(
+      "audio-recording.extraction-recoverable",
+      defaultValue: "Audio recording needs recovery. You can retry saving it.",
+      comment: "Message shown when an audio recording can be recovered"
+    )
+    static let failedTitle = string(
+      "audio-recording.failed-title",
+      defaultValue: "Audio Recording Failed",
+      comment: "Audio recording failure title"
+    )
+    static let microphone = string(
+      "audio-recording.microphone",
+      defaultValue: "Microphone",
+      comment: "Audio recording microphone toggle label"
+    )
+    static let microphoneActive = string(
+      "audio-recording.microphone-active",
+      defaultValue: "Microphone: On",
+      comment: "Audio recording microphone active status"
+    )
+    static let microphoneDevice = string(
+      "audio-recording.microphone-device",
+      defaultValue: "Microphone device",
+      comment: "Audio recording microphone device picker label"
+    )
+    static let microphoneInactive = string(
+      "audio-recording.microphone-inactive",
+      defaultValue: "Microphone: Off",
+      comment: "Audio recording microphone inactive status"
+    )
+    static let modelUnavailable = string(
+      "audio-recording.model-unavailable",
+      defaultValue: "On-device model unavailable",
+      comment: "Audio recording status when the on-device model is unavailable"
+    )
+    static let organizingInterviewQA = string(
+      "audio-recording.organizing-interview-qa",
+      defaultValue: "Organizing audio transcript",
+      comment: "Audio recording transcript organization status"
+    )
+    static let pause = string(
+      "audio-recording.pause",
+      defaultValue: "Pause",
+      comment: "Audio recording pause action label"
+    )
+    static let pauseMenu = string(
+      "audio-recording.pause-menu",
+      defaultValue: "Pause Audio Recording",
+      comment: "Audio recording menu pause action"
+    )
+    static let paused = string(
+      "audio-recording.paused",
+      defaultValue: "Audio recording paused",
+      comment: "Audio recording paused status"
+    )
+    static let polishing = string(
+      "audio-recording.polishing",
+      defaultValue: "Polishing audio transcript",
+      comment: "Audio recording transcript polishing status"
+    )
+    static let preparationTitle = string(
+      "audio-recording.preparation-title",
+      defaultValue: "New Audio Recording",
+      comment: "Audio recording preparation panel title"
+    )
+    static let preparing = string(
+      "audio-recording.preparing",
+      defaultValue: "Preparing audio recording…",
+      comment: "Audio recording preparation status"
+    )
+    static let primaryLanguage = string(
+      "audio-recording.primary-language",
+      defaultValue: "Primary language",
+      comment: "Audio recording transcription language picker label"
+    )
+    static let privacyDisclosure = string(
+      "audio-recording.privacy-disclosure",
+      defaultValue: "Audio stays on this Mac. A small temporary screen media stream may be used to obtain system audio; only selected audio and derived content are kept, and temporary video is deleted after audio is saved.",
+      comment: "Privacy disclosure for local audio recording"
+    )
+    static let recording = string(
+      "audio-recording.recording",
+      defaultValue: "Audio recording",
+      comment: "Audio recording active status"
+    )
+    static let restart = string(
+      "audio-recording.restart",
+      defaultValue: "Restart",
+      comment: "Audio recording restart action label"
+    )
+    static let restartConfirmMessage = string(
+      "audio-recording.restart-confirmation-message",
+      defaultValue: "The current audio recording will be moved to Trash and a new recording will start with the same settings.",
+      comment: "Confirmation message before restarting an audio recording"
+    )
+    static let restartConfirmTitle = string(
+      "audio-recording.restart-confirmation-title",
+      defaultValue: "Restart Audio Recording?",
+      comment: "Confirmation title before restarting an audio recording"
+    )
+    static let resume = string(
+      "audio-recording.resume",
+      defaultValue: "Resume",
+      comment: "Audio recording resume action label"
+    )
+    static let resumeMenu = string(
+      "audio-recording.resume-menu",
+      defaultValue: "Resume Audio Recording",
+      comment: "Audio recording menu resume action"
+    )
+    static let retrySave = string(
+      "audio-recording.retry-save",
+      defaultValue: "Retry Saving Audio Recording",
+      comment: "Audio recording recovery retry-save action"
+    )
+    static let saved = string(
+      "audio-recording.saved",
+      defaultValue: "Audio recording saved",
+      comment: "Audio recording saved status"
+    )
+    static let savedWithoutMicrophone = string(
+      "audio-recording.saved-without-microphone",
+      defaultValue: "Audio recording saved without microphone audio",
+      comment: "Audio recording saved after the requested microphone track was unavailable"
+    )
+    static let savedWithoutSystemAudio = string(
+      "audio-recording.saved-without-system-audio",
+      defaultValue: "Audio recording saved without system audio",
+      comment: "Audio recording saved after the requested system-audio track was unavailable"
+    )
+    static let saving = string(
+      "audio-recording.saving",
+      defaultValue: "Saving audio recording",
+      comment: "Audio recording save status"
+    )
+    static let startButton = string(
+      "audio-recording.start-button",
+      defaultValue: "Start Audio Recording",
+      comment: "Audio recording preparation start button"
+    )
+    static let startMenu = string(
+      "audio-recording.start-menu",
+      defaultValue: "Start Audio Recording",
+      comment: "Audio recording menu start action and shortcut title"
+    )
+    static let stop = string(
+      "audio-recording.stop",
+      defaultValue: "Stop",
+      comment: "Audio recording stop action label"
+    )
+    static let stopMenu = string(
+      "audio-recording.stop-menu",
+      defaultValue: "Stop Audio Recording",
+      comment: "Audio recording menu stop action"
+    )
+    static let systemActive = string(
+      "audio-recording.system-active",
+      defaultValue: "System audio: On",
+      comment: "Audio recording system audio active status"
+    )
+    static let systemAudio = string(
+      "audio-recording.system-audio",
+      defaultValue: "System audio",
+      comment: "Audio recording system audio toggle label"
+    )
+    static let systemInactive = string(
+      "audio-recording.system-inactive",
+      defaultValue: "System audio: Off",
+      comment: "Audio recording system audio inactive status"
+    )
+    static let template = string(
+      "audio-recording.template",
+      defaultValue: "Transcript template",
+      comment: "Audio recording transcript template picker label"
+    )
+    static let templateGeneralNotes = string(
+      "audio-recording.template-general-notes",
+      defaultValue: "General notes",
+      comment: "Audio recording general notes transcript template"
+    )
+    static let templateInterviewQA = string(
+      "audio-recording.template-interview-qa",
+      defaultValue: "Interview Q&A",
+      comment: "Audio recording interview transcript template"
+    )
+    static let templateTranscriptOnly = string(
+      "audio-recording.template-transcript-only",
+      defaultValue: "Transcript only",
+      comment: "Audio recording transcript-only template"
+    )
+    static let transcribing = string(
+      "audio-recording.transcribing",
+      defaultValue: "Transcribing audio",
+      comment: "Audio recording transcription status"
+    )
+    static let unableToStart = string(
+      "audio-recording.unable-to-start",
+      defaultValue: "Unable to start audio recording",
+      comment: "Audio recording start failure message"
+    )
+    static let waiting = string(
+      "audio-recording.waiting",
+      defaultValue: "Waiting for on-device model",
+      comment: "Audio recording waiting-for-model status"
+    )
+    static let notStarted = string(
+      "audio-recording.not-started",
+      defaultValue: "Transcription pending",
+      comment: "Audio recording history status before transcription starts"
+    )
+    static let inProgress = string(
+      "audio-recording.in-progress",
+      defaultValue: "Transcription in progress",
+      comment: "Audio recording history transcription-in-progress status"
+    )
+    static let complete = string(
+      "audio-recording.complete",
+      defaultValue: "Transcription complete",
+      comment: "Audio recording history transcription-complete status"
+    )
+    static let organizationPending = string(
+      "audio-recording.organization-pending",
+      defaultValue: "Organization pending",
+      comment: "Audio recording history organization-pending status"
+    )
+    static let organized = string(
+      "audio-recording.organized",
+      defaultValue: "Transcript organized",
+      comment: "Audio recording history organized status"
+    )
+    static let failed = string(
+      "audio-recording.failed",
+      defaultValue: "Audio transcription failed",
+      comment: "Audio recording history failed status"
+    )
+    static let unavailable = string(
+      "audio-recording.unavailable",
+      defaultValue: "Audio transcription unavailable",
+      comment: "Audio recording history unavailable status"
     )
   }
 

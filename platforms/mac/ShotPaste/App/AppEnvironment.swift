@@ -10,9 +10,14 @@ import Foundation
 @MainActor
 final class AppEnvironment {
   let screenCaptureViewModel: ScreenCaptureViewModel
+  let audioRecordingCoordinator: AudioRecordingCoordinator
 
-  init(screenCaptureViewModel: ScreenCaptureViewModel) {
+  init(
+    screenCaptureViewModel: ScreenCaptureViewModel,
+    audioRecordingCoordinator: AudioRecordingCoordinator = .shared
+  ) {
     self.screenCaptureViewModel = screenCaptureViewModel
+    self.audioRecordingCoordinator = audioRecordingCoordinator
   }
 
   static func live() -> AppEnvironment {

@@ -1,2 +1,3 @@
-"NSMicrophoneUsageDescription" = "ShotPaste では、画面録画で音声を録音するにはマイクへのアクセスが必要です。";
+"NSMicrophoneUsageDescription" = "ShotPaste では、音声録音と画面録画にマイクへのアクセスが必要です。";
+"NSSpeechRecognitionUsageDescription" = "ShotPaste では、この Mac 上の音声録音を文字起こしするために音声認識へのアクセスが必要です。";
 "NSScreenCaptureUsageDescription" = "ShotPaste では、スクリーンショットをキャプチャして画面を記録するには、画面記録許可が必要です。";

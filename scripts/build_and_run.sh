@@ -20,6 +20,8 @@ PRODUCTS_ROOT="$ROOT_DIR/.build/macos"
 DERIVED_DATA_PATH="$PRODUCTS_ROOT/DerivedData"
 APP_BUNDLE_NAME=""
 APP_PROCESS_NAME=""
+SENSITIVE_ENV_NAMES=()
+XCODEBUILD_ENV_UNSET_ARGS=()
 
 if [[ -t 1 ]]; then
   BLUE=$'\033[0;34m'
@@ -233,6 +235,51 @@ app_binary_path() {
   printf "%s/Contents/MacOS/%s" "$(app_bundle_path)" "$(app_process_name)"
 }
 
+sensitive_env_name_matches() {
+  case "$1" in
+    *[Aa][Pp][Ii]_[Kk][Ee][Yy]*|*[Tt][Oo][Kk][Ee][Nn]*|*[Ss][Ee][Cc][Rr][Ee][Tt]*|*[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]*|*[Cc][Rr][Ee][Dd][Ee][Nn][Tt][Ii][Aa][Ll]*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+record_sensitive_env_name() {
+  local candidate="$1"
+  local existing
+
+  [[ -n "$candidate" ]] || return 0
+  for existing in "${SENSITIVE_ENV_NAMES[@]-}"; do
+    [[ "$existing" == "$candidate" ]] && return 0
+  done
+  SENSITIVE_ENV_NAMES+=("$candidate")
+}
+
+collect_sensitive_environment_names() {
+  local env_name
+
+  # compgen emits environment variable names only; values never enter the
+  # shell data stream used to construct the xcodebuild child environment.
+  while IFS= read -r env_name; do
+    if sensitive_env_name_matches "$env_name"; then
+      record_sensitive_env_name "$env_name"
+    fi
+  done < <(compgen -e)
+
+  # Keep these explicit in case a shell/environment implementation does not
+  # expose one of the known names through the matcher above.
+  for env_name in BET_API_KEY DEEPSEEK_API_KEY PATEWAY_GUOCHAN_API_KEY; do
+    record_sensitive_env_name "$env_name"
+  done
+
+  XCODEBUILD_ENV_UNSET_ARGS=()
+  for env_name in "${SENSITIVE_ENV_NAMES[@]-}"; do
+    XCODEBUILD_ENV_UNSET_ARGS+=(-u "$env_name")
+  done
+}
+
 stop_app() {
   local process_name
   process_name="$(app_process_name)"
@@ -292,7 +339,7 @@ run_xcodebuild() {
   fi
 
   args+=("$action")
-  "${args[@]}"
+  /usr/bin/env "${XCODEBUILD_ENV_UNSET_ARGS[@]}" "${args[@]}"
 }
 
 build_app() {
@@ -380,6 +427,8 @@ main() {
   require_command security
   require_command pgrep
   require_command pkill
+  collect_sensitive_environment_names
+  info "Withheld ${#SENSITIVE_ENV_NAMES[@]} sensitive environment variable(s) from the xcodebuild child."
 
   case "$CONFIGURATION" in
     Debug|Release) ;;

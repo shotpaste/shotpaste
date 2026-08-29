@@ -375,12 +375,135 @@ final class QuickAccessManager: ObservableObject {
     return item
   }
 
+  /// Add an audio-only capture to the Quick Access stack.
+  ///
+  /// Audio is intentionally kept separate from `addVideo`: the thumbnail is a
+  /// waveform placeholder and MOV/MP4 URLs are rejected before they can enter
+  /// the audio UI or clipboard path.
+  @discardableResult
+  func addAudio(url: URL) async -> QuickAccessItem? {
+    guard isEnabled else {
+      DiagnosticLogger.shared.log(
+        .debug,
+        .action,
+        "Quick access audio skipped; feature disabled",
+        context: ["fileName": url.lastPathComponent]
+      )
+      return nil
+    }
+
+    let validation = await AudioAssetValidator.validate(url: url)
+    guard validation.isValid, let duration = validation.duration else {
+      let rejection = validation.rejection?.rawValue ?? "invalidDuration"
+      DiagnosticLogger.shared.log(
+        .warning,
+        .action,
+        "Quick access audio skipped; asset validation failed",
+        context: [
+          "fileName": url.lastPathComponent,
+          "reason": rejection,
+        ]
+      )
+      return nil
+    }
+
+    let fileAccess = fileAccessManager.beginAccessingURL(url)
+    defer { fileAccess.stop() }
+    let thumbnail = ThumbnailGenerator.audioPlaceholderThumbnail()
+    let item = QuickAccessItem(
+      id: UUID(),
+      url: url,
+      thumbnail: thumbnail,
+      capturedAt: Date(),
+      itemType: .audio,
+      duration: duration
+    )
+
+    withAnimation(QuickAccessAnimations.cardInsert) {
+      if items.count >= maxVisibleItems, let oldestId = items.last?.id {
+        cancelDismissTimer(for: oldestId)
+        pinWindowManager.close(id: oldestId)
+        items.removeLast()
+        DiagnosticLogger.shared.log(
+          .debug,
+          .ui,
+          "Quick access trimmed oldest item",
+          context: ["maxVisibleItems": "\(maxVisibleItems)"]
+        )
+      }
+      items.insert(item, at: 0)
+    }
+
+    showPanelIfNeeded()
+    if autoDismissEnabled {
+      startDismissTimer(for: item.id)
+    }
+    DiagnosticLogger.shared.log(
+      .info,
+      .action,
+      "Quick access audio added",
+      context: [
+        "fileName": url.lastPathComponent,
+        "itemCount": "\(items.count)",
+        "duration": "\(duration)",
+      ]
+    )
+    return item
+  }
+
   /// Present a history record as a Quick Access card and return the card item.
   /// This intentionally restores through Quick Access even for manually opened
   /// history records, so editors get the same item-scoped presentation behavior
   /// as fresh captures.
   func restoreHistoryItem(_ record: CaptureHistoryRecord) async -> QuickAccessItem? {
     let url = record.fileURL
+
+    // Validate before reusing an existing card as well as before creating a
+    // new one. A file can be deleted or replaced after the history row was
+    // written, and stale audio cards must not become a bypass around the
+    // shared asset gate.
+    if record.captureType == .audio {
+      let validation = await AudioAssetValidator.validate(url: url)
+      guard validation.isValid, let duration = validation.duration else {
+        DiagnosticLogger.shared.log(
+          .warning,
+          .history,
+          "History audio restore skipped; asset validation failed",
+          context: [
+            "fileName": record.fileName,
+            "type": record.captureType.rawValue,
+            "reason": validation.rejection?.rawValue ?? "invalidDuration",
+          ]
+        )
+        return nil
+      }
+
+      if let existingItem = item(matching: url) {
+        showPanelIfNeeded()
+        return existingItem
+      }
+
+      let item = QuickAccessItem(
+        id: UUID(),
+        url: url,
+        thumbnail: ThumbnailGenerator.audioPlaceholderThumbnail(),
+        capturedAt: record.capturedAt,
+        itemType: .audio,
+        duration: duration
+      )
+      insertRestoredHistoryItem(item, needsRetry: false, retryURL: url)
+      DiagnosticLogger.shared.log(
+        .info,
+        .history,
+        "History restored into quick access",
+        context: [
+          "fileName": record.fileName,
+          "type": record.captureType.rawValue,
+          "itemId": item.id.uuidString,
+        ]
+      )
+      return item
+    }
 
     if let existingItem = item(matching: url) {
       showPanelIfNeeded()
@@ -449,6 +572,11 @@ final class QuickAccessManager: ObservableObject {
         itemType: .video,
         duration: record.duration ?? result.duration ?? 0
       )
+    case .audio:
+      // Audio records return from the validated branch above. Keep this case
+      // explicit so future enum additions cannot silently fall through to a
+      // screenshot/video thumbnail path.
+      return nil
     }
 
     insertRestoredHistoryItem(item, needsRetry: needsRetry, retryURL: url)
@@ -649,7 +777,7 @@ final class QuickAccessManager: ObservableObject {
       return
     }
 
-    guard !items[index].isVideo else {
+    guard items[index].supportsPinning else {
       items[index].isPinned = false
       pinWindowManager.close(id: id)
       return
@@ -983,19 +1111,53 @@ final class QuickAccessManager: ObservableObject {
       return
     }
 
+    if item.itemType == .audio {
+      // Audio cards can outlive the source file or be restored from an older
+      // history row. Revalidate immediately before the clipboard write so a
+      // stale/disguised asset cannot leak through this later entry point.
+      Task { @MainActor [weak self] in
+        guard let self else { return }
+        let validation = await AudioAssetValidator.validate(url: item.url)
+        guard validation.isValid else {
+          DiagnosticLogger.shared.log(
+            .warning,
+            .clipboard,
+            "Quick access audio clipboard copy skipped; asset validation failed",
+            context: [
+              "fileName": item.url.lastPathComponent,
+              "reason": validation.rejection?.rawValue ?? "invalidDuration",
+            ]
+          )
+          return
+        }
+        guard let currentItem = self.items.first(where: { $0.id == id }) else { return }
+        self.copyValidatedItemToClipboard(currentItem)
+      }
+      return
+    }
+
+    copyValidatedItemToClipboard(item)
+  }
+
+  private func copyValidatedItemToClipboard(_ item: QuickAccessItem) {
+    guard items.contains(where: { $0.id == item.id }) else { return }
+
     let url = item.url
-    let isVideo = item.isVideo
+    let isMedia = item.isMedia
 
     // Load data and write to clipboard BEFORE removing the card.
     // removeItem deletes temp files, which would cause
     // reads to fail if done after removal.
-    if isVideo {
+    if isMedia {
       ClipboardHelper.copyMediaFile(from: url)
       DiagnosticLogger.shared.log(
         .info,
         .clipboard,
-        "Quick access copied video file to clipboard",
-        context: ["fileName": url.lastPathComponent]
+        "Quick access copied media file to clipboard",
+        context: [
+          "fileName": url.lastPathComponent,
+          "kind": item.itemType == .audio ? "audio" : "video",
+        ]
       )
     } else {
       ClipboardHelper.copyImage(from: url)
@@ -1008,7 +1170,7 @@ final class QuickAccessManager: ObservableObject {
     }
 
     // Remove card from UI without deleting the temp file (same as drag-to-app).
-    dismissCard(id: id)
+    dismissCard(id: item.id)
 
     // File-based clipboard: the file must stay on disk so the receiving app
     // can read it at paste time. Orphaned temp files are cleaned on next launch.
@@ -1161,7 +1323,7 @@ final class QuickAccessManager: ObservableObject {
           from: tempURL.path,
           to: savedURL.path
         )
-        let captureType: CaptureType = item.isVideo ? .recording : .screenshot
+        let captureType: CaptureType = item.isMedia ? .recording : .screenshot
         PostCaptureActionHandler.shared.copyEditedCaptureToClipboardIfEnabled(
           for: captureType,
           url: savedURL

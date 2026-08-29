@@ -231,7 +231,18 @@ struct QuickAccessCardView: View {
   }
 
   private var captureType: CaptureType {
-    item.isVideo ? .recording : .screenshot
+    Self.captureType(for: item.itemType)
+  }
+
+  /// Audio cards use the recording/media semantics shared by video cards for
+  /// actions and accessibility; they must never be announced as screenshots.
+  static func captureType(for itemType: QuickAccessItemType) -> CaptureType {
+    switch itemType {
+    case .screenshot:
+      .screenshot
+    case .video, .audio:
+      .recording
+    }
   }
 
   private var isTempFile: Bool {
@@ -430,7 +441,7 @@ struct QuickAccessCardView: View {
   private func isActionEnabled(_ action: QuickAccessActionKind) -> Bool {
     switch action {
     case .pinToScreen:
-      !item.isVideo
+      item.supportsPinning
     case .copy, .saveOrOpen, .dismiss, .delete:
       true
     }
@@ -449,7 +460,7 @@ struct QuickAccessCardView: View {
     case .delete:
       deleteItem()
     case .pinToScreen:
-      guard !item.isVideo else { return }
+      guard item.supportsPinning else { return }
       manager.togglePin(id: item.id)
     }
   }

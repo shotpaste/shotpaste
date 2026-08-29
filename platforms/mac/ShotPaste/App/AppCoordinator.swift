@@ -125,6 +125,13 @@ final class AppCoordinator {
       await ScreenCaptureManager.shared.checkPermission(source: .applicationLaunch)
     }
 
+    // Audio recovery is metadata-only until a final M4A has been validated;
+    // the Coordinator completes history/task gates without surfacing private
+    // MOV paths as ordinary captures.
+    Task { @MainActor in
+      await environment.audioRecordingCoordinator.recoverOnLaunch()
+    }
+
     presentPermissionGuideIfNeeded(defaults: defaults)
   }
 

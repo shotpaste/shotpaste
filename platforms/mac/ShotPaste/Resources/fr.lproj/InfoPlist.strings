@@ -1,2 +1,3 @@
-"NSMicrophoneUsageDescription" = "ShotPaste a besoin d'un accès au microphone pour enregistrer de l'audio avec vos enregistrements d'écran.";
+"NSMicrophoneUsageDescription" = "ShotPaste a besoin d'un accès au microphone pour les enregistrements audio et les enregistrements d'écran.";
+"NSSpeechRecognitionUsageDescription" = "ShotPaste a besoin d'un accès à la reconnaissance vocale pour transcrire les enregistrements audio sur ce Mac.";
 "NSScreenCaptureUsageDescription" = "ShotPaste a besoin d'une autorisation d'enregistrement d'écran pour capturer des captures d'écran et enregistrer votre écran.";
