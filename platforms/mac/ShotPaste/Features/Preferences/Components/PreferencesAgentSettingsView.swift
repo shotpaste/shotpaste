@@ -534,6 +534,15 @@ struct AgentSettingsView: View {
       model = AgentProviderConfiguration.defaultModel(for: selectedProtocol)
     }
 
+    if selectedProtocol == .openAICompatible,
+       AgentProviderConfiguration.legacyOpenAIEndpoints.contains(
+         endpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+       ),
+       model.trimmingCharacters(in: .whitespacesAndNewlines)
+       == AgentProviderConfiguration.defaultModel {
+      endpoint = AgentProviderConfiguration.defaultEndpoint
+    }
+
     let otherProtocol: AgentProviderAPIProtocol = selectedProtocol == .openAICompatible
       ? .anthropicMessages : .openAICompatible
     if endpointWasStored, modelWasStored,

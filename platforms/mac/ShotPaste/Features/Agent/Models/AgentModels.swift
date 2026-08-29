@@ -246,8 +246,12 @@ nonisolated enum AgentProviderAPIProtocol: String, Codable, CaseIterable, Sendab
 }
 
 nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
-  static let defaultEndpoint = "https://api3.wlai.vip/v1/chat/completions"
+  static let defaultEndpoint = "http://192.168.31.67:8317/v1"
   static let defaultModel = "gpt-5.6-luna"
+  static let legacyOpenAIEndpoints: Set<String> = [
+    "https://api3.wlai.vip/v1/chat/completions",
+    "http://127.0.0.1:8317/v1",
+  ]
   /// Anthropic 协议下的默认端点（官方 API 基地址）。
   static let defaultAnthropicEndpoint = "https://api.anthropic.com"
   /// Anthropic 协议下的默认模型。
@@ -285,11 +289,16 @@ nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
       ?? Self.defaultModel(for: apiProtocol)
     let otherProtocol: AgentProviderAPIProtocol = apiProtocol == .openAICompatible
       ? .anthropicMessages : .openAICompatible
-    let hasStaleDefaultPair = storedEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+    let normalizedStoredEndpoint = storedEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+    let normalizedStoredModel = storedModel.trimmingCharacters(in: .whitespacesAndNewlines)
+    let hasStaleDefaultPair = normalizedStoredEndpoint
       == Self.defaultEndpoint(for: otherProtocol)
-      && storedModel.trimmingCharacters(in: .whitespacesAndNewlines)
-      == Self.defaultModel(for: otherProtocol)
-    let endpoint = hasStaleDefaultPair ? Self.defaultEndpoint(for: apiProtocol) : storedEndpoint
+      && normalizedStoredModel == Self.defaultModel(for: otherProtocol)
+    let hasLegacyOpenAIDefaultPair = apiProtocol == .openAICompatible
+      && Self.legacyOpenAIEndpoints.contains(normalizedStoredEndpoint)
+      && normalizedStoredModel == Self.defaultModel
+    let endpoint = hasStaleDefaultPair || hasLegacyOpenAIDefaultPair
+      ? Self.defaultEndpoint(for: apiProtocol) : storedEndpoint
     let model = hasStaleDefaultPair ? Self.defaultModel(for: apiProtocol) : storedModel
     let thinkingEnabled = defaults.object(forKey: PreferencesKeys.agentThinkingEnabled) as? Bool ?? true
     let sendsImages = defaults.object(forKey: PreferencesKeys.agentProviderSendsImages) as? Bool ?? true
@@ -345,7 +354,7 @@ nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
           let host = components.host?.lowercased(),
           components.user == nil,
           components.password == nil,
-          scheme == "https" || (scheme == "http" && Self.localHosts.contains(host))
+          scheme == "https" || (scheme == "http" && Self.trustedHTTPHosts.contains(host))
     else { return nil }
 
     let normalizedPath = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
@@ -353,6 +362,8 @@ nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
     case .openAICompatible:
       if normalizedPath.isEmpty {
         components.path = "/" + Self.defaultRequestPath(for: .openAICompatible)
+      } else if normalizedPath.lowercased() == "v1" {
+        components.path = "/v1/" + Self.defaultRequestPath(for: .openAICompatible)
       }
     case .anthropicMessages:
       components.path = "/" + Self.normalizedAnthropicPath(normalizedPath)
@@ -362,7 +373,7 @@ nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
 
   var isLocalEndpoint: Bool {
     guard let host = endpointURL?.host?.lowercased() else { return false }
-    return Self.localHosts.contains(host)
+    return Self.trustedHTTPHosts.contains(host)
   }
 
   var isValid: Bool {
@@ -400,7 +411,12 @@ nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
     return segments.joined(separator: "/")
   }
 
-  private static let localHosts: Set<String> = ["localhost", "127.0.0.1", "::1"]
+  private static let trustedHTTPHosts: Set<String> = [
+    "localhost",
+    "127.0.0.1",
+    "::1",
+    "192.168.31.67",
+  ]
 }
 
 nonisolated struct AgentProviderRequest {

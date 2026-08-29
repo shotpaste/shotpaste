@@ -35,10 +35,13 @@ configuration file, or the **API protocol** picker in Agent preferences):
 - `openai` — OpenAI-compatible Chat Completions (default):
 
   ```text
-  endpoint = https://api3.wlai.vip/v1/chat/completions
+  endpoint = http://192.168.31.67:8317/v1
   model = gpt-5.6-luna
   send_images = true
   ```
+
+  The default local token is `123456`. A `/v1` base URL is normalized to
+  `/v1/chat/completions` for requests.
 
 - `anthropic` — Anthropic Messages API (`POST /v1/messages`, `x-api-key` /
   `Authorization: Bearer` auth, `anthropic-version: 2023-06-01`):
@@ -62,10 +65,10 @@ off sends an explicit disabled value. Parallel tool use is disabled, and a
 response containing more than one tool action is rejected locally.
 
 The protocol, endpoint, model, reasoning mode, and clean-image capability are
-editable, so the Agent is not tied to a named LLM vendor. HTTPS endpoints and
-localhost HTTP endpoints are accepted. The API token is stored directly in
-ShotPaste's application preferences and is displayed only as a masked
-prefix/suffix. It remains absent from TOML exports, diagnostics, and audit
+editable, so the Agent is not tied to a named LLM vendor. HTTPS endpoints,
+localhost HTTP endpoints, and the default trusted LAN endpoint are accepted. A token saved in ShotPaste preferences
+overrides the environment and local default, and is displayed only as a masked
+prefix/suffix. Tokens remain absent from TOML exports, diagnostics, and audit
 events. The settings UI can explicitly import `SHOTPASTE_LLM_API_KEY` from the
 login shell; ShotPaste never reads shell startup files as an implicit background
 action.

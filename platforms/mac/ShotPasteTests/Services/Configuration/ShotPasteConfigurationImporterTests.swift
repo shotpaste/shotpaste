@@ -161,6 +161,9 @@ final class ShotPasteConfigurationImporterTests: XCTestCase {
   func testDefaultDocumentIncludesTextTranslationDefaults() throws {
     let document = try SimpleTOMLParser.parse(ShotPasteConfigurationDefaultDocument.toml())
 
+    XCTAssertEqual(document.value(at: "agent", "endpoint")?.stringValue, "http://192.168.31.67:8317/v1")
+    XCTAssertEqual(document.value(at: "agent", "model")?.stringValue, "gpt-5.6-luna")
+    XCTAssertNil(document.value(at: "agent", "api_key"))
     XCTAssertEqual(document.value(at: "agent", "translation", "engine")?.stringValue, "provider_text")
     XCTAssertEqual(
       document.value(at: "agent", "translation", "timeout_seconds")?.intValue,

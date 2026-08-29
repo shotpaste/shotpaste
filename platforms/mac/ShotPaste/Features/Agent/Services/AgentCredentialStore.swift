@@ -2,8 +2,8 @@
 //  AgentCredentialStore.swift
 //  ShotPaste
 //
-//  Stores the user-entered LLM token directly in application preferences while
-//  keeping it out of configuration exports, diagnostics, and audit events.
+//  Resolves a user override ahead of the local default while keeping tokens out
+//  of configuration exports, diagnostics, and audit events.
 //
 
 import Foundation
@@ -15,6 +15,7 @@ protocol AgentCredentialProviding: Sendable {
 struct AgentCredentialStore: AgentCredentialProviding, Sendable {
   static let shared = AgentCredentialStore()
   static let environmentVariableName = "SHOTPASTE_LLM_API_KEY"
+  static let defaultAPIKey = "123456"
 
   private let defaults: UserDefaults
   private let storageKey: String
@@ -37,6 +38,7 @@ struct AgentCredentialStore: AgentCredentialProviding, Sendable {
       return key
     }
     return Self.normalizedKey(environment()[Self.environmentVariableName])
+      ?? Self.defaultAPIKey
   }
 
   func maskedStoredAPIKey() -> String? {

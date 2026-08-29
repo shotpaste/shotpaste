@@ -46,6 +46,16 @@ final class OpenAICompatibleLLMProviderTests: XCTestCase {
     XCTAssertNil(AgentCredentialStore.maskedKey("   "))
   }
 
+  func testCredentialStoreFallsBackToLocalDefaultToken() throws {
+    let suiteName = "AgentCredentialStoreDefaultTests-\(UUID().uuidString)"
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+    let store = AgentCredentialStore(defaults: defaults, environment: { [:] })
+
+    XCTAssertEqual(try store.resolvedAPIKey(), "123456")
+    XCTAssertNil(store.maskedStoredAPIKey())
+  }
+
   func testTextOnlyRequestUsesConfiguredModelAndToolCalling() async throws {
     let responseData = Data(
       #"{"model":"gpt-5.6-luna","choices":[{"message":{"content":null,"tool_calls":[{"function":{"name":"click","arguments":"{\"element_id\":\"ax:1\",\"button\":\"left\",\"click_count\":1}"}}]}}]}"#
@@ -76,7 +86,7 @@ final class OpenAICompatibleLLMProviderTests: XCTestCase {
     XCTAssertEqual(decision.model, "gpt-5.6-luna")
 
     let request = try XCTUnwrap(session.requests.first)
-    XCTAssertEqual(request.url?.absoluteString, AgentProviderConfiguration.defaultEndpoint)
+    XCTAssertEqual(request.url?.absoluteString, "http://192.168.31.67:8317/v1/chat/completions")
     XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test-key-not-secret")
     let bodyData = try XCTUnwrap(request.httpBody)
     let body = try XCTUnwrap(JSONSerialization.jsonObject(with: bodyData) as? [String: Any])
@@ -93,7 +103,13 @@ final class OpenAICompatibleLLMProviderTests: XCTestCase {
   func testEndpointValidationAllowsHTTPSAndLocalHTTPOnly() {
     XCTAssertTrue(configuration(endpoint: "https://example.com/v1/chat/completions").isValid)
     XCTAssertTrue(configuration(endpoint: "http://localhost:11434/v1").isValid)
+    XCTAssertTrue(configuration(endpoint: "http://192.168.31.67:8317/v1").isValid)
+    XCTAssertEqual(
+      configuration(endpoint: "http://localhost:11434/v1").endpointURL?.absoluteString,
+      "http://localhost:11434/v1/chat/completions"
+    )
     XCTAssertFalse(configuration(endpoint: "http://example.com/v1").isValid)
+    XCTAssertFalse(configuration(endpoint: "http://192.168.31.68:8317/v1").isValid)
     XCTAssertFalse(configuration(endpoint: "https://user:secret@example.com/v1").isValid)
     XCTAssertFalse(configuration(endpoint: "file:///tmp/provider").isValid)
   }
@@ -104,9 +120,31 @@ final class OpenAICompatibleLLMProviderTests: XCTestCase {
     )
     let configuration = AgentProviderConfiguration.current(defaults: defaults)
 
-    XCTAssertEqual(configuration.endpoint, "https://api3.wlai.vip/v1/chat/completions")
+    XCTAssertEqual(configuration.endpoint, "http://192.168.31.67:8317/v1")
+    XCTAssertEqual(
+      configuration.endpointURL?.absoluteString,
+      "http://192.168.31.67:8317/v1/chat/completions"
+    )
     XCTAssertEqual(configuration.model, "gpt-5.6-luna")
     XCTAssertTrue(configuration.sendsImages)
+  }
+
+  func testCurrentConfigurationMigratesPreviousKnownDefaultPair() throws {
+    let suiteName = "OpenAICompatibleLegacyDefaultsTests-\(UUID().uuidString)"
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+    for endpoint in AgentProviderConfiguration.legacyOpenAIEndpoints {
+      defaults.set(endpoint, forKey: PreferencesKeys.agentProviderEndpoint)
+      defaults.set(
+        AgentProviderConfiguration.defaultModel,
+        forKey: PreferencesKeys.agentProviderModel
+      )
+
+      let configuration = AgentProviderConfiguration.current(defaults: defaults)
+
+      XCTAssertEqual(configuration.endpoint, AgentProviderConfiguration.defaultEndpoint)
+      XCTAssertEqual(configuration.model, AgentProviderConfiguration.defaultModel)
+    }
   }
 
   func testVisionRequestAttachesOnlyTheCleanObservationImage() async throws {
