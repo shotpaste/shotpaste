@@ -146,16 +146,14 @@ nonisolated struct OpenAITextTranslationProvider: TranslationTextProvider, Senda
       if !calls.isEmpty {
         guard calls.count == 1,
             let call = calls.first,
-            Self.hasOnlyKnownToolCallKeys(call),
+            Self.hasRequiredToolCallFields(call),
             let function = call["function"] as? [String: Any],
-            Self.hasOnlyKnownFunctionKeys(function),
             function["name"] as? String == TranslationTextPrompt.toolName,
             let arguments = function["arguments"] as? String
         else {
           throw TranslationTextProviderError.invalidResponse
         }
-        guard Self.hasOnlyKnownMessageKeys(message),
-              Self.hasNoNonEmptyToolCompanionContent(message),
+        guard Self.hasNoNonEmptyToolCompanionContent(message),
               !Self.hasNonEmptyRefusal(message)
         else {
           throw TranslationTextProviderError.invalidResponse
@@ -169,16 +167,11 @@ nonisolated struct OpenAITextTranslationProvider: TranslationTextProvider, Senda
 
     // Some compatible gateways ignore tool_choice.  The fallback remains
     // strict: no prose, no Markdown fence, no extraction from a paragraph.
-    guard Self.hasOnlyKnownMessageKeys(message),
-          !Self.hasNonEmptyRefusal(message),
+    guard !Self.hasNonEmptyRefusal(message),
           let content = message["content"] as? String else {
       throw TranslationTextProviderError.invalidResponse
     }
     return try TranslationTextResponseValidator.decodeStrictJSON(content, against: request)
-  }
-
-  private static func hasOnlyKnownMessageKeys(_ message: [String: Any]) -> Bool {
-    Set(message.keys).isSubset(of: ["role", "content", "tool_calls", "refusal"])
   }
 
   private static func hasNoNonEmptyToolCompanionContent(_ message: [String: Any]) -> Bool {
@@ -193,20 +186,13 @@ nonisolated struct OpenAITextTranslationProvider: TranslationTextProvider, Senda
     return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
   }
 
-  private static func hasOnlyKnownToolCallKeys(_ call: [String: Any]) -> Bool {
-    guard Set(call.keys).isSubset(of: ["id", "type", "function"]),
-          call["type"] as? String == "function"
-    else {
-      return false
-    }
+  /// Required fields are validated; provider-specific response metadata is ignored.
+  private static func hasRequiredToolCallFields(_ call: [String: Any]) -> Bool {
+    guard call["type"] as? String == "function" else { return false }
     if let id = call["id"], !(id is String) {
       return false
     }
     return true
-  }
-
-  private static func hasOnlyKnownFunctionKeys(_ function: [String: Any]) -> Bool {
-    Set(function.keys).isSubset(of: ["name", "arguments"])
   }
 
   private static func checkCancellationAndDeadline(_ deadline: Date) throws {

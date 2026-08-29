@@ -67,20 +67,21 @@ final class TranslationResponseValidatorTests: XCTestCase {
     )
   }
 
-  func testCoordinatesAndExtraFieldsNeverEnterResult() throws {
+  func testCoordinatesAndExtraFieldsAreIgnored() throws {
     let object: [String: Any] = [
       "generation_id": "generation-1",
+      "provider_metadata": ["trace_id": "opaque"],
       "translations": [[
         "id": "block-0001",
         "translated_text": "欢迎",
         "bounds": ["x": 0, "y": 0, "width": 1, "height": 1],
+        "provider_metadata": ["confidence": 1.0],
       ]],
     ]
-    XCTAssertThrowsError(
-      try TranslationTextResponseValidator.decodeObject(object, against: request())
-    ) { error in
-      XCTAssertEqual(error as? TranslationTextProviderError, .invalidResponse)
-    }
+    let response = try TranslationTextResponseValidator.decodeObject(object, against: request())
+    XCTAssertEqual(response.translations, [
+      TranslationTextResultBlock(id: "block-0001", translatedText: "欢迎"),
+    ])
   }
 
   func testStrictJSONRejectsProseAndMarkdown() {

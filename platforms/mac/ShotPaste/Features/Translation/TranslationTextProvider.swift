@@ -598,6 +598,13 @@ nonisolated struct TranslationTextHTTPClient: Sendable {
         continue
       }
 
+      TranslationResponseDiagnostics.logIfEnabled(
+        request: request,
+        response: response,
+        data: data,
+        attempt: attempt
+      )
+
       // This check must precede *all* status classification and response
       // handling. A response that arrives after the shared deadline is late,
       // regardless of whether it is a success or an authentication error.

@@ -47,13 +47,20 @@ final class TranslationTextProviderTests: XCTestCase {
         "translations": [["id": "block-0001", "translated_text": "欢迎"]],
       ]
       let response: [String: Any] = [
+        "provider_metadata": ["trace_id": "opaque"],
         "choices": [[
           "message": [
+            "role": "assistant",
+            "content": NSNull(),
+            "reasoning_content": "provider reasoning metadata",
+            "provider_metadata": ["route": "local-gateway"],
             "tool_calls": [[
               "type": "function",
+              "provider_metadata": ["call_index": 0],
               "function": [
                 "name": TranslationTextPrompt.toolName,
                 "arguments": try jsonString(arguments),
+                "provider_metadata": true,
               ],
             ]],
           ],
@@ -292,6 +299,56 @@ final class TranslationTextProviderTests: XCTestCase {
     XCTAssertEqual(result.translations.first?.translatedText, "欢迎")
   }
 
+  func testAnthropicExtraResponseFieldsAreIgnored() async throws {
+    let session = MockURLSession { request in
+      let response: [String: Any] = [
+        "id": "message_1",
+        "type": "message",
+        "role": "assistant",
+        "provider_metadata": ["route": "local-gateway"],
+        "content": [
+          [
+            "type": "thinking",
+            "thinking": "opaque provider metadata",
+            "signature": ["unexpected": true],
+            "provider_metadata": ["token_count": 12],
+          ],
+          [
+            "type": "tool_use",
+            "id": "toolu_1",
+            "name": TranslationTextPrompt.toolName,
+            "input": [
+              "generation_id": "generation-1",
+              "translations": [[
+                "id": "block-0001",
+                "translated_text": "欢迎",
+                "provider_metadata": ["confidence": 1.0],
+              ]],
+              "provider_metadata": ["batch": 1],
+            ],
+            "provider_metadata": ["index": 0],
+          ],
+        ],
+        "usage": ["input_tokens": 10, "output_tokens": 5],
+      ]
+      return MockURLSession.makeResponse(
+        statusCode: 200,
+        data: try JSONSerialization.data(withJSONObject: response),
+        url: try XCTUnwrap(request.url)
+      )
+    }
+
+    let result = try await AnthropicTextTranslationProvider(session: session).translate(
+      request: request(),
+      configuration: configuration(.anthropicMessages),
+      apiKey: "secret",
+      deadline: Date().addingTimeInterval(5)
+    )
+    XCTAssertEqual(result.translations, [
+      TranslationTextResultBlock(id: "block-0001", translatedText: "欢迎"),
+    ])
+  }
+
   func testOpenAIToolCallRequiresFunctionTypeAndStringID() async throws {
     for malformedCall in 0 ..< 2 {
       let session = MockURLSession { request in
@@ -333,19 +390,13 @@ final class TranslationTextProviderTests: XCTestCase {
     }
   }
 
-  func testAnthropicMalformedMetadataAndToolFieldsAreRejected() async throws {
-    for malformedBlock in 0 ..< 5 {
+  func testAnthropicMalformedRequiredFieldsAreRejected() async throws {
+    for malformedBlock in [0, 4] {
       let session = MockURLSession { request in
         let badBlock: [String: Any]
         switch malformedBlock {
         case 0:
           badBlock = ["type": "thinking", "thinking": 42]
-        case 1:
-          badBlock = ["type": "thinking", "thinking": "opaque", "unexpected": true]
-        case 2:
-          badBlock = ["type": "redacted_thinking", "data": 42]
-        case 3:
-          badBlock = ["type": "text", "text": "", "unexpected": "ordinary prose"]
         default:
           badBlock = [
             "type": "tool_use",

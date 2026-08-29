@@ -133,10 +133,10 @@ nonisolated struct AnthropicTextTranslationProvider: TranslationTextProvider, Se
       throw TranslationTextProviderError.invalidResponse
     }
 
-    // The only non-translation blocks permitted next to a tool call are the
-    // platform's thinking metadata. Unknown block kinds are rejected rather
-    // than silently discarded.
-    guard content.allSatisfy({ Self.isKnownContentBlock($0) }) else {
+    // Unknown fields in a known block are provider metadata and are ignored.
+    // Unknown block kinds remain rejected so unrelated content is not silently
+    // treated as translation output.
+    guard content.allSatisfy({ Self.hasRequiredContentBlockShape($0) }) else {
       throw TranslationTextProviderError.invalidResponse
     }
 
@@ -144,7 +144,7 @@ nonisolated struct AnthropicTextTranslationProvider: TranslationTextProvider, Se
     if !toolUseBlocks.isEmpty {
       guard toolUseBlocks.count == 1,
             let block = toolUseBlocks.first,
-            Self.hasOnlyKnownToolUseKeys(block),
+            Self.hasRequiredToolUseFields(block),
             block["name"] as? String == TranslationTextPrompt.toolName,
             let input = block["input"] as? [String: Any]
       else {
@@ -173,48 +173,27 @@ nonisolated struct AnthropicTextTranslationProvider: TranslationTextProvider, Se
     return try TranslationTextResponseValidator.decodeStrictJSON(text, against: request)
   }
 
-  private static func isKnownContentBlock(_ block: [String: Any]) -> Bool {
+  private static func hasRequiredContentBlockShape(_ block: [String: Any]) -> Bool {
     guard let type = block["type"] as? String else { return false }
     switch type {
     case "tool_use":
-      return Self.hasOnlyKnownToolUseKeys(block)
+      return Self.hasRequiredToolUseFields(block)
     case "thinking":
-      // Anthropic extended-thinking metadata is allowed next to the tool, but
-      // only its documented fields and string values may be ignored.  An
-      // arbitrary companion object must not be silently swallowed.
-      guard Set(block.keys).isSubset(of: ["type", "thinking", "signature"]),
-            block["thinking"] is String
-      else {
-        return false
-      }
-      if let signature = block["signature"], !(signature is String) {
-        return false
-      }
-      return true
+      return block["thinking"] is String
     case "redacted_thinking":
-      // Some gateways omit the opaque data field; when present it is a
-      // string.  No other metadata is accepted.
-      guard Set(block.keys).isSubset(of: ["type", "data"]),
-            block["data"].map({ $0 is String }) ?? true
-      else {
-        return false
-      }
+      // The opaque payload is not consumed by the translation client.
       return true
     case "text":
-      // Text is only a strict-JSON fallback fragment.  Citations and other
-      // ordinary explanatory metadata are intentionally rejected here.
-      return Set(block.keys) == ["type", "text"] && block["text"] is String
+      // Text is only a strict-JSON fallback fragment.
+      return block["text"] is String
     default:
       return false
     }
   }
 
-  private static func hasOnlyKnownToolUseKeys(_ block: [String: Any]) -> Bool {
-    guard Set(block.keys).isSubset(of: ["type", "id", "name", "input"]),
-          block["type"] as? String == "tool_use"
-    else {
-      return false
-    }
+  /// Required fields are validated; provider-specific response metadata is ignored.
+  private static func hasRequiredToolUseFields(_ block: [String: Any]) -> Bool {
+    guard block["type"] as? String == "tool_use" else { return false }
     if let id = block["id"], !(id is String) {
       return false
     }

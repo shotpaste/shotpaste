@@ -98,23 +98,21 @@ nonisolated enum TranslationTextResponseValidator {
     return try decodeObject(dictionary, against: request)
   }
 
-  /// Parses an object extracted from a tool call.  Unknown keys are rejected
-  /// so the protocol cannot accidentally grow a coordinate-bearing response;
-  /// no geometry is ever decoded into a result type.
+  /// Parses an object extracted from a tool call. Required fields are decoded;
+  /// provider-specific extra keys are ignored, and no geometry is ever decoded
+  /// into a result type.
   static func decodeObject(
     _ object: [String: Any],
     against request: TranslationTextRequest
   ) throws -> TranslationTextResponse {
-    guard Set(object.keys) == Set(["generation_id", "translations"]),
-          let generationID = object["generation_id"] as? String,
+    guard let generationID = object["generation_id"] as? String,
           let rawTranslations = object["translations"] as? [[String: Any]]
     else {
       throw TranslationTextProviderError.invalidResponse
     }
 
     let translations = try rawTranslations.map { raw -> TranslationTextResultBlock in
-      guard Set(raw.keys) == Set(["id", "translated_text"]),
-            let id = raw["id"] as? String,
+      guard let id = raw["id"] as? String,
             let translatedText = raw["translated_text"] as? String
       else {
         throw TranslationTextProviderError.invalidResponse
