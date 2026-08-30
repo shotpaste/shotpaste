@@ -51,6 +51,7 @@ enum ShotPasteConfigurationImporter {
     collectRecording(&reader, defaults: defaults, mutations: &mutations)
     collectQuickAccess(&reader, mutations: &mutations)
     collectHistory(&reader, defaults: defaults, mutations: &mutations)
+    collectAgent(&reader, defaults: defaults, mutations: &mutations)
     collectShortcuts(&reader, mutations: &mutations)
 
     return PreparedImport(issues: reader.issues, mutations: mutations)
@@ -550,6 +551,119 @@ enum ShotPasteConfigurationImporter {
       collectBool(&reader, "capture", "after", type.rawValue, key, mutations: &mutations) {
         PreferencesManager.shared.setAction(action, for: type, enabled: $0)
       }
+    }
+  }
+
+  private static func collectAgent(
+    _ reader: inout ShotPasteConfigurationReader,
+    defaults: UserDefaults,
+    mutations: inout [() -> Void]
+  ) {
+    let currentProtocol = AgentProviderConfiguration.current(defaults: defaults).apiProtocol
+    var importedProtocol: AgentProviderAPIProtocol?
+    if let rawProtocol = reader.string("agent", "api_protocol") {
+      if let value = AgentProviderAPIProtocol(rawValue: rawProtocol) {
+        importedProtocol = value
+      } else {
+        reader
+          .error(
+            "agent.api_protocol must be one of: \(AgentProviderAPIProtocol.allCases.map(\.rawValue).joined(separator: ", "))"
+          )
+      }
+    }
+    let effectiveProtocol = importedProtocol ?? currentProtocol
+
+    if let enabled = reader.bool("agent", "enabled") {
+      mutations.append {
+        defaults.set(enabled, forKey: PreferencesKeys.agentModeEnabled)
+        if defaults == .standard {
+          AgentModeController.shared.setEnabled(enabled)
+        }
+      }
+    }
+    let importedEndpoint = reader.string("agent", "endpoint")
+    if let endpoint = importedEndpoint {
+      let candidate = AgentProviderConfiguration(
+        endpoint: endpoint,
+        model: AgentProviderConfiguration.defaultModel(for: effectiveProtocol),
+        thinkingEnabled: true,
+        sendsImages: true,
+        maxActions: 30,
+        apiProtocol: effectiveProtocol
+      )
+      if candidate.endpointURL == nil {
+        reader.error("agent.endpoint must be HTTPS, or HTTP on localhost")
+      } else {
+        mutations.append { defaults.set(endpoint, forKey: PreferencesKeys.agentProviderEndpoint) }
+      }
+    }
+    let importedModel = reader.string("agent", "model")
+    if let model = importedModel {
+      if model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        reader.error("agent.model must not be empty")
+      } else {
+        mutations.append { defaults.set(model, forKey: PreferencesKeys.agentProviderModel) }
+      }
+    }
+    if let importedProtocol {
+      mutations.append {
+        let oldProtocol = defaults.string(forKey: PreferencesKeys.agentProviderProtocol)
+          .flatMap(AgentProviderAPIProtocol.init(rawValue:)) ?? .openAICompatible
+        let endpoint = defaults.string(forKey: PreferencesKeys.agentProviderEndpoint)
+          ?? AgentProviderConfiguration.defaultEndpoint(for: oldProtocol)
+        let model = defaults.string(forKey: PreferencesKeys.agentProviderModel)
+          ?? AgentProviderConfiguration.defaultModel(for: oldProtocol)
+        let values = AgentProviderConfiguration.connectionValues(
+          switchingFrom: oldProtocol,
+          to: importedProtocol,
+          endpoint: endpoint,
+          model: model
+        )
+        if importedEndpoint == nil {
+          defaults.set(values.endpoint, forKey: PreferencesKeys.agentProviderEndpoint)
+        }
+        if importedModel == nil {
+          defaults.set(values.model, forKey: PreferencesKeys.agentProviderModel)
+        }
+        defaults.set(importedProtocol.rawValue, forKey: PreferencesKeys.agentProviderProtocol)
+      }
+    }
+    collectBool(&reader, "agent", "thinking_enabled", mutations: &mutations) {
+      defaults.set($0, forKey: PreferencesKeys.agentThinkingEnabled)
+    }
+    collectBool(&reader, "agent", "send_images", mutations: &mutations) {
+      defaults.set($0, forKey: PreferencesKeys.agentProviderSendsImages)
+    }
+    collectInt(&reader, "agent", "max_actions", range: 1 ... 100, mutations: &mutations) {
+      defaults.set($0, forKey: PreferencesKeys.agentMaxActions)
+    }
+    collectBool(&reader, "agent", "retain_screenshots", mutations: &mutations) {
+      defaults.set($0, forKey: PreferencesKeys.agentScreenshotRetentionEnabled)
+    }
+    if let engine = reader.string("agent", "translation", "engine"), engine != "provider_text" {
+      reader.error("agent.translation.engine must be provider_text")
+    }
+    collectInt(
+      &reader,
+      "agent", "translation", "timeout_seconds",
+      range: TranslationPreferences.timeoutRange,
+      mutations: &mutations
+    ) {
+      defaults.set($0, forKey: PreferencesKeys.agentTranslationTimeoutSeconds)
+    }
+    collectEnumString(
+      &reader,
+      "agent", "translation", "prompt_mode",
+      allowed: TranslationPromptMode.allCases.map(\.rawValue),
+      mutations: &mutations
+    ) {
+      defaults.set($0, forKey: PreferencesKeys.agentTranslationPromptMode)
+    }
+    collectString(&reader, "agent", "translation", "prompt", mutations: &mutations) {
+      defaults.set($0, forKey: PreferencesKeys.agentTranslationPrompt)
+    }
+    collectBool(&reader, "agent", "translation", "send_recognized_text", mutations: &mutations) {
+      defaults.set($0, forKey: PreferencesKeys.agentTranslationSendsRecognizedText)
     }
   }
 

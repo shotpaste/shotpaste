@@ -13,6 +13,7 @@ enum OneShotTab: String, CaseIterable, Identifiable {
   case screenshot
   case scrolling
   case recording
+  case translation
   case clipboard
 
   var id: String {
@@ -54,6 +55,7 @@ enum OneShotCommitReason: String, Equatable {
   case recordingMicrophone
   case recordingStart
   case recordingToolbarDrag
+  case translationStart
 }
 
 enum OneShotTabRequestResult: Equatable {
@@ -129,7 +131,9 @@ final class OneShotSessionState: ObservableObject {
   }
 
   var selectionIsResizable: Bool {
-    selectionIsEditable || (phase == .committed && activeTab.isCaptureMode)
+    selectionIsEditable || (
+      phase == .committed && activeTab.isCaptureMode && activeTab != .translation
+    )
   }
 
   var showsTopSwitcher: Bool {
@@ -211,6 +215,15 @@ final class OneShotSessionState: ObservableObject {
 
   func updateResizableSelection(_ rect: CGRect, displayIDs: Set<CGDirectDisplayID>) {
     guard selectionIsResizable else { return }
+    selectionRectGlobal = rect.standardized
+    selectionDisplayIDs = displayIDs
+  }
+
+  /// Translation retries may switch from a committed full-screen request back
+  /// to the user's original frozen selection. This is coordinator-owned state
+  /// replacement, not user resize/move input, so the selection remains locked.
+  func updateLockedTranslationSelection(_ rect: CGRect, displayIDs: Set<CGDirectDisplayID>) {
+    guard phase == .committed, activeTab == .translation else { return }
     selectionRectGlobal = rect.standardized
     selectionDisplayIDs = displayIDs
   }

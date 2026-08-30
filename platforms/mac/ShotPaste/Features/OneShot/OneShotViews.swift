@@ -11,7 +11,7 @@ import SwiftUI
 
 enum OneShotLayout {
   static let switcherHeight: CGFloat = 56
-  static let switcherPreferredWidth: CGFloat = 520
+  static let switcherPreferredWidth: CGFloat = 650
   static let switcherScreenInset: CGFloat = 12
   static let switcherTopGap: CGFloat = 12
   static let modeToolbarGap: CGFloat = 12
@@ -500,6 +500,7 @@ private extension OneShotTab {
     case .screenshot: L10n.CaptureKind.screenshot
     case .scrolling: L10n.Actions.scrollingCapture
     case .recording: L10n.CaptureKind.recording
+    case .translation: L10n.OneShot.translationTab
     case .clipboard: L10n.OneShot.clipboard
     }
   }
@@ -509,6 +510,7 @@ private extension OneShotTab {
     case .screenshot: "camera"
     case .scrolling: "arrow.up.and.down"
     case .recording: "record.circle"
+    case .translation: "character.bubble"
     case .clipboard: "clipboard"
     }
   }

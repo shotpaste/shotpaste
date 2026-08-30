@@ -123,6 +123,7 @@ enum ShotPasteAutomationCommand: Equatable {
     case "capture", "screenshots", "screenshot": .capture
     case "quick-access", "quickaccess": .quickAccess
     case "history": .history
+    case "agent", "agent-mode": .agent
     case "shortcuts", "keyboard-shortcuts": .shortcuts
     case "permissions", "privacy": .permissions
     case "advanced", "configuration", "config", "toml": .advanced
@@ -136,6 +137,7 @@ enum ShotPasteAutomationCommand: Equatable {
     case .capture: "capture"
     case .quickAccess: "quick-access"
     case .history: "history"
+    case .agent: "agent"
     case .shortcuts: "shortcuts"
     case .permissions: "permissions"
     case .advanced: "advanced"

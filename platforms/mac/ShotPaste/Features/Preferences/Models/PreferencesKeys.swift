@@ -32,8 +32,28 @@ nonisolated enum PreferencesKeys {
 
   // Shortcuts
   static let oneShotShortcut = "oneShotShortcut"
+  static let translationShortcut = "translationShortcut"
   static let disabledGlobalShortcuts = "shortcuts.disabledGlobalActions"
   static let clearedGlobalShortcuts = "shortcuts.clearedGlobalActions"
+
+  // Agent Mode
+  static let agentModeEnabled = "agent.mode.enabled"
+  static let agentShortcut = "agent.shortcut"
+  static let agentProviderEndpoint = "agent.provider.endpoint"
+  static let agentProviderModel = "agent.provider.model"
+  static let agentProviderProtocol = "agent.provider.protocol"
+  static let agentProviderAPIKey = "agent.provider.apiKey"
+  static let agentThinkingEnabled = "agent.provider.thinkingEnabled"
+  static let agentProviderSendsImages = "agent.provider.sendsImages"
+  static let agentMaxActions = "agent.session.maxActions"
+  static let agentScreenshotRetentionEnabled = "agent.session.retainScreenshots"
+  static let agentTranslationTimeoutSeconds = "agent.translation.timeoutSeconds"
+  static let agentTranslationPromptMode = "agent.translation.promptMode"
+  static let agentTranslationPrompt = "agent.translation.prompt"
+  /// Controls whether local OCR text may be sent to the configured translation provider.
+  /// This is intentionally independent from `agentProviderSendsImages`, which only
+  /// controls screenshots sent by Agent Mode.
+  static let agentTranslationSendsRecognizedText = "agent.translation.sendRecognizedText"
 
   // Screenshot
   static let screenshotFormat = "screenshot.format"

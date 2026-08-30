@@ -25,7 +25,7 @@ the two app variants.
 
 Capture modes are `screenshot`, `scrolling`, and `recording`. History filters
 are `all`, `screenshot`, `scrolling`, `recording`, and `clipboard`. Settings
-tabs are `general`, `capture`, `quick-access`, `history`, `shortcuts`,
+tabs are `general`, `capture`, `quick-access`, `history`, `agent`, `shortcuts`,
 `permissions`, and `advanced`.
 
 For example:

@@ -103,6 +103,7 @@ final class AppCoordinator {
     RecordingMetadataCleanupScheduler.shared.start()
     CaptureHistoryRetentionService.shared.start()
     MediaClipboardMonitor.shared.start()
+    AgentModeController.shared.startup()
     DiagnosticLogger.shared.log(.debug, .lifecycle, "Background schedulers started")
 
     AppStatusBarController.shared.setup(
@@ -144,6 +145,7 @@ final class AppCoordinator {
   }
 
   func applicationWillTerminate() {
+    AgentModeController.shared.shutdown()
     DiagnosticLogger.shared.log(.info, .lifecycle, "App terminated normally")
     CrashSentinel.shared.markTerminated()
     LogCleanupScheduler.shared.stop()
