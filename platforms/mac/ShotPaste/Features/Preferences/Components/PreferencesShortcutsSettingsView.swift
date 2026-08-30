@@ -11,6 +11,7 @@ import SwiftUI
 
 struct ShortcutsSettingsView: View {
   @State private var oneShotShortcut: ShortcutConfig?
+  @State private var translationShortcut: ShortcutConfig?
   @State private var pauseResumeRecordingShortcut: ShortcutConfig?
   @State private var togglePenRecordingShortcut: ShortcutConfig?
   @State private var restartRecordingShortcut: ShortcutConfig?
@@ -30,6 +31,9 @@ struct ShortcutsSettingsView: View {
 
   init() {
     _oneShotShortcut = State(initialValue: KeyboardShortcutManager.shared.shortcut(for: .oneShot))
+    _translationShortcut = State(
+      initialValue: KeyboardShortcutManager.shared.shortcut(for: .translation)
+    )
     _pauseResumeRecordingShortcut = State(
       initialValue: KeyboardShortcutManager.shared.shortcut(for: .pauseResumeRecording)
     )
@@ -272,6 +276,17 @@ struct ShortcutsSettingsView: View {
             onShortcutChanged: { handleGlobalShortcutChange($0, for: .oneShot) }
           )
 
+          ShortcutRecorderView(
+            label: L10n.OneShot.translationTab,
+            icon: "translate",
+            description: L10n.OneShot.shortcutDescription,
+            shortcut: $translationShortcut,
+            defaultShortcut: nil,
+            isEnabled: globalEnabledBinding(for: .translation),
+            validationIssue: globalValidationIssues[.translation],
+            onShortcutChanged: { handleGlobalShortcutChange($0, for: .translation) }
+          )
+
         } header: {
           HStack {
             Text(L10n.PreferencesShortcuts.captureSection)
@@ -420,8 +435,9 @@ struct ShortcutsSettingsView: View {
 
   private func resetCaptureSection(refresh: Bool = true) {
     oneShotShortcut = .defaultOneShot
+    translationShortcut = nil
 
-    let captureKinds: [GlobalShortcutKind] = [.oneShot]
+    let captureKinds: [GlobalShortcutKind] = [.oneShot, .translation]
     for kind in captureKinds {
       globalShortcutEnabled[kind] = true
       manager.setShortcutEnabled(true, for: kind)
@@ -429,6 +445,7 @@ struct ShortcutsSettingsView: View {
     }
 
     manager.setOneShotShortcut(.defaultOneShot)
+    manager.setTranslationShortcut(nil)
 
     if refresh {
       manager.refreshShortcutRegistration()
@@ -534,6 +551,11 @@ struct ShortcutsSettingsView: View {
       case .oneShot:
         oneShotShortcut = config
         manager.setOneShotShortcut(config)
+      case .translation:
+        translationShortcut = config
+        manager.setTranslationShortcut(config)
+      case .agentMode:
+        manager.setAgentModeShortcut(config)
       case .pauseResumeRecording:
         pauseResumeRecordingShortcut = config
         manager.setPauseResumeRecordingShortcut(config)

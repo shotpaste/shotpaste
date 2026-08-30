@@ -345,6 +345,9 @@ private struct InlineAreaAnnotateRootView: View {
             } else {
               selectionBorder(rect: viewportRect)
             }
+            if session.oneShotState.activeTab == .translation {
+              translationResults(rect: viewportRect, desktopRect: desktopRect)
+            }
             if !session.isSelectingOneShotOCR,
                session.state.canPanInteractively,
                session.state.isCanvasPanningMode || session.state.isSpacePanning {
@@ -853,8 +856,57 @@ private struct InlineAreaAnnotateRootView: View {
       )
       .position(oneShotRecordingCenter(rect: rect, containerSize: containerSize))
 
+    case .translation:
+      OneShotTranslationControls(
+        coordinator: session.translationCoordinator,
+        onTranslateFullScreen: { session.startOneShotFullScreenTranslation() },
+        onTranslateSelection: { session.startOneShotSelectionTranslation() },
+        onCopyResult: { session.copyTranslationResult() },
+        onOpenSettings: { session.openTranslationSettings() }
+      )
+      .fixedSize(horizontal: false, vertical: true)
+      .frame(maxWidth: min(540, max(260, containerSize.width - 24)))
+      .position(
+        oneShotBelowSelectionCenter(
+          rect: rect,
+          size: CGSize(width: min(540, max(260, containerSize.width - 24)), height: 158),
+          containerSize: containerSize
+        )
+      )
+      .zIndex(20)
+
     case .clipboard:
       EmptyView()
+    }
+  }
+
+  @ViewBuilder
+  private func translationResults(rect: CGRect, desktopRect _: CGRect) -> some View {
+    let blocks = session.translationCoordinator.renderBlocks
+    if !blocks.isEmpty {
+      ZStack(alignment: .topLeading) {
+        ForEach(blocks) { block in
+          let localDesktopRect = InlineAreaAnnotateSession.localRect(
+            for: block.screenBounds,
+            in: session.desktopFrame
+          )
+          if let blockFrame = TranslationOverlayLayout.localFrame(
+            for: rectInViewport(localDesktopRect),
+            inside: rect
+          ) {
+            TranslationResultBlockView(
+              block: block,
+              frame: blockFrame
+            )
+          }
+        }
+      }
+      .frame(width: rect.width, height: rect.height)
+      .position(x: rect.midX, y: rect.midY)
+      .clipShape(Rectangle())
+      .allowsHitTesting(false)
+      .zIndex(8)
+      .accessibilityIdentifier("oneshot-translation-results")
     }
   }
 

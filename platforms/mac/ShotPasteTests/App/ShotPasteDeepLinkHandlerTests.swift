@@ -119,6 +119,7 @@ final class ShotPasteDeepLinkHandlerTests: XCTestCase {
       ("capture", .capture),
       ("quick-access", .quickAccess),
       ("history", .history),
+      ("agent", .agent),
       ("shortcuts", .shortcuts),
       ("permissions", .permissions),
       ("advanced", .advanced),

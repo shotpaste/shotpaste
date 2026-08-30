@@ -19,6 +19,7 @@ final class AppStatusBarController: ObservableObject {
   private var cancellables = Set<AnyCancellable>()
   private let recorder = ScreenRecordingManager.shared
   private lazy var idleStatusImage = makeIdleStatusImage()
+  private lazy var agentStatusImage = makeAgentStatusImage()
   private lazy var recordingStopImage = makeRecordingStopImage()
   private var menu: NSMenu?
   private var didDetectCrash = false
@@ -52,6 +53,7 @@ final class AppStatusBarController: ObservableObject {
     syncStatusItemVisibility()
     buildMenu()
     observeRecordingState()
+    observeAgentState()
 
     DiagnosticLogger.shared.log(
       .info,
@@ -231,6 +233,30 @@ final class AppStatusBarController: ObservableObject {
       .store(in: &cancellables)
   }
 
+  private func observeAgentState() {
+    let agentMode = AgentModeController.shared
+    agentMode.$isEnabled
+      .receive(on: RunLoop.main)
+      .sink { [weak self] _ in
+        self?.renderStatusItem()
+      }
+      .store(in: &cancellables)
+
+    agentMode.sessionCoordinator.$phase
+      .receive(on: RunLoop.main)
+      .sink { [weak self] _ in
+        self?.renderStatusItem()
+      }
+      .store(in: &cancellables)
+
+    agentMode.sessionCoordinator.$trajectoryEvents
+      .receive(on: RunLoop.main)
+      .sink { [weak self] _ in
+        self?.renderStatusItem()
+      }
+      .store(in: &cancellables)
+  }
+
   private var isStatusItemRenderScheduled = false
 
   /// Coalesce bursts of UserDefaults changes (e.g. slider drags) into one
@@ -249,8 +275,11 @@ final class AppStatusBarController: ObservableObject {
     guard let button = statusItem?.button else { return }
     // When the hover bar is hidden during recording, the menu bar item becomes the stop
     // control and shows a distinct stop glyph. Otherwise use the app icon.
-    button.image = isMenuBarActingAsStopControl ? (recordingStopImage ?? idleStatusImage) : idleStatusImage
-    button.contentTintColor = nil
+    let showsAgentIdentity = AgentModeController.shared.isEnabled && recorder.state == .idle
+    button.image = isMenuBarActingAsStopControl
+      ? (recordingStopImage ?? idleStatusImage)
+      : (showsAgentIdentity ? agentStatusImage : idleStatusImage)
+    button.contentTintColor = showsAgentIdentity ? .systemPurple : nil
     button.attributedTitle = statusItemAttributedTitle(for: recorder.state)
     button.toolTip = statusItemTooltip(for: recorder.state)
   }
@@ -318,6 +347,9 @@ final class AppStatusBarController: ObservableObject {
     case .stopping:
       return "ShotPaste"
     case .idle:
+      if AgentModeController.shared.isEnabled {
+        return "\(L10n.Agent.modeTitle) · \(AgentModeController.shared.statusMessage)"
+      }
       return Self.idleMenuBarTooltip(for: .current)
     }
   }
@@ -355,6 +387,16 @@ final class AppStatusBarController: ObservableObject {
     return image
   }
 
+  private func makeAgentStatusImage() -> NSImage? {
+    let config = NSImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
+    let image = NSImage(
+      systemSymbolName: "cursorarrow.motionlines",
+      accessibilityDescription: L10n.Agent.modeTitle
+    )?.withSymbolConfiguration(config)
+    image?.isTemplate = true
+    return image
+  }
+
   // MARK: - Menu Building
 
   private func buildMenu() {
@@ -366,6 +408,7 @@ final class AppStatusBarController: ObservableObject {
       return
     }
     let shortcutManager = KeyboardShortcutManager.shared
+    let agentMode = AgentModeController.shared
 
     // Recording status indicator (when recording)
     if recorder.state == .recording || recorder.state == .paused {
@@ -395,6 +438,69 @@ final class AppStatusBarController: ObservableObject {
       menu?.addItem(NSMenuItem.separator())
     }
 
+    if agentMode.isEnabled {
+      let agentModeItem = NSMenuItem(
+        title: L10n.Agent.modeTitle,
+        action: #selector(toggleAgentModeAction),
+        keyEquivalent: ""
+      )
+      agentModeItem.target = self
+      agentModeItem.state = .on
+      agentModeItem.image = NSImage(
+        systemSymbolName: "cursorarrow.motionlines",
+        accessibilityDescription: nil
+      )
+      agentModeItem.isEnabled = true
+      menu?.addItem(agentModeItem)
+
+      if agentMode.isSessionActive || agentMode.sessionCoordinator.hasTrajectory {
+        let activityItem = NSMenuItem(
+          title: L10n.Agent.showActivity,
+          action: #selector(showAgentActivityAction),
+          keyEquivalent: ""
+        )
+        activityItem.image = NSImage(systemSymbolName: "list.bullet.rectangle", accessibilityDescription: nil)
+        activityItem.target = self
+        activityItem.isEnabled = true
+        menu?.addItem(activityItem)
+      }
+      if agentMode.sessionCoordinator.canResume {
+        let resumeItem = NSMenuItem(
+          title: L10n.Agent.resumeAgent,
+          action: #selector(resumeAgentAction),
+          keyEquivalent: ""
+        )
+        resumeItem.image = NSImage(systemSymbolName: "play.fill", accessibilityDescription: nil)
+        resumeItem.target = self
+        resumeItem.isEnabled = true
+        menu?.addItem(resumeItem)
+      }
+      if agentMode.isSessionActive {
+        let stopItem = NSMenuItem(
+          title: L10n.Agent.stopAgent,
+          action: #selector(stopAgentAction),
+          keyEquivalent: ""
+        )
+        stopItem.image = NSImage(systemSymbolName: "stop.fill", accessibilityDescription: nil)
+        stopItem.target = self
+        stopItem.isEnabled = true
+        menu?.addItem(stopItem)
+      } else {
+        let startItem = NSMenuItem(
+          title: L10n.Agent.startTask,
+          action: #selector(startAgentAction),
+          keyEquivalent: ""
+        )
+        applyConfiguredShortcut(startItem, for: .agentMode, using: shortcutManager)
+        startItem.image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: nil)
+        startItem.target = self
+        startItem.isEnabled = true
+        menu?.addItem(startItem)
+      }
+
+      menu?.addItem(NSMenuItem.separator())
+    }
+
     // One Shot is the only idle capture entry. Active recording controls stay
     // visible above it while a One Shot recording is running.
     let oneShotItem = NSMenuItem(
@@ -409,6 +515,7 @@ final class AppStatusBarController: ObservableObject {
       && !recorder.isActive
       && !RecordingCoordinator.shared.isActive
       && !ScrollingCaptureCoordinator.shared.isActive
+      && !agentMode.isSessionActive
     menu?.addItem(oneShotItem)
 
     menu?.addItem(NSMenuItem.separator())
@@ -516,6 +623,31 @@ final class AppStatusBarController: ObservableObject {
   @objc private func oneShotAction() {
     logMenuAction("oneShot")
     viewModel?.startOneShot()
+  }
+
+  @objc private func toggleAgentModeAction() {
+    logMenuAction("toggleAgentMode")
+    AgentModeController.shared.toggleEnabled()
+  }
+
+  @objc private func startAgentAction() {
+    logMenuAction("startAgent")
+    AgentModeController.shared.startIntentCapture()
+  }
+
+  @objc private func resumeAgentAction() {
+    logMenuAction("resumeAgent")
+    AgentModeController.shared.resume()
+  }
+
+  @objc private func showAgentActivityAction() {
+    logMenuAction("showAgentActivity")
+    AgentModeController.shared.showActivity()
+  }
+
+  @objc private func stopAgentAction() {
+    logMenuAction("stopAgent")
+    AgentModeController.shared.stopImmediately()
   }
 
   @objc private func openHistoryAction() {

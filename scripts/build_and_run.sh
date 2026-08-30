@@ -387,7 +387,9 @@ main() {
   esac
 
   cd "$ROOT_DIR"
-  stop_app
+  if [[ "$MODE" != "build" ]]; then
+    stop_app
+  fi
   build_app
 
   case "$MODE" in

@@ -49,6 +49,7 @@ final class OneShotCoordinator: ObservableObject {
   private var onTeardown: (() -> Void)?
   private var onOCRImage: ((CGImage) -> Void)?
   private var resolveScrollingConfiguration: (() -> OneShotScrollingConfiguration?)?
+  private var interactionLease: InteractionLeaseCoordinator.Lease?
 
   private init() {}
 
@@ -64,7 +65,8 @@ final class OneShotCoordinator: ObservableObject {
     guard !isActive,
           !RecordingCoordinator.shared.isActive,
           !ScrollingCaptureCoordinator.shared.isActive,
-          !InlineAreaAnnotateCoordinator.shared.isActive
+          !InlineAreaAnnotateCoordinator.shared.isActive,
+          let interactionLease = InteractionLeaseCoordinator.shared.acquire(.oneShot)
     else {
       AppToastManager.shared.show(
         message: L10n.OneShot.sessionAlreadyActive,
@@ -80,6 +82,7 @@ final class OneShotCoordinator: ObservableObject {
     self.onTeardown = onTeardown
     self.onOCRImage = onOCRImage
     self.resolveScrollingConfiguration = resolveScrollingConfiguration
+    self.interactionLease = interactionLease
     isActive = true
     QuickAccessManager.shared.suspendForCapture()
     DiagnosticLogger.shared.log(.info, .action, "One Shot preparation started")
@@ -155,6 +158,7 @@ final class OneShotCoordinator: ObservableObject {
     switch handoff {
     case .scrolling(let rect):
       DiagnosticLogger.shared.log(.info, .action, "One Shot handing off to scrolling capture")
+      transferInteractionLease(to: .scrollingCapture)
       guard let configuration = resolveScrollingConfiguration?() else {
         finish(result: .failure(.saveFailed(L10n.ScreenCapture.saveLocationPermissionRequired)))
         return
@@ -171,6 +175,7 @@ final class OneShotCoordinator: ObservableObject {
 
     case .recording(let rect, let options):
       DiagnosticLogger.shared.log(.info, .action, "One Shot handing off to recording")
+      transferInteractionLease(to: .recording)
       RecordingCoordinator.shared.startOneShotRecording(
         for: rect,
         options: options,
@@ -196,6 +201,24 @@ final class OneShotCoordinator: ObservableObject {
     }
   }
 
+  private func transferInteractionLease(to owner: InteractionLeaseCoordinator.Owner) {
+    guard let interactionLease,
+          let transferredLease = InteractionLeaseCoordinator.shared.transfer(
+            interactionLease,
+            to: owner
+          )
+    else {
+      DiagnosticLogger.shared.log(
+        .warning,
+        .action,
+        "One Shot interaction lease transfer failed",
+        context: ["owner": owner.rawValue]
+      )
+      return
+    }
+    self.interactionLease = transferredLease
+  }
+
   private func finish(result: CaptureResult?, afterTeardown: (() -> Void)? = nil) {
     guard isActive else { return }
     let failureMessage: String? = if case .failure(let error) = result {
@@ -219,6 +242,10 @@ final class OneShotCoordinator: ObservableObject {
     resolveScrollingConfiguration = nil
     sessionState = nil
     isActive = false
+    if let interactionLease {
+      InteractionLeaseCoordinator.shared.release(interactionLease)
+      self.interactionLease = nil
+    }
     DiagnosticLogger.shared.log(.info, .action, "One Shot session cleaned up")
 
     teardown?()

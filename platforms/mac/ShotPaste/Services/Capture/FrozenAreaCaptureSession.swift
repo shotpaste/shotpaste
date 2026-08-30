@@ -90,6 +90,12 @@ final nonisolated class FrozenAreaCaptureSession {
     Set(snapshots.keys)
   }
 
+  /// Returns the clean, immutable full-display snapshot for Agent Mode and
+  /// other observation consumers without routing it through screenshot history.
+  func snapshot(for displayID: CGDirectDisplayID) -> FrozenDisplaySnapshot? {
+    snapshots[displayID]
+  }
+
   /// Value copy of the current snapshots, safe to hand to a detached task for
   /// off-main cropping (dictionaries are value types; later mutations of the
   /// session copy-on-write and never affect the returned value).

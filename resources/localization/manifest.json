@@ -4,6 +4,12 @@
   "version": "1.0",
   "fragments": [
     {
+      "file": "Features/Agent.xcstrings",
+      "prefixes": [
+        "agent."
+      ]
+    },
+    {
       "file": "Features/Annotate.xcstrings",
       "prefixes": [
         "annotate.",

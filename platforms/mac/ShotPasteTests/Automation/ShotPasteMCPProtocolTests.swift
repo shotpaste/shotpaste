@@ -66,6 +66,13 @@ final class ShotPasteMCPProtocolTests: XCTestCase {
       "shotpaste.control_recording",
     ])
     XCTAssertTrue(tools.allSatisfy { $0["inputSchema"] != nil && $0["outputSchema"] != nil })
+
+    let settingsTool = try XCTUnwrap(tools.first { $0["name"] as? String == "shotpaste.open_settings" })
+    let inputSchema = try XCTUnwrap(settingsTool["inputSchema"] as? [String: Any])
+    let properties = try XCTUnwrap(inputSchema["properties"] as? [String: Any])
+    let tab = try XCTUnwrap(properties["tab"] as? [String: Any])
+    let tabValues = try XCTUnwrap(tab["enum"] as? [String])
+    XCTAssertTrue(tabValues.contains("agent"))
   }
 
   func testToolCallMapsArgumentsToSharedAutomationCommand() throws {

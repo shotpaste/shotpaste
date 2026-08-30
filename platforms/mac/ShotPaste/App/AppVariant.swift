@@ -80,6 +80,13 @@ nonisolated enum AppVariant: String, CaseIterable, Sendable {
     self == .release
   }
 
+  /// Provider response shape diagnostics are useful while debugging, but must
+  /// stay out of Release logs because even metadata is not needed in normal
+  /// production operation.
+  var logsTranslationResponseSummaries: Bool {
+    self == .debug
+  }
+
   var applicationSupportDirectoryName: String {
     dataDirectoryName
   }
