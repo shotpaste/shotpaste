@@ -16,7 +16,7 @@ ShotPaste은 macOS와 Windows에 서로 독립적인 네이티브 클라이언�
 
 ## 기능
 
-- **One Shot:** 영역을 한 번 선택한 뒤 스크린샷, 스크롤 캡처, 녹화 또는
+- **One Shot:** 영역을 한 번 선택한 뒤 스크린샷, 스크롤 캡처, 녹화, 번역 또는
   클립보드 기록을 선택합니다.
 
   [![One Shot 모드 선택기](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
@@ -25,6 +25,12 @@ ShotPaste은 macOS와 Windows에 서로 독립적인 네이티브 클라이언�
   파일 이름, 배율, 커서 및 데스크톱 표시 설정.
 
   [![스크린샷의 로컬 OCR](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
+- **번역:** 고정된 One Shot 영역의 텍스트를 로컬 OCR, 원본 언어 자동 감지,
+  설정 가능한 대상 언어 및 사용자가 구성한 Provider로 번역합니다. 인식된
+  텍스트만 전송됩니다.
+
+  [![스크린샷 번역](assets/readme/translate.gif)](assets/readme/translate.gif)
 
 - **인라인 주석:** 선택, 도형, 화살표, 텍스트, 형광펜, 모자이크, 스포트라이트,
   번호, 펜, 실행 취소/다시 실행, QR, 복사 및 고정.

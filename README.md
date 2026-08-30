@@ -18,7 +18,7 @@ storage, or synchronization.
 ## Features
 
 - **One Shot:** select an area once, then choose Screenshot, Scrolling,
-  Recording, or Clipboard History.
+  Recording, Translation, or Clipboard History.
 
   [![One Shot mode picker](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
 
@@ -27,6 +27,12 @@ storage, or synchronization.
   desktop, and notification behavior.
 
   [![Local OCR from a screenshot](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
+- **Translation:** translate text from a frozen One Shot region with local OCR,
+  automatic source-language detection, configurable target languages, and a
+  user-configured provider. Only recognized text is sent for translation.
+
+  [![Screenshot translation](assets/readme/translate.gif)](assets/readme/translate.gif)
 
 - **Inline annotation:** selection, shapes, arrows, text, highlighter, mosaic,
   spotlight, counter, pencil, undo/redo, QR detection, copy, and pin.

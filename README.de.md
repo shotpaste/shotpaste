@@ -18,7 +18,7 @@ Cloud-Uploads, entfernten Speicher oder Synchronisierung.
 ## Funktionen
 
 - **One Shot:** Bereich einmal auswählen und danach Screenshot,
-  Scroll-Aufnahme, Aufnahme oder Zwischenablageverlauf wählen.
+  Scroll-Aufnahme, Aufnahme, Übersetzung oder Zwischenablageverlauf wählen.
 
   [![One-Shot-Modusauswahl](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
 
@@ -27,6 +27,13 @@ Cloud-Uploads, entfernten Speicher oder Synchronisierung.
   Mauszeiger und Desktopoptionen.
 
   [![Lokale OCR aus einem Screenshot](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
+- **Übersetzung:** Text aus einem eingefrorenen One-Shot-Bereich mit lokaler OCR,
+  automatischer Erkennung der Ausgangssprache, konfigurierbaren Zielsprachen und
+  einem vom Benutzer eingerichteten Provider übersetzen. Nur der erkannte Text
+  wird zur Übersetzung gesendet.
+
+  [![Screenshot-Übersetzung](assets/readme/translate.gif)](assets/readme/translate.gif)
 
 - **Integrierte Anmerkungen:** Auswahl, Formen, Pfeile, Text, Textmarker,
   Mosaik, Fokus, Zähler, Stift, Rückgängig/Wiederholen, QR, Kopieren und

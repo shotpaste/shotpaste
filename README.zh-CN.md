@@ -16,7 +16,7 @@ ShotPaste 为 macOS 和 Windows 提供彼此独立的原生客户端。截屏、
 
 ## 功能
 
-- **One Shot：** 只选择一次区域，即可切换截图、滚动截屏、录屏或剪贴板历史。
+- **One Shot：** 只选择一次区域，即可切换截图、滚动截屏、录屏、翻译或剪贴板历史。
 
   [![One Shot 模式选择器](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
 
@@ -24,6 +24,11 @@ ShotPaste 为 macOS 和 Windows 提供彼此独立的原生客户端。截屏、
   设置，以及本地文字识别。
 
   [![截图本地 OCR](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
+- **翻译：** 使用本地 OCR 识别冻结的 One Shot 选区，自动检测源语言并选择目标
+  语言，通过用户配置的 Provider 翻译；仅发送识别出的文字。
+
+  [![截图翻译](assets/readme/translate.gif)](assets/readme/translate.gif)
 
 - **内联标注：** 选择、形状、箭头、文字、高亮、马赛克、聚光灯、序号、画笔、
   撤销/重做、二维码、复制和贴图。

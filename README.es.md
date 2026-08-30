@@ -18,7 +18,7 @@ telemetría, subida a la nube, almacenamiento remoto ni sincronización.
 ## Funciones
 
 - **One Shot:** selecciona una zona una vez y elige Captura, Captura con
-  desplazamiento, Grabación o Historial del portapapeles.
+  desplazamiento, Grabación, Traducción o Historial del portapapeles.
 
   [![Selector de modos One Shot](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
 
@@ -27,6 +27,13 @@ telemetría, subida a la nube, almacenamiento remoto ni sincronización.
   del escritorio.
 
   [![OCR local desde una captura](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
+- **Traducción:** traduce el texto de una zona One Shot congelada con OCR local,
+  detección automática del idioma de origen, idiomas de destino configurables y
+  un proveedor configurado por el usuario. Solo se envía el texto reconocido
+  para traducirlo.
+
+  [![Traducción de una captura](assets/readme/translate.gif)](assets/readme/translate.gif)
 
 - **Anotación integrada:** selección, formas, flechas, texto, resaltador,
   mosaico, foco, contador, lápiz, deshacer/rehacer, QR, copiar y fijar.

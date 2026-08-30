@@ -17,8 +17,8 @@ không cung cấp tài khoản, đo lường từ xa, tải lên đám mây, lư
 
 ## Tính năng
 
-- **One Shot:** chọn vùng một lần rồi dùng Ảnh chụp, Chụp cuộn, Ghi màn hình
-  hoặc Lịch sử bảng tạm.
+- **One Shot:** chọn vùng một lần rồi dùng Ảnh chụp, Chụp cuộn, Ghi màn hình,
+  Dịch hoặc Lịch sử bảng tạm.
 
   [![Bộ chọn chế độ One Shot](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
 
@@ -26,6 +26,12 @@ không cung cấp tài khoản, đo lường từ xa, tải lên đám mây, lư
   định dạng, tên tệp, tỉ lệ, con trỏ và tùy chọn màn hình nền.
 
   [![OCR cục bộ từ ảnh chụp](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
+- **Dịch:** dịch văn bản trong vùng One Shot đã đóng băng bằng OCR cục bộ, tự động
+  phát hiện ngôn ngữ nguồn, chọn ngôn ngữ đích và Provider do người dùng cấu hình.
+  Chỉ văn bản đã nhận diện được gửi đi.
+
+  [![Dịch văn bản trong ảnh chụp](assets/readme/translate.gif)](assets/readme/translate.gif)
 
 - **Chú thích trực tiếp:** vùng chọn, hình, mũi tên, chữ, tô sáng, mosaic, đèn rọi,
   số thứ tự, bút, hoàn tác/làm lại, QR, sao chép và ghim.

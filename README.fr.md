@@ -18,7 +18,7 @@ ni envoi vers le cloud, ni stockage distant, ni synchronisation.
 ## Fonctionnalités
 
 - **One Shot :** sélectionnez une zone une seule fois, puis choisissez Capture,
-  Capture avec défilement, Enregistrement ou Historique du presse-papiers.
+  Capture avec défilement, Enregistrement, Traduction ou Historique du presse-papiers.
 
   [![Sélecteur de mode One Shot](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
 
@@ -27,6 +27,13 @@ ni envoi vers le cloud, ni stockage distant, ni synchronisation.
   du bureau configurables.
 
   [![OCR local depuis une capture](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
+- **Traduction :** traduisez le texte d’une zone One Shot figée avec OCR local,
+  détection automatique de la langue source, langues cibles configurables et
+  Provider configuré par l’utilisateur. Seul le texte reconnu est envoyé pour
+  traduction.
+
+  [![Traduction d’une capture](assets/readme/translate.gif)](assets/readme/translate.gif)
 
 - **Annotation intégrée :** sélection, formes, flèches, texte, surligneur,
   mosaïque, projecteur, compteur, crayon, annuler/rétablir, QR, copie et

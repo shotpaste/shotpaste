@@ -16,7 +16,7 @@ ShotPaste 為 macOS 與 Windows 提供彼此獨立的原生客戶端。擷取、
 
 ## 功能
 
-- **One Shot：** 只選取一次區域，即可切換截圖、捲動擷取、錄影或剪貼簿歷史。
+- **One Shot：** 只選取一次區域，即可切換截圖、捲動擷取、錄影、翻譯或剪貼簿歷史。
 
   [![One Shot 模式選擇器](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
 
@@ -24,6 +24,11 @@ ShotPaste 為 macOS 與 Windows 提供彼此獨立的原生客戶端。擷取、
   設定，以及本機文字辨識。
 
   [![截圖本機 OCR](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
+- **翻譯：** 使用本機 OCR 辨識凍結的 One Shot 選取範圍，自動偵測來源語言並選擇
+  目標語言，透過使用者設定的 Provider 翻譯；僅傳送辨識出的文字。
+
+  [![截圖翻譯](assets/readme/translate.gif)](assets/readme/translate.gif)
 
 - **內嵌標註：** 選取、形狀、箭頭、文字、螢光筆、馬賽克、聚光燈、編號、畫筆、
   復原/重做、QR Code、複製與釘選。

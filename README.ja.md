@@ -17,7 +17,7 @@ ShotPaste は macOS と Windows に独立したネイティブクライアント
 ## 機能
 
 - **One Shot：** 一度範囲を選び、スクリーンショット、スクロールキャプチャ、
-  録画、クリップボード履歴を切り替えます。
+  録画、翻訳、クリップボード履歴を切り替えます。
 
   [![One Shot モード選択](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
 
@@ -25,6 +25,12 @@ ShotPaste は macOS と Windows に独立したネイティブクライアント
   ローカル文字認識、形式、命名、スケール、カーソル、デスクトップ表示の設定。
 
   [![スクリーンショットのローカル OCR](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
+- **翻訳：** 固定した One Shot 範囲のテキストを、ローカル OCR、入力言語の自動
+  検出、設定可能な翻訳先言語、ユーザーが設定した Provider で翻訳します。
+  送信されるのは認識したテキストだけです。
+
+  [![スクリーンショットの翻訳](assets/readme/translate.gif)](assets/readme/translate.gif)
 
 - **インライン注釈：** 選択、図形、矢印、テキスト、蛍光ペン、モザイク、
   スポットライト、番号、ペン、元に戻す/やり直し、QR、コピー、ピン留め。
