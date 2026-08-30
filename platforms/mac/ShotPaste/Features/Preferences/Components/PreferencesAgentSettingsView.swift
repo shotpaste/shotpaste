@@ -32,7 +32,8 @@ struct AgentSettingsView: View {
   @State private var apiKey = ""
   @State private var maskedStoredKey = AgentCredentialStore.shared.maskedStoredAPIKey()
   @State private var keyOperationMessage: String?
-  @State private var isImportingKey = false
+  @State private var endpointDraft = ""
+  @State private var modelDraft = ""
   @State private var agentShortcut = KeyboardShortcutManager.shared.shortcut(for: .agentMode)
   @State private var shortcutIssue: ShortcutValidationIssue?
   @State private var accessibilityGranted = AXIsProcessTrusted()
@@ -45,53 +46,6 @@ struct AgentSettingsView: View {
   var body: some View {
     ScrollViewReader { proxy in
       Form {
-        Section {
-          SettingRow(
-            icon: "cursorarrow.motionlines",
-            title: L10n.Agent.modeTitle,
-            description: L10n.Agent.modeDescription
-          ) {
-            Toggle("", isOn: modeEnabledBinding)
-              .labelsHidden()
-          }
-
-          HStack(spacing: 8) {
-            Circle()
-              .fill(agentMode.isEnabled ? Color.purple : Color.secondary)
-              .frame(width: 8, height: 8)
-            Text(agentMode.isEnabled ? L10n.Agent.modeEnabledStatus : L10n.Agent.modeDisabledStatus)
-              .font(.caption)
-              .foregroundStyle(.secondary)
-            if agentMode.isEnabled {
-              Text("· \(agentMode.statusMessage)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-          }
-        }
-
-        Section(L10n.Agent.controlsSection) {
-          ShortcutRecorderView(
-            label: L10n.Agent.shortcutTitle,
-            icon: "keyboard",
-            description: L10n.Agent.shortcutDescription,
-            shortcut: $agentShortcut,
-            defaultShortcut: .defaultAgentMode,
-            isEnabled: shortcutEnabledBinding,
-            validationIssue: shortcutIssue,
-            onShortcutChanged: updateShortcut
-          )
-
-          SettingRow(
-            icon: "number.circle",
-            title: L10n.Agent.maxActionsTitle,
-            description: "\(maxActions)"
-          ) {
-            Stepper("", value: $maxActions, in: 1 ... 100)
-              .labelsHidden()
-          }
-        }
-
         Section(L10n.Agent.providerSection) {
           SettingRow(
             icon: "arrow.left.arrow.right",
@@ -105,21 +59,21 @@ struct AgentSettingsView: View {
                 .tag(AgentProviderAPIProtocol.anthropicMessages)
             }
             .labelsHidden()
-            .frame(width: 300)
+            .fixedSize()
+            .frame(width: 300, alignment: .trailing)
           }
 
           SettingRow(
             icon: "link",
             title: L10n.Agent.endpointTitle,
-            description: endpointConfiguration.isValid ? endpointHost : AgentProviderError.invalidConfiguration
-              .localizedDescription
+            description: L10n.Agent.endpointExample(endpointDomainExample)
           ) {
-            TextField(
-              AgentProviderConfiguration.defaultEndpoint(for: selectedProtocol),
-              text: $endpoint
+            InlineEditableSettingField(
+              value: endpoint,
+              draft: $endpointDraft,
+              accessibilityLabel: L10n.Agent.endpointTitle,
+              onSave: { endpoint = $0 }
             )
-            .textFieldStyle(.roundedBorder)
-            .frame(width: 300)
           }
 
           SettingRow(
@@ -127,12 +81,26 @@ struct AgentSettingsView: View {
             title: L10n.Agent.modelTitle,
             description: ""
           ) {
-            TextField(
-              AgentProviderConfiguration.defaultModel(for: selectedProtocol),
-              text: $model
+            InlineEditableSettingField(
+              value: model,
+              draft: $modelDraft,
+              accessibilityLabel: L10n.Agent.modelTitle,
+              onSave: { model = $0 }
             )
-            .textFieldStyle(.roundedBorder)
-            .frame(width: 220)
+          }
+
+          SettingRow(
+            icon: "key.fill",
+            title: L10n.Agent.apiKeyTitle,
+            description: keyOperationMessage ?? L10n.Agent.apiKeyDescription
+          ) {
+            InlineEditableSettingField(
+              value: maskedStoredKey ?? "",
+              draft: $apiKey,
+              accessibilityLabel: L10n.Agent.apiKeyTitle,
+              isSecure: true,
+              onSave: saveAPIKey
+            )
           }
 
           SettingRow(
@@ -142,48 +110,6 @@ struct AgentSettingsView: View {
           ) {
             Toggle("", isOn: $thinkingEnabled)
               .labelsHidden()
-          }
-
-          SettingRow(
-            icon: "photo",
-            title: L10n.Agent.sendImagesTitle,
-            description: L10n.Agent.sendImagesDescription
-          ) {
-            Toggle("", isOn: $sendsImages)
-              .labelsHidden()
-          }
-
-          VStack(alignment: .leading, spacing: 10) {
-            SettingRow(
-              icon: "key.fill",
-              title: L10n.Agent.apiKeyTitle,
-              description: L10n.Agent.apiKeyDescription
-            ) {
-              SecureField(maskedStoredKey ?? "API key", text: $apiKey)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 220)
-              Button(L10n.Agent.saveKey, action: saveAPIKey)
-                .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-
-            HStack(spacing: 10) {
-              Text(storedKeyStatus)
-                .font(.caption)
-                .foregroundStyle(maskedStoredKey == nil ? Color.secondary : Color.green)
-              Spacer()
-              Button(L10n.Agent.importKey) {
-                importAPIKeyFromShell()
-              }
-              .disabled(isImportingKey)
-              Button(L10n.Agent.removeKey, action: removeAPIKey)
-                .disabled(maskedStoredKey == nil)
-            }
-
-            if let keyOperationMessage {
-              Text(keyOperationMessage)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
           }
         }
 
@@ -251,17 +177,6 @@ struct AgentSettingsView: View {
           }
           .accessibilityIdentifier("agent-translation-provider-mode")
 
-          SettingRow(
-            icon: "lock.shield",
-            title: L10n.Agent.translationSendRecognizedTextTitle,
-            description: L10n.Agent.translationSendRecognizedTextDescription
-          ) {
-            Toggle("", isOn: $sendsRecognizedText)
-              .labelsHidden()
-              .accessibilityIdentifier("agent-translation-send-recognized-text")
-              .accessibilityLabel(L10n.Agent.translationSendRecognizedTextTitle)
-          }
-
           Text(L10n.Agent.translationOCRCoverageDescription)
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -285,27 +200,93 @@ struct AgentSettingsView: View {
             .fill(highlightsTranslation ? Color.accentColor.opacity(0.12) : .clear)
         )
 
-        Section(L10n.Agent.safetySection) {
-          SettingRow(
-            icon: "externaldrive.badge.timemachine",
-            title: L10n.Agent.retainScreenshotsTitle,
-            description: L10n.Agent.retainScreenshotsDescription
-          ) {
-            Toggle("", isOn: $retainsScreenshots)
-              .labelsHidden()
+        Section(L10n.Agent.settingsSection) {
+          if agentMode.isEnabled {
+            ShortcutRecorderView(
+              label: L10n.Agent.shortcutTitle,
+              icon: "keyboard",
+              description: L10n.Agent.shortcutDescription,
+              shortcut: $agentShortcut,
+              defaultShortcut: .defaultAgentMode,
+              isEnabled: shortcutEnabledBinding,
+              validationIssue: shortcutIssue,
+              onShortcutChanged: updateShortcut
+            )
+
+            SettingRow(
+              icon: "number.circle",
+              title: L10n.Agent.maxActionsTitle,
+              description: "\(maxActions)"
+            ) {
+              Stepper("", value: $maxActions, in: 1 ... 100)
+                .labelsHidden()
+            }
+
+            SettingRow(
+              icon: "photo",
+              title: L10n.Agent.sendImagesTitle,
+              description: L10n.Agent.sendImagesDescription
+            ) {
+              Toggle("", isOn: $sendsImages)
+                .labelsHidden()
+            }
+
+            SettingRow(
+              icon: "externaldrive.badge.timemachine",
+              title: L10n.Agent.retainScreenshotsTitle,
+              description: L10n.Agent.retainScreenshotsDescription
+            ) {
+              Toggle("", isOn: $retainsScreenshots)
+                .labelsHidden()
+            }
+
+            SettingRow(
+              icon: "lock.shield",
+              title: L10n.Agent.permissionTitle,
+              description: permissionDescription
+            ) {
+              Button(L10n.Agent.openPermissions) {
+                AppStatusBarController.shared.openPreferencesWindow(tab: .permissions)
+              }
+              .buttonStyle(.bordered)
+              .controlSize(.small)
+            }
           }
 
-          SettingRow(
-            icon: "lock.shield",
-            title: L10n.Agent.permissionTitle,
-            description: permissionDescription
-          ) {
-            Button(L10n.Agent.openPermissions) {
-              AppStatusBarController.shared.openPreferencesWindow(tab: .permissions)
+          HStack(spacing: 12) {
+            Image(systemName: "cursorarrow.motionlines")
+              .font(.title2)
+              .foregroundStyle(.secondary)
+              .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 3) {
+              HStack(spacing: 6) {
+                Text(L10n.Agent.modeTitle)
+                  .fontWeight(.medium)
+                Text(L10n.Agent.betaBadge)
+                  .font(.caption2.weight(.semibold))
+                  .foregroundStyle(Color.purple)
+                  .padding(.horizontal, 6)
+                  .padding(.vertical, 2)
+                  .background(Color.purple.opacity(0.12), in: Capsule())
+              }
+              Text(L10n.Agent.modeDescription)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+              if agentMode.isEnabled {
+                Text("\(L10n.Agent.modeEnabledStatus) · \(agentMode.statusMessage)")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
+
+            Spacer()
+            Toggle("", isOn: modeEnabledBinding)
+              .labelsHidden()
+              .accessibilityLabel(L10n.Agent.modeTitle)
           }
+          .padding(.vertical, 4)
         }
       }
       .formStyle(.grouped)
@@ -449,19 +430,17 @@ struct AgentSettingsView: View {
     navigationState.agentAnchor = nil
   }
 
-  private var endpointHost: String {
-    endpointConfiguration.endpointURL?.host ?? endpoint
+  private var endpointDomainExample: String {
+    switch selectedProtocol {
+    case .openAICompatible: "https://api.openai.com/v1"
+    case .anthropicMessages: "https://api.anthropic.com"
+    }
   }
 
   private var permissionDescription: String {
     let screen = screenCaptureManager.hasPermission ? "Screen ✓" : "Screen —"
     let accessibility = accessibilityGranted ? "Accessibility ✓" : "Accessibility —"
     return "\(L10n.Agent.permissionDescription) · \(screen) · \(accessibility)"
-  }
-
-  private var storedKeyStatus: String {
-    guard let maskedStoredKey else { return L10n.Agent.keyNotStored }
-    return "\(L10n.Agent.keyStored): \(maskedStoredKey)"
   }
 
   private func updateShortcut(_ shortcut: ShortcutConfig?) -> Bool {
@@ -477,40 +456,15 @@ struct AgentSettingsView: View {
     }
   }
 
-  private func saveAPIKey() {
+  private func saveAPIKey(_ value: String) {
     do {
-      try credentialStore.saveAPIKey(apiKey)
+      try credentialStore.saveAPIKey(value)
       apiKey = ""
       maskedStoredKey = credentialStore.maskedStoredAPIKey()
       keyOperationMessage = L10n.Agent.keyStored
     } catch {
       keyOperationMessage = error.localizedDescription
     }
-  }
-
-  private func importAPIKeyFromShell() {
-    guard !isImportingKey else { return }
-    isImportingKey = true
-    keyOperationMessage = nil
-    Task {
-      defer { isImportingKey = false }
-      do {
-        let key = try await AgentShellEnvironmentImporter.importLLMAPIKey()
-        try credentialStore.saveAPIKey(key)
-        apiKey = ""
-        maskedStoredKey = credentialStore.maskedStoredAPIKey()
-        keyOperationMessage = L10n.Agent.keyStored
-      } catch {
-        keyOperationMessage = error.localizedDescription
-      }
-    }
-  }
-
-  private func removeAPIKey() {
-    credentialStore.deleteAPIKey()
-    apiKey = ""
-    maskedStoredKey = nil
-    keyOperationMessage = L10n.Agent.keyNotStored
   }
 
   private func refreshState() {
@@ -552,6 +506,172 @@ struct AgentSettingsView: View {
        == AgentProviderConfiguration.defaultModel(for: otherProtocol) {
       endpoint = AgentProviderConfiguration.defaultEndpoint(for: selectedProtocol)
       model = AgentProviderConfiguration.defaultModel(for: selectedProtocol)
+    }
+  }
+}
+
+private struct InlineEditableSettingField: View {
+  private static let fieldWidth: CGFloat = 300
+  private static let fieldHeight: CGFloat = 32
+  private static let textAreaWidth: CGFloat = 254
+  private static let actionAreaWidth: CGFloat = 46
+
+  let value: String
+  @Binding var draft: String
+  let accessibilityLabel: String
+  var isSecure = false
+  let onSave: (String) -> Void
+
+  @State private var isEditing = false
+
+  var body: some View {
+    HStack(spacing: 0) {
+      LeftAlignedAppKitField(
+        text: $draft,
+        isSecure: isSecure,
+        isEditing: isEditing,
+        onSubmit: save
+      )
+      .padding(.leading, 8)
+      .frame(
+        width: Self.textAreaWidth,
+        height: Self.fieldHeight,
+        alignment: .leading
+      )
+      .allowsHitTesting(isEditing)
+
+      if isEditing {
+        HStack(spacing: 4) {
+          iconButton("checkmark", action: save)
+            .disabled(trimmedDraft.isEmpty)
+          iconButton("xmark", action: cancel)
+        }
+        .frame(width: Self.actionAreaWidth, height: Self.fieldHeight)
+      } else {
+        Color.clear
+          .frame(width: Self.actionAreaWidth, height: Self.fieldHeight)
+      }
+    }
+    .frame(width: Self.fieldWidth, height: Self.fieldHeight)
+    .background(
+      RoundedRectangle(cornerRadius: 6, style: .continuous)
+        .fill(Color(nsColor: .controlBackgroundColor))
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: 6, style: .continuous)
+        .stroke(
+          isEditing ? Color.accentColor : Color.secondary.opacity(0.3),
+          lineWidth: isEditing ? 2 : 1
+        )
+    )
+    .clipped()
+    .contentShape(Rectangle())
+    .onTapGesture {
+      guard !isEditing else { return }
+      beginEditing()
+    }
+    .onAppear(perform: synchronizeDisplayValue)
+    .onChange(of: value) { _ in
+      guard !isEditing else { return }
+      synchronizeDisplayValue()
+    }
+    .accessibilityLabel(accessibilityLabel)
+  }
+
+  private var trimmedDraft: String {
+    draft.trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
+  private func beginEditing() {
+    draft = isSecure ? "" : value
+    isEditing = true
+  }
+
+  private func save() {
+    guard !trimmedDraft.isEmpty else { return }
+    onSave(trimmedDraft)
+    isEditing = false
+  }
+
+  private func cancel() {
+    synchronizeDisplayValue()
+    isEditing = false
+  }
+
+  private func synchronizeDisplayValue() {
+    draft = value
+  }
+
+  private func iconButton(_ systemName: String, action: @escaping () -> Void) -> some View {
+    Button(action: action) {
+      Image(systemName: systemName)
+        .frame(width: 18, height: 18)
+    }
+    .buttonStyle(.plain)
+  }
+}
+
+private struct LeftAlignedAppKitField: NSViewRepresentable {
+  @Binding var text: String
+  let isSecure: Bool
+  let isEditing: Bool
+  let onSubmit: () -> Void
+
+  func makeCoordinator() -> Coordinator {
+    Coordinator(parent: self)
+  }
+
+  func makeNSView(context: Context) -> NSTextField {
+    let textField: NSTextField = isSecure ? NSSecureTextField() : NSTextField()
+    textField.delegate = context.coordinator
+    textField.isBordered = false
+    textField.drawsBackground = false
+    textField.focusRingType = .none
+    textField.alignment = .left
+    textField.usesSingleLineMode = true
+    textField.lineBreakMode = .byTruncatingTail
+    textField.font = .systemFont(ofSize: NSFont.systemFontSize)
+    textField.textColor = .labelColor
+    textField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+    return textField
+  }
+
+  func updateNSView(_ textField: NSTextField, context: Context) {
+    context.coordinator.parent = self
+    if textField.stringValue != text {
+      textField.stringValue = text
+    }
+    textField.alignment = .left
+    textField.isEditable = isEditing
+    textField.isSelectable = isEditing
+
+    if isEditing, textField.window?.firstResponder !== textField.currentEditor() {
+      DispatchQueue.main.async {
+        textField.window?.makeFirstResponder(textField)
+      }
+    }
+  }
+
+  final class Coordinator: NSObject, NSTextFieldDelegate {
+    var parent: LeftAlignedAppKitField
+
+    init(parent: LeftAlignedAppKitField) {
+      self.parent = parent
+    }
+
+    func controlTextDidChange(_ notification: Notification) {
+      guard let textField = notification.object as? NSTextField else { return }
+      parent.text = textField.stringValue
+    }
+
+    func control(
+      _: NSControl,
+      textView _: NSTextView,
+      doCommandBy commandSelector: Selector
+    ) -> Bool {
+      guard commandSelector == #selector(NSResponder.insertNewline(_:)) else { return false }
+      parent.onSubmit()
+      return true
     }
   }
 }

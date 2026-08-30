@@ -390,11 +390,11 @@ nonisolated enum L10n {
     static let providerSection = string(
       "agent.provider-section", defaultValue: "LLM Provider", comment: "Agent provider settings section"
     )
-    static let safetySection = string(
-      "agent.safety-section", defaultValue: "Safety & Privacy", comment: "Agent safety settings section"
+    static let settingsSection = string(
+      "agent.settings-section", defaultValue: "Agent Settings", comment: "Combined Agent settings section"
     )
-    static let controlsSection = string(
-      "agent.controls-section", defaultValue: "Controls", comment: "Agent controls settings section"
+    static let betaBadge = string(
+      "agent.beta-badge", defaultValue: "BETA", comment: "Agent Mode beta badge"
     )
     static let apiKeyTitle = string(
       "agent.api-key-title", defaultValue: "LLM API key", comment: "Agent API key setting title"
@@ -406,12 +406,6 @@ nonisolated enum L10n {
     )
     static let saveKey = string(
       "agent.save-key", defaultValue: "Save", comment: "Save Agent API key"
-    )
-    static let importKey = string(
-      "agent.import-key", defaultValue: "Import from ~/.zshrc", comment: "Import Agent API key from shell"
-    )
-    static let removeKey = string(
-      "agent.remove-key", defaultValue: "Remove", comment: "Remove Agent API key"
     )
     static let keyStored = string(
       "agent.key-stored", defaultValue: "Stored token", comment: "Agent API key status"
@@ -427,7 +421,7 @@ nonisolated enum L10n {
     )
     static let protocolOpenAICompatible = string(
       "agent.protocol-openai-compatible",
-      defaultValue: "OpenAI-compatible",
+      defaultValue: "OpenAI Completions",
       comment: "Agent provider protocol option"
     )
     static let protocolAnthropicMessages = string(
@@ -438,6 +432,15 @@ nonisolated enum L10n {
     static let modelTitle = string(
       "agent.model-title", defaultValue: "Model", comment: "Agent provider model title"
     )
+    static func endpointExample(_ example: String) -> String {
+      format(
+        "agent.endpoint-example",
+        defaultValue: "Domain example: %@",
+        comment: "Example domain shown below the Agent provider endpoint field",
+        example
+      )
+    }
+
     static let thinkingTitle = string(
       "agent.thinking-title", defaultValue: "Thinking mode", comment: "Agent thinking toggle title"
     )
@@ -512,7 +515,8 @@ nonisolated enum L10n {
       format(
         "agent.translation-timeout-description",
         defaultValue: "%lld seconds for frozen crop, local OCR, paragraph and language analysis, network, retry, response parsing, and layout",
-        comment: "Translation timeout description. %lld is seconds and covers the complete frozen-image text pipeline.", Int64(seconds)
+        comment: "Translation timeout description. %lld is seconds and covers the complete frozen-image text pipeline.",
+        Int64(seconds)
       )
     }
 

@@ -438,21 +438,21 @@ final class AppStatusBarController: ObservableObject {
       menu?.addItem(NSMenuItem.separator())
     }
 
-    let agentModeItem = NSMenuItem(
-      title: L10n.Agent.modeTitle,
-      action: #selector(toggleAgentModeAction),
-      keyEquivalent: ""
-    )
-    agentModeItem.target = self
-    agentModeItem.state = agentMode.isEnabled ? .on : .off
-    agentModeItem.image = NSImage(
-      systemSymbolName: "cursorarrow.motionlines",
-      accessibilityDescription: nil
-    )
-    agentModeItem.isEnabled = true
-    menu?.addItem(agentModeItem)
-
     if agentMode.isEnabled {
+      let agentModeItem = NSMenuItem(
+        title: L10n.Agent.modeTitle,
+        action: #selector(toggleAgentModeAction),
+        keyEquivalent: ""
+      )
+      agentModeItem.target = self
+      agentModeItem.state = .on
+      agentModeItem.image = NSImage(
+        systemSymbolName: "cursorarrow.motionlines",
+        accessibilityDescription: nil
+      )
+      agentModeItem.isEnabled = true
+      menu?.addItem(agentModeItem)
+
       if agentMode.isSessionActive || agentMode.sessionCoordinator.hasTrajectory {
         let activityItem = NSMenuItem(
           title: L10n.Agent.showActivity,
@@ -497,9 +497,9 @@ final class AppStatusBarController: ObservableObject {
         startItem.isEnabled = true
         menu?.addItem(startItem)
       }
-    }
 
-    menu?.addItem(NSMenuItem.separator())
+      menu?.addItem(NSMenuItem.separator())
+    }
 
     // One Shot is the only idle capture entry. Active recording controls stay
     // visible above it while a One Shot recording is running.

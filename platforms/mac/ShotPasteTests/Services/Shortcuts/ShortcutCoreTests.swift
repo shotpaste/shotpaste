@@ -71,6 +71,12 @@ final class ShortcutCoreTests: XCTestCase {
     XCTAssertFalse(GlobalShortcutKind.allCases.map(\.rawValue).contains("annotate"))
   }
 
+  func testTranslationShortcut_isConfigurableAndNotASystemScreenshotConflict() {
+    XCTAssertTrue(GlobalShortcutKind.allCases.contains(.translation))
+    XCTAssertEqual(GlobalShortcutKind.translation.configKey, "translation")
+    XCTAssertFalse(GlobalShortcutKind.translation.isSystemConflictRelevant)
+  }
+
   func testDisabledShortcutSetIgnoresUnknownRawValues() {
     let freshDefaults = KeyboardShortcutManager.disabledShortcutSet(from: nil)
     XCTAssertTrue(freshDefaults.isEmpty)

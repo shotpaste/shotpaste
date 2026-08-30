@@ -227,6 +227,8 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
     switch action {
     case .startOneShot:
       startOneShot()
+    case .startTranslation:
+      startOneShot(initialTab: .translation)
     case .startAgentIntent:
       AgentModeController.shared.startIntentCapture()
     case .pauseResumeRecording:

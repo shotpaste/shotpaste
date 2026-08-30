@@ -224,6 +224,7 @@ enum ShotPasteConfigurationDefaultDocument {
   private static func globalShortcut(for kind: GlobalShortcutKind) -> ShortcutConfig? {
     switch kind {
     case .oneShot: .defaultOneShot
+    case .translation: nil
     case .agentMode: .defaultAgentMode
     case .pauseResumeRecording: nil
     case .togglePenRecording: nil

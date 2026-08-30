@@ -212,21 +212,21 @@ final class ShotPasteConfigurationImporterTests: XCTestCase {
     XCTAssertFalse(TranslationSettingsMigration.applyIfNeeded(defaults: defaults))
   }
 
-  func testTranslationSettingsMigrationMapsLegacyFalseAndDoesNotFollowLaterLegacyChanges() {
+  func testTranslationSettingsMigrationDefaultsToTrueRegardlessOfLegacyScreenshotPreference() {
     let defaults = UserDefaultsFactory.make()
     defaults.set(false, forKey: PreferencesKeys.agentProviderSendsImages)
 
     XCTAssertTrue(TranslationSettingsMigration.applyIfNeeded(defaults: defaults))
     XCTAssertEqual(
       defaults.object(forKey: PreferencesKeys.agentTranslationSendsRecognizedText) as? Bool,
-      false
+      true
     )
 
     defaults.set(true, forKey: PreferencesKeys.agentProviderSendsImages)
     XCTAssertFalse(TranslationSettingsMigration.applyIfNeeded(defaults: defaults))
     XCTAssertEqual(
       defaults.object(forKey: PreferencesKeys.agentTranslationSendsRecognizedText) as? Bool,
-      false
+      true
     )
   }
 

@@ -79,53 +79,8 @@ struct AgentCredentialStore: AgentCredentialProviding, Sendable {
 
 enum AgentCredentialError: LocalizedError, Equatable {
   case invalidKey
-  case shellImportFailed
 
   var errorDescription: String? {
-    switch self {
-    case .invalidKey:
-      "The API key is empty or contains whitespace."
-    case .shellImportFailed:
-      "SHOTPASTE_LLM_API_KEY could not be imported from the login shell."
-    }
-  }
-}
-
-enum AgentShellEnvironmentImporter {
-  /// Explicit user action only. The shell output is returned directly to the
-  /// caller for application-preferences storage and must never be logged.
-  static func importLLMAPIKey() async throws -> String {
-    try await Task.detached(priority: .userInitiated) {
-      let process = Process()
-      let output = Pipe()
-      process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-      process.arguments = [
-        "-lic",
-        "printf '\\036SHOTPASTE_LLM_KEY\\037%s\\036' \"${SHOTPASTE_LLM_API_KEY:-}\"",
-      ]
-      process.standardOutput = output
-      process.standardError = FileHandle.nullDevice
-
-      try process.run()
-      let data = output.fileHandleForReading.readDataToEndOfFile()
-      process.waitUntilExit()
-      guard process.terminationStatus == 0 else {
-        throw AgentCredentialError.shellImportFailed
-      }
-
-      guard let outputValue = String(data: data, encoding: .utf8),
-            let markerRange = outputValue.range(of: "\u{001E}SHOTPASTE_LLM_KEY\u{001F}"),
-            let endRange = outputValue.range(
-              of: "\u{001E}",
-              range: markerRange.upperBound ..< outputValue.endIndex
-            ),
-            let key = AgentCredentialStore.normalizedKey(
-              String(outputValue[markerRange.upperBound ..< endRange.lowerBound])
-            )
-      else {
-        throw AgentCredentialError.shellImportFailed
-      }
-      return key
-    }.value
+    "The API key is empty or contains whitespace."
   }
 }

@@ -32,6 +32,7 @@ nonisolated enum PreferencesKeys {
 
   // Shortcuts
   static let oneShotShortcut = "oneShotShortcut"
+  static let translationShortcut = "translationShortcut"
   static let disabledGlobalShortcuts = "shortcuts.disabledGlobalActions"
   static let clearedGlobalShortcuts = "shortcuts.clearedGlobalActions"
 

@@ -10,11 +10,10 @@ import Foundation
 /// Initializes the translation text-sharing preference for installations that
 /// predate the local-OCR/text-provider pipeline.
 ///
-/// `agentProviderSendsImages` belongs exclusively to Agent Mode. It is used as
-/// the one-time compatibility signal only when the new key has never existed;
-/// after that, the two preferences are independent. Checking `object(forKey:)`
-/// rather than `bool(forKey:)` is important because an explicitly stored
-/// `false` must not be mistaken for an unset value.
+/// `agentProviderSendsImages` belongs exclusively to Agent Mode. New and
+/// existing installations that have never configured text sharing start with
+/// text sharing enabled. Checking `object(forKey:)` rather than `bool(forKey:)`
+/// preserves an explicitly imported or previously stored `false` value.
 nonisolated enum TranslationSettingsMigration {
   static let defaultSendRecognizedText = true
 
@@ -24,8 +23,7 @@ nonisolated enum TranslationSettingsMigration {
     let newKey = PreferencesKeys.agentTranslationSendsRecognizedText
     guard defaults.object(forKey: newKey) == nil else { return false }
 
-    let legacyValue = defaults.object(forKey: PreferencesKeys.agentProviderSendsImages) as? Bool
-    defaults.set(legacyValue ?? defaultSendRecognizedText, forKey: newKey)
+    defaults.set(defaultSendRecognizedText, forKey: newKey)
     return true
   }
 

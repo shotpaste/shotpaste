@@ -105,6 +105,7 @@ extension GlobalShortcutKind {
   var configKey: String {
     switch self {
     case .oneShot: "one_shot"
+    case .translation: "translation"
     case .agentMode: "agent_mode"
     case .pauseResumeRecording: "pause_resume_recording"
     case .togglePenRecording: "toggle_pen_recording"
@@ -121,6 +122,8 @@ private extension KeyboardShortcutManager {
     switch kind {
     case .oneShot:
       setOneShotShortcut(config)
+    case .translation:
+      setTranslationShortcut(config)
     case .agentMode:
       setAgentModeShortcut(config)
     case .pauseResumeRecording:

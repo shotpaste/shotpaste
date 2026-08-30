@@ -16,7 +16,9 @@ final class TranslationModelsTests: XCTestCase {
     XCTAssertEqual(targets.first, .currentLanguage)
     XCTAssertEqual(
       Set(targets.compactMap {
-        if case .language(let identifier) = $0 { return identifier }
+        if case .language(let identifier) = $0 {
+          return identifier
+        }
         return nil
       }),
       Set(AppLanguageOption.supported.map(\.identifier))
@@ -77,19 +79,19 @@ final class TranslationModelsTests: XCTestCase {
     )
   }
 
-  func testSettingsMigrationCopiesLegacyValueOnlyWhenNewValueIsAbsent() throws {
+  func testSettingsMigrationDefaultsToTrueWhenNewValueIsAbsent() throws {
     let suiteName = "TranslationModelsTests.\(UUID().uuidString)"
     let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
     defer { defaults.removePersistentDomain(forName: suiteName) }
 
     defaults.set(false, forKey: PreferencesKeys.agentProviderSendsImages)
     XCTAssertTrue(TranslationSettingsMigration.applyIfNeeded(defaults: defaults))
-    XCTAssertFalse(TranslationSettingsMigration.sendRecognizedText(defaults: defaults))
+    XCTAssertTrue(TranslationSettingsMigration.sendRecognizedText(defaults: defaults))
 
     // Once migrated, changing the Agent Mode screenshot flag cannot affect the
     // independent text-sharing preference.
     defaults.set(true, forKey: PreferencesKeys.agentProviderSendsImages)
-    XCTAssertFalse(TranslationSettingsMigration.sendRecognizedText(defaults: defaults))
+    XCTAssertTrue(TranslationSettingsMigration.sendRecognizedText(defaults: defaults))
 
     defaults.set(true, forKey: PreferencesKeys.agentTranslationSendsRecognizedText)
     defaults.set(false, forKey: PreferencesKeys.agentProviderSendsImages)
