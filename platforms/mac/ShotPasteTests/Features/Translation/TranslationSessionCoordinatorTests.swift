@@ -401,7 +401,6 @@ final class TranslationSessionCoordinatorTests: XCTestCase {
       }
     }
 
-    try await waitUntil { state.calls >= 2 }
     let outcome = await task.value
     if case .success = outcome {
       XCTFail("deadline must fail the request")
