@@ -24,7 +24,7 @@ nonisolated struct AudioRecordingConfiguration: Codable, Equatable, Sendable {
     microphoneDeviceID: String? = nil,
     primaryLanguage: AudioRecordingLanguage = .auto,
     template: AudioOrganizationTemplate = .transcriptOnly,
-    automaticTranscription: Bool = true,
+    automaticTranscription: Bool = false,
     automaticAI: Bool = false
   ) {
     self.capturesSystemAudio = capturesSystemAudio
@@ -69,7 +69,7 @@ nonisolated enum AudioRecordingPreferences {
 
     let automaticTranscription = defaults.object(
       forKey: PreferencesKeys.audioRecordingAutomaticTranscription
-    ) as? Bool ?? true
+    ) as? Bool ?? false
 
     return AudioRecordingConfiguration(
       capturesSystemAudio: defaults.object(forKey: PreferencesKeys.audioRecordingSystemAudio) as? Bool

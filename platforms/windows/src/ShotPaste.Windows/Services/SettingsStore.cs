@@ -181,6 +181,16 @@ public sealed class SettingsStore
         settings.RecordingToolbarTop = NormalizeWindowCoordinate(settings.RecordingToolbarTop);
         settings.RecordingVideoFormat = settings.RecordingVideoFormat.Equals("Mov", StringComparison.OrdinalIgnoreCase) ? "Mov" : "Mp4";
         settings.RecordingVideoCodec = settings.RecordingVideoCodec.Equals("Hevc", StringComparison.OrdinalIgnoreCase) ? "Hevc" : "H264";
+        settings.RecordingTranscriptionApiKeyProtected = settings.RecordingTranscriptionApiKeyProtected?.Length <= 32_768
+            ? settings.RecordingTranscriptionApiKeyProtected
+            : string.Empty;
+        settings.RecordingTranscriptionSourceLanguage = VolcengineTranscriptionProtocol.NormalizeLanguage(settings.RecordingTranscriptionSourceLanguage);
+        if (!Guid.TryParse(settings.RecordingTranscriptionInstallationId, out _))
+            settings.RecordingTranscriptionInstallationId = Guid.NewGuid().ToString("N");
+        foreach (var value in new[] { settings.RecordingTranscriptionAccessKeyProtected, settings.RecordingTranscriptionSecretKeyProtected, settings.AgentApiKeyProtected })
+            if (value?.Length > 32_768) throw new ArgumentException("Invalid protected credential.");
+        settings.AgentModel = (settings.AgentModel ?? string.Empty).Trim();
+        settings.AgentEndpoint = (settings.AgentEndpoint ?? string.Empty).Trim();
         settings.RecordingAnnotationWidth = Math.Clamp(settings.RecordingAnnotationWidth, 1, 20);
         settings.RecordingAnnotationClearSeconds = Math.Clamp(settings.RecordingAnnotationClearSeconds, 1, 3600);
         settings.RecordingAnnotationMaxCount = Math.Clamp(settings.RecordingAnnotationMaxCount, 1, 200);

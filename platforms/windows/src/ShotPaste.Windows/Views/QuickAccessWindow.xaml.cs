@@ -47,6 +47,8 @@ public partial class QuickAccessWindow : Window
         _countdownDuration = TimeSpan.FromSeconds(Math.Clamp(settings.Current.QuickAccessAutoDismissSeconds, 3, 30));
         _countdown = new Services.QuickAccessCountdown(_countdownDuration);
         TitleText.Text = item.Title;
+        if (item.Kind == CaptureKind.Audio)
+            TextPreviewContent.Text = "♫  " + Services.LocalizationService.TranslatePhrase("录音");
         var isTemporary = false;
         try
         {

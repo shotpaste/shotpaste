@@ -28,6 +28,7 @@ public sealed class TrayIconService : IDisposable
     private WpfContextMenu? _menu;
     private WpfMenuItem? _recordingItem;
     private WpfMenuItem? _oneShotItem;
+    private WpfMenuItem? _audioRecordingItem;
     private WpfMenuItem? _pauseRecordingItem;
     private WpfMenuItem? _focusQuickAccessItem;
     private WpfSeparator? _recordingSeparator;
@@ -38,6 +39,8 @@ public sealed class TrayIconService : IDisposable
     private DateTimeOffset _recordingClickHandledUntil;
 
     public event EventHandler? RecordingRequested;
+    public event EventHandler? AudioRecordingRequested;
+    public event EventHandler? TranscriptionResultsRequested;
     public event EventHandler? PauseRecordingRequested;
     public event EventHandler? OneShotRequested;
     public event EventHandler? HistoryRequested;
@@ -132,6 +135,7 @@ public sealed class TrayIconService : IDisposable
         _isRecording = isRecording;
         _isPaused = isPaused;
         if (_oneShotItem is not null) _oneShotItem.IsEnabled = !isRecording;
+        if (_audioRecordingItem is not null) _audioRecordingItem.IsEnabled = !isRecording;
         if (_recordingItem is not null)
         {
             _recordingItem.Visibility = isRecording ? Visibility.Visible : Visibility.Collapsed;
@@ -205,6 +209,13 @@ public sealed class TrayIconService : IDisposable
             () => _ = InvokeAfterMenuClosesAsync(menu, () => OneShotRequested?.Invoke(this, EventArgs.Empty)));
         _oneShotItem.IsEnabled = !_isRecording;
         menu.Items.Add(_oneShotItem);
+        menu.Items.Add(CreateSeparator());
+        _audioRecordingItem = CreateMenuItem("开始录音", settings.AudioRecordingHotkey, "Icon.Recording", settings,
+            () => AudioRecordingRequested?.Invoke(this, EventArgs.Empty));
+        _audioRecordingItem.IsEnabled = !_isRecording;
+        menu.Items.Add(_audioRecordingItem);
+        menu.Items.Add(CreateMenuItem("转写结果", null, "Icon.History", settings,
+            () => TranscriptionResultsRequested?.Invoke(this, EventArgs.Empty)));
         menu.Items.Add(CreateSeparator());
         menu.Items.Add(CreateMenuItem("剪贴板历史", settings.HistoryHotkey, "Icon.History", settings,
             () => HistoryRequested?.Invoke(this, EventArgs.Empty)));

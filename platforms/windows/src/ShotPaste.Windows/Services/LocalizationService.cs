@@ -101,6 +101,8 @@ public static class LocalizationService
         };
     private static readonly Lazy<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>> PhraseCatalog =
         new(BuildPhraseCatalog);
+    private static readonly Lazy<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>> SharedKeyCatalog =
+        new(BuildSharedKeyCatalog);
     private static readonly Lazy<IReadOnlyDictionary<string, string>> WindowsEnglishFallback =
         new(BuildWindowsEnglishFallback);
     private static readonly Lazy<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>> WindowsLocaleOverrides =
@@ -184,6 +186,8 @@ public static class LocalizationService
         var normalized = Resolve(language);
         if (Catalog.TryGetValue(normalized, out var localized) && localized.TryGetValue(key, out var value))
             return value;
+        if (SharedKeyCatalog.Value.TryGetValue(normalized, out var shared) && shared.TryGetValue(key, out var sharedValue))
+            return sharedValue;
         if (Catalog["zh-CN"].TryGetValue(key, out var chinese))
             return normalized == "zh-CN" ? chinese : TranslatePhrase(chinese, normalized);
         return fallback ?? key;
@@ -199,6 +203,10 @@ public static class LocalizationService
     {
         if (string.IsNullOrWhiteSpace(value)) return value ?? string.Empty;
         var normalized = Resolve(language ?? CurrentLanguage);
+        // Status decorations are not part of a translation key. Resolve the complete
+        // native phrase before falling back to word-by-word composition.
+        if (value.Length > 2 && value[1] == ' ' && value[0] is '—' or '✓' or '⚠')
+            return value[..2] + TranslatePhrase(value[2..], normalized);
         if (normalized == "zh-CN") return value;
         if (WindowsLocaleOverrides.Value.TryGetValue(normalized, out var windowsOverrides) &&
             windowsOverrides.TryGetValue(value, out var windowsTranslation))
@@ -375,6 +383,27 @@ public static class LocalizationService
         state.ApplyingProperties.Add(property);
         try { element.SetCurrentValue(property, translated); }
         finally { state.ApplyingProperties.Remove(property); }
+    }
+
+    private static IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> BuildSharedKeyCatalog()
+    {
+        var result = SupportedLanguages.ToDictionary(language => language.Code,
+            _ => new Dictionary<string, string>(StringComparer.Ordinal), StringComparer.OrdinalIgnoreCase);
+        var assembly = Assembly.GetExecutingAssembly();
+        foreach (var name in assembly.GetManifestResourceNames().Where(name => name.EndsWith(".xcstrings", StringComparison.OrdinalIgnoreCase)))
+        {
+            using var stream = assembly.GetManifestResourceStream(name);
+            if (stream is null) continue;
+            using var document = JsonDocument.Parse(stream);
+            if (!document.RootElement.TryGetProperty("strings", out var strings)) continue;
+            foreach (var entry in strings.EnumerateObject())
+                if (entry.Value.TryGetProperty("localizations", out var localizations))
+                    foreach (var (windows, apple) in AppleLocaleByWindowsCode)
+                        if (TryReadLocalization(localizations, apple, out var translated))
+                            result[windows][entry.Name] = translated;
+        }
+        return result.ToDictionary(pair => pair.Key, pair => (IReadOnlyDictionary<string, string>)pair.Value,
+            StringComparer.OrdinalIgnoreCase);
     }
 
     private static IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> BuildPhraseCatalog()

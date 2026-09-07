@@ -485,7 +485,7 @@ public sealed class CaptureHistoryStore
             duration ??= media.Duration;
             previewError = media.Error;
         }
-        else if (info.Exists && kind is not CaptureKind.ClipboardFile)
+        else if (info.Exists && kind is not (CaptureKind.ClipboardFile or CaptureKind.Audio))
         {
             try
             {

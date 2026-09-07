@@ -176,6 +176,7 @@
       <MenuItem Header="恢复" AutomationProperties.Name="恢复历史项目" Tag="{Binding}" Click="OnRestoreItem"/>
       <MenuItem Header="复制" AutomationProperties.Name="复制历史项目" Tag="{Binding}" Click="OnCopyItem"/>
       <MenuItem Header="打开" AutomationProperties.AutomationId="HistoryOpenItem" AutomationProperties.Name="打开历史项目" Tag="{Binding}" Click="OnOpenItem"/>
+      <MenuItem Header="转写结果" Tag="{Binding}" Click="OnTranscriptionResults"><MenuItem.Style><Style TargetType="MenuItem"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Kind}" Value="Recording"><Setter Property="Visibility" Value="Visible"/></DataTrigger><DataTrigger Binding="{Binding Kind}" Value="Audio"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></MenuItem.Style></MenuItem>
       <MenuItem Header="在资源管理器中显示" AutomationProperties.AutomationId="HistoryRevealItem" AutomationProperties.Name="在资源管理器中显示历史项目" Tag="{Binding}" Click="OnRevealItem"/>
       <Separator/>
       <MenuItem Header="移入回收站…" AutomationProperties.AutomationId="HistoryDeleteItem" AutomationProperties.Name="删除历史项目" Tag="{Binding}" Click="OnDeleteItem"
@@ -224,7 +225,7 @@
         <StackPanel Orientation="Horizontal">
           <Button x:Name="ScreenshotFilter" Tag="Screenshot" Style="{StaticResource HistorySegmentButton}" Click="OnKindPill" AutomationProperties.AutomationId="ScreenshotHistoryFilter" AutomationProperties.Name="屏幕截图"><TextBlock Text="屏幕截图"/></Button>
           <Button Tag="ScrollingScreenshot" Style="{StaticResource HistorySegmentButton}" Click="OnKindPill" AutomationProperties.Name="滚动截屏"><TextBlock Text="滚动截屏"/></Button>
-          <Button Tag="Recording" Style="{StaticResource HistorySegmentButton}" Click="OnKindPill" AutomationProperties.Name="屏幕录制"><TextBlock Text="屏幕录制"/></Button>
+          <Button Tag="Recording" Style="{StaticResource HistorySegmentButton}" Click="OnKindPill" AutomationProperties.Name="视频与音频"><TextBlock Text="视频与音频"/></Button>
           <Button x:Name="ClipboardFilter" Tag="Clipboard" Style="{StaticResource HistorySegmentButton}" Click="OnKindPill" AutomationProperties.AutomationId="ClipboardHistoryFilter" AutomationProperties.Name="剪贴板历史"><TextBlock Text="剪贴板历史"/></Button>
         </StackPanel>
       </Border>
@@ -269,6 +270,7 @@
           <ComboBox x:Name="TimeFilter" Width="104" SelectedIndex="0" SelectionChanged="OnFilterChanged" Padding="8,4" Margin="0,0,3,0">
             <ComboBoxItem Content="不限时间" Tag="All"/><ComboBoxItem Content="24 小时" Tag="1"/><ComboBoxItem Content="7 天" Tag="7"/><ComboBoxItem Content="30 天" Tag="30"/>
           </ComboBox>
+          <Button Style="{StaticResource HistoryHeaderIconButton}" Content="{StaticResource Icon.History}" ContentTemplate="{StaticResource Icon.Template}" ToolTip="转写结果" AutomationProperties.Name="转写结果" Click="OnTranscriptionResults"/>
           <ToggleButton x:Name="KeepOpenCheckBox" Content="{StaticResource Icon.Pin}" ContentTemplate="{StaticResource Icon.Template}"
                         IsChecked="{Binding HistoryKeepOpen}" Style="{StaticResource HistoryHeaderToggleButton}" Margin="3,0"
                         ToolTip="保持打开" Checked="OnKeepOpenChanged" Unchecked="OnKeepOpenChanged"

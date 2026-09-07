@@ -30,7 +30,7 @@ struct PreferencesView: View {
         .tag(PreferencesTab.history)
 
       LazyView(AgentSettingsView())
-        .tabItem { Label(L10n.Agent.tabTitle, systemImage: "cursorarrow.motionlines") }
+        .tabItem { Label(L10n.Agent.tabTitle, systemImage: "sparkles") }
         .tag(PreferencesTab.agent)
 
       LazyView(ShortcutsSettingsView())

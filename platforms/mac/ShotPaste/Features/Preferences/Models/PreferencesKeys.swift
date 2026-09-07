@@ -102,6 +102,10 @@ nonisolated enum PreferencesKeys {
   static let recordingHoverBarVisible = "recording.hoverBarVisible"
   static let recordingShowTimeOnMenuBar = "recording.showTimeOnMenuBar"
   static let recordingHoverBarFrameOrigin = "recording.hoverBarFrameOrigin"
+  static let recordingTranscriptionEnabled = "recordingTranscriptionEnabled"
+  static let recordingTranscriptionAutomaticAI = "recordingTranscriptionAutomaticAI"
+  static let recordingTranscriptionModelID = "recording.transcription.volcengine.modelID"
+  static let recordingTranscriptionSourceLanguage = "recording.transcription.sourceLanguage"
 
   // Audio recording
   static let audioRecordingSystemAudio = "audioRecording.systemAudio"

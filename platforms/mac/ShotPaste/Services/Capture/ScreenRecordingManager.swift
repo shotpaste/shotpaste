@@ -1031,7 +1031,7 @@ final class ScreenRecordingManager: NSObject, ObservableObject {
   // MARK: - Configuration
 
   private var recordingRect: CGRect = .zero
-  private var recordingPurpose: RecordingPurpose = .screenVideo
+  private(set) var recordingPurpose: RecordingPurpose = .screenVideo
   private var videoFormat: VideoFormat = .mov
   private var videoQuality: VideoQuality = .high
   private var fps: Int = 30

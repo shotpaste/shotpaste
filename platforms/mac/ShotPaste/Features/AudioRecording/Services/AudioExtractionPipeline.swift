@@ -470,9 +470,21 @@ nonisolated final class AudioExtractionPipeline: @unchecked Sendable {
           throw AudioExtractionPipelineError.trackRoleMismatch
         }
         let sourceDuration = sourceTrack.timeRange.duration
+        let delta = abs(sourceDuration.seconds - duration.seconds)
+        let tolerance = AudioAdapterSessionDurationPolicy.audioTolerance(for: duration.seconds)
+        let durationContext = [
+          "sessionID": session.sessionID.uuidString,
+          "segment": String(segment.sequence), "role": role.rawValue,
+          "containerSeconds": String(duration.seconds),
+          "audioSeconds": String(sourceDuration.seconds),
+          "audioStartSeconds": String(sourceTrack.timeRange.start.seconds),
+          "deltaSeconds": String(delta), "toleranceSeconds": String(tolerance),
+        ]
+        DiagnosticLogger.shared.log(.info, .recording, "Audio extraction duration check", context: durationContext)
         guard sourceDuration.isNumeric, sourceDuration.seconds > 0,
               abs(sourceDuration.seconds - duration.seconds)
-                <= durationTolerance(for: duration.seconds) else {
+                <= tolerance else {
+          DiagnosticLogger.shared.log(.error, .recording, "Audio extraction rejected track duration", context: durationContext)
           throw AudioExtractionPipelineError.invalidDuration(segment.capturePath)
         }
         let compositionTrack: AVMutableCompositionTrack
@@ -575,7 +587,13 @@ nonisolated final class AudioExtractionPipeline: @unchecked Sendable {
         let validation = try validateM4AQuick(at: outputURL)
         guard outputDuration > 0,
               abs(validation.durationSeconds - totalDuration.seconds)
-                <= durationTolerance(for: totalDuration.seconds) else {
+                <= AudioAdapterSessionDurationPolicy.audioTolerance(for: totalDuration.seconds) else {
+          DiagnosticLogger.shared.log(.error, .recording, "Audio extraction rejected final duration", context: [
+            "sessionID": session.sessionID.uuidString, "role": plan.role.rawValue,
+            "expectedSeconds": String(totalDuration.seconds),
+            "actualSeconds": String(validation.durationSeconds),
+            "toleranceSeconds": String(AudioAdapterSessionDurationPolicy.audioTolerance(for: totalDuration.seconds)),
+          ])
           throw AudioExtractionPipelineError.finalDurationMismatch(
             path: plan.relativePath,
             expected: totalDuration.seconds,

@@ -253,7 +253,9 @@ nonisolated enum AudioRecordingCoordinatorError: LocalizedError, Equatable, Send
 
 @MainActor
 final class AudioRecordingCoordinator: ObservableObject {
-  static let shared = AudioRecordingCoordinator()
+  static let shared = AudioRecordingCoordinator(onResults: {
+    TranscriptionResultsWindowController.shared.show(.audio($0))
+  })
 
   @Published private(set) var state: AudioRecordingCoordinatorState = .idle
   @Published private(set) var elapsedSeconds = 0
@@ -271,6 +273,8 @@ final class AudioRecordingCoordinator: ObservableObject {
   private let recoveryService: AudioRecordingRecoveryService
   private let historyProcessingStatusStore: AudioHistoryProcessingStatusStore
   private let recorder: ScreenRecordingManager
+  private let onResults: (UUID) -> Void
+  private let confirmationHandler: ((String, String, String) -> Bool)?
   private var cancellables = Set<AnyCancellable>()
   private var preparationPanel: AudioRecordingPreparationPanel?
   private var controlBar: AudioRecordingControlBarWindow?
@@ -304,8 +308,12 @@ final class AudioRecordingCoordinator: ObservableObject {
     historyProcessingStatusStore: AudioHistoryProcessingStatusStore = .shared,
     transcriber: LocalAudioTranscriber = LocalAudioTranscriber(),
     llmProcessor: LocalAudioLLMProcessor = LocalAudioLLMProcessor(),
-    recorder: ScreenRecordingManager = .shared
+    recorder: ScreenRecordingManager = .shared,
+    onResults: @escaping (UUID) -> Void = { _ in },
+    confirmationHandler: ((String, String, String) -> Bool)? = nil
   ) {
+    self.onResults = onResults
+    self.confirmationHandler = confirmationHandler
     self.sessionStore = sessionStore
     let resolvedPipeline = extractionPipeline
       ?? AudioExtractionPipeline(store: sessionStore)
@@ -363,7 +371,7 @@ final class AudioRecordingCoordinator: ObservableObject {
   var isActive: Bool { state != .idle }
 
   var isBlockingOtherCapture: Bool {
-    state.isCaptureActive || state.isProcessing
+    state.isCaptureActive
   }
 
   var isRecording: Bool {
@@ -389,7 +397,14 @@ final class AudioRecordingCoordinator: ObservableObject {
 
   var processingStatusLabel: String {
     if isWaitingForModel { return L10n.AudioRecording.modelUnavailable }
-    if lastError != nil { return L10n.AudioRecording.failedTitle }
+    if lastError != nil {
+      if let sessionID,
+         let task = try? processingStore.loadTask(sessionID: sessionID),
+         task.stage == .failed {
+        return Self.processingFailureLabel(errorCode: task.errorCode)
+      }
+      return L10n.AudioRecording.failedTitle
+    }
     switch state {
     case .saving: return L10n.AudioRecording.saving
     case .transcribing: return L10n.AudioRecording.transcribing
@@ -397,6 +412,14 @@ final class AudioRecordingCoordinator: ObservableObject {
     case .organizing: return L10n.AudioRecording.organizingInterviewQA
     case .recoverable, .failed: return L10n.AudioRecording.failedTitle
     default: return L10n.AudioRecording.recording
+    }
+  }
+
+  static func processingFailureLabel(errorCode: String?) -> String {
+    switch errorCode {
+    case "speech_service_disabled": return L10n.AudioRecording.dictationDisabled
+    case "transcription_failed": return L10n.AudioRecording.transcriptionFailed
+    default: return L10n.AudioRecording.processingFailed
     }
   }
 
@@ -434,7 +457,7 @@ final class AudioRecordingCoordinator: ObservableObject {
 
   func begin(configuration: AudioRecordingConfiguration) {
     let normalized = configuration.normalized
-    guard state == .presenting || state == .idle, canStartConfiguredCapture else { return }
+    guard state == .presenting || canBeginCapture, canStartConfiguredCapture else { return }
     guard normalized.hasAudioSource else {
       lastError = L10n.AudioRecording.unableToStart
       state = .failed
@@ -459,18 +482,65 @@ final class AudioRecordingCoordinator: ObservableObject {
   func cancelPreparation() {
     guard state == .presenting || state == .preparing else { return }
     let wasPreparing = state == .preparing
-    preparationTask?.cancel()
-    preparationTask = nil
+    let pendingPreparation = preparationTask
+    pendingPreparation?.cancel()
     preparationPanel?.orderOut(nil)
     if wasPreparing {
-      Task { @MainActor [weak self] in
+      // Keep capture entry points blocked until the pending provider callback
+      // has returned and released its writer. A late prepare must not cancel
+      // or start a newer session.
+      state = .saving
+      stopTask = Task { @MainActor [weak self] in
         guard let self else { return }
-        try? await self.adapter.cancel()
+        defer { self.stopTask = nil }
+        await pendingPreparation?.value
+        self.preparationTask = nil
         self.state = .idle
       }
     } else {
       state = .idle
     }
+  }
+
+  var requiresTerminationHandling: Bool {
+    state.isCaptureActive || stopTask != nil
+  }
+
+  /// Route every external control through the owner of the durable session.
+  @discardableResult
+  func control(_ action: ShotPasteAutomationRecordingAction) -> Bool {
+    switch action {
+    case .pause:
+      guard state == .recording else { return false }
+      pauseOrResume()
+    case .resume:
+      guard state == .paused else { return false }
+      pauseOrResume()
+    case .stop:
+      guard isRecording else { return false }
+      stop()
+    }
+    return true
+  }
+
+  /// Never let application termination abandon a writer or an audio save.
+  func finishForApplicationTermination() async -> Bool {
+    if state == .presenting {
+      cancelPreparation()
+      return true
+    }
+    if state == .preparing {
+      preparationTask?.cancel()
+      await preparationTask?.value
+      do { if adapter.session != nil { try await adapter.cancel() } }
+      catch { return false }
+      closeCaptureUI()
+      state = .idle
+      return true
+    }
+    if isRecording { stop() }
+    await stopTask?.value
+    return !state.isCaptureActive && state != .recoverable && state != .failed
   }
 
   func pauseOrResume() {
@@ -504,36 +574,46 @@ final class AudioRecordingCoordinator: ObservableObject {
   }
 
   func restart() {
-    guard isRecording else { return }
+    guard isRecording, stopTask == nil else { return }
     guard confirm(
       title: L10n.AudioRecording.restartConfirmTitle,
       message: L10n.AudioRecording.restartConfirmMessage,
       action: L10n.AudioRecording.restart
     ) else { return }
-    endedEarly = false
-    stopTask?.cancel()
-    stopTask = Task { @MainActor [weak self] in
-      guard let self else { return }
-      try? await self.adapter.cancel()
-      self.controlBar?.orderOut(nil)
-      self.state = .idle
-      self.showPreparation()
-    }
+    discardCurrentCapture(restart: true)
   }
 
   func delete() {
-    guard state.isCaptureActive else { return }
+    guard isRecording, stopTask == nil else { return }
     guard confirm(
       title: L10n.AudioRecording.deleteConfirmTitle,
       message: L10n.AudioRecording.deleteConfirmMessage,
       action: L10n.AudioRecording.delete
     ) else { return }
-    stopTask?.cancel()
+    discardCurrentCapture(restart: false)
+  }
+
+  private func discardCurrentCapture(restart: Bool) {
+    endedEarly = false
+    state = .saving
     stopTask = Task { @MainActor [weak self] in
       guard let self else { return }
-      try? await self.adapter.cancel()
+      await self.cancelDisplayRecoveryForStop()
+      do {
+        try await self.adapter.cancel()
+      } catch {
+        self.lastError = error.localizedDescription
+        self.state = .recoverable
+        self.stopTask = nil
+        self.closeCaptureUI()
+        return
+      }
       self.closeCaptureUI()
+      self.stopTask = nil
+      self.sessionOperation = .idle
+      self.sessionID = nil
       self.state = .idle
+      if restart { self.showPreparation() }
     }
   }
 
@@ -547,7 +627,7 @@ final class AudioRecordingCoordinator: ObservableObject {
       do {
         let current = try self.sessionStore.load(sessionID: sessionID)
         if current.manifest.finalAudioValidated,
-           current.manifest.historyPersisted,
+           current.manifest.historyHandled,
            current.manifest.transcriptionTaskPersisted {
           try await self.sessionStore.deleteInternalVideo(sessionID: sessionID)
           if let task = try? self.processingStore.loadTask(sessionID: sessionID) {
@@ -562,7 +642,7 @@ final class AudioRecordingCoordinator: ObservableObject {
           let action = await self.recoveryService.recover(sessionID: sessionID)
           await self.handleRecoveryAction(action)
           let updated = try self.sessionStore.load(sessionID: sessionID)
-          self.state = updated.manifest.historyPersisted
+          self.state = updated.manifest.historyHandled
             && updated.manifest.transcriptionTaskPersisted ? .completed : .recoverable
         }
       } catch {
@@ -579,6 +659,13 @@ final class AudioRecordingCoordinator: ObservableObject {
     guard !recoveryInFlight else { return }
     recoveryInFlight = true
     defer { recoveryInFlight = false }
+    // Launch recovery shares the coordinator's published session identity.
+    // A capture started before this task was scheduled keeps that identity
+    // until saving/processing finishes; recovery must not overwrite it.
+    while state.isCaptureActive || processingTask != nil {
+      do { try await Task.sleep(for: .milliseconds(100)) }
+      catch { return }
+    }
     let report = await recoveryService.recover()
     for action in report.actions {
       await handleRecoveryAction(action)
@@ -589,7 +676,8 @@ final class AudioRecordingCoordinator: ObservableObject {
   // MARK: - Preparation and transaction
 
   private var canBeginCapture: Bool {
-    state == .idle && canStartConfiguredCapture
+    (state == .idle || state == .completed || state == .failed || state == .recoverable)
+      && !recoveryInFlight && processingTask == nil && stopTask == nil && canStartConfiguredCapture
   }
 
   private var canStartConfiguredCapture: Bool {
@@ -601,19 +689,29 @@ final class AudioRecordingCoordinator: ObservableObject {
   }
 
   private func prepareAndStart(configuration: AudioRecordingConfiguration) async {
+    let configuredCloud = configuration.automaticTranscription
+      ? RecordingTranscriptionConfiguration.current() : nil
+    let cloudConfiguration = configuredCloud.map {
+      RecordingTranscriptionConfiguration(account: $0.account, sourceLanguage: configuration.primaryLanguage)
+    }
     do {
+      if let cloudConfiguration { _ = try VolcengineCloudAccounts.acquire(cloudConfiguration.account.id) }
+      defer {
+        if let cloudConfiguration { VolcengineCloudAccounts.release(cloudConfiguration.account.id) }
+      }
       let prepared = try await adapter.prepare(configuration: configuration.adapterConfiguration)
+      sessionID = prepared.sessionID
+      try Task.checkCancellation()
       let normalizedConfiguration = configuration.normalized
       _ = try sessionStore.update(sessionID: prepared.sessionID) { manifest in
         manifest.processingLanguage = normalizedConfiguration.primaryLanguage
         manifest.processingTemplate = normalizedConfiguration.template
         manifest.processingAutoTranscribe = normalizedConfiguration.automaticTranscription
         manifest.processingAutoAI = normalizedConfiguration.automaticAI
+        manifest.processingCloudConfiguration = cloudConfiguration
       }
       try await adapter.start()
-      guard recorder.state == .recording else {
-        throw AudioRecordingCoordinatorError.noCaptureOutput
-      }
+      try Task.checkCancellation()
       preparationPanel?.orderOut(nil)
       state = .recording
       elapsedSeconds = recorder.elapsedSeconds
@@ -631,8 +729,9 @@ final class AudioRecordingCoordinator: ObservableObject {
       DiagnosticLogger.shared.log(.info, .recording, "Audio recording started")
     } catch is CancellationError {
       try? await adapter.cancel()
-      state = .idle
+      if stopTask == nil { state = .idle }
     } catch {
+      sessionID = adapter.session?.sessionID
       lastError = error.localizedDescription
       state = adapter.session == nil ? .failed : .recoverable
       closeCaptureUI()
@@ -679,15 +778,7 @@ final class AudioRecordingCoordinator: ObservableObject {
         skipQuickAccess: false,
         preferredHistoryID: sessionID
       )
-      guard postCaptureResult.historyPersisted,
-            let historyRecordID = postCaptureResult.historyRecordID else {
-        throw AudioRecordingCoordinatorError.historyNotPersisted
-      }
-
-      _ = try sessionStore.markHistoryPersisted(
-        sessionID: sessionID,
-        reference: historyRecordID
-      )
+      let historyRecordID = try persistHistoryOutcome(postCaptureResult, sessionID: sessionID)
 
       let normalizedConfiguration = configuration.normalized
       let task = AudioProcessingTask(
@@ -696,27 +787,23 @@ final class AudioRecordingCoordinator: ObservableObject {
         template: normalizedConfiguration.template,
         autoTranscribe: normalizedConfiguration.automaticTranscription,
         autoAI: normalizedConfiguration.automaticAI,
-        sourcePaths: inputBundle.sourcePaths
+        sourcePaths: inputBundle.sourcePaths,
+        cloudConfiguration: try sessionStore.load(sessionID: sessionID).manifest.processingCloudConfiguration
       )
       let taskID = try processingStore.persistTask(sessionID: sessionID, task: task)
       _ = try sessionStore.markTranscriptionTaskPersisted(
         sessionID: sessionID,
         reference: taskID
       )
-      historyProcessingStatusStore.associate(
-        historyRecordID: historyRecordID,
-        sessionID: sessionID,
-        taskID: taskID,
-        stage: task.stage.rawValue
-      )
-
-      guard AudioRecordingTransactionGatePolicy.canDelete(
-        finalAudioValidated: true,
-        historyPersisted: true,
-        transcriptionTaskPersisted: true
-      ) else {
-        throw AudioRecordingCoordinatorError.deletionGateClosed
+      if let historyRecordID {
+        historyProcessingStatusStore.associate(
+          historyRecordID: historyRecordID,
+          sessionID: sessionID,
+          taskID: taskID,
+          stage: task.stage.rawValue
+        )
       }
+
       try await sessionStore.deleteInternalVideo(sessionID: sessionID)
       closeCaptureUI()
       SoundManager.play("Glass")
@@ -762,11 +849,7 @@ final class AudioRecordingCoordinator: ObservableObject {
       skipQuickAccess: false,
       preferredHistoryID: sessionID
     )
-    guard postCaptureResult.historyPersisted,
-          let historyRecordID = postCaptureResult.historyRecordID else {
-      throw AudioRecordingCoordinatorError.historyNotPersisted
-    }
-    _ = try sessionStore.markHistoryPersisted(sessionID: sessionID, reference: historyRecordID)
+    let historyRecordID = try persistHistoryOutcome(postCaptureResult, sessionID: sessionID)
     let normalizedConfiguration = configuration.normalized
     let task = AudioProcessingTask(
       sessionID: sessionID,
@@ -774,16 +857,19 @@ final class AudioRecordingCoordinator: ObservableObject {
       template: normalizedConfiguration.template,
       autoTranscribe: normalizedConfiguration.automaticTranscription,
       autoAI: normalizedConfiguration.automaticAI,
-      sourcePaths: inputBundle.sourcePaths
+      sourcePaths: inputBundle.sourcePaths,
+      cloudConfiguration: try sessionStore.load(sessionID: sessionID).manifest.processingCloudConfiguration
     )
     let taskID = try processingStore.persistTask(sessionID: sessionID, task: task)
     _ = try sessionStore.markTranscriptionTaskPersisted(sessionID: sessionID, reference: taskID)
-    historyProcessingStatusStore.associate(
-      historyRecordID: historyRecordID,
-      sessionID: sessionID,
-      taskID: taskID,
-      stage: task.stage.rawValue
-    )
+    if let historyRecordID {
+      historyProcessingStatusStore.associate(
+        historyRecordID: historyRecordID,
+        sessionID: sessionID,
+        taskID: taskID,
+        stage: task.stage.rawValue
+      )
+    }
     try await sessionStore.deleteInternalVideo(sessionID: sessionID)
     closeCaptureUI()
     await showSuccessToast(successToastMessage(for: sessionID, endedEarly: endedEarly))
@@ -855,6 +941,7 @@ final class AudioRecordingCoordinator: ObservableObject {
     sessionID: UUID,
     sourceInputs: [AudioTranscriptionSourceInput]
   ) {
+    onResults(sessionID)
     let generation = UUID()
     processingGeneration = generation
     processingTask?.cancel()
@@ -990,6 +1077,14 @@ final class AudioRecordingCoordinator: ObservableObject {
     try? processingPipeline.cancel(sessionID: sessionID)
     processingTask?.cancel()
     processingTask = nil
+    isWaitingForModel = false
+    lastError = nil
+    state = .idle
+    historyProcessingStatusStore.update(
+      sessionID: sessionID,
+      taskID: nil,
+      stage: AudioProcessingTaskStage.cancelled.rawValue
+    )
   }
 
   // MARK: - Recovery
@@ -1113,6 +1208,21 @@ final class AudioRecordingCoordinator: ObservableObject {
     return [AudioTranscriptionSourceInput(source: .mixed, url: try session.url(for: mixed))]
   }
 
+  @discardableResult
+  private func persistHistoryOutcome(
+    _ result: AudioCapturePostProcessingResult,
+    sessionID: UUID
+  ) throws -> UUID? {
+    guard result.accepted else { throw AudioRecordingCoordinatorError.historyNotPersisted }
+    if result.historyPersisted, let id = result.historyRecordID {
+      _ = try sessionStore.markHistoryPersisted(sessionID: sessionID, reference: id)
+      return id
+    }
+    guard result.historySkipped else { throw AudioRecordingCoordinatorError.historyNotPersisted }
+    _ = try sessionStore.markHistorySkipped(sessionID: sessionID)
+    return nil
+  }
+
   private func completeRecoveryHistory(sessionID: UUID) async {
     do {
       let session = try sessionStore.load(sessionID: sessionID)
@@ -1122,11 +1232,7 @@ final class AudioRecordingCoordinator: ObservableObject {
         skipQuickAccess: false,
         preferredHistoryID: sessionID
       )
-      guard let historyRecordID = result.historyRecordID else { return }
-      _ = try sessionStore.markHistoryPersisted(
-        sessionID: sessionID,
-        reference: historyRecordID
-      )
+      _ = try persistHistoryOutcome(result, sessionID: sessionID)
       await completeRecoveryTranscription(sessionID: sessionID)
     } catch {
       DiagnosticLogger.shared.logError(.recording, error, "Audio history recovery deferred")
@@ -1153,10 +1259,11 @@ final class AudioRecordingCoordinator: ObservableObject {
           sessionID: sessionID,
           language: session.manifest.processingLanguage ?? .auto,
           template: session.manifest.processingTemplate ?? .transcriptOnly,
-          autoTranscribe: session.manifest.processingAutoTranscribe ?? true,
+          autoTranscribe: session.manifest.processingAutoTranscribe ?? false,
           autoAI: (session.manifest.processingAutoAI ?? false)
-            && (session.manifest.processingAutoTranscribe ?? true),
-          sourcePaths: finalSourcePaths(from: session.manifest)
+            && (session.manifest.processingAutoTranscribe ?? false),
+          sourcePaths: finalSourcePaths(from: session.manifest),
+          cloudConfiguration: session.manifest.processingCloudConfiguration
         )
         taskID = try processingStore.persistTask(sessionID: sessionID, task: task)
       }
@@ -1316,6 +1423,7 @@ final class AudioRecordingCoordinator: ObservableObject {
   }
 
   private func confirm(title: String, message: String, action: String) -> Bool {
+    if let confirmationHandler { return confirmationHandler(title, message, action) }
     let alert = NSAlert()
     alert.messageText = title
     alert.informativeText = message
@@ -1327,8 +1435,11 @@ final class AudioRecordingCoordinator: ObservableObject {
 
   private func failCapture(_ error: Error) {
     lastError = error.localizedDescription
-    state = adapter.session == nil ? .failed : .recoverable
-    Task { await showFailureToast(L10n.AudioRecording.failedTitle) }
+    // Pause/resume can fail while the native writer remains active (for
+    // example, a manifest write failure). Stop through the owning transaction
+    // before replacing the capture state or hiding its controls.
+    endedEarly = true
+    stop()
   }
 
   private func showSuccessToast(_ message: String) async {

@@ -62,6 +62,7 @@ public sealed class CaptureHistoryItem : INotifyPropertyChanged
                 CaptureKind.Screenshot => LocalizationService.TranslatePhrase("截图"),
                 CaptureKind.ScrollingScreenshot => LocalizationService.TranslatePhrase("滚动截屏"),
                 CaptureKind.Recording => LocalizationService.TranslatePhrase("录屏"),
+                CaptureKind.Audio => LocalizationService.TranslatePhrase("录音"),
                 CaptureKind.Gif => "GIF",
                 CaptureKind.ClipboardImage => LocalizationService.TranslatePhrase("剪贴板图片"),
                 CaptureKind.ClipboardText => LocalizationService.TranslatePhrase("剪贴板文本"),
@@ -104,7 +105,7 @@ public sealed class CaptureHistoryItem : INotifyPropertyChanged
     }
 
     private string? PreviewPath => ThumbnailPath ??
-        (Kind is not (CaptureKind.Recording or CaptureKind.ClipboardVideo) ? FilePath : null);
+        (Kind is not (CaptureKind.Recording or CaptureKind.ClipboardVideo or CaptureKind.Audio) ? FilePath : null);
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

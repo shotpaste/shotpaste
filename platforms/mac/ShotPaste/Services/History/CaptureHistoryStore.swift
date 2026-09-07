@@ -122,6 +122,8 @@ final class CaptureHistoryStore: ObservableObject {
     DiagnosticLogger.shared.log(.debug, .history, "Capture history observation started")
   }
 
+  var isEnabled: Bool { userDefaults.bool(forKey: PreferencesKeys.historyEnabled) }
+
   // MARK: - Public API
 
   /// Add a new capture record.

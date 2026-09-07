@@ -494,7 +494,7 @@ nonisolated final class AudioAdapterSessionStore: @unchecked Sendable {
   ) async throws -> AudioAdapterSession {
     let session = try withStoreLock { try loadUnlocked(sessionID: sessionID) }
     guard session.manifest.stage == .extracting,
-          !session.manifest.historyPersisted,
+          !session.manifest.historyHandled,
           !session.manifest.transcriptionTaskPersisted else {
       throw AudioAdapterSessionStoreError.invalidManifest
     }
@@ -507,7 +507,7 @@ nonisolated final class AudioAdapterSessionStore: @unchecked Sendable {
       let latest = try loadUnlocked(sessionID: sessionID)
       guard Self.matchesSnapshot(session, current: latest),
             latest.manifest.stage == .extracting,
-            !latest.manifest.historyPersisted,
+            !latest.manifest.historyHandled,
             !latest.manifest.transcriptionTaskPersisted else {
         throw AudioAdapterSessionStoreError.invalidManifest
       }
@@ -535,7 +535,7 @@ nonisolated final class AudioAdapterSessionStore: @unchecked Sendable {
     guard Self.isUsableReference(reference),
           session.manifest.stage == .awaitingHistory,
           session.manifest.finalAudioValidated,
-          !session.manifest.historyPersisted else {
+          !session.manifest.historyHandled else {
       throw AudioAdapterSessionStoreError.invalidStateTransition(
         session.manifest.stage,
         .awaitingTranscription
@@ -548,6 +548,23 @@ nonisolated final class AudioAdapterSessionStore: @unchecked Sendable {
     session.manifest.setStage(.awaitingTranscription, at: date)
     try persistUnlocked(session)
     return session
+  }
+
+  /// A deliberate opt-out is durable, but never impersonates a SQLite row.
+  @discardableResult
+  func markHistorySkipped(sessionID: UUID, at date: Date = Date()) throws -> AudioAdapterSession {
+    try withStoreLock {
+      var session = try loadUnlocked(sessionID: sessionID)
+      guard session.manifest.stage == .awaitingHistory,
+            session.manifest.finalAudioValidated,
+            !session.manifest.historyHandled else {
+        throw AudioAdapterSessionStoreError.invalidManifest
+      }
+      session.manifest.historySkipped = true
+      session.manifest.setStage(.awaitingTranscription, at: date)
+      try persistUnlocked(session)
+      return session
+    }
   }
 
   /// Checked transcription persistence gate.  It is the only operation that
@@ -566,7 +583,7 @@ nonisolated final class AudioAdapterSessionStore: @unchecked Sendable {
     guard Self.isUsableReference(reference),
           session.manifest.stage == .awaitingTranscription,
           session.manifest.finalAudioValidated,
-          session.manifest.historyPersisted,
+          session.manifest.historyHandled,
           !session.manifest.transcriptionTaskPersisted else {
       throw AudioAdapterSessionStoreError.invalidStateTransition(
         session.manifest.stage,
@@ -587,7 +604,7 @@ nonisolated final class AudioAdapterSessionStore: @unchecked Sendable {
   func canDeleteInternalVideo(sessionID: UUID) async throws -> Bool {
     let session = try withStoreLock { try loadUnlocked(sessionID: sessionID) }
     guard session.manifest.finalAudioValidated,
-          session.manifest.historyPersisted,
+          session.manifest.historyHandled,
           session.manifest.transcriptionTaskPersisted,
           session.manifest.stage == .completed else {
       return false
@@ -602,7 +619,7 @@ nonisolated final class AudioAdapterSessionStore: @unchecked Sendable {
   func deleteInternalVideo(sessionID: UUID) async throws {
     let snapshot = try withStoreLock { try loadUnlocked(sessionID: sessionID) }
     guard snapshot.manifest.finalAudioValidated,
-          snapshot.manifest.historyPersisted,
+          snapshot.manifest.historyHandled,
           snapshot.manifest.transcriptionTaskPersisted,
           snapshot.manifest.stage == .completed else {
       throw AudioAdapterSessionStoreError.cannotPersistManifest("internal video deletion gate")
@@ -614,7 +631,7 @@ nonisolated final class AudioAdapterSessionStore: @unchecked Sendable {
       var session = try loadUnlocked(sessionID: sessionID)
       guard Self.matchesSnapshot(snapshot, current: session),
             session.manifest.finalAudioValidated,
-            session.manifest.historyPersisted,
+            session.manifest.historyHandled,
             session.manifest.transcriptionTaskPersisted,
             session.manifest.stage == .completed else {
         throw AudioAdapterSessionStoreError.cannotPersistManifest("stale internal video deletion snapshot")
@@ -845,6 +862,7 @@ nonisolated final class AudioAdapterSessionStore: @unchecked Sendable {
   private struct GateState: Equatable {
     let finalAudioValidated: Bool
     let finalAudioValidatedAt: Date?
+    let historySkipped: Bool
     let historyPersisted: Bool
     let historyPersistedAt: Date?
     let historyRecordReference: UUID?
@@ -856,6 +874,7 @@ nonisolated final class AudioAdapterSessionStore: @unchecked Sendable {
     init(manifest: AudioAdapterSessionManifest) {
       finalAudioValidated = manifest.finalAudioValidated
       finalAudioValidatedAt = manifest.finalAudioValidatedAt
+      historySkipped = manifest.historySkipped
       historyPersisted = manifest.historyPersisted
       historyPersistedAt = manifest.historyPersistedAt
       historyRecordReference = manifest.historyRecordReference
@@ -1039,7 +1058,7 @@ nonisolated final class AudioAdapterSessionStore: @unchecked Sendable {
     guard let expectedDuration = expectedTimelineDuration(for: session),
           let finalDuration,
           abs(finalDuration - expectedDuration)
-            <= AudioAdapterSessionDurationPolicy.tolerance(for: expectedDuration) else {
+            <= AudioAdapterSessionDurationPolicy.audioTolerance(for: expectedDuration) else {
       throw AudioAdapterSessionStoreError.invalidOutputPath("duration")
     }
   }

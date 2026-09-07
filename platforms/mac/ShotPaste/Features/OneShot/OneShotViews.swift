@@ -15,7 +15,7 @@ enum OneShotLayout {
   static let switcherScreenInset: CGFloat = 12
   static let switcherTopGap: CGFloat = 12
   static let modeToolbarGap: CGFloat = 12
-  static let recordingPanelSize = CGSize(width: 410, height: 206)
+  static let recordingPanelSize = CGSize(width: 410, height: 372)
   static let magnifierSize = CGSize(width: 188, height: 184)
 }
 
@@ -192,6 +192,35 @@ struct OneShotRecordingControls: View {
           identifier: "oneshot-recording-microphone"
         )
       }
+
+      Divider()
+
+      VStack(alignment: .leading, spacing: 10) {
+        Toggle(L10n.RecordingTranscription.enableVideo, isOn: transcriptionBinding)
+          .disabled(!canTranscribe)
+          .accessibilityIdentifier("oneshot-recording-transcription")
+        Toggle(L10n.CloudTranscription.processAfterTranscription, isOn: transcriptAIBinding)
+          .disabled(!canTranscribe || !state.recordingOptions.shouldTranscribe)
+          .accessibilityIdentifier("oneshot-recording-transcription-ai")
+        Picker(L10n.RecordingTranscription.sourceLanguageTitle, selection: transcriptionLanguageBinding) {
+          Text(L10n.CloudTranscription.automatic).tag(AudioRecordingLanguage.auto)
+          ForEach(AudioRecordingLanguage.allCases.filter { $0 != .auto }, id: \.rawValue) { language in
+            Text(Locale.current.localizedString(forIdentifier: language.rawValue) ?? language.rawValue).tag(language)
+          }
+        }
+        .disabled(!canTranscribe || !state.recordingOptions.shouldTranscribe)
+        .accessibilityIdentifier("oneshot-recording-transcription-language")
+
+        if let message = transcriptionUnavailableMessage {
+          Text(message)
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("oneshot-recording-transcription-unavailable")
+        }
+      }
+      .toggleStyle(.switch)
+      .controlSize(.small)
     }
     .padding(18)
     .frame(
@@ -209,6 +238,42 @@ struct OneShotRecordingControls: View {
     } message: {
       Text(L10n.Microphone.preferencesMessage)
     }
+  }
+
+  private var canTranscribe: Bool {
+    state.recordingOptions.supportsTranscription && RecordingTranscriptionConfiguration.current() != nil
+  }
+
+  private var transcriptionUnavailableMessage: String? {
+    if !state.recordingOptions.supportsTranscription { return L10n.RecordingTranscription.requiresAudio }
+    if RecordingTranscriptionConfiguration.current() == nil { return L10n.CloudTranscription.invalidConfiguration }
+    return nil
+  }
+
+  private var transcriptionBinding: Binding<Bool> {
+    Binding(
+      get: { canTranscribe && state.recordingOptions.shouldTranscribe },
+      set: { optionBinding(\.automaticTranscription, reason: .recordingTranscription).wrappedValue = $0 && canTranscribe }
+    )
+  }
+
+  private var transcriptAIBinding: Binding<Bool> {
+    Binding(
+      get: { canTranscribe && state.recordingOptions.shouldProcessTranscriptWithAI },
+      set: { optionBinding(\.automaticAI, reason: .recordingTranscription).wrappedValue = $0 && canTranscribe && state.recordingOptions.shouldTranscribe }
+    )
+  }
+
+  private var transcriptionLanguageBinding: Binding<AudioRecordingLanguage> {
+    Binding(
+      get: { state.recordingOptions.transcriptionLanguage },
+      set: { language in
+        guard language != state.recordingOptions.transcriptionLanguage else { return }
+        var options = state.recordingOptions
+        options.transcriptionLanguage = language
+        state.updateRecordingOptions(options, reason: .recordingTranscription)
+      }
+    )
   }
 
   private var outputModeBinding: Binding<RecordingOutputMode> {

@@ -94,6 +94,7 @@ nonisolated enum AudioTranscriberError: LocalizedError, Equatable, Sendable {
   case authorizationTimedOut
   case emptyRecognitionResult
   case recognitionFailed
+  case dictationDisabled
   case recognitionTimedOut
   case cancelled
 
@@ -111,9 +112,34 @@ nonisolated enum AudioTranscriberError: LocalizedError, Equatable, Sendable {
     case .authorizationTimedOut: "Speech recognition permission timed out."
     case .emptyRecognitionResult: "Speech recognition returned no transcript."
     case .recognitionFailed: "A local speech-recognition chunk failed."
+    case .dictationDisabled: "Siri or Dictation is disabled. Enable Dictation in System Settings, then retry transcription."
     case .recognitionTimedOut: "A local speech-recognition chunk timed out."
     case .cancelled: "Local speech recognition was cancelled."
     }
+  }
+}
+
+/// Keep framework error identifiers, never descriptions, userInfo, paths, or text.
+nonisolated enum AudioTranscriptionDiagnostics {
+  static func errorContext(_ error: Error) -> [String: String] {
+    let native = error as NSError
+    var context = ["errorDomain": safeDomain(native.domain), "errorCode": String(native.code)]
+    if let underlying = native.userInfo[NSUnderlyingErrorKey] as? NSError {
+      context["underlyingDomain"] = safeDomain(underlying.domain)
+      context["underlyingCode"] = String(underlying.code)
+    }
+    if let typed = error as? AudioTranscriberError {
+      context["reason"] = String(describing: typed)
+    }
+    return context
+  }
+
+  private static func safeDomain(_ domain: String) -> String {
+    let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "._-"))
+    guard domain.count <= 128, domain.unicodeScalars.allSatisfy({ allowed.contains($0) }) else {
+      return "redacted"
+    }
+    return domain
   }
 }
 
@@ -323,6 +349,10 @@ nonisolated final class SpeechFrameworkAudioRecognitionEngine: @unchecked Sendab
     } else {
       authorization = SFSpeechRecognizer.authorizationStatus()
     }
+    DiagnosticLogger.shared.log(.info, .recording, "Audio transcription authorization", context: [
+      "authorization": String(authorization.rawValue),
+      "locale": language.recognizerLocale.identifier,
+    ])
     if let authorizationError = AudioSpeechAuthorizationPolicy.error(for: authorization) {
       throw authorizationError
     }
@@ -331,6 +361,11 @@ nonisolated final class SpeechFrameworkAudioRecognitionEngine: @unchecked Sendab
     guard let recognizer = SFSpeechRecognizer(locale: language.recognizerLocale) else {
       throw AudioTranscriberError.recognizerUnavailable
     }
+    DiagnosticLogger.shared.log(.info, .recording, "Audio transcription recognizer capabilities", context: [
+      "available": String(recognizer.isAvailable),
+      "onDeviceSupported": String(recognizer.supportsOnDeviceRecognition),
+      "locale": language.recognizerLocale.identifier,
+    ])
     guard recognizer.isAvailable else {
       throw AudioTranscriberError.speechUnavailable
     }
@@ -391,8 +426,19 @@ nonisolated final class SpeechFrameworkAudioRecognitionEngine: @unchecked Sendab
     })
   }
 
-  private static func mapRecognitionError(_ error: Error) -> AudioTranscriberError {
+  static func mapRecognitionError(_ error: Error) -> AudioTranscriberError {
     if error is CancellationError { return .cancelled }
+    DiagnosticLogger.shared.log(.error, .recording, "Audio transcription framework failure",
+                                context: AudioTranscriptionDiagnostics.errorContext(error))
+    let native = error as NSError
+    if native.domain == "kLSRErrorDomain" {
+      switch native.code {
+      case 201: return .dictationDisabled
+      case 102: return .onDeviceModelUnavailable
+      case 301: return .cancelled
+      default: break
+      }
+    }
     return .recognitionFailed
   }
 }
@@ -509,8 +555,10 @@ nonisolated final class LocalAudioTranscriber: @unchecked Sendable {
   private let engine: any LocalAudioRecognitionEngine
   private let fileManager: FileManager
 
+  var usesCloudRecognition: Bool { engine is VolcengineAudioRecognitionEngine }
+
   init(
-    engine: any LocalAudioRecognitionEngine = SpeechFrameworkAudioRecognitionEngine(),
+    engine: any LocalAudioRecognitionEngine = VolcengineAudioRecognitionEngine(),
     chunkDurationSeconds: TimeInterval = AudioTranscriptionChunkPlanner.defaultChunkDurationSeconds,
     fileManager: FileManager = .default
   ) {
@@ -525,6 +573,23 @@ nonisolated final class LocalAudioTranscriber: @unchecked Sendable {
     processingDirectory: URL? = nil,
     sessionID: UUID? = nil
   ) async throws -> AudioRawTranscript {
+    try await transcribe(sources: sources, language: language,
+      processingDirectory: processingDirectory, sessionID: sessionID, cloudConfiguration: nil)
+  }
+
+  func transcribe(
+    sources: [AudioTranscriptionSourceInput],
+    language: AudioRecordingLanguage,
+    processingDirectory: URL?,
+    sessionID: UUID?,
+    cloudConfiguration: RecordingTranscriptionConfiguration?
+  ) async throws -> AudioRawTranscript {
+    let engine: any LocalAudioRecognitionEngine
+    if usesCloudRecognition, let cloudConfiguration {
+      engine = VolcengineAudioRecognitionEngine.configured(cloudConfiguration)
+    } else {
+      engine = self.engine
+    }
     guard !sources.isEmpty else { throw AudioTranscriberError.noAudioSource }
     guard Set(sources.map(\.source)).count == sources.count else {
       throw AudioTranscriberError.sourceNotReadable
@@ -541,6 +606,14 @@ nonisolated final class LocalAudioTranscriber: @unchecked Sendable {
     for sourceInput in sources.sorted(by: { $0.source.mergeOrder < $1.source.mergeOrder }) {
       try checkCancellation()
       let duration = try await sourceDuration(for: sourceInput)
+      if engine is VolcengineAudioRecognitionEngine {
+        // File ASR owns its 4-hour/256-MiB partitioning. Never inherit the
+        // on-device recognizer's 10-minute submission boundary.
+        let result = try await engine.recognizeChunk(at: sourceInput.url, language: language)
+        mergedSegments += normalize(result.segments, source: sourceInput.source,
+          chunk: .init(index: 0, startTime: 0, duration: duration))
+        continue
+      }
       let chunks = try AudioTranscriptionChunkPlanner.plan(
         durationSeconds: duration,
         chunkDurationSeconds: chunkDurationSeconds
@@ -552,18 +625,35 @@ nonisolated final class LocalAudioTranscriber: @unchecked Sendable {
           isDirectory: false
         )
         defer { try? fileManager.removeItem(at: chunkURL) }
-        try await exportChunk(
-          from: sourceInput.url,
-          to: chunkURL,
-          startTime: chunk.startTime,
-          duration: chunk.duration
-        )
+        var context = [
+          "sessionID": sessionID?.uuidString ?? "unassigned",
+          "source": sourceInput.source.rawValue,
+          "chunkIndex": String(chunk.index),
+          "chunkStartSeconds": String(chunk.startTime),
+          "chunkDurationSeconds": String(chunk.duration),
+          "stage": "export",
+        ]
+        DiagnosticLogger.shared.log(.info, .recording, "Audio transcription chunk started", context: context)
         let localResult: AudioSpeechChunkResult
         do {
+          try await exportChunk(
+            from: sourceInput.url,
+            to: chunkURL,
+            startTime: chunk.startTime,
+            duration: chunk.duration
+          )
+          context["stage"] = "recognition"
           localResult = try await engine.recognizeChunk(at: chunkURL, language: language)
-        } catch is CancellationError {
-          throw AudioTranscriberError.cancelled
+        } catch {
+          context.merge(AudioTranscriptionDiagnostics.errorContext(error)) { _, new in new }
+          let cancelled = error is CancellationError || (error as? AudioTranscriberError) == .cancelled
+          DiagnosticLogger.shared.log(cancelled ? .info : .error, .recording,
+                                      cancelled ? "Audio transcription chunk cancelled" : "Audio transcription chunk failed",
+                                      context: context)
+          if error is CancellationError { throw AudioTranscriberError.cancelled }
+          throw error
         }
+        DiagnosticLogger.shared.log(.info, .recording, "Audio transcription chunk completed", context: context)
         let normalized = normalize(
           localResult.segments,
           source: sourceInput.source,
@@ -669,6 +759,10 @@ nonisolated final class LocalAudioTranscriber: @unchecked Sendable {
       throw AudioTranscriberError.cancelled
     }
     guard exporter.status == .completed else {
+      if let error = exporter.error {
+        DiagnosticLogger.shared.log(.error, .recording, "Audio transcription export failure",
+                                    context: AudioTranscriptionDiagnostics.errorContext(error))
+      }
       throw AudioTranscriberError.exportFailed
     }
     guard fileManager.fileExists(atPath: destinationURL.path),
@@ -741,7 +835,8 @@ nonisolated final class LocalAudioTranscriber: @unchecked Sendable {
         speaker: source.speakerRole,
         words: words,
         chunkIndex: chunk.index,
-        ordinal: segmentIndex
+        ordinal: segmentIndex, recognitionSpeaker: segment.recognitionSpeaker,
+        cloudRequestID: segment.cloudRequestID, providerVersion: segment.providerVersion
       ))
     }
     return result

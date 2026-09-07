@@ -360,7 +360,15 @@ final class TinyRegionRecordingAdapter {
     guard active.manifest.stage == .recording || active.manifest.stage == .paused else {
       throw TinyRegionRecordingAdapterError.invalidSessionStage(active.manifest.stage)
     }
-    session = try store.transition(sessionID: active.sessionID, to: .stopping)
+    do {
+      session = try store.transition(sessionID: active.sessionID, to: .stopping)
+    } catch {
+      // Storage failure must never leave the actual capture running after
+      // the coordinator closes its controls. Keep the finalized MOV private
+      // for recovery even when its manifest cannot currently be updated.
+      _ = await recordingController.stop()
+      throw error
+    }
     let url = await recordingController.stop()
     guard let url else {
       try markStopFailure(sessionID: active.sessionID, code: "capture_stop_failed")

@@ -8,6 +8,20 @@ import XCTest
 
 @MainActor
 final class ShotPasteMCPProtocolTests: XCTestCase {
+  func testAudioControlsRouteToTheAudioOwnerAndPreserveRejections() async {
+    var received: [ShotPasteAutomationRecordingAction] = []
+    let controller = ShotPasteAutomationController(
+      screenCaptureViewModel: ScreenCaptureViewModel(),
+      recordingPurpose: { .audioAdapter },
+      audioControl: { action in received.append(action); return action != .resume }
+    )
+    for action in [ShotPasteAutomationRecordingAction.pause, .resume, .stop] {
+      let result = controller.execute(.controlRecording(action), source: "test")
+      XCTAssertEqual(result.isSuccess, action != .resume)
+    }
+    XCTAssertEqual(received, [.pause, .resume, .stop])
+  }
+
   func testInitializeNegotiatesSupportedVersionAndDeclaresTools() throws {
     let handler = makeHandler()
     let output = handler.handleMessage(try jsonData([

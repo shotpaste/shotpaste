@@ -59,7 +59,7 @@ struct HistoryEmptyStateView: View {
     switch filter {
     case .screenshot: return L10n.PreferencesHistory.noScreenshots
     case .scrollingScreenshot: return L10n.PreferencesHistory.noScrollingScreenshots
-    case .recording: return L10n.PreferencesHistory.noRecordings
+    case .recording: return L10n.AudioRecording.historyEmpty
     case .clipboard: return L10n.PreferencesHistory.noClipboardItems
     case nil: return L10n.PreferencesHistory.noCaptures
     }

@@ -100,6 +100,7 @@
   <SolidColorBrush x:Key="DangerBrush" Color="#FFFF5A57" />
   <SolidColorBrush x:Key="DangerSoftBrush" Color="#FFFF5A57" Opacity="0.14" />
   <SolidColorBrush x:Key="WarningBrush" Color="#FFFF9F0A" />
+  <SolidColorBrush x:Key="WarningSoftBrush" Color="#FFFF9F0A" Opacity="0.14" />
   <SolidColorBrush x:Key="SuccessBrush" Color="#FF30D158" />
   <SolidColorBrush x:Key="SuccessSoftBrush" Color="#FF30D158" Opacity="0.15" />
   <SolidColorBrush x:Key="InfoBrush" Color="#FF0A84FF" />

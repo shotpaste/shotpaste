@@ -10,5 +10,6 @@ public enum CaptureKind
     ClipboardText,
     ClipboardFile,
     ClipboardGif,
-    ClipboardVideo
+    ClipboardVideo,
+    Audio
 }

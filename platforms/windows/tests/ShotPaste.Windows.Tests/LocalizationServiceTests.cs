@@ -5,6 +5,15 @@ namespace ShotPaste.Windows.Tests;
 
 public sealed class LocalizationServiceTests
 {
+    [Theory]
+    [InlineData("ja-JP", "— グローバルショートカットが無効になっています")]
+    [InlineData("ko-KR", "— 전역 단축키가 비활성화되었습니다.")]
+    [InlineData("de-DE", "— Globale Verknüpfungen sind deaktiviert")]
+    public void DecoratedStatusUsesTheCompleteNativeTranslation(string language, string expected)
+    {
+        Assert.Equal(expected, LocalizationService.TranslatePhrase("— 全局快捷键已停用", language));
+    }
+
     [Fact]
     public void SupportedLanguages_MatchesMacOSLocaleSet()
     {

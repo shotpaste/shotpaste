@@ -8,6 +8,167 @@ import Foundation
 import XCTest
 
 final class AudioRecordingCoordinatorRecoveryTests: XCTestCase {
+  @MainActor
+  func testStopStillReleasesNativeWriterWhenManifestCannotBeWritten() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = AudioAdapterSessionStore(sessionsDirectory: root)
+    let capture = TerminationAudioCapture()
+    let adapter = TinyRegionRecordingAdapter(store: store, recordingController: capture)
+    let session = try await adapter.prepare(configuration: .init(capturesSystemAudio: true, capturesMicrophone: false))
+    try await adapter.start()
+    try FileManager.default.removeItem(at: session.directoryURL.appendingPathComponent("manifest.json"))
+    do {
+      _ = try await adapter.stop()
+      XCTFail("Missing manifest must remain a recoverable save failure")
+    } catch {
+      XCTAssertEqual(capture.stopCount, 1)
+      XCTAssertTrue(FileManager.default.fileExists(atPath: try XCTUnwrap(capture.url).path))
+    }
+  }
+
+  @MainActor
+  func testRestartAndDiscardReleaseStopTaskForNextCapture() async throws {
+    for shouldRestart in [true, false] {
+      let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+      defer { try? FileManager.default.removeItem(at: root) }
+      let store = AudioAdapterSessionStore(sessionsDirectory: root)
+      let capture = TerminationAudioCapture()
+      let adapter = TinyRegionRecordingAdapter(store: store, recordingController: capture)
+      let coordinator = AudioRecordingCoordinator(
+        adapter: adapter,
+        sessionStore: store,
+        postCapture: TerminationAudioOutput(historySkipped: true),
+        confirmationHandler: { _, _, _ in true }
+      )
+      let configuration = AudioRecordingConfiguration(
+        capturesSystemAudio: true, capturesMicrophone: false, automaticTranscription: false
+      )
+      coordinator.begin(configuration: configuration)
+      try await waitForState(.recording, coordinator: coordinator)
+      if shouldRestart { coordinator.restart() } else { coordinator.delete() }
+      try await waitForState(shouldRestart ? .presenting : .idle, coordinator: coordinator)
+      if !shouldRestart { XCTAssertFalse(coordinator.requiresTerminationHandling) }
+      coordinator.begin(configuration: configuration)
+      try await waitForState(.recording, coordinator: coordinator)
+      let saved = await coordinator.finishForApplicationTermination()
+      XCTAssertTrue(saved, "A restarted recording must still accept Stop")
+      XCTAssertEqual(capture.stopCount, 1)
+      XCTAssertFalse(coordinator.requiresTerminationHandling)
+    }
+  }
+
+  @MainActor
+  func testCancelPreparationWaitsForLatePrepareAndNeverStartsCapture() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = AudioAdapterSessionStore(sessionsDirectory: root)
+    let capture = TerminationAudioCapture()
+    capture.prepareDelay = .milliseconds(200)
+    let adapter = TinyRegionRecordingAdapter(store: store, recordingController: capture)
+    let coordinator = AudioRecordingCoordinator(adapter: adapter, sessionStore: store)
+    coordinator.begin(configuration: .init(capturesSystemAudio: true, capturesMicrophone: false))
+    while !capture.prepareStarted { try await Task.sleep(for: .milliseconds(10)) }
+    coordinator.cancelPreparation()
+    XCTAssertTrue(coordinator.isBlockingOtherCapture)
+    try await waitForState(.idle, coordinator: coordinator)
+    XCTAssertEqual(capture.startCount, 0)
+    XCTAssertEqual(adapter.session?.manifest.stage, .cancelled)
+    XCTAssertFalse(coordinator.requiresTerminationHandling)
+  }
+
+  @MainActor
+  func testRecoveryNeverInventsCloudTranscriptionConsent() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = AudioAdapterSessionStore(sessionsDirectory: root)
+    let processingStore = AudioProcessingTaskStore(sessionsDirectory: root)
+    let adapter = TinyRegionRecordingAdapter(store: store, recordingController: TerminationAudioCapture())
+    let created = try await adapter.prepare(configuration: .init(capturesSystemAudio: true, capturesMicrophone: false))
+    try await adapter.start()
+    _ = try await adapter.stop()
+    _ = try await AudioExtractionPipeline(store: store).extract(sessionID: created.sessionID)
+    _ = try store.markHistorySkipped(sessionID: created.sessionID)
+    let coordinator = AudioRecordingCoordinator(
+      adapter: adapter, sessionStore: store, processingStore: processingStore,
+      processingPipeline: AudioRecordingProcessingPipeline(
+        taskStore: processingStore, transcriber: RecoveryMustNotTranscribe(), adapterStore: store
+      )
+    )
+    await coordinator.recoverOnLaunch()
+    let task = try processingStore.loadTask(sessionID: created.sessionID)
+    XCTAssertFalse(task.autoTranscribe)
+    XCTAssertFalse(task.autoAI)
+    XCTAssertEqual(task.stage, .completed)
+    XCTAssertTrue(try store.load(sessionID: created.sessionID).manifest.canDeleteInternalVideo)
+  }
+
+  @MainActor
+  private func waitForState(
+    _ expected: AudioRecordingCoordinatorState,
+    coordinator: AudioRecordingCoordinator
+  ) async throws {
+    for _ in 0..<500 {
+      if coordinator.state == expected { return }
+      try await Task.sleep(for: .milliseconds(10))
+    }
+    XCTFail("Expected \(expected), found \(coordinator.state)")
+  }
+
+  @MainActor
+  func testTerminationSavesAudioWithHistoryDisabledAndRemovesPrivateMOV() async throws {
+    try await exerciseTermination(historySkipped: true)
+  }
+
+  @MainActor
+  func testTerminationRefusesQuitWhenHistoryWriteFailsAndKeepsMedia() async throws {
+    try await exerciseTermination(historySkipped: false)
+  }
+
+  @MainActor
+  private func exerciseTermination(historySkipped: Bool) async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = AudioAdapterSessionStore(sessionsDirectory: root)
+    let capture = TerminationAudioCapture()
+    let adapter = TinyRegionRecordingAdapter(store: store, recordingController: capture)
+    let output = TerminationAudioOutput(historySkipped: historySkipped)
+    let coordinator = AudioRecordingCoordinator(adapter: adapter, sessionStore: store, postCapture: output)
+    coordinator.begin(configuration: AudioRecordingConfiguration(
+      capturesSystemAudio: true, capturesMicrophone: false, automaticTranscription: false
+    ))
+    for _ in 0..<500 {
+      if coordinator.state != .preparing { break }
+      try await Task.sleep(for: .milliseconds(10))
+    }
+    XCTAssertEqual(coordinator.state, .recording)
+    XCTAssertTrue(coordinator.requiresTerminationHandling)
+    XCTAssertTrue(coordinator.control(.pause))
+    XCTAssertEqual(adapter.session?.manifest.stage, .paused)
+    XCTAssertFalse(coordinator.control(.pause))
+    XCTAssertTrue(coordinator.control(.resume))
+    XCTAssertEqual(adapter.session?.manifest.stage, .recording)
+
+    let succeeded = await coordinator.finishForApplicationTermination()
+    XCTAssertEqual(succeeded, historySkipped)
+    XCTAssertEqual(capture.stopCount, 1)
+    let id = try XCTUnwrap(adapter.session?.sessionID)
+    let session = try store.load(sessionID: id)
+    XCTAssertFalse(session.manifest.historyPersisted)
+    XCTAssertNil(session.manifest.historyRecordReference)
+    XCTAssertEqual(session.manifest.historySkipped, historySkipped)
+    XCTAssertEqual(session.manifest.transcriptionTaskPersisted, historySkipped)
+    XCTAssertEqual(output.urls.map(\.pathExtension), ["m4a"])
+    XCTAssertTrue(FileManager.default.fileExists(atPath: try session.url(for: "mixed.m4a").path))
+    XCTAssertEqual(FileManager.default.fileExists(atPath: try session.url(for: "capture.mov").path), !historySkipped)
+    if historySkipped {
+      XCTAssertEqual(session.manifest.stage, .completed)
+      XCTAssertTrue(session.manifest.canDeleteInternalVideo)
+    } else {
+      XCTAssertEqual(coordinator.state, .recoverable)
+    }
+  }
+
   func testAudioShortcutTOMLKeyAndDefaultAreUnbound() {
     XCTAssertEqual(GlobalShortcutKind.startAudioRecording.configKey, "start_audio_recording")
   }
@@ -200,5 +361,61 @@ final class AudioRecordingCoordinatorRecoveryTests: XCTestCase {
     } catch AudioAdapterSessionStoreError.invalidManifest {
       // Expected: the manifest changed while AV validation was suspended.
     }
+  }
+}
+
+/// Synthetic AAC fixture exercises the real MOV -> M4A pipeline without a microphone.
+@MainActor
+private final class TerminationAudioCapture: AudioAdapterRecordingControlling {
+  var url: URL?
+  var stopCount = 0
+  var startCount = 0
+  var prepareStarted = false
+  var prepareDelay: Duration?
+  func prepare(
+    purpose: RecordingPurpose, rect: CGRect, capturesSystemAudio: Bool,
+    capturesMicrophone: Bool, microphoneDeviceID: String?, outputDirectory: URL
+  ) async throws {
+    XCTAssertEqual(purpose, .audioAdapter)
+    prepareStarted = true
+    if let prepareDelay { try? await Task.sleep(for: prepareDelay) }
+    let url = outputDirectory.appendingPathComponent("capture.mov")
+    try AudioTestMediaFactory.writeQuickTimeAudioOnlyMOV(to: url, role: .system)
+    self.url = url
+  }
+  func start() async throws { startCount += 1 }
+  func pause() {}
+  func resume() {}
+  func stop() async -> URL? {
+    stopCount += 1
+    try? await Task.sleep(for: .milliseconds(50))
+    return url
+  }
+  func cancel() async {}
+}
+
+private struct RecoveryMustNotTranscribe: AudioTranscribing {
+  func transcribe(
+    sources: [AudioTranscriptionSourceInput], language: AudioRecordingLanguage,
+    processingDirectory: URL?, sessionID: UUID?
+  ) async throws -> AudioRawTranscript {
+    XCTFail("Recovery without recorded consent must remain local")
+    throw AudioTranscriberError.cancelled
+  }
+}
+
+@MainActor
+private final class TerminationAudioOutput: AudioRecordingPostCaptureHandling {
+  let historySkipped: Bool
+  var urls: [URL] = []
+  init(historySkipped: Bool) { self.historySkipped = historySkipped }
+  func handleAudioCapture(url: URL, skipQuickAccess: Bool) async -> AudioCapturePostProcessingResult {
+    urls.append(url)
+    let validation = await AudioAssetValidator.validate(url: url)
+    return AudioCapturePostProcessingResult(
+      accepted: validation.isValid, historyPersisted: false, historyRecordID: nil,
+      transcriptionCanContinue: historySkipped, quickAccessItem: nil,
+      rejection: validation.rejection, historySkipped: historySkipped
+    )
   }
 }

@@ -47,6 +47,76 @@ Build the canonical Debug app:
 ./scripts/build_and_run.sh build
 ```
 
+Development-only ASR 2.0 account probe (not bundled with either native app):
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts -p test_volcengine_transcription_probe.py -v
+python3 scripts/volcengine_transcription_probe.py
+# Query the persisted task after interruption; this never submits again:
+python3 scripts/volcengine_transcription_probe.py --resume
+```
+
+The live command prompts for a speech API Key without echoing or saving it and
+submits the official public short MP3 once. Obtain account-owner authorization for
+service activation and usage charges first. The report lives under ignored
+`build/volcengine-account-verification/`; use a new report path only for an
+intentional new billable submission. Never pass credentials in command arguments.
+This probe verifies ASR HTTP behavior only, not TOS permissions, native recording,
+cleanup, actual billing, or cross-platform acceptance. See
+[the refactor plan](VOLCENGINE_TRANSCRIPTION_REFACTOR_PLAN.md) for remaining gates.
+
+The optional private-TOS probe uses the official Python `tos==2.9.2` SDK
+(Apache-2.0), installed only in an ignored development virtual environment. It is
+not a native application dependency. Use a trusted Python 3.12+ runtime:
+
+```bash
+python3 -m venv build/volcengine-account-verification/tos-venv
+build/volcengine-account-verification/tos-venv/bin/python -m pip install 'tos==2.9.2'
+PYTHONDONTWRITEBYTECODE=1 build/volcengine-account-verification/tos-venv/bin/python -m unittest discover -s scripts -p 'test_volcengine*probe.py' -v
+build/volcengine-account-verification/tos-venv/bin/python scripts/volcengine_tos_probe.py --resources build/volcengine-account-verification/tos-poc-resources.json --report build/volcengine-account-verification/tos-poc-result.json
+```
+
+Prepare a resource JSON with a random 12-character lowercase hex `installation`,
+`region` equal to `cn-beijing`, `bucket` equal to
+`shotpaste-tmp-poc-<installation>-debug`, and `prefix` equal to
+`transcription/v1/<installation>/`. Authorize the corresponding resource-limited
+IAM policy before running. The command prompts securely for keys, creates the
+private test bucket and lifecycle, uploads only the official public sample,
+checks unsigned/signed access, runs ASR and verifies deletion. It retains the
+bucket; it never deletes a bucket or changes other object prefixes. Inspect a
+failed report before retrying: `--resume-setup` applies only before any upload;
+`--cleanup-only` retries recorded-object deletion without a new ASR submission.
+
+macOS uses the native ASR/TOS components from AI Features → AI Transcription and
+both recording entry points. Configure speech Key and dedicated IAM AK/SK.
+Save persists credentials locally; Save and test also initializes private storage
+and runs the paid public sample verification, retaining completed setup stages
+for retries. Advanced options contain existing private storage. One Shot's
+pre-recording panel owns the screen-recording transcription and AI toggles and
+spoken language. These choices are remembered on Start and passed with that
+recording so later default changes cannot alter its post-processing. Cancelling
+preparation discards draft changes. GIF and recordings without audio cannot
+enable transcription; automatic upload remains independently opt-in.
+
+Transcription credentials use variant-isolated UserDefaults profiles, like
+`AgentCredentialStore`; no Keychain API is used. Previously Keychain-only values
+must be entered again. Profile IDs keep old jobs bound to their original keys
+until cleanup finishes. Plaintext secrets are not written to TOML or task exports.
+
+Private cloud receipts and pending M4A parts live in the build variant's application
+support `CloudTranscription` directory. Parent media references and complete
+timelines and derived AI artifacts live in `RecordingTranscriptionSessions`; these
+files also stay private. Audio results remain in their existing AudioAdapter
+session directories. The results browser reads both stores and persists only
+history UUID associations in `AudioAdapter/transcription-history-links.json`.
+All three paths use `AppDataLocations` for Debug/Release isolation.
+Startup/periodic recovery queries existing
+request IDs and cleans completed/failed/cancelled objects. The menu groups Start
+Audio Recording with Transcription Results; Preferences no longer lists cloud
+jobs or transcripts. Transcription Results owns task progress and transcript exports.
+Native tests use injected HTTP fixtures; the public sample button exercises the
+actual Swift signing, AVFoundation export, local credential store and HTTP path.
+
 Run tests:
 
 ```bash
@@ -101,6 +171,25 @@ local build/signing scripts, and both test configurations consume those files;
 artifact validation must agree with `AppVariant` before a signed build is
 accepted.
 
+### Audio transcription diagnostics
+
+With diagnostics enabled, macOS audio processing writes task/session identifiers,
+source role, chunk index and timing, export/recognition stage, and error domains/codes to the variant's
+Diagnostic logs directory listed above. Underlying error domains/codes are retained;
+error descriptions, arbitrary error payloads, audio paths, and transcript text are
+excluded. Cancellation is logged separately from failure. Chunk start/completion
+entries and task failure entries allow a failed run to be correlated without
+reading recording content. These logs help diagnose a subsequent run; they cannot
+recover framework error details discarded by older builds.
+Extraction also logs container/audio durations, track start, difference, and
+allowed tolerance for each session/segment/source, with explicit rejection
+entries. The default recognition engine now calls Volcengine; the legacy Speech
+adapter remains injectable for existing tests but is not selected at runtime.
+Cloud transcription requires AI Transcription settings speech API Key, TOS AK/SK, initialized
+private storage and successful sample verification. Use public non-private audio
+for live validation; protocol fixtures do not establish real service acceptance. AI processing uses Agent's configured
+endpoint, model, protocol and credentials, with text-only payloads.
+
 ### Release signing identity
 
 Until an Apple Developer ID certificate is available, official release builds use
@@ -145,6 +234,23 @@ created. Official platform tags are immutable and may be created only by the
 repository owner.
 
 ## Windows
+
+Recording transcription now uses the native file-ASR/TOS implementation, with
+DPAPI-protected credentials and capture-time snapshots. No Python runtime or
+cloud SDK is bundled. Native WASAPI audio capture writes private recovery PCM
+under `AudioRecordingSessions`; validated M4A is saved using recording output
+preferences. Role-specific M4As remain available for transcription. Durable jobs
+and generated transcript/AI artifacts live in `TranscriptionResults`, independently
+of clipboard-history retention. Screen capture-to-transcription handoff receipts
+retain the original consent until a durable job exists. All paths derive from
+`AppPaths.Root` and therefore follow Debug/Release identity isolation.
+
+In Recording settings, save speech and restricted TOS credentials, then explicitly
+confirm the paid public-sample test. Choose transcription, language and AI at
+recording preparation time. Tests use protocol/signature fixtures and synthetic
+local data; they do not establish real cloud entitlement or native recording
+quality. Run the canonical Windows validation below once that host is available.
+
 
 Requirements:
 
@@ -205,6 +311,32 @@ executable explicitly:
 $product = (Resolve-Path '.\platforms\windows\src\ShotPaste.Windows\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\ShotPasteDebug.exe').Path
 .\scripts\test-windows-parity.ps1 -Configuration Debug -Tier Interactive -SkipBuild -ProductExecutable $product -RequireDpiScale 1.5
 ```
+
+The Recording E2E also checks standalone audio with a quiet generated test tone
+played through the real Windows render endpoint. It verifies WASAPI loopback,
+pause/resume, repeated stop, discard/restart, native AAC encoding, source roles,
+and recovery-file cleanup. Production preparation and result windows are rendered
+with local fixtures to check source gating, search/filtering and saved artifacts.
+With the product executable supplied, an isolated real product process also
+checks the visible recording preparation/start/stop flow, Quick Access, history
+opt-in/opt-out, and saving before quitting. Its existing `--ui-test-surface`
+entry opens preparation only; it adds no production URL/MCP start operation.
+These checks do not record the microphone or send cloud requests, and do not
+substitute for physical tray/shortcut or microphone acceptance.
+To rerun only these audio checks after the canonical build:
+
+```powershell
+dotnet run --project .\platforms\windows\tests\ShotPaste.Windows.RecordingE2E\ShotPaste.Windows.RecordingE2E.csproj -c Debug -p:Platform=x64 --no-build -- build/e2e/windows-parity/recording $product --audio-only
+```
+
+`build-windows.ps1` explicitly builds the complete solution before testing;
+`dotnet test` alone does not generate the standalone E2E executables on a fresh
+checkout. Run interactive validation in a signed-in desktop session, not SSH
+Session 0, and retain the session, OS, display and audio endpoint evidence.
+Localization E2E retains native window screenshots and checks window/control
+bounds and overlap. Its text-width checks use only fonts and single-line ranges
+reported by UI Automation; unavailable font data is not replaced by a guessed
+size. Reports distinguish `MeasuredSingleLineTexts` from all visible text.
 
 If `dotnet` is not recognized, install the .NET 8 SDK and reopen PowerShell, or
 prepend the directory containing an existing `dotnet.exe` for the current
@@ -273,3 +405,32 @@ Do not add generated localization artifacts to the repository.
 
 When product behavior changes, check both native clients. Build and test the
 platform changed, then record any intentional operating-system difference.
+
+### Resource-limited transcription IAM policy template
+
+Replace `ACCOUNT_ID`, `BUCKET` and `INSTALLATION` with the account ID and the
+exact resource names displayed by the app. Do not give the client IAM management,
+public-ACL or bucket-deletion rights. Existing-resource mode must be explicitly
+selected and still passes the same private-storage checks. The real PoC used
+this action set with a dedicated sub-user and verified out-of-prefix denial.
+
+```json
+{
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["tos:CreateBucket", "tos:HeadBucket", "tos:GetBucketLocation", "tos:GetBucketACL", "tos:GetBucketVersioning", "tos:GetLifecycleConfiguration", "tos:PutLifecycleConfiguration"],
+      "Resource": ["trn:tos:cn-beijing:ACCOUNT_ID:BUCKET"]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["tos:PutObject", "tos:GetObject", "tos:DeleteObject"],
+      "Resource": ["trn:tos:cn-beijing:ACCOUNT_ID:BUCKET/transcription/v1/INSTALLATION/*"]
+    }
+  ]
+}
+```
+
+Initialization rights can be removed after successful initialization; retain
+read-only bucket/ACL/versioning checks and the object-prefix rights for normal
+verification and operation. Lifecycle is a fallback, not proof of immediate deletion.

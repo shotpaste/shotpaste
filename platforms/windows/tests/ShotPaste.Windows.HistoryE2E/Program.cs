@@ -942,25 +942,40 @@ internal static class Program
                     throw new InvalidOperationException("The repeated settings request was not forwarded.");
             }
             var shortcutsTab = await WaitForAutomationIdAsync(product.Id, "SettingsShortcutsTab");
-            await WaitUntilAsync(() =>
+            object? navigationState = null;
+            try { await WaitUntilAsync(() =>
             {
-                if (shortcutsTab.GetCurrentPattern(SelectionItemPattern.Pattern) is not SelectionItemPattern selected ||
-                    !selected.Current.IsSelected) return false;
+                var selected = shortcutsTab.GetCurrentPattern(SelectionItemPattern.Pattern) as SelectionItemPattern;
                 var settingsWindows = AutomationElement.RootElement.FindAll(
                     TreeScope.Descendants,
                     new AndCondition(
                         new PropertyCondition(AutomationElement.ProcessIdProperty, product.Id),
                         new PropertyCondition(AutomationElement.AutomationIdProperty, "SettingsWindow")));
-                return settingsWindows.Count == 1;
-            }, "A repeated settings request opened another window or did not navigate the existing window.");
+                // UIA can return several provider fragments for the same HWND.
+                // The product contract is one physical window, retaining the original handle.
+                var handles = settingsWindows.Cast<AutomationElement>().Select(element => element.Current.NativeWindowHandle)
+                    .Where(handle => handle != 0).Distinct().ToArray();
+                navigationState = new { Selected = selected?.Current.IsSelected, ProviderCount = settingsWindows.Count, Handles = handles };
+                return selected?.Current.IsSelected == true && handles.Length == 1 &&
+                    handles[0] == settings.Current.NativeWindowHandle;
+            }, "A repeated settings request opened another window or did not navigate the existing window."); }
+            catch (TimeoutException)
+            {
+                File.WriteAllText(Path.Combine(outputRoot, "settings-navigation-failure.json"), JsonSerializer.Serialize(navigationState));
+                SaveWindowScreenshot(PhysicalBounds(settings), Path.Combine(outputRoot, "settings-navigation-failure.png"));
+                throw;
+            }
 
             var captureTab = await WaitForAutomationIdAsync(product.Id, "SettingsCaptureRecordingTab");
             ((SelectionItemPattern)captureTab.GetCurrentPattern(SelectionItemPattern.Pattern)).Select();
+            var screenshotTab = await WaitForAutomationIdAsync(product.Id, "SettingsCaptureScreenshotSubtab");
+            ((SelectionItemPattern)screenshotTab.GetCurrentPattern(SelectionItemPattern.Pattern)).Select();
             var excludeOwnApplication = await WaitForAutomationIdAsync(
                 product.Id, "SettingsExcludeOwnApplication");
             var ocrSuccessNotifications = await WaitForAutomationIdAsync(
                 product.Id, "SettingsOcrSuccessNotifications");
-            if (GetToggleState(excludeOwnApplication) != System.Windows.Automation.ToggleState.Off)
+            // The current UI presents the positive "Include ShotPaste" setting.
+            if (GetToggleState(excludeOwnApplication) != System.Windows.Automation.ToggleState.On)
                 throw new InvalidOperationException(
                     "A fresh settings profile enabled ShotPaste window exclusion by default.");
             if (GetToggleState(ocrSuccessNotifications) != System.Windows.Automation.ToggleState.On)
@@ -1132,6 +1147,8 @@ internal static class Program
         await WaitUntilAsync(() =>
         {
             result = FindByAutomationId(processId, id);
+            if (result?.Current.IsOffscreen == true && id.StartsWith("Settings", StringComparison.Ordinal))
+                ScrollSettingsControlIntoView(result);
             return result is not null && !result.Current.IsOffscreen;
         }, $"Automation element {id} did not appear.");
         return result!;
@@ -1162,6 +1179,25 @@ internal static class Program
     {
         if (element.TryGetCurrentPattern(ScrollItemPattern.Pattern, out var pattern))
             ((ScrollItemPattern)pattern).ScrollIntoView();
+    }
+
+    private static void ScrollSettingsControlIntoView(AutomationElement element)
+    {
+        if (element.TryGetCurrentPattern(ScrollItemPattern.Pattern, out var item))
+        {
+            ((ScrollItemPattern)item).ScrollIntoView();
+            return;
+        }
+        // WPF settings checkboxes do not necessarily implement ScrollItemPattern.
+        // Scroll the containing viewport and still require a visible control before use.
+        var parent = TreeWalker.ControlViewWalker.GetParent(element);
+        for (var depth = 0; parent is not null && depth < 20; depth++, parent = TreeWalker.ControlViewWalker.GetParent(parent))
+        {
+            if (!parent.TryGetCurrentPattern(ScrollPattern.Pattern, out var pattern) ||
+                pattern is not ScrollPattern scroll || !scroll.Current.VerticallyScrollable) continue;
+            scroll.Scroll(ScrollAmount.NoAmount, ScrollAmount.LargeIncrement);
+            return;
+        }
     }
 
     private static Drawing.Rectangle PhysicalBounds(AutomationElement element)

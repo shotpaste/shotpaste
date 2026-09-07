@@ -14,6 +14,17 @@ final class AppStatusBarControllerTests: XCTestCase {
   private var controller: AppStatusBarController!
   private var initialPolicy: NSApplication.ActivationPolicy!
 
+  func testAudioMenuUsesAudioTitlesWithTheSharedRecordingState() {
+    for paused in [false, true] {
+      let titles = AppStatusBarController.recordingMenuTitles(
+        purpose: .audioAdapter, paused: paused, duration: "00:12"
+      )
+      XCTAssertEqual(titles.stop, L10n.AudioRecording.stopMenu)
+      XCTAssertEqual(titles.pauseResume, paused ? L10n.AudioRecording.resumeMenu : L10n.AudioRecording.pauseMenu)
+      XCTAssertNotEqual(titles.stop, L10n.Menu.stopRecording("00:12"))
+    }
+  }
+
   override func setUp() {
     super.setUp()
     controller = AppStatusBarController.shared

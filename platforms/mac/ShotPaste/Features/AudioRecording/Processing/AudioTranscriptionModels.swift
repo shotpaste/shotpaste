@@ -10,10 +10,9 @@
 import CryptoKit
 import Foundation
 
-/// Languages exposed by the audio transcription feature.  `auto` delegates
-/// the locale choice to the current macOS locale.  Speech.framework does not
-/// expose a local language-detection API, so automatic mode intentionally
-/// means "use the current recognizer locale" rather than guessing online.
+/// Languages exposed by cloud file transcription. Automatic mode requests
+/// provider language detection. The injectable on-device legacy adapter still
+/// uses the current recognizer locale for its offline tests.
 nonisolated enum AudioRecordingLanguage: String, CaseIterable, Codable, Sendable {
   case auto
   case en
@@ -294,6 +293,9 @@ nonisolated struct AudioTranscriptSegment: Codable, Equatable, Hashable, Sendabl
   let source: AudioRecordingSource
   let speaker: AudioTranscriptSpeakerRole
   let words: [AudioTranscriptWord]
+  let recognitionSpeaker: String?
+  let cloudRequestID: UUID?
+  let providerVersion: String?
 
   init(
     id: String? = nil,
@@ -304,7 +306,10 @@ nonisolated struct AudioTranscriptSegment: Codable, Equatable, Hashable, Sendabl
     speaker: AudioTranscriptSpeakerRole? = nil,
     words: [AudioTranscriptWord] = [],
     chunkIndex: Int = 0,
-    ordinal: Int = 0
+    ordinal: Int = 0,
+    recognitionSpeaker: String? = nil,
+    cloudRequestID: UUID? = nil,
+    providerVersion: String? = nil
   ) {
     let safeStart = startTime.isFinite ? max(0, startTime) : 0
     let safeDuration = duration.isFinite ? max(0, duration) : 0
@@ -322,6 +327,9 @@ nonisolated struct AudioTranscriptSegment: Codable, Equatable, Hashable, Sendabl
     self.source = source
     self.speaker = speaker ?? source.speakerRole
     self.words = words
+    self.recognitionSpeaker = recognitionSpeaker
+    self.cloudRequestID = cloudRequestID
+    self.providerVersion = providerVersion
   }
 
   var endTime: TimeInterval { startTime + duration }
@@ -558,6 +566,9 @@ nonisolated struct AudioProcessingTask: Codable, Equatable, Sendable, Identifiab
   var cancellationRequested: Bool
   var errorCode: String?
   var errorMessage: String?
+  /// Non-secret storage/profile configuration frozen for this task. Retrying
+  /// must query the original account even if Preferences now selects another.
+  var cloudConfiguration: RecordingTranscriptionConfiguration?
 
   init(
     id: UUID = UUID(),
@@ -567,6 +578,7 @@ nonisolated struct AudioProcessingTask: Codable, Equatable, Sendable, Identifiab
     autoTranscribe: Bool = true,
     autoAI: Bool = false,
     sourcePaths: [AudioRecordingSource: String] = [:],
+    cloudConfiguration: RecordingTranscriptionConfiguration? = nil,
     stage: AudioProcessingTaskStage = .saving,
     createdAt: Date = Date()
   ) {
@@ -585,6 +597,7 @@ nonisolated struct AudioProcessingTask: Codable, Equatable, Sendable, Identifiab
     self.cancellationRequested = false
     self.errorCode = nil
     self.errorMessage = nil
+    self.cloudConfiguration = cloudConfiguration
   }
 
   var reference: UUID { id }

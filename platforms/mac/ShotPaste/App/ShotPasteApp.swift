@@ -140,6 +140,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Cleanup orphaned temp capture files from previous sessions
     TempCaptureManager.shared.cleanupOrphanedFiles()
+    Task {
+      while !Task.isCancelled {
+        await VolcengineCloudJobs.shared.recover()
+        await VolcengineRecordingWorkStore.shared.recover()
+        try? await Task.sleep(for: .seconds(60))
+      }
+    }
 
     let coordinator = AppCoordinator(environment: AppEnvironment.live())
     self.coordinator = coordinator
@@ -175,6 +182,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
   func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
     guard didFinishLaunching else { return .terminateNow }
+
+    let audioCoordinator = AudioRecordingCoordinator.shared
+    if audioCoordinator.requiresTerminationHandling {
+      NSApp.activate(ignoringOtherApps: true)
+      let alert = NSAlert()
+      alert.messageText = L10n.AudioRecording.quitTitle
+      alert.informativeText = L10n.AudioRecording.quitMessage
+      alert.addButton(withTitle: L10n.Common.stopAndQuit)
+      alert.addButton(withTitle: L10n.Common.cancel)
+      guard alert.runModal() == .alertFirstButtonReturn else { return .terminateCancel }
+      Task { @MainActor in
+        let succeeded = await audioCoordinator.finishForApplicationTermination()
+        sender.reply(toApplicationShouldTerminate: succeeded)
+      }
+      return .terminateLater
+    }
 
     let recordingCoordinator = RecordingCoordinator.shared
     if recordingCoordinator.requiresTerminationHandling {

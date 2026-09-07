@@ -169,7 +169,7 @@ nonisolated enum L10n {
 
   enum Agent {
     static let tabTitle = string(
-      "agent.tab-title", defaultValue: "Agent", comment: "Agent preferences tab title"
+      "agent.tab-title", defaultValue: "AI Features", comment: "AI preferences tab title"
     )
     static let modeTitle = string(
       "agent.mode-title", defaultValue: "Agent Mode", comment: "Agent Mode title"
@@ -380,7 +380,7 @@ nonisolated enum L10n {
     )
     static let missingAPIKey = string(
       "agent.missing-api-key",
-      defaultValue: "Add an LLM API key in Agent settings first",
+      defaultValue: "Add an LLM API key in AI Features first",
       comment: "Missing Agent API key error"
     )
     static let busyMessage = string(
@@ -478,7 +478,7 @@ nonisolated enum L10n {
       "agent.open-permissions", defaultValue: "Open Permissions", comment: "Open Agent permissions action"
     )
     static let translationSection = string(
-      "agent.translation-section", defaultValue: "Translation", comment: "Screen translation settings section"
+      "agent.translation-section", defaultValue: "AI Translation", comment: "Screen translation settings section"
     )
     static let translationPromptModeTitle = string(
       "agent.translation-prompt-mode-title", defaultValue: "Translation prompt",
@@ -1036,7 +1036,7 @@ nonisolated enum L10n {
       comment: "Translation result copied toast"
     )
     static let translationMissingAPIKey = string(
-      "one-shot.translation-missing-api-key", defaultValue: "Translation needs an API key in Agent settings.",
+      "one-shot.translation-missing-api-key", defaultValue: "Translation needs an API key in AI Features.",
       comment: "Translation missing API key error"
     )
     static let translationInvalidConfiguration = string(
@@ -3338,6 +3338,269 @@ nonisolated enum L10n {
     )
   }
 
+  enum CloudTranscription {
+    static let invalidConfiguration = string("recording.cloud.invalid-configuration", defaultValue: "Enter your credentials in AI Features → AI Transcription, then save and test the connection.", comment: "AI transcription settings")
+    static let testing = string("recording.cloud.testing", defaultValue: "Testing transcription with a public sample…", comment: "AI transcription settings")
+    static let connecting = string("recording.cloud.connecting", defaultValue: "Configuring private storage…", comment: "AI transcription settings")
+    static let automaticNote = string("recording.cloud.automatic-note", defaultValue: "Audio recording options are chosen when starting a recording.", comment: "AI transcription settings")
+    static let aiNote = string("recording.cloud.ai-note", defaultValue: "Uses the LLM settings above to organize screen-recording transcripts.", comment: "AI transcription settings")
+    static let processAfterTranscription = string("recording.cloud.process-after-transcription", defaultValue: "Process transcript with AI", comment: "AI transcription settings")
+    static let storageConsole = string("recording.cloud.storage-console", defaultValue: "Storage console", comment: "AI transcription settings")
+    static let storageNote = string("recording.cloud.storage-note", defaultValue: "Private storage in Beijing is set up automatically. Audio is deleted after transcription; remaining files expire after 2 days.", comment: "AI transcription settings")
+    static let prefix = string("recording.cloud.prefix", defaultValue: "Storage path", comment: "AI transcription settings")
+    static let bucket = string("recording.cloud.bucket", defaultValue: "Storage bucket", comment: "AI transcription settings")
+    static let advanced = string("recording.cloud.advanced", defaultValue: "Advanced", comment: "AI transcription settings")
+    static let testConnection = string("recording.cloud.test-connection", defaultValue: "Test connection", comment: "AI transcription settings")
+    static let saveAndTest = string("recording.cloud.save-and-test", defaultValue: "Save and test", comment: "AI transcription settings")
+    static let keyPlaceholder = string("recording.cloud.key-placeholder", defaultValue: "Paste credential", comment: "AI transcription settings")
+    static let secretKey = string("recording.cloud.secret-key", defaultValue: "TOS Secret Access Key", comment: "AI transcription settings")
+    static let accessKey = string("recording.cloud.access-key", defaultValue: "TOS Access Key ID", comment: "AI transcription settings")
+    static let speechKey = string("recording.cloud.speech-key", defaultValue: "Speech API Key", comment: "AI transcription settings")
+    static let notConfigured = string("recording.cloud.not-configured", defaultValue: "Not configured", comment: "AI transcription settings")
+    static let credentialsNote = string("recording.cloud.credentials-note", defaultValue: "Saved locally, like the LLM API key. Leave unchanged fields blank.", comment: "AI transcription settings")
+    static let accountTitle = string("recording.cloud.account-title", defaultValue: "Volcengine", comment: "AI transcription settings")
+    static let title = string("recording.cloud.title", defaultValue: "AI Transcription", comment: "AI transcription settings")
+    static let existingStorage = string("recording.cloud.existing-storage", defaultValue: "Use existing private storage", comment: "AI transcription settings")
+    static let remove = string("recording.cloud.remove", defaultValue: "Remove credentials", comment: "Cloud transcription")
+    static let saved = string("recording.cloud.saved", defaultValue: "Saved · not tested", comment: "AI transcription settings")
+    static let ready = string("recording.cloud.ready", defaultValue: "Ready", comment: "AI transcription settings")
+    static let initialized = string("recording.cloud.initialized", defaultValue: "Storage initialized; verify transcription next", comment: "Cloud transcription")
+    static let check = string("recording.cloud.check", defaultValue: "Check storage connection", comment: "Cloud transcription")
+    static let initialize = string("recording.cloud.initialize", defaultValue: "Initialize private temporary storage", comment: "Cloud transcription")
+    static let storageChecked = string("recording.cloud.storage-checked", defaultValue: "Private storage checked; speech permission is checked by the paid sample test", comment: "Cloud transcription")
+    static let verify = string("recording.cloud.verify", defaultValue: "Verify transcription (paid public sample)", comment: "Cloud transcription")
+    static let preparing = string("recording.cloud.preparing", defaultValue: "Preparing audio", comment: "Cloud transcription")
+    static let uploading = string("recording.cloud.uploading", defaultValue: "Uploading audio", comment: "Cloud transcription")
+    static let submitting = string("recording.cloud.submitting", defaultValue: "Submitting transcription", comment: "Cloud transcription")
+    static let recognizing = string("recording.cloud.recognizing", defaultValue: "Recognizing speech", comment: "Cloud transcription")
+    static let cleaning = string("recording.cloud.cleaning", defaultValue: "Deleting cloud audio", comment: "Cloud transcription")
+    static let console = string("recording.cloud.console", defaultValue: "Speech console", comment: "Cloud transcription")
+    static let resume = string("recording.cloud.resume", defaultValue: "Resume queries and cleanup", comment: "Cloud transcription")
+    static let jobs = string("recording.cloud.jobs", defaultValue: "Cloud tasks and original transcripts", comment: "Cloud transcription")
+    static let cancelNote = string("recording.cloud.cancel-note", defaultValue: "Closing a window keeps the task running. Cancel stops new requests; accepted work may still be billed.", comment: "Cloud transcription")
+    static let pendingCleanup = string("recording.cloud.pending-cleanup", defaultValue: "Cloud cleanup pending; retain credentials", comment: "Cloud transcription")
+    static let cleaned = string("recording.cloud.cleaned", defaultValue: "No pending cloud deletion", comment: "Cloud transcription")
+    static let resubmit = string("recording.cloud.resubmit", defaultValue: "Submit again (may charge again)", comment: "Cloud transcription")
+    static let uncertain = string("recording.cloud.uncertain", defaultValue: "Review the task before submitting again. The original request may have been accepted; a new submission can cause duplicate charges.", comment: "Cloud transcription")
+    static let permission = string("recording.cloud.permission", defaultValue: "Check credentials and service/IAM permissions in the console", comment: "Cloud transcription")
+    static let quota = string("recording.cloud.quota", defaultValue: "Check account balance and service quota", comment: "Cloud transcription")
+    static let cloudError = string("recording.cloud.cloud-error", defaultValue: "Cloud request failed; check the status code in the console", comment: "Cloud transcription")
+    static let automatic = string("recording.cloud.automatic", defaultValue: "Automatic language detection", comment: "Cloud transcription")
+    static let setupNote = string("recording.cloud.setup-note", defaultValue: "Testing sets up temporary storage and transcribes a short public audio sample. Volcengine bills transcription and storage usage.", comment: "AI transcription settings")
+  }
+
+  enum TranscriptionResults {
+    static let title = string("recording.results.title", defaultValue: "Transcription Results", comment: "Transcription results title")
+    static let view = string("recording.results.view", defaultValue: "View transcription results", comment: "Transcription results view")
+    static let raw = string("recording.results.raw", defaultValue: "Original transcript", comment: "Transcription results raw")
+    static let polished = string("recording.results.polished", defaultValue: "Polished transcript", comment: "Transcription results polished")
+    static let organized = string("recording.results.organized", defaultValue: "Organized notes", comment: "Transcription results organized")
+    static let audio = string("recording.results.audio", defaultValue: "Audio recording", comment: "Transcription results audio")
+    static let video = string("recording.results.video", defaultValue: "Screen recording", comment: "Transcription results video")
+    static let all = string("recording.results.all", defaultValue: "All", comment: "Transcription results all")
+    static let filter = string("recording.results.filter", defaultValue: "Recording type", comment: "Transcription results filter")
+    static let search = string("recording.results.search", defaultValue: "Search by name or date", comment: "Transcription results search")
+    static let empty = string("recording.results.empty", defaultValue: "Transcription tasks from audio and screen recordings appear here.", comment: "Transcription results empty")
+    static let noMatches = string("recording.results.no-matches", defaultValue: "No matching tasks", comment: "Transcription results no-matches")
+    static let failed = string("recording.results.failed", defaultValue: "Processing failed; saved results are retained", comment: "Transcription results failed")
+    static let cancelled = string("recording.results.cancelled", defaultValue: "Cancelled", comment: "Transcription results cancelled")
+    static let processAI = string("recording.results.process-ai", defaultValue: "Process with AI", comment: "Transcription results process-ai")
+    static let artifact = string("recording.results.artifact", defaultValue: "Result type", comment: "Transcription results artifact")
+    static let processingNote = string("recording.results.processing-note", defaultValue: "Processing continues when this window is closed. Results will appear here.", comment: "Transcription results processing-note")
+    static let unavailable = string("recording.results.unavailable", defaultValue: "This result has not been generated. Existing results are available in the other tabs.", comment: "Transcription results unavailable")
+    static let savedLocally = string("recording.results.saved-locally", defaultValue: "Generated results are saved locally. Copy or save the selected result.", comment: "Transcription results saved-locally")
+  }
+
+  enum RecordingTranscription {
+    static let requiresAudio = string("recording.transcription.requires-audio", defaultValue: "Transcription needs MP4 with system audio or microphone enabled.", comment: "Why transcription is unavailable before recording")
+    static let enableVideo = string("recording.transcription.enable-video", defaultValue: "Transcribe screen recordings", comment: "Enable cloud transcription for video recordings")
+    static let processingFailed = string("recording.transcription.processing-failed", defaultValue: "AI processing failed. The original transcript is preserved. Check the Agent API configuration.", comment: "AI processing failure after successful transcription")
+    static let settingsSection = string(
+      "recording.transcription.settings-section",
+      defaultValue: "Automatic Transcript (Volcengine)",
+      comment: "Recording preferences section title for automatic transcription"
+    )
+    static let apiKeyTitle = string(
+      "recording.transcription.api-key-title",
+      defaultValue: "Volcengine API Key",
+      comment: "Recording transcription API key setting title"
+    )
+    static let apiKeyDescription = string(
+      "recording.transcription.api-key-description",
+      defaultValue: "Stored securely in Keychain and never written to logs",
+      comment: "Recording transcription API key setting description"
+    )
+    static let modelIDTitle = string(
+      "recording.transcription.model-id-title",
+      defaultValue: "Model ID",
+      comment: "Recording transcription model setting title"
+    )
+    static let modelIDDescription = string(
+      "recording.transcription.model-id-description",
+      defaultValue: "Model ID for your enabled simultaneous interpretation model",
+      comment: "Recording transcription model setting description"
+    )
+    static let sourceLanguageTitle = string(
+      "recording.transcription.source-language-title",
+      defaultValue: "Spoken Language",
+      comment: "Recording transcription source language setting title"
+    )
+    static let sourceLanguageDescription = string(
+      "recording.transcription.source-language-description",
+      defaultValue: "Language spoken in recordings; currently Chinese and English are supported",
+      comment: "Recording transcription source language setting description"
+    )
+    static let chinese = string(
+      "recording.transcription.language-chinese",
+      defaultValue: "Chinese",
+      comment: "Chinese recording transcription language option"
+    )
+    static let english = string(
+      "recording.transcription.language-english",
+      defaultValue: "English",
+      comment: "English recording transcription language option"
+    )
+    static let privacyDescription = string(
+      "recording.transcription.privacy-description",
+      defaultValue: "When enabled, recorded audio is sent to Volcengine for transcription; video frames stay on your device. AI processing sends transcript text to the configured Agent API.",
+      comment: "Privacy explanation for automatic recording transcription"
+    )
+    static let credentialSaveFailed = string(
+      "recording.transcription.credential-save-failed",
+      defaultValue: "Could not save the API Key securely. Check Keychain access and try again.",
+      comment: "Error shown when the recording transcription API key cannot be saved"
+    )
+    static let windowTitle = string(
+      "recording.transcription.window-title",
+      defaultValue: "ShotPaste · Recording Transcript",
+      comment: "Recording transcript result window title"
+    )
+    static let processingTitle = string(
+      "recording.transcription.processing-title",
+      defaultValue: "Generating Transcript",
+      comment: "Recording transcript processing title"
+    )
+    static let processingDescription = string(
+      "recording.transcription.processing-description",
+      defaultValue: "ShotPaste is transcribing the recording audio with Volcengine.",
+      comment: "Recording transcript processing description"
+    )
+    static let processingPrivacyNote = string(
+      "recording.transcription.processing-privacy-note",
+      defaultValue: "Only the audio track is sent. Processing runs at approximately the recording's playback duration.",
+      comment: "Recording transcript processing privacy and duration note"
+    )
+    static let completedTitle = string(
+      "recording.transcription.completed-title",
+      defaultValue: "Transcript Ready",
+      comment: "Recording transcript completion title"
+    )
+    static let completedDescription = string(
+      "recording.transcription.completed-description",
+      defaultValue: "Review the text, then copy it or save it as a separate text file.",
+      comment: "Recording transcript completion description"
+    )
+    static let failedTitle = string(
+      "recording.transcription.failed-title",
+      defaultValue: "Transcription Failed",
+      comment: "Recording transcript failure title"
+    )
+    static let failedDescription = string(
+      "recording.transcription.failed-description",
+      defaultValue: "The video recording is safe and unchanged.",
+      comment: "Recording transcript failure reassurance"
+    )
+    static let saveButton = string(
+      "recording.transcription.save-button",
+      defaultValue: "Save Transcript",
+      comment: "Button that saves a recording transcript separately"
+    )
+    static let savePanelTitle = string(
+      "recording.transcription.save-panel-title",
+      defaultValue: "Save Recording Transcript",
+      comment: "Recording transcript save panel title"
+    )
+    static let copied = string(
+      "recording.transcription.copied",
+      defaultValue: "Transcript copied",
+      comment: "Status shown after copying a recording transcript"
+    )
+    static func saved(_ fileName: String) -> String {
+      format(
+        "recording.transcription.saved",
+        defaultValue: "%@ saved",
+        comment: "Status shown after saving a transcript. %@ is the saved filename.",
+        fileName
+      )
+    }
+
+    static let saveFailed = string(
+      "recording.transcription.save-failed",
+      defaultValue: "Could not save the transcript. Choose another location and try again.",
+      comment: "Recording transcript save failure status"
+    )
+    static let invalidConfiguration = string(
+      "recording.transcription.error-invalid-configuration",
+      defaultValue: "Configure the Volcengine API Key and Model ID in Agent settings before enabling transcription.",
+      comment: "Recording transcription invalid configuration error"
+    )
+    static let invalidRecording = string(
+      "recording.transcription.error-invalid-recording",
+      defaultValue: "The completed recording cannot be read.",
+      comment: "Recording transcription invalid recording error"
+    )
+    static let noAudioTrack = string(
+      "recording.transcription.error-no-audio",
+      defaultValue: "This recording does not contain a readable audio track.",
+      comment: "Recording transcription missing audio error"
+    )
+    static let audioTooLong = string(
+      "recording.transcription.error-audio-too-long",
+      defaultValue: "Volcengine simultaneous interpretation supports recordings up to two hours.",
+      comment: "Recording transcription audio duration limit error"
+    )
+    static let audioDecodeFailed = string(
+      "recording.transcription.error-audio-decode",
+      defaultValue: "The recording audio could not be decoded for transcription.",
+      comment: "Recording transcription audio decode error"
+    )
+    static let connectionFailed = string(
+      "recording.transcription.error-connection",
+      defaultValue: "Could not connect to Volcengine simultaneous interpretation. Check the network, credentials, model access, and invite-only service entitlement.",
+      comment: "Recording transcription connection error"
+    )
+    static func serviceError(_ code: String, _ message: String) -> String {
+      format(
+        "recording.transcription.error-service",
+        defaultValue: "Volcengine error (%@): %@",
+        comment: "Recording transcription service error. The placeholders are service code and message.",
+        code,
+        message
+      )
+    }
+
+    static let invalidResponse = string(
+      "recording.transcription.error-invalid-response",
+      defaultValue: "Volcengine returned an invalid transcription response.",
+      comment: "Recording transcription invalid response error"
+    )
+    static let responseTooLarge = string(
+      "recording.transcription.error-response-too-large",
+      defaultValue: "The returned transcript exceeded ShotPaste's safety limit.",
+      comment: "Recording transcription response size error"
+    )
+    static let emptyTranscript = string(
+      "recording.transcription.error-empty-transcript",
+      defaultValue: "No speech was detected in the recording.",
+      comment: "Recording transcription empty result error"
+    )
+    static let timeout = string(
+      "recording.transcription.error-timeout",
+      defaultValue: "Transcription timed out before Volcengine finished processing the audio.",
+      comment: "Recording transcription timeout error"
+    )
+  }
+
   enum Recording {
     static let quitConfirmationTitle = string(
       "recording.quit-confirmation-title",
@@ -3478,6 +3741,29 @@ nonisolated enum L10n {
   }
 
   enum AudioRecording {
+    static let discardConfirmation = string("audio-recording.discard-confirm", defaultValue: "Discard the current audio recording?", comment: "Audio capture discard confirmation")
+    static let windowsPrivacyDisclosure = string("audio-recording.windows-privacy-disclosure", defaultValue: "Transcription sends selected audio to your Volcengine account. AI processing sends transcript text to your configured provider.", comment: "Windows native audio capture privacy disclosure")
+    static let historyCategory = string(
+      "audio-recording.history-category",
+      defaultValue: "Video & Audio",
+      comment: "Audio recording history-category"
+    )
+    static let historyEmpty = string(
+      "audio-recording.history-empty",
+      defaultValue: "No video or audio recordings yet",
+      comment: "Audio recording history-empty"
+    )
+    static let quitTitle = string(
+      "audio-recording.quit-title",
+      defaultValue: "Save audio before quitting?",
+      comment: "Audio recording quit-title"
+    )
+    static let quitMessage = string(
+      "audio-recording.quit-message",
+      defaultValue: "ShotPaste will stop the audio recording and finish saving it before quitting.",
+      comment: "Audio recording quit-message"
+    )
+
     static let automaticAI = string(
       "audio-recording.automatic-ai",
       defaultValue: "Automatic AI processing",
@@ -3513,6 +3799,18 @@ nonisolated enum L10n {
       defaultValue: "Audio recording ended early and was saved.",
       comment: "Message shown when an audio recording ends early but is saved"
     )
+    static let transcriptionFailed = string(
+      "audio-recording.transcription-failed", defaultValue: "Audio saved; transcription failed — click to retry",
+      comment: "Menu action after transcription failure with saved audio"
+    )
+    static let processingFailed = string(
+      "audio-recording.processing-failed", defaultValue: "Audio saved; processing failed — click to retry",
+      comment: "Menu action after post-recording processing failure"
+    )
+    static let dictationDisabled = string(
+      "audio-recording.dictation-disabled", defaultValue: "Audio saved; enable Dictation in System Settings, then click to retry",
+      comment: "Actionable menu message when Speech framework reports Siri or Dictation disabled"
+    )
     static let extractionRecoverable = string(
       "audio-recording.extraction-recoverable",
       defaultValue: "Audio recording needs recovery. You can retry saving it.",
@@ -3545,7 +3843,7 @@ nonisolated enum L10n {
     )
     static let modelUnavailable = string(
       "audio-recording.model-unavailable",
-      defaultValue: "On-device model unavailable",
+      defaultValue: "Configured LLM API unavailable",
       comment: "Audio recording status when the on-device model is unavailable"
     )
     static let organizingInterviewQA = string(
@@ -3590,7 +3888,7 @@ nonisolated enum L10n {
     )
     static let privacyDisclosure = string(
       "audio-recording.privacy-disclosure",
-      defaultValue: "Audio stays on this Mac. A small temporary screen media stream may be used to obtain system audio; only selected audio and derived content are kept, and temporary video is deleted after audio is saved.",
+      defaultValue: "Recordings are saved locally. Enabling transcription sends selected audio to Volcengine. Enabling AI processing sends transcript text to the configured Agent API. Temporary screen media is deleted only after audio is safely saved.",
       comment: "Privacy disclosure for local audio recording"
     )
     static let recording = string(
@@ -3715,7 +4013,7 @@ nonisolated enum L10n {
     )
     static let waiting = string(
       "audio-recording.waiting",
-      defaultValue: "Waiting for on-device model",
+      defaultValue: "Check Agent API configuration",
       comment: "Audio recording waiting-for-model status"
     )
     static let notStarted = string(

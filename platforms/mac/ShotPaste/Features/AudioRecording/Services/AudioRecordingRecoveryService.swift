@@ -98,7 +98,7 @@ nonisolated final class AudioRecordingRecoveryService: @unchecked Sendable {
         // bit is committed; retrying this is safe when unlink was partial.
         if session.manifest.stage == .completed,
            session.manifest.finalAudioValidated,
-           session.manifest.historyPersisted,
+           session.manifest.historyHandled,
            session.manifest.transcriptionTaskPersisted,
            !session.manifest.canDeleteInternalVideo {
           try? await store.deleteInternalVideo(sessionID: session.sessionID)
@@ -232,7 +232,7 @@ nonisolated final class AudioRecordingRecoveryService: @unchecked Sendable {
     guard let expectedDuration = expectedTimelineDuration(for: session),
           let finalDuration,
           abs(finalDuration - expectedDuration)
-            <= AudioAdapterSessionDurationPolicy.tolerance(for: expectedDuration) else {
+            <= AudioAdapterSessionDurationPolicy.audioTolerance(for: expectedDuration) else {
       throw AudioRecordingRecoveryError.outputValidationFailed
     }
     return true
@@ -327,7 +327,7 @@ nonisolated final class AudioRecordingRecoveryService: @unchecked Sendable {
       case .awaitingHistory:
         return .readyForHistory(sessionID: updated.sessionID, outputPaths: paths)
       case .awaitingTranscription:
-        guard updated.manifest.historyPersisted else { return nil }
+        guard updated.manifest.historyHandled else { return nil }
         return .readyForTranscription(sessionID: updated.sessionID, outputPaths: paths)
       case .completed:
         return nil

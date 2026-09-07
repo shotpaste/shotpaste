@@ -23,6 +23,12 @@ the two app variants.
 | Open settings | `shotpaste://settings?tab=general` |
 | Pause, resume, or stop recording | `shotpaste://recording/pause`, `shotpaste://recording/resume`, `shotpaste://recording/stop` |
 
+On both platforms, recording pause/resume/stop controls also operate an active audio
+recording through its audio coordinator. Stop saves M4A; on macOS, internal
+MOV files never pass through video post-processing. Windows captures audio directly
+through WASAPI. The existing tool allow-list
+and authentication requirements are unchanged; there is no audio-start command.
+
 Capture modes are `screenshot`, `scrolling`, and `recording`. History filters
 are `all`, `screenshot`, `scrolling`, `recording`, and `clipboard`. Settings
 tabs are `general`, `capture`, `quick-access`, `history`, `agent`, `shortcuts`,

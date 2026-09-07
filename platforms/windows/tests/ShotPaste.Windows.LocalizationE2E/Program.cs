@@ -21,7 +21,7 @@ internal static class Program
     {
         try
         {
-            if (args.Length < 1) throw new ArgumentException("Usage: LocalizationE2E <ShotPaste.exe> [output-root] [--require-dpi-scale=1.5]");
+            if (args.Length < 1) throw new ArgumentException("Usage: LocalizationE2E <ShotPaste.exe> [output-root] [--require-dpi-scale=1.5] [--language=zh-CN]");
             Native.SetProcessDpiAwarenessContext(new IntPtr(-4));
             var executable = Path.GetFullPath(args[0]);
             var outputRoot = Path.GetFullPath(args.ElementAtOrDefault(1) ??
@@ -29,10 +29,11 @@ internal static class Program
             var requiredDpiScale = args.Skip(2)
                 .FirstOrDefault(argument => argument.StartsWith("--require-dpi-scale=", StringComparison.OrdinalIgnoreCase))?
                 .Split('=', 2).ElementAtOrDefault(1);
+            var requestedLanguage = args.Skip(2).FirstOrDefault(argument => argument.StartsWith("--language=", StringComparison.OrdinalIgnoreCase))?.Split('=', 2)[1];
             var result = RunAsync(executable, outputRoot,
                 double.TryParse(requiredDpiScale, NumberStyles.Float, CultureInfo.InvariantCulture, out var scale)
                     ? scale
-                    : 0).GetAwaiter().GetResult();
+                    : 0, requestedLanguage).GetAwaiter().GetResult();
             Directory.CreateDirectory(outputRoot);
             File.WriteAllText(Path.Combine(outputRoot, "summary.json"),
                 JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
@@ -46,12 +47,15 @@ internal static class Program
         }
     }
 
-    private static async Task<object> RunAsync(string executable, string outputRoot, double requiredDpiScale)
+    private static async Task<object> RunAsync(string executable, string outputRoot, double requiredDpiScale, string? requestedLanguage)
     {
         if (!File.Exists(executable)) throw new FileNotFoundException("Product executable was not found.", executable);
         Directory.CreateDirectory(outputRoot);
         var results = new List<object>();
-        foreach (var language in LocalizationService.SupportedLanguages)
+        var languages = LocalizationService.SupportedLanguages.Where(language => requestedLanguage is null ||
+            language.Code.Equals(requestedLanguage, StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (languages.Length == 0) throw new ArgumentException("Unknown localization test language.");
+        foreach (var language in languages)
             results.Add(await RunLocaleAsync(executable, outputRoot, language, requiredDpiScale));
         return new { Locales = results.Count, RequiredDpiScale = requiredDpiScale, Results = results };
     }
@@ -147,19 +151,21 @@ internal static class Program
                     page.Name,
                     VisibleNames = pageNames.Length,
                     layout.VisibleInteractiveControls,
-                    layout.VisibleSingleLineTexts,
+                    layout.MeasuredSingleLineTexts,
                     Screenshot = pageScreenshot
                 });
             }
 
             Select(await WaitForAutomationIdAsync(product.Id, "SettingsCaptureRecordingTab"));
-            Select(await WaitForAutomationIdAsync(product.Id, "SettingsCaptureScreenshotSubtab"));
+            Select(await WaitForAutomationIdAsync(product.Id, "SettingsCaptureGeneralSubtab"));
             await Task.Delay(160);
             var names = VisibleNames(settings);
             var expectedSection = LocalizationService.TranslatePhrase("保存与截图后操作", language);
-            var expectedSave = LocalizationService.TranslatePhrase("保存截图", language);
+            var expectedSave = LocalizationService.TranslatePhrase("保存", language);
             AssertContains(names, expectedSection, language, "settings section");
-            AssertContains(names, expectedSave, language, "settings checkbox");
+            AssertContains(names, expectedSave, language, "save action row");
+            AssertContains(names, LocalizationService.TranslatePhrase("截图", language), language, "screenshot action column");
+            AssertContains(names, LocalizationService.TranslatePhrase("屏幕录制", language), language, "recording action column");
             AssertNoSimplifiedChineseLeak(names, language);
 
             Invoke(await WaitForAutomationIdAsync(product.Id, "SettingsSave"));
@@ -180,7 +186,7 @@ internal static class Program
                 VisibleNames = names.Length,
                 HistoryScreenshot = historyScreenshot,
                 HistoryVisibleInteractiveControls = historyLayout.VisibleInteractiveControls,
-                HistoryVisibleSingleLineTexts = historyLayout.VisibleSingleLineTexts,
+                HistoryMeasuredSingleLineTexts = historyLayout.MeasuredSingleLineTexts,
                 Pages = pageEvidence
             };
         }
@@ -221,7 +227,7 @@ internal static class Program
                 DoneHelpText = expectedHelp,
                 DpiScale = dpiScale,
                 layout.VisibleInteractiveControls,
-                layout.VisibleSingleLineTexts,
+                layout.MeasuredSingleLineTexts,
                 Screenshot = screenshot
             };
         }
@@ -259,7 +265,7 @@ internal static class Program
                 Controls = visibleNames.Length,
                 DpiScale = dpiScale,
                 layout.VisibleInteractiveControls,
-                layout.VisibleSingleLineTexts,
+                layout.MeasuredSingleLineTexts,
                 Screenshot = screenshot
             };
         }
@@ -277,6 +283,8 @@ internal static class Program
             (Name: "ocr-card", Surface: "ocr", AutomationId: "OcrResultCard"),
             (Name: "scrolling-save-recovery", Surface: "scrolling-recovery", AutomationId: "ScrollingProgressWindow"),
             (Name: "recording-toolbar", Surface: "recording-toolbar", AutomationId: "RecordingToolbarWindow"),
+            (Name: "audio-preparation", Surface: "audio-preparation", AutomationId: "AudioRecordingPreparationWindow"),
+            (Name: "transcription-results", Surface: "transcription-results", AutomationId: "TranscriptionResultsWindow"),
             (Name: "quick-access", Surface: "quick-access", AutomationId: "QuickAccessWindow"),
             (Name: "dirty-dialog", Surface: "dialog", AutomationId: "ShotPasteDialog")
         };
@@ -307,7 +315,7 @@ internal static class Program
                     DpiScale = dpiScale,
                     VisibleNames = names.Length,
                     layout.VisibleInteractiveControls,
-                    layout.VisibleSingleLineTexts,
+                    layout.MeasuredSingleLineTexts,
                     Screenshot = screenshot
                 });
             }
@@ -420,7 +428,7 @@ internal static class Program
         return actual;
     }
 
-    private static (int VisibleInteractiveControls, int VisibleSingleLineTexts) AssertVisibleLayout(
+    private static (int VisibleInteractiveControls, int MeasuredSingleLineTexts) AssertVisibleLayout(
         AutomationElement window,
         string language,
         string page,
@@ -487,10 +495,14 @@ internal static class Program
                 !string.IsNullOrWhiteSpace(item.Element.Current.Name) &&
                 item.Bounds.Height <= 25 * dpiScale)
             .ToArray();
+        var measuredTexts = 0;
         foreach (var item in singleLineTexts)
         {
             var text = item.Element.Current.Name.Trim();
-            var (fontFamily, fontSize) = AutomationFont(item.Element);
+            var font = AutomationFont(item.Element);
+            if (font is null) continue;
+            var (fontFamily, fontSize) = font.Value;
+            measuredTexts++;
             var formatted = new FormattedText(text, CultureInfo.CurrentUICulture, System.Windows.FlowDirection.LeftToRight,
                 new Typeface(fontFamily), fontSize, System.Windows.Media.Brushes.Black, Math.Max(1, dpiScale));
             var availableWidthInDips = item.Bounds.Width / Math.Max(1, dpiScale);
@@ -501,31 +513,38 @@ internal static class Program
                 : Math.Max(4, availableWidthInDips * 0.20);
             if (formatted.WidthIncludingTrailingWhitespace > availableWidthInDips + fallbackTolerance)
                 throw new InvalidOperationException(
-                    $"{language}/{page}: single-line text appears truncated: '{text}' needs {formatted.WidthIncludingTrailingWhitespace:0.#} DIP but has {availableWidthInDips:0.#} DIP at {fontSize:0.#}pt {fontFamily}.");
+                    $"{language}/{page}: single-line text appears truncated: '{text}' needs {formatted.WidthIncludingTrailingWhitespace:0.#} DIP but has {availableWidthInDips:0.#} DIP at {fontSize:0.#} DIP {fontFamily}.");
         }
-        return (interactive.Length, singleLineTexts.Length);
+        return (interactive.Length, measuredTexts);
     }
 
     private static bool Contains(System.Windows.Rect outer, System.Windows.Rect inner) =>
         inner.Left >= outer.Left - 1 && inner.Top >= outer.Top - 1 &&
         inner.Right <= outer.Right + 1 && inner.Bottom <= outer.Bottom + 1;
 
-    private static (string Family, double Size) AutomationFont(AutomationElement element)
+    private static (string Family, double Size)? AutomationFont(AutomationElement element)
     {
         try
         {
             if (!element.TryGetCurrentPattern(TextPattern.Pattern, out var raw) || raw is not TextPattern pattern)
-                return ("Segoe UI", 12d);
+                return null;
             var range = pattern.DocumentRange;
+            var rectangles = range.GetBoundingRectangles();
+            if (rectangles.Length > 1 && rectangles.Skip(1)
+                .Any(rectangle => Math.Abs(rectangle.Top - rectangles[0].Top) > 2)) return null;
             var familyValue = range.GetAttributeValue(TextPattern.FontNameAttribute);
             var sizeValue = range.GetAttributeValue(TextPattern.FontSizeAttribute);
             var family = familyValue as string;
-            var size = sizeValue is double value && value is >= 6d and <= 72d ? value : 12d;
-            return (string.IsNullOrWhiteSpace(family) ? "Segoe UI" : family, size);
+            // UIA font sizes are points; FormattedText measures in 1/96-inch DIPs.
+            // Missing metrics are not evidence of clipping. In particular, two wrapped
+            // 10-DIP lines can be shorter than the old 25-pixel "single line" cutoff.
+            if (string.IsNullOrWhiteSpace(family) || sizeValue is not double size || size is < 4d or > 72d)
+                return null;
+            return (family, size * 96d / 72d);
         }
         catch (InvalidOperationException)
         {
-            return ("Segoe UI", 12d);
+            return null;
         }
     }
 

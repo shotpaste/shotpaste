@@ -209,7 +209,7 @@ final class AudioPostCaptureTests: XCTestCase {
     XCTAssertFalse(CaptureHistoryStore.shared.records.contains { $0.filePath == url.path })
   }
 
-  func testHandleAudioCaptureHistoryDisabledDoesNotAllowTranscription() async throws {
+  func testHandleAudioCaptureHistoryDisabledAllowsSavingWithoutInventingHistory() async throws {
     defaults.set(false, forKey: PreferencesKeys.historyEnabled)
     preferences.setAction(.copyFile, for: .recording, enabled: false)
     let quickAccess = AudioQuickAccessSpy()
@@ -226,7 +226,9 @@ final class AudioPostCaptureTests: XCTestCase {
     XCTAssertTrue(result.accepted)
     XCTAssertFalse(result.historyPersisted)
     XCTAssertNil(result.historyRecordID)
-    XCTAssertFalse(result.transcriptionCanContinue)
+    XCTAssertTrue(result.transcriptionCanContinue)
+    XCTAssertTrue(result.historySkipped)
+    XCTAssertTrue(result.succeeded)
     XCTAssertTrue(quickAccess.audioURLs.isEmpty == false)
     XCTAssertFalse(CaptureHistoryStore.shared.records.contains { $0.filePath == url.path })
   }

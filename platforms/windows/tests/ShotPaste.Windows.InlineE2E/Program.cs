@@ -819,14 +819,17 @@ internal static class Program
     private static QuickVerification ExerciseQuickAccess(int processId, string root)
     {
         var quick = WaitForAutomationId(processId, "QuickAccessWindow");
+        // Pause immediately: UIA enumeration and screenshot encoding can outlast
+        // a short countdown on a fresh Windows desktop.
+        var bounds = quick.Current.BoundingRectangle;
+        var center = new Drawing.Point((int)Math.Round(bounds.Left + bounds.Width / 2), (int)Math.Round(bounds.Top + bounds.Height / 2));
+        Native.SetCursorPos(center.X, center.Y);
         WaitUntil(() => FindVisibleByAutomationId(processId, "QuickAccessTextPreview") is null,
             "Quick Access kept its fallback surface after the screenshot thumbnail finished decoding.");
         Thread.Sleep(180);
         var previewScreenshot = Path.Combine(root, "quick-access-thumbnail.png");
         SaveDesktopScreenshot(previewScreenshot);
-        var bounds = quick.Current.BoundingRectangle;
-        Native.SetCursorPos((int)Math.Round(bounds.Left + bounds.Width / 2), (int)Math.Round(bounds.Top + bounds.Height / 2));
-        Thread.Sleep(2800);
+        Thread.Sleep(6500);
         if (FindVisibleByAutomationId(processId, "QuickAccessWindow") is null)
             throw new InvalidOperationException("Hover did not pause the Quick Access countdown.");
 
@@ -840,11 +843,19 @@ internal static class Program
         var actionsScreenshot = Path.Combine(root, "quick-access-fixed-slots.png");
         SaveDesktopScreenshot(actionsScreenshot);
         var screen = Forms.Screen.FromPoint(Forms.Cursor.Position).WorkingArea;
+        // Consume a controlled portion of the six-second budget, then pause again.
+        // Resuming with a fresh full budget must still fail this check.
+        Native.SetCursorPos(screen.Left + 12, screen.Top + 12);
+        Thread.Sleep(2000);
+        Native.SetCursorPos(center.X, center.Y);
+        Thread.Sleep(500);
+        if (FindVisibleByAutomationId(processId, "QuickAccessWindow") is null)
+            throw new InvalidOperationException("Quick Access expired before its remaining countdown was consumed.");
         Native.SetCursorPos(screen.Left + 12, screen.Top + 12);
         var stopwatch = Stopwatch.StartNew();
         WaitUntil(() => FindVisibleByAutomationId(processId, "QuickAccessWindow") is null,
             "Quick Access did not resume its countdown after hover ended.");
-        if (stopwatch.Elapsed < TimeSpan.FromSeconds(1) || stopwatch.Elapsed > TimeSpan.FromSeconds(2.9))
+        if (stopwatch.Elapsed < TimeSpan.FromSeconds(0.1) || stopwatch.Elapsed > TimeSpan.FromSeconds(4.6))
             throw new InvalidOperationException($"Quick Access resumed with the wrong remaining time: {stopwatch.Elapsed.TotalSeconds:0.00}s.");
         return new QuickVerification(stopwatch.Elapsed.TotalSeconds, previewScreenshot, actionsScreenshot);
     }
@@ -986,7 +997,9 @@ internal static class Program
             CopyScreenshots = false,
             CopyAfterCapture = false,
             ShowQuickAccess = action is ScenarioAction.QuickAccess or ScenarioAction.QuickAccessDrag or ScenarioAction.QuickAccessDelete,
-            QuickAccessAutoDismissSeconds = 3,
+            QuickAccessAutoDismissSeconds = 6,
+            // Drag/delete scenarios verify their own actions, not the expiry timer.
+            QuickAccessAutoDismissEnabled = action is not (ScenarioAction.QuickAccessDrag or ScenarioAction.QuickAccessDelete),
             PauseQuickAccessOnHover = true,
             QuickAccessPosition = "BottomRight",
             QuickAccessActions = action switch

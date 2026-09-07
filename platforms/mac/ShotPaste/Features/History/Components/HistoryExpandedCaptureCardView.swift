@@ -20,6 +20,7 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
   }
 
   @Environment(\.colorScheme) private var colorScheme
+  @ObservedObject private var transcriptionResults = TranscriptionResultsModel.shared
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var thumbnailImage: NSImage?
   @State private var resolvedAudioDuration: TimeInterval?
@@ -49,6 +50,16 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
             .font(.system(size: 9, weight: .medium))
             .foregroundColor(.secondary.opacity(0.82))
             .lineLimit(1)
+        }
+        if let resultID = transcriptionResults.resultID(for: record) {
+          Button {
+            TranscriptionResultsWindowController.shared.show(resultID)
+          } label: {
+            Label(L10n.TranscriptionResults.view, systemImage: "text.bubble")
+              .font(.system(size: 10, weight: .medium))
+          }
+          .buttonStyle(.borderless)
+          .help(L10n.TranscriptionResults.view)
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -95,7 +106,7 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
     .task(id: audioMetadataTaskID, priority: .utility) {
       await loadAudioMetadataIfNeeded()
     }
-    .accessibilityElement(children: .ignore)
+    .accessibilityElement(children: .contain)
     .accessibilityLabel(record.displayTitle)
     .accessibilityValue(accessibilityValue)
     .accessibilityHint(L10n.Common.open)

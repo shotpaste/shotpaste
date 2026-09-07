@@ -267,6 +267,8 @@ nonisolated struct AudioAdapterSessionManifest: Codable, Equatable, Sendable {
   /// record/task has actually been persisted.
   var finalAudioValidated: Bool
   var finalAudioValidatedAt: Date?
+  var historySkipped: Bool
+  var historyHandled: Bool { historyPersisted || historySkipped }
   var historyPersisted: Bool
   var historyPersistedAt: Date?
   /// A reference is an opaque durable object identity, not a caller supplied
@@ -284,6 +286,7 @@ nonisolated struct AudioAdapterSessionManifest: Codable, Equatable, Sendable {
   var processingTemplate: AudioOrganizationTemplate?
   var processingAutoTranscribe: Bool?
   var processingAutoAI: Bool?
+  var processingCloudConfiguration: RecordingTranscriptionConfiguration?
 
   /// Kept as a durable compatibility/read-model bit.  It is only allowed to
   /// be true once all three gates are true and the stage is completed; Store
@@ -331,6 +334,7 @@ nonisolated struct AudioAdapterSessionManifest: Codable, Equatable, Sendable {
     checksums: [String: String] = [:],
     finalAudioValidated: Bool = false,
     finalAudioValidatedAt: Date? = nil,
+    historySkipped: Bool = false,
     historyPersisted: Bool = false,
     historyPersistedAt: Date? = nil,
     historyRecordReference: UUID? = nil,
@@ -341,6 +345,7 @@ nonisolated struct AudioAdapterSessionManifest: Codable, Equatable, Sendable {
     processingTemplate: AudioOrganizationTemplate? = nil,
     processingAutoTranscribe: Bool? = nil,
     processingAutoAI: Bool? = nil,
+    processingCloudConfiguration: RecordingTranscriptionConfiguration? = nil,
     canDeleteInternalVideo: Bool = false,
     retryCount: Int = 0,
     recoverableError: AudioAdapterRecoverableError? = nil,
@@ -369,6 +374,7 @@ nonisolated struct AudioAdapterSessionManifest: Codable, Equatable, Sendable {
     self.checksums = checksums
     self.finalAudioValidated = finalAudioValidated
     self.finalAudioValidatedAt = finalAudioValidatedAt
+    self.historySkipped = historySkipped
     self.historyPersisted = historyPersisted
     self.historyPersistedAt = historyPersistedAt
     self.historyRecordReference = historyRecordReference
@@ -379,6 +385,7 @@ nonisolated struct AudioAdapterSessionManifest: Codable, Equatable, Sendable {
     self.processingTemplate = processingTemplate
     self.processingAutoTranscribe = processingAutoTranscribe
     self.processingAutoAI = processingAutoAI
+    self.processingCloudConfiguration = processingCloudConfiguration
     self.canDeleteInternalVideo = canDeleteInternalVideo
     self.retryCount = max(0, retryCount)
     self.recoverableError = recoverableError
@@ -399,6 +406,7 @@ nonisolated struct AudioAdapterSessionManifest: Codable, Equatable, Sendable {
     case checksums
     case finalAudioValidated
     case finalAudioValidatedAt
+    case historySkipped
     case historyPersisted
     case historyPersistedAt
     case historyRecordReference
@@ -409,6 +417,7 @@ nonisolated struct AudioAdapterSessionManifest: Codable, Equatable, Sendable {
     case processingTemplate
     case processingAutoTranscribe
     case processingAutoAI
+    case processingCloudConfiguration
     case canDeleteInternalVideo
     case retryCount
     case recoverableError
@@ -479,6 +488,7 @@ nonisolated struct AudioAdapterSessionManifest: Codable, Equatable, Sendable {
       Date.self,
       forKey: .finalAudioValidatedAt
     )
+    historySkipped = try container.decodeIfPresent(Bool.self, forKey: .historySkipped) ?? false
     historyPersisted = try container.decodeIfPresent(Bool.self, forKey: .historyPersisted) ?? false
     historyPersistedAt = try container.decodeIfPresent(Date.self, forKey: .historyPersistedAt)
     historyRecordReference = version >= Self.currentSchemaVersion
@@ -511,6 +521,10 @@ nonisolated struct AudioAdapterSessionManifest: Codable, Equatable, Sendable {
       Bool.self,
       forKey: .processingAutoAI
     )
+    processingCloudConfiguration = try container.decodeIfPresent(
+      RecordingTranscriptionConfiguration.self,
+      forKey: .processingCloudConfiguration
+    )
     canDeleteInternalVideo = try container.decodeIfPresent(
       Bool.self,
       forKey: .canDeleteInternalVideo
@@ -531,6 +545,7 @@ nonisolated struct AudioAdapterSessionManifest: Codable, Equatable, Sendable {
     if version < Self.currentSchemaVersion {
       finalAudioValidated = false
       finalAudioValidatedAt = nil
+      historySkipped = false
       historyPersisted = false
       historyPersistedAt = nil
       historyRecordReference = nil
@@ -730,21 +745,25 @@ nonisolated struct AudioAdapterSessionManifest: Codable, Equatable, Sendable {
             historyPersistedAt != nil,
             historyRecordReference != nil else { return false }
     }
+    if historySkipped {
+      guard finalAudioValidated, !historyPersisted,
+            historyPersistedAt == nil, historyRecordReference == nil else { return false }
+    }
     if transcriptionTaskPersisted {
-      guard historyPersisted,
+      guard historyHandled,
             transcriptionTaskPersistedAt != nil,
             transcriptionTaskReference != nil else { return false }
     }
 
     switch stage {
     case .awaitingHistory:
-      guard finalAudioValidated, !historyPersisted else { return false }
+      guard finalAudioValidated, !historyHandled else { return false }
     case .awaitingTranscription:
-      guard finalAudioValidated, historyPersisted, !transcriptionTaskPersisted else {
+      guard finalAudioValidated, historyHandled, !transcriptionTaskPersisted else {
         return false
       }
     case .completed:
-      guard finalAudioValidated, historyPersisted, transcriptionTaskPersisted else {
+      guard finalAudioValidated, historyHandled, transcriptionTaskPersisted else {
         return false
       }
     default:
@@ -752,7 +771,7 @@ nonisolated struct AudioAdapterSessionManifest: Codable, Equatable, Sendable {
     }
 
     if canDeleteInternalVideo {
-      guard finalAudioValidated, historyPersisted, transcriptionTaskPersisted,
+      guard finalAudioValidated, historyHandled, transcriptionTaskPersisted,
             stage == .completed else { return false }
     }
     return true
@@ -979,6 +998,13 @@ nonisolated enum AudioAdapterSessionStoreError: LocalizedError, Equatable {
 /// the deletion gate.  It scales with long recordings instead of imposing a
 /// fixed timeout/validation ceiling.
 nonisolated enum AudioAdapterSessionDurationPolicy {
+  /// The private capture runs at 1 fps. Its final video frame can extend the
+  /// container by one frame beyond audio, plus a small microphone startup gap.
+  /// Keep the allowance bounded, especially for very short/truncated captures.
+  static func audioTolerance(for expectedDuration: Double) -> Double {
+    max(tolerance(for: expectedDuration), min(1.1, expectedDuration * 0.2))
+  }
+
   static func tolerance(for expectedDuration: Double) -> Double {
     max(0.25, min(2.0, expectedDuration * 0.05))
   }

@@ -26,6 +26,7 @@ final class RecordingCoordinator: ObservableObject {
   private var localEscapeMonitor: Any?
   private var globalEscapeMonitor: Any?
   private var onSessionEnded: (@MainActor () -> Void)?
+  private var transcriptionOptions: OneShotRecordingOptions?
 
   // Annotation overlay
   private var annotationToolbarWindow: RecordingAnnotationToolbarWindow?
@@ -183,6 +184,11 @@ final class RecordingCoordinator: ObservableObject {
 
     isActive = true
     self.onSessionEnded = onSessionEnded
+    let submittedOptions = options.resolvingTranscription(
+      isConfigured: RecordingTranscriptionConfiguration.current() != nil
+    )
+    transcriptionOptions = submittedOptions
+    submittedOptions.saveTranscriptionPreferences()
     let configuration = ToolbarConfiguration(
       format: .mp4,
       quality: RecordingToolbarPreferences.selectedQuality(),
@@ -768,6 +774,10 @@ final class RecordingCoordinator: ObservableObject {
       pendingStopCompletions.append(completion)
     }
     guard !isStoppingRecording else { return }
+    guard recorder.recordingPurpose == .screenVideo else {
+      resolveStopCompletions(succeeded: false)
+      return
+    }
     guard recorder.state == .recording || recorder.state == .paused else {
       resolveStopCompletions(succeeded: false)
       return
@@ -776,6 +786,8 @@ final class RecordingCoordinator: ObservableObject {
 
     // Capture output mode before cleanup closes the toolbar
     let outputMode = toolbarWindow?.state.outputMode ?? .video
+    let recordedAudio = toolbarWindow?.captureAudio == true || toolbarWindow?.captureMicrophone == true
+    let transcriptionOptions = self.transcriptionOptions
 
     Task {
       let url = await recorder.stopRecording()
@@ -805,6 +817,9 @@ final class RecordingCoordinator: ObservableObject {
           } else {
             // Video mode: normal post-capture flow
             await PostCaptureActionHandler.shared.handleVideoCapture(url: url)
+            if recordedAudio, let transcriptionOptions {
+              RecordingTranscriptWindowManager.presentIfConfigured(recordingURL: url, options: transcriptionOptions)
+            }
           }
         }
       }
@@ -972,6 +987,7 @@ final class RecordingCoordinator: ObservableObject {
     // Close region overlay windows
     closeRecordingUI()
     selectedRect = nil
+    transcriptionOptions = nil
     isActive = false
     let sessionEndHandler = onSessionEnded
     onSessionEnded = nil

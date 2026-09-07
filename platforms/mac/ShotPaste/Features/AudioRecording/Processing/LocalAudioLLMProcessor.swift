@@ -27,13 +27,13 @@ nonisolated enum AudioLocalLLMError: LocalizedError, Equatable, Sendable {
   var errorDescription: String? {
     switch self {
     case .modelUnavailable:
-      "The on-device language model is not available yet."
+      "The configured language model is not available yet."
     case .invalidOutput:
-      "The on-device language model returned an invalid structured result."
+      "The configured language model returned an invalid structured result."
     case .failed:
-      "The on-device language-model operation failed."
+      "The configured language-model operation failed."
     case .cancelled:
-      "The on-device language-model operation was cancelled."
+      "The configured language-model operation was cancelled."
     }
   }
 }
@@ -197,7 +197,7 @@ nonisolated final class LocalAudioLLMProcessor: @unchecked Sendable {
   private let maximumCharactersPerBatch: Int
 
   init(
-    provider: any LocalAudioLanguageModelProvider = SystemAudioLanguageModelProvider(),
+    provider: any LocalAudioLanguageModelProvider = AgentAudioLanguageModelProvider(),
     maximumSegmentsPerBatch: Int = AudioLLMInputBuilder.defaultMaximumSegments,
     maximumCharactersPerBatch: Int = AudioLLMInputBuilder.defaultMaximumCharacters
   ) {

@@ -434,6 +434,11 @@
               <CheckBox x:Name="OneShotMicrophone" Content="麦克风" Click="OnOneShotRecordingOptionChanged" Margin="6,3" Style="{DynamicResource HudCheckBox}"
                         Foreground="{DynamicResource HudTextBrush}"/>
             </WrapPanel>
+            <CheckBox x:Name="OneShotTranscription" Content="录屏完成后转写" Margin="6,10,6,3" Style="{DynamicResource HudCheckBox}" Click="OnOneShotRecordingOptionChanged"/>
+            <CheckBox x:Name="OneShotUseAI" Content="转写后使用 AI 整理" Margin="6,3" Style="{DynamicResource HudCheckBox}" Click="OnOneShotRecordingOptionChanged"/>
+            <ComboBox x:Name="OneShotLanguage" Margin="6,6" AutomationProperties.AutomationId="OneShotTranscriptionLanguage"/>
+            <TextBlock x:Name="OneShotCloudHint" Text="请先在设置中保存并测试云端转写配置。" Margin="6,3" MaxWidth="300" TextWrapping="Wrap" Foreground="{DynamicResource HudSecondaryTextBrush}"/>
+
           </StackPanel>
         </Grid>
       </Border>

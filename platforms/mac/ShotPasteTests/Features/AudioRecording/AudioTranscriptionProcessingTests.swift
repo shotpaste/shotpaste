@@ -29,6 +29,58 @@ final class AudioTranscriptionProcessingTests: XCTestCase {
     try super.tearDownWithError()
   }
 
+  func testSilentSystemTrackPreservesMicrophoneTranscript() async throws {
+    let engine = VolcengineAudioRecognitionEngine(recognize: { url, _ in
+      if url.lastPathComponent == "system.m4a" { return .init() }
+      return .init(segments: [.init(text: "microphone speech", startTime: 0, duration: 1, source: .microphone)])
+    })
+    let result = try await LocalAudioTranscriber(engine: engine).transcribe(sources: [
+      .init(source: .system, url: URL(fileURLWithPath: "/system.m4a"), durationSeconds: 6),
+      .init(source: .microphone, url: URL(fileURLWithPath: "/microphone.m4a"), durationSeconds: 6)
+    ])
+    XCTAssertEqual(result.segments.count, 1)
+    XCTAssertEqual(result.segments.first?.source, .microphone)
+    XCTAssertEqual(result.segments.first?.text, "microphone speech")
+  }
+
+  func testSpeechFrameworkErrorsRetainActionableRecoveryReason() {
+    XCTAssertEqual(SpeechFrameworkAudioRecognitionEngine.mapRecognitionError(
+      NSError(domain: "kLSRErrorDomain", code: 201)), .dictationDisabled)
+    XCTAssertEqual(SpeechFrameworkAudioRecognitionEngine.mapRecognitionError(
+      NSError(domain: "kLSRErrorDomain", code: 102)), .onDeviceModelUnavailable)
+    XCTAssertEqual(SpeechFrameworkAudioRecognitionEngine.mapRecognitionError(
+      NSError(domain: "kLSRErrorDomain", code: 301)), .cancelled)
+    XCTAssertEqual(SpeechFrameworkAudioRecognitionEngine.mapRecognitionError(
+      NSError(domain: "unrelated", code: 201)), .recognitionFailed)
+  }
+
+  @MainActor
+  func testSavedAudioProcessingFailuresDoNotUseRecordingFailureTitle() {
+    XCTAssertEqual(AudioRecordingCoordinator.processingFailureLabel(errorCode: "speech_service_disabled"),
+                   L10n.AudioRecording.dictationDisabled)
+    XCTAssertEqual(AudioRecordingCoordinator.processingFailureLabel(errorCode: "transcription_failed"),
+                   L10n.AudioRecording.transcriptionFailed)
+    XCTAssertEqual(AudioRecordingCoordinator.processingFailureLabel(errorCode: "model_processing_failed"),
+                   L10n.AudioRecording.processingFailed)
+    XCTAssertNotEqual(L10n.AudioRecording.transcriptionFailed, L10n.AudioRecording.failedTitle)
+  }
+
+  func testTranscriptionDiagnosticsKeepErrorCodesWithoutPrivatePayloads() {
+    let underlying = NSError(domain: "kAFAssistantErrorDomain", code: 1110,
+                             userInfo: [NSLocalizedDescriptionKey: "private transcript"])
+    let error = NSError(domain: "SFSpeechErrorDomain", code: 203, userInfo: [
+      NSLocalizedDescriptionKey: "private recording path",
+      NSUnderlyingErrorKey: underlying,
+      "audioURL": "/private/recording.m4a",
+    ])
+    XCTAssertEqual(AudioTranscriptionDiagnostics.errorContext(error), [
+      "errorDomain": "SFSpeechErrorDomain", "errorCode": "203",
+      "underlyingDomain": "kAFAssistantErrorDomain", "underlyingCode": "1110",
+    ])
+    let unsafeDomain = NSError(domain: "/private/recording.m4a\nforged log", code: 1)
+    XCTAssertEqual(AudioTranscriptionDiagnostics.errorContext(unsafeDomain)["errorDomain"], "redacted")
+  }
+
   func testStableWordAndSegmentIDsAreDeterministic() {
     let first = AudioTranscriptWord(
       text: "hello",
@@ -140,6 +192,50 @@ final class AudioTranscriptionProcessingTests: XCTestCase {
     XCTAssertFalse(history.rawTranscriptAvailable)
     XCTAssertFalse(history.polishedTranscriptAvailable)
     XCTAssertFalse(history.structuredContentAvailable)
+  }
+
+  func testCloudProfileIsRetainedBeforeFirstJobAndWhileTaskCanRetry() throws {
+    let config = RecordingTranscriptionConfiguration(account: .init(), sourceLanguage: .zhHans)
+    let sessions = AudioAdapterSessionStore(sessionsDirectory: root)
+    let session = try sessions.createSession(selectedAudioSources: .system)
+    _ = try sessions.update(sessionID: session.sessionID) {
+      $0.processingAutoTranscribe = true
+      $0.processingCloudConfiguration = config
+    }
+    XCTAssertEqual(store.cloudProfilesToRetain(), [config.account.id])
+    _ = try sessions.transition(sessionID: session.sessionID, to: .cancelled)
+    XCTAssertTrue(store.cloudProfilesToRetain().isEmpty)
+
+    let task = AudioProcessingTask(sessionID: session.sessionID,
+      sourcePaths: [.mixed: "mixed.m4a"], cloudConfiguration: config)
+    _ = try store.persistTask(task)
+    _ = try store.markFailed(sessionID: task.sessionID, code: "test", message: "test")
+    XCTAssertEqual(store.cloudProfilesToRetain(), [config.account.id])
+    _ = try store.requestCancellation(sessionID: task.sessionID)
+    XCTAssertTrue(store.cloudProfilesToRetain().isEmpty)
+    _ = try store.updateTask(sessionID: task.sessionID) {
+      $0.stage = .saving
+      $0.cancellationRequested = false
+    }
+    _ = try store.transition(sessionID: task.sessionID, to: .completed)
+    XCTAssertTrue(store.cloudProfilesToRetain().isEmpty)
+  }
+
+  func testPipelinePassesPersistedCloudProfileThroughRetry() async throws {
+    let sessionID = UUID()
+    let source = try makeSourceFile(sessionID: sessionID)
+    let config = RecordingTranscriptionConfiguration(account: .init(), sourceLanguage: .ja)
+    let task = AudioProcessingTask(sessionID: sessionID, language: .ja,
+      sourcePaths: [.mixed: "mixed.m4a"], cloudConfiguration: config)
+    _ = try store.persistTask(task)
+    _ = try store.markFailed(sessionID: sessionID, code: "test", message: "test")
+    let pipeline = AudioRecordingProcessingPipeline(taskStore: store,
+      transcriber: ConfigurationCheckingTranscriber(expected: config))
+    let result = try await pipeline.restart(sessionID: sessionID,
+      sourceInputs: [.init(source: .mixed, url: source, durationSeconds: 1)])
+    XCTAssertEqual(result.task.cloudConfiguration, config)
+    XCTAssertEqual(try store.loadTask(sessionID: sessionID).cloudConfiguration, config)
+    XCTAssertEqual(result.task.stage, .completed)
   }
 
   func testLLMInputContainsNoMediaPath() {
@@ -334,6 +430,34 @@ final class AudioTranscriptionProcessingTests: XCTestCase {
     }
     XCTAssertEqual(restarted.stage, .saving)
     XCTAssertFalse(restarted.cancellationRequested)
+  }
+
+  func testDurableCancellationInterruptsSuspendedRecognizer() async throws {
+    let sessionID = UUID()
+    let source = try makeSourceFile(sessionID: sessionID)
+    let transcriber = CancellableTranscriber()
+    let pipeline = AudioRecordingProcessingPipeline(taskStore: store, transcriber: transcriber)
+    let running = Task {
+      try await pipeline.process(
+        sessionID: sessionID,
+        sourceInputs: [.init(source: .mixed, url: source, durationSeconds: 1)],
+        options: .init(autoTranscribe: true, autoAI: false)
+      )
+    }
+    await transcriber.started.wait()
+    let startedCancellation = Date()
+    _ = try store.requestCancellation(sessionID: sessionID)
+    // Bound a regression failure without making a real network request.
+    let watchdog = Task {
+      try? await Task.sleep(for: .seconds(3))
+      if !Task.isCancelled { running.cancel() }
+    }
+    defer { watchdog.cancel() }
+    let result = try await running.value
+    XCTAssertLessThan(Date().timeIntervalSince(startedCancellation), 2)
+    XCTAssertEqual(result.task.stage, .cancelled)
+    XCTAssertTrue(FileManager.default.fileExists(atPath: source.path))
+    XCTAssertThrowsError(try store.loadRawTranscript(sessionID: sessionID))
   }
 
   func testPipelineRejectsEmptySpeechAndDoesNotComplete() async throws {
@@ -758,6 +882,25 @@ final class AudioTranscriptionProcessingTests: XCTestCase {
     }
   }
 
+  private struct ConfigurationCheckingTranscriber: AudioTranscribing {
+    let expected: RecordingTranscriptionConfiguration
+
+    func transcribe(sources: [AudioTranscriptionSourceInput], language: AudioRecordingLanguage,
+                    processingDirectory: URL?, sessionID: UUID?) async throws -> AudioRawTranscript {
+      XCTFail("Pipeline must pass the persisted profile to the recognizer")
+      throw RecordingTranscriptionError.invalidConfiguration
+    }
+
+    func transcribe(sources: [AudioTranscriptionSourceInput], language: AudioRecordingLanguage,
+                    processingDirectory: URL?, sessionID: UUID?,
+                    cloudConfiguration: RecordingTranscriptionConfiguration?) async throws -> AudioRawTranscript {
+      XCTAssertEqual(cloudConfiguration, expected)
+      return AudioRawTranscript(sessionID: sessionID, language: language, segments: [
+        .init(text: "retained profile", startTime: 0, duration: 1, source: .mixed)
+      ])
+    }
+  }
+
   private final class BlockingTranscriber: @unchecked Sendable, AudioTranscribing {
     let raw: AudioRawTranscript
     let started = AsyncLatch()
@@ -776,6 +919,21 @@ final class AudioTranscriptionProcessingTests: XCTestCase {
       await started.signal()
       await release.wait()
       return raw
+    }
+  }
+
+  private final class CancellableTranscriber: @unchecked Sendable, AudioTranscribing {
+    let started = AsyncLatch()
+
+    func transcribe(
+      sources: [AudioTranscriptionSourceInput],
+      language: AudioRecordingLanguage,
+      processingDirectory: URL?,
+      sessionID: UUID?
+    ) async throws -> AudioRawTranscript {
+      await started.signal()
+      try await Task.sleep(for: .seconds(60))
+      throw AudioTranscriberError.emptyRecognitionResult
     }
   }
 

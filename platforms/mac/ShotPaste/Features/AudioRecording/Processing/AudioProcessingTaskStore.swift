@@ -471,6 +471,25 @@ nonisolated final class AudioProcessingTaskStore: @unchecked Sendable {
   /// Scans only real UUID session directories and returns recoverable tasks.
   /// Corrupt task JSON is ignored rather than being surfaced as a fake task.
   func scanUnfinishedTasks() -> [AudioProcessingTask] {
+    allTasks().filter(\.isUnfinished)
+  }
+
+  /// Capture can outlive a settings-account change before its first cloud
+  /// child job exists. Retain that profile through capture, save and retry.
+  func cloudProfilesToRetain() -> Set<UUID> {
+    let tasks = scanUnfinishedTasks()
+    var profiles = Set(tasks.compactMap { $0.cloudConfiguration?.account.id })
+    let sessions = AudioAdapterSessionStore(sessionsDirectory: sessionsDirectory, allowedRoot: allowedRoot)
+    for session in sessions.scanSessions() where session.manifest.processingAutoTranscribe == true {
+      guard !session.manifest.stage.isTerminal,
+            let profile = session.manifest.processingCloudConfiguration?.account.id else { continue }
+      profiles.insert(profile)
+    }
+    return profiles
+  }
+
+  /// Includes completed results without opening source media or changing recovery policy.
+  func allTasks() -> [AudioProcessingTask] {
     lock.lock()
     defer { lock.unlock() }
     guard isDirectory(at: sessionsDirectory) else { return [] }
@@ -485,7 +504,8 @@ nonisolated final class AudioProcessingTaskStore: @unchecked Sendable {
       let taskURL = entry.appendingPathComponent(Self.taskFileName, isDirectory: false)
       guard isRegularFile(at: taskURL),
             let task = try? decodeUnlocked(AudioProcessingTask.self, at: taskURL, missing: nil),
-            task.isUnfinished,
+            task.sessionID.uuidString == entry.lastPathComponent,
+            isPhysicallyConfined(taskURL),
             task.hasSafeSourcePaths else { return nil }
       return task
     }.sorted { lhs, rhs in

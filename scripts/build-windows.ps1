@@ -38,7 +38,12 @@ function Test-ShotPasteBuildIdentity {
 
 dotnet restore $solution -p:Platform=x64
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-dotnet test $solution -c $Configuration -p:Platform=x64 --no-restore `
+# dotnet test builds test projects and their dependencies, but not the standalone
+# E2E executables. Build the solution explicitly so -SkipBuild desktop gates use
+# artifacts from this exact source revision, including on a fresh checkout.
+dotnet build $solution -c $Configuration -p:Platform=x64 --no-restore
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+dotnet test $solution -c $Configuration -p:Platform=x64 --no-restore --no-build `
     --filter "FullyQualifiedName!~ScrollingStitcherTests&FullyQualifiedName!~ClipboardMonitorServiceTests.CaptureFileDropAsync_CreatesOneTypedRecordPerPathAndDeduplicatesReplay&FullyQualifiedName!~CaptureHistoryStoreTests"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

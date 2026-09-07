@@ -32,9 +32,10 @@ struct AudioCapturePostProcessingResult: Equatable {
   let transcriptionCanContinue: Bool
   let quickAccessItem: QuickAccessItem?
   let rejection: AudioCapturePostProcessingRejection?
+  var historySkipped: Bool = false
 
   var succeeded: Bool {
-    accepted && historyPersisted
+    accepted && (historyPersisted || historySkipped)
   }
 
   var canContinueTranscription: Bool {
@@ -200,6 +201,7 @@ final class PostCaptureActionHandler {
       )
     }
 
+    let historyEnabled = CaptureHistoryStore.shared.isEnabled
     let existingRecord = CaptureHistoryStore.shared.record(
       forFilePath: url.path,
       preferredID: preferredHistoryID
@@ -250,20 +252,17 @@ final class PostCaptureActionHandler {
         mediaKind: .audio
       )
     }
-    if historyRecordID != nil {
-      showSuccessNotificationIfEnabled(for: .recording)
-    }
 
     return AudioCapturePostProcessingResult(
       accepted: true,
       historyPersisted: historyRecordID != nil,
       historyRecordID: historyRecordID,
-      // The coordinator persists the transcription task after this method, so
-      // only a real history row is a durable hand-off point. A disabled or
-      // failed history store must not claim transcription eligibility.
-      transcriptionCanContinue: historyRecordID != nil,
+      // History opt-out is persisted separately by the coordinator. A failed
+      // enabled history write must still block the durable hand-off.
+      transcriptionCanContinue: historyRecordID != nil || !historyEnabled,
       quickAccessItem: quickAccessItem,
-      rejection: nil
+      rejection: nil,
+      historySkipped: historyRecordID == nil && !historyEnabled
     )
   }
 

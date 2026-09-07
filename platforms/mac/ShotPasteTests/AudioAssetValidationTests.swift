@@ -24,9 +24,10 @@ enum AudioTestMediaFactory {
 
   static func writeQuickTimeAudioOnlyMOV(
     to url: URL,
-    duration: TimeInterval = 0.25
+    duration: TimeInterval = 0.25,
+    role: AudioAdapterTrackRole? = nil
   ) throws {
-    try writeAudio(to: url, fileType: .mov, duration: duration)
+    try writeAudio(to: url, fileType: .mov, duration: duration, role: role)
   }
 
   /// Replaces only the four-byte major brand in a complete ftyp box. This is
@@ -56,7 +57,8 @@ enum AudioTestMediaFactory {
   private static func writeAudio(
     to url: URL,
     fileType: AVFileType,
-    duration: TimeInterval
+    duration: TimeInterval,
+    role: AudioAdapterTrackRole? = nil
   ) throws {
     let sampleRate = 44_100.0
     let frameCount = max(Int(sampleRate * duration), 1)
@@ -87,6 +89,13 @@ enum AudioTestMediaFactory {
     let writer = try AVAssetWriter(outputURL: url, fileType: fileType)
     let input = AVAssetWriterInput(mediaType: .audio, outputSettings: settings)
     input.expectsMediaDataInRealTime = false
+    if let role {
+      let item = AVMutableMetadataItem()
+      item.identifier = AVMetadataIdentifier(rawValue: AudioAdapterTrackRoleMetadataContract.identifier)
+      item.value = role.rawValue as NSString
+      item.dataType = kCMMetadataBaseDataType_UTF8 as String
+      input.metadata = [item]
+    }
     guard writer.canAdd(input) else {
       throw AudioTestMediaFactoryError.cannotAddAudioInput
     }
@@ -225,6 +234,37 @@ enum AudioTestMediaFactory {
 
     input.markAsFinished()
     try finishWriting(writer)
+  }
+
+  static func writeCaptureWithVideoTail(to url: URL, audioDuration: Double, containerDuration: Double) async throws {
+    let audio = url.deletingLastPathComponent().appendingPathComponent("fixture-audio.mov")
+    let video = url.deletingLastPathComponent().appendingPathComponent("fixture-video.mp4")
+    defer {
+      try? FileManager.default.removeItem(at: audio)
+      try? FileManager.default.removeItem(at: video)
+    }
+    try writeQuickTimeAudioOnlyMOV(to: audio, duration: audioDuration, role: .system)
+    try writeVideoOnlyMP4(to: video)
+    let composition = AVMutableComposition()
+    for (source, type) in [(audio, AVMediaType.audio), (video, AVMediaType.video)] {
+      let asset = AVURLAsset(url: source)
+      let tracks = try await asset.loadTracks(withMediaType: type)
+      let track = try XCTUnwrap(tracks.first)
+      let range = try await track.load(.timeRange)
+      let destination = try XCTUnwrap(composition.addMutableTrack(withMediaType: type, preferredTrackID: kCMPersistentTrackID_Invalid))
+      try destination.insertTimeRange(range, of: track, at: .zero)
+      if type == .video {
+        destination.scaleTimeRange(CMTimeRange(start: .zero, duration: range.duration),
+                                   toDuration: CMTime(seconds: containerDuration, preferredTimescale: 600))
+      }
+    }
+    let exporter = try XCTUnwrap(AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetPassthrough))
+    exporter.outputURL = url
+    exporter.outputFileType = .mov
+    await exporter.export()
+    guard exporter.status == .completed else {
+      throw exporter.error ?? AudioTestMediaFactoryError.writerStartFailed
+    }
   }
 
   private static func makePixelBuffer() -> CVPixelBuffer? {

@@ -15,7 +15,8 @@ public sealed record OneShotRecordingOptions(
     RecordingOutputMode OutputMode,
     bool IncludeCursor,
     bool SystemAudio,
-    bool Microphone);
+    bool Microphone,
+    bool TranscriptionEnabled = false, bool UseAI = false, string Language = "auto", bool CloudAvailable = false);
 
 public sealed class OneShotResult(
     OneShotMode mode,

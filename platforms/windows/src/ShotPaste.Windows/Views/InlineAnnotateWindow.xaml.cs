@@ -317,6 +317,13 @@ public partial class InlineAnnotateWindow : Window
         OneShotRecordingCursor.IsChecked = _oneShotRecordingOptions.IncludeCursor;
         OneShotSystemAudio.IsChecked = _oneShotRecordingOptions.SystemAudio;
         OneShotMicrophone.IsChecked = _oneShotRecordingOptions.Microphone;
+        OneShotTranscription.IsEnabled = _oneShotRecordingOptions.CloudAvailable;
+        OneShotUseAI.IsEnabled = _oneShotRecordingOptions.CloudAvailable;
+        OneShotTranscription.IsChecked = _oneShotRecordingOptions.TranscriptionEnabled && _oneShotRecordingOptions.CloudAvailable;
+        OneShotUseAI.IsChecked = _oneShotRecordingOptions.UseAI;
+        OneShotLanguage.ItemsSource = VolcengineTranscriptionProtocol.Languages;
+        OneShotLanguage.SelectedItem = VolcengineTranscriptionProtocol.NormalizeLanguage(_oneShotRecordingOptions.Language);
+        OneShotCloudHint.Visibility = _oneShotRecordingOptions.CloudAvailable ? Visibility.Collapsed : Visibility.Visible;
         _oneShotControlsInitializing = false;
         UpdateOneShotModeControls();
         SelectTool("Selection", commitOneShot: false);
@@ -810,7 +817,9 @@ public partial class InlineAnnotateWindow : Window
         OneShotGif.IsChecked == true ? RecordingOutputMode.Gif : RecordingOutputMode.Video,
         OneShotRecordingCursor.IsChecked == true,
         OneShotSystemAudio.IsChecked == true,
-        OneShotMicrophone.IsChecked == true);
+        OneShotMicrophone.IsChecked == true,
+        OneShotTranscription.IsChecked == true && _oneShotRecordingOptions.CloudAvailable && OneShotGif.IsChecked != true && (OneShotSystemAudio.IsChecked == true || OneShotMicrophone.IsChecked == true),
+        OneShotUseAI.IsChecked == true, OneShotLanguage.SelectedItem as string ?? "auto", _oneShotRecordingOptions.CloudAvailable);
 
     private void OnOneShotStartRecording(object sender, RoutedEventArgs e)
     {

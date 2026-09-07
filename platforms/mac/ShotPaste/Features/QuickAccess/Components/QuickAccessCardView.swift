@@ -266,7 +266,7 @@ struct QuickAccessCardView: View {
   }
 
   private var accessibilityValue: String {
-    [captureType.displayName, item.formattedDuration]
+    [item.itemType == .audio ? L10n.AudioRecording.recording : captureType.displayName, item.formattedDuration]
       .compactMap { $0 }
       .joined(separator: ", ")
   }

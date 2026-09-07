@@ -129,7 +129,7 @@ struct AudioRecordingPreparationView: View {
 
         Section {
           Picker(L10n.AudioRecording.primaryLanguage, selection: $configuration.primaryLanguage) {
-            ForEach(AudioRecordingLanguage.allCases, id: \.rawValue) { language in
+            ForEach([AudioRecordingLanguage.auto, .en, .zhHans, .zhHant], id: \.rawValue) { language in
               Text(languageLabel(language)).tag(language)
             }
           }
@@ -147,6 +147,10 @@ struct AudioRecordingPreparationView: View {
             L10n.AudioRecording.automaticTranscription,
             isOn: automaticTranscriptionBinding
           )
+          .disabled(RecordingTranscriptionConfiguration.current() == nil)
+          if RecordingTranscriptionConfiguration.current() == nil {
+            Text(L10n.CloudTranscription.invalidConfiguration).font(.caption).foregroundStyle(.secondary)
+          }
           Toggle(L10n.AudioRecording.automaticAI, isOn: automaticAIBinding)
             .disabled(!configuration.automaticTranscription)
         }
@@ -161,8 +165,11 @@ struct AudioRecordingPreparationView: View {
         Spacer()
         Button(L10n.Common.cancel, action: onCancel)
         Button(L10n.AudioRecording.startButton) {
-          AudioRecordingPreferences.save(configuration)
-          onStart(configuration)
+          var selected = configuration
+          selected.automaticTranscription = selected.automaticTranscription && RecordingTranscriptionConfiguration.current() != nil
+          selected = selected.normalized
+          AudioRecordingPreferences.save(selected)
+          onStart(selected)
         }
         .disabled(!configuration.hasAudioSource)
         .keyboardShortcut(.defaultAction)
@@ -189,9 +196,9 @@ struct AudioRecordingPreparationView: View {
 
   private var automaticTranscriptionBinding: Binding<Bool> {
     Binding(
-      get: { configuration.automaticTranscription },
+      get: { configuration.automaticTranscription && RecordingTranscriptionConfiguration.current() != nil },
       set: {
-        configuration.automaticTranscription = $0
+        configuration.automaticTranscription = $0 && RecordingTranscriptionConfiguration.current() != nil
         if !$0 { configuration.automaticAI = false }
       }
     )

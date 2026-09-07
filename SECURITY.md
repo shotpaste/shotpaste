@@ -46,13 +46,32 @@ project merely for bypassing a control to demonstrate the issue.
 ShotPaste is local-first:
 
 - Capture, recording, OCR, QR recognition, history, and clipboard processing happen locally.
+- Opt-in recording transcription sends only selected audio to Volcengine using
+  separately configured credentials. Optional Agent AI processing sends transcript
+  text and segment IDs to the configured LLM endpoint. Capture itself does not
+  require either network service. On macOS, transcription credentials use local
+  UserDefaults profiles, matching the LLM API key. This storage is not Keychain
+  encryption; the interface masks saved values and the app excludes them from
+  configuration exports, task records and logs. Debug/Release bundle identities
+  keep the profiles separate. Windows retains DPAPI-protected credentials.
 - The project does not operate an account service, telemetry collector, or upload relay.
-- The app does not provide remote storage, file upload, or synchronization features.
+- The app does not offer general-purpose remote storage or synchronization.
+  Opt-in transcription on both platforms stages audio only in user-owned private TOS storage.
+  Signed GET URLs exist in memory for a maximum 24-hour validity and go only to
+  the fixed ASR host. Redirects never receive authentication. Scoped 2-day object
+  expiration supplements immediate deletion and independent cleanup retries.
+  macOS durable task JSON excludes credentials, request bodies and signed URLs.
+  Windows private capture and task receipts retain DPAPI-encrypted account snapshots
+  so recovery and deletion use the original credentials; exports exclude these
+  encrypted snapshots as well as plaintext keys and signed URLs. Raw
+  transcripts and pending local audio parts use private variant support storage.
+  Account switches retain old local credential profiles for their own cleanup; new keys
+  are never used to delete another profile's objects.
 - OCR links and QR payloads are treated as text. They are not automatically opened or executed.
 
 The macOS app uses hardened runtime but is not App Sandbox-enabled. It requests Screen Recording for capture, Microphone when voice recording is enabled, and Accessibility/Input Monitoring only for features that need global input observation. User-selected file access and read-only access to macOS shortcut preferences are declared in its entitlements.
 
-Windows uses native capture and global-input APIs and stores application data under the user's local application-data directory.
+Windows uses native capture and global-input APIs and stores application data under the user's local application-data directory. Audio-only capture uses WASAPI without a screen stream. Temporary PCM and source audio remain local and are removed only after safe saving or explicit discard.
 
 ## Release trust
 

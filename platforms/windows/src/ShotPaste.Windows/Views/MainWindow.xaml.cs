@@ -210,7 +210,7 @@ public partial class MainWindow : Window
         {
             "Screenshot" => kind == CaptureKind.Screenshot,
             "ScrollingScreenshot" => kind == CaptureKind.ScrollingScreenshot,
-            "Recording" => kind is CaptureKind.Recording or CaptureKind.Gif,
+            "Recording" => kind is CaptureKind.Recording or CaptureKind.Gif or CaptureKind.Audio,
             // Clipboard History is the aggregate product history. The other
             // three pills narrow that collection to capture-specific subsets.
             "Clipboard" => true,
@@ -341,6 +341,12 @@ public partial class MainWindow : Window
     {
         if ((sender as FrameworkElement)?.Tag is not CaptureHistoryItem item) return;
         _controller.CopyHistoryItem(item);
+    }
+
+    private void OnTranscriptionResults(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is CaptureHistoryItem item) _controller.ShowTranscriptionResults(item);
+        else _controller.ShowTranscriptionResults();
     }
 
     private void OnRestoreItem(object sender, RoutedEventArgs e)

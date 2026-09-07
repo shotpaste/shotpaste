@@ -3,6 +3,7 @@
 //  ShotPasteTests
 //
 
+import AVFoundation
 import Foundation
 @testable import ShotPaste
 import XCTest
@@ -35,6 +36,56 @@ final class AudioAdapterSessionPipelineTests: XCTestCase {
     store = nil
     temporaryDirectory = nil
     try super.tearDownWithError()
+  }
+
+  func testLowFrameRateVideoTailExtractsAndPassesRecoveryValidation() async throws {
+    try await exerciseVideoTail(audioDuration: 9.25, shouldSucceed: true)
+  }
+
+  func testTruncatedAudioStillFailsAndPreservesSource() async throws {
+    try await exerciseVideoTail(audioDuration: 6, shouldSucceed: false)
+  }
+
+  private func exerciseVideoTail(audioDuration: Double, shouldSucceed: Bool) async throws {
+    let realStore = AudioAdapterSessionStore(sessionsDirectory: temporaryDirectory)
+    let created = try realStore.createSession(selectedAudioSources: .system)
+    let captureURL = try created.url(for: "capture.mov")
+    try await AudioTestMediaFactory.writeCaptureWithVideoTail(to: captureURL, audioDuration: audioDuration, containerDuration: 10)
+    let asset = AVURLAsset(url: captureURL)
+    let tracks = try await asset.loadTracks(withMediaType: .audio)
+    let track = try XCTUnwrap(tracks.first)
+    let duration = try await asset.load(.duration).seconds
+    _ = try realStore.transition(sessionID: created.sessionID, to: .preparing)
+    _ = try realStore.transition(sessionID: created.sessionID, to: .recording)
+    _ = try realStore.transition(sessionID: created.sessionID, to: .stopping)
+    _ = try realStore.recordCaptureOutput(sessionID: created.sessionID, relativePath: "capture.mov",
+      durationSeconds: duration, trackIDsByRole: [.system: track.trackID], segmentID: created.manifest.segments[0].id)
+    do {
+      let result = try await AudioExtractionPipeline(store: realStore).extract(sessionID: created.sessionID)
+      XCTAssertTrue(shouldSucceed, "Truncated source must not pass extraction")
+      XCTAssertTrue(result.manifestPersistenceSucceeded)
+      XCTAssertEqual(result.mixed.durationSeconds, audioDuration, accuracy: 0.15)
+      let saved = try realStore.load(sessionID: created.sessionID)
+      XCTAssertTrue(saved.manifest.finalAudioValidated)
+      XCTAssertFalse(saved.manifest.canDeleteInternalVideo)
+    } catch {
+      if shouldSucceed { throw error }
+      guard case AudioExtractionPipelineError.invalidDuration = error else {
+        return XCTFail("Expected duration rejection, got \(error)")
+      }
+    }
+    XCTAssertTrue(FileManager.default.fileExists(atPath: captureURL.path))
+  }
+
+  func testHistorySkipCannotBypassValidationOrOrdinaryMutationGate() throws {
+    let session = try store.createSession(selectedAudioSources: .system)
+    XCTAssertThrowsError(try store.markHistorySkipped(sessionID: session.sessionID))
+    XCTAssertThrowsError(try store.update(sessionID: session.sessionID) { manifest in
+      manifest.historySkipped = true
+    })
+    let reloaded = try store.load(sessionID: session.sessionID)
+    XCTAssertFalse(reloaded.manifest.historyHandled)
+    XCTAssertFalse(reloaded.manifest.canDeleteInternalVideo)
   }
 
   func testTinyRegionGeometryUsesPhysicalPixelsAndNegativeDisplayOrigin() throws {

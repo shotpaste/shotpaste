@@ -16,6 +16,72 @@ internal static class RecordingLifecycleE2E
 {
     private static readonly TimeSpan UiTimeout = TimeSpan.FromSeconds(45);
 
+    internal static async Task<object> RunAudioAsync(string executable, string outputRoot)
+    {
+        var stopped = await RunAudioProductCaseAsync(executable, Path.Combine(outputRoot, "audio-controller-stop"), false);
+        var quit = await RunAudioProductCaseAsync(executable, Path.Combine(outputRoot, "audio-controller-quit"), true);
+        return new { StopAndHistory = stopped, SaveBeforeQuit = quit,
+            Scope = "Real product process and visible preparation/start/control; isolated test launcher, no tray or physical shortcut claim" };
+    }
+
+    private static async Task<object> RunAudioProductCaseAsync(string executable, string root, bool quitWhileRecording)
+    {
+        PrepareRoot(root);
+        var settingsPath = Path.Combine(root, "settings.json");
+        var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(settingsPath))!;
+        settings.AudioRecordSystemAudio = true;
+        settings.AudioRecordMicrophone = false;
+        settings.AudioTranscriptionEnabled = false;
+        settings.AudioTranscriptionUseAI = false;
+        settings.ClipboardHistoryEnabled = !quitWhileRecording;
+        settings.ShowQuickAccess = !quitWhileRecording;
+        settings.ShowQuickAccessForRecordings = true;
+        File.WriteAllText(settingsPath, JsonSerializer.Serialize(settings));
+        using var product = Process.Start(new ProcessStartInfo(executable)
+        {
+            UseShellExecute = false,
+            ArgumentList = { "--ui-test", "--data-root", root, "--ui-test-surface=audio-preparation" }
+        }) ?? throw new InvalidOperationException("Could not launch the isolated audio controller fixture.");
+        try
+        {
+            await WaitForAutomationIdAsync(product.Id, "AudioRecordingPreparationWindow");
+            Invoke(await WaitForAutomationIdAsync(product.Id, "AudioRecordingStart"));
+            var control = await WaitForAutomationIdAsync(product.Id, "AudioRecordingControlWindow");
+            await Task.Delay(1400);
+            SaveElementScreenshot(control, Path.Combine(root, "audio-controller.png"));
+            if (quitWhileRecording)
+            {
+                RequestUiTestExit(executable, root);
+                await WaitForAutomationIdAsync(product.Id, "ShotPasteDialog");
+                Invoke(await WaitForAutomationIdAsync(product.Id, "DialogPrimary"));
+                await WaitUntilAsync(() => product.HasExited, "Audio save-before-quit did not finish the real product process.");
+            }
+            else
+            {
+                Invoke(await WaitForAutomationIdAsync(product.Id, "AudioRecordingStop"));
+                await WaitUntilAsync(() => FindByAutomationId(product.Id, "AudioRecordingControlWindow") is null,
+                    "Audio stop did not close the control window.");
+                await WaitForAutomationIdAsync(product.Id, "QuickAccessCopy");
+                RequestUiTestExit(executable, root);
+                await WaitUntilAsync(() => product.HasExited, "The product did not exit after saving audio.");
+            }
+            var files = Directory.GetFiles(Path.Combine(root, "Captures"), "*.m4a");
+            if (files.Length != 1) throw new InvalidOperationException("Audio controller did not save exactly one M4A.");
+            using var reader = new NAudio.Wave.MediaFoundationReader(files[0]);
+            if (reader.TotalTime < TimeSpan.FromSeconds(1) || reader.Read(new byte[4096], 0, 4096) == 0)
+                throw new InvalidOperationException("Controller saved an incomplete audio file.");
+            var rows = HistoryRows(root);
+            if (rows != (quitWhileRecording ? 0 : 1))
+                throw new InvalidOperationException("Audio history opt-in/opt-out was not preserved by the product controller.");
+            if (Directory.EnumerateFiles(root, "*.pcm", SearchOption.AllDirectories).Any())
+                throw new InvalidOperationException("Controller retained PCM after a completed audio save.");
+            return new { SavedPath = files[0], reader.TotalTime, HistoryRows = rows,
+                QuickAccessShown = !quitWhileRecording, SavedBeforeQuit = quitWhileRecording,
+                CaptureFilesPreserved = true, Cloud = "Disabled", Microphone = "Disabled" };
+        }
+        finally { StopExactProcess(product); }
+    }
+
     internal static async Task<object> RunAsync(string executable, string outputRoot)
     {
         executable = Path.GetFullPath(executable);

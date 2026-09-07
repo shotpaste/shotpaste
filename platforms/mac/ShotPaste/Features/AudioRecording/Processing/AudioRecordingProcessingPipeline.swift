@@ -59,6 +59,27 @@ nonisolated protocol AudioTranscribing: Sendable {
     processingDirectory: URL?,
     sessionID: UUID?
   ) async throws -> AudioRawTranscript
+
+  func transcribe(
+    sources: [AudioTranscriptionSourceInput],
+    language: AudioRecordingLanguage,
+    processingDirectory: URL?,
+    sessionID: UUID?,
+    cloudConfiguration: RecordingTranscriptionConfiguration?
+  ) async throws -> AudioRawTranscript
+}
+
+extension AudioTranscribing {
+  func transcribe(
+    sources: [AudioTranscriptionSourceInput],
+    language: AudioRecordingLanguage,
+    processingDirectory: URL?,
+    sessionID: UUID?,
+    cloudConfiguration: RecordingTranscriptionConfiguration?
+  ) async throws -> AudioRawTranscript {
+    try await transcribe(sources: sources, language: language,
+      processingDirectory: processingDirectory, sessionID: sessionID)
+  }
 }
 
 nonisolated protocol AudioLLMProcessing: Sendable {
@@ -328,11 +349,33 @@ nonisolated final class AudioRecordingProcessingPipeline: @unchecked Sendable {
         sessionID: initialTask.sessionID,
         preservingSourceURLs: inputs.map(\.url)
       )
-      return try await self.runExclusive(
-        task: initialTask,
-        inputs: inputs,
-        allowedSourcePaths: allowedSourcePaths
-      )
+      let operation = Task {
+        try await self.runExclusive(
+          task: initialTask,
+          inputs: inputs,
+          allowedSourcePaths: allowedSourcePaths
+        )
+      }
+      // The results window cancels through the durable task store, and does
+      // not own this coordinator's Task. Propagate that request while a cloud
+      // recognizer or LLM call is suspended so it stops polling/uploading
+      // subsequent parts instead of waiting for the entire recording.
+      let cancellationMonitor = Task {
+        while !Task.isCancelled {
+          if (try? self.taskStore.loadTask(sessionID: initialTask.sessionID).cancellationRequested) == true {
+            operation.cancel()
+            return
+          }
+          do { try await Task.sleep(for: .milliseconds(100)) }
+          catch { return }
+        }
+      }
+      defer { cancellationMonitor.cancel() }
+      return try await withTaskCancellationHandler(operation: {
+        try await operation.value
+      }, onCancel: {
+        operation.cancel()
+      })
     }
   }
 
@@ -410,6 +453,27 @@ nonisolated final class AudioRecordingProcessingPipeline: @unchecked Sendable {
       }
 
       if task.autoTranscribe, raw == nil {
+        if task.cloudConfiguration == nil,
+           let local = transcriber as? LocalAudioTranscriber,
+           local.usesCloudRecognition {
+          let paths = Set(inputs.map { $0.url.standardizedFileURL.path })
+          let receipts = await VolcengineRecordingWorkStore.shared.works().filter {
+            paths.contains($0.recordingURL.standardizedFileURL.path)
+          }
+          let configuration: RecordingTranscriptionConfiguration?
+          if let original = receipts.first?.configuration {
+            guard receipts.allSatisfy({ $0.configuration == original }) else {
+              throw RecordingTranscriptionError.invalidConfiguration
+            }
+            configuration = original
+          } else {
+            configuration = await RecordingTranscriptionConfiguration.current().map {
+              RecordingTranscriptionConfiguration(account: $0.account, sourceLanguage: task.language)
+            }
+          }
+          guard let configuration else { throw RecordingTranscriptionError.invalidConfiguration }
+          task = try taskStore.updateTask(sessionID: task.sessionID) { $0.cloudConfiguration = configuration }
+        }
         if task.stage != .saving && task.stage != .transcribing {
           task = try taskStore.transition(sessionID: task.sessionID, to: .saving)
         }
@@ -422,7 +486,8 @@ nonisolated final class AudioRecordingProcessingPipeline: @unchecked Sendable {
           sources: inputs,
           language: task.language,
           processingDirectory: processingDirectory,
-          sessionID: task.sessionID
+          sessionID: task.sessionID,
+          cloudConfiguration: task.cloudConfiguration
         )
         guard transcript.hasValidStructure else {
           throw AudioRecordingProcessingPipelineError.invalidRawTranscript
@@ -533,6 +598,12 @@ nonisolated final class AudioRecordingProcessingPipeline: @unchecked Sendable {
     } catch let error as AudioRecordingProcessingPipelineError where error == .cancelled {
       return try await failOrCancel(task: task, code: "cancelled", message: "cancelled", cancelled: true)
     } catch {
+      var context = AudioTranscriptionDiagnostics.errorContext(error)
+      context["sessionID"] = task.sessionID.uuidString
+      context["taskID"] = task.id.uuidString
+      context["stage"] = task.stage.rawValue
+      context["failureKind"] = errorCode(for: error)
+      DiagnosticLogger.shared.log(.error, .recording, "Audio processing task failed", context: context)
       _ = try? taskStore.markFailed(
         sessionID: task.sessionID,
         code: errorCode(for: error),
@@ -642,6 +713,7 @@ nonisolated final class AudioRecordingProcessingPipeline: @unchecked Sendable {
 
   private func errorCode(for error: Error) -> String {
     switch error {
+    case AudioTranscriberError.dictationDisabled: "speech_service_disabled"
     case is AudioTranscriberError: "transcription_failed"
     case is AudioLocalLLMError: "model_processing_failed"
     case is AudioProcessingTaskStoreError: "persistence_failed"
