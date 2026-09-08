@@ -1,237 +1,67 @@
-//
-//  AnnotateBlurEffectRendererTests.swift
-//  ShotPasteTests
-//
-//  Unit tests for BlurEffectRenderer drawing helpers.
-//
-
 import AppKit
 import CoreGraphics
 @testable import ShotPaste
 import XCTest
 
 final class AnnotateBlurEffectRendererTests: XCTestCase {
-  private func makeContext(width: Int, height: Int) -> CGContext? {
-    CGContext(
-      data: nil,
-      width: width,
-      height: height,
-      bitsPerComponent: 8,
-      bytesPerRow: 0,
-      space: CGColorSpaceCreateDeviceRGB(),
-      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    )
+  private func patternedContext() throws -> CGContext {
+    let context = try XCTUnwrap(CGContext(data: nil, width: 64, height: 64,
+      bitsPerComponent: 8, bytesPerRow: 256, space: CGColorSpaceCreateDeviceRGB(),
+      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+    for y in 0..<32 {
+      for x in 0..<32 {
+        context.setFillColor(CGColor(gray: (x + y) % 2 == 0 ? 0 : 1, alpha: 1))
+        context.fill(CGRect(x: x * 2, y: y * 2, width: 2, height: 2))
+      }
+    }
+    return context
   }
 
-  func testDrawBlurPreview_doesNotCrash() {
-    guard let context = makeContext(width: 100, height: 100) else {
-      XCTFail("Could not create context")
-      return
-    }
-    BlurEffectRenderer.drawBlurPreview(
-      in: context,
-      region: CGRect(x: 10, y: 10, width: 80, height: 80),
-      strokeColor: CGColor(red: 1, green: 0, blue: 0, alpha: 1)
-    )
+  private func pixels(_ context: CGContext) throws -> Data {
+    Data(bytes: try XCTUnwrap(context.data), count: context.bytesPerRow * context.height)
   }
 
-  func testDrawPixelatedRegion_withValidImage_doesNotCrash() {
-    guard let context = makeContext(width: 100, height: 100) else {
-      XCTFail("Could not create context")
-      return
+  func testEffectsChangeContentWithinTheirDrawingBounds() throws {
+    let renderers: [(String, (CGContext, NSImage, CGRect) -> Void)] = [
+      ("pixelated", { BlurEffectRenderer.drawPixelatedRegion(in: $0, sourceImage: $1, region: $2, pixelSize: 8) }),
+      ("gaussian", { BlurEffectRenderer.drawGaussianRegion(in: $0, sourceImage: $1, region: $2, radius: 10) }),
+      ("hexagonal", { BlurEffectRenderer.drawHexagonalRegion(in: $0, sourceImage: $1, region: $2, scale: 8) }),
+      ("crystallized", { BlurEffectRenderer.drawCrystallizedRegion(in: $0, sourceImage: $1, region: $2, radius: 8) }),
+      ("pointillism", { BlurEffectRenderer.drawPointillismRegion(in: $0, sourceImage: $1, region: $2, radius: 8) }),
+      ("halftone", { BlurEffectRenderer.drawHalftoneRegion(in: $0, sourceImage: $1, region: $2, width: 8) }),
+      ("tape", { BlurEffectRenderer.drawTapeRegion(in: $0, sourceImage: $1, region: $2, patternSpacing: 10) }),
+      ("washi", { BlurEffectRenderer.drawWashiRegion(in: $0, sourceImage: $1, region: $2, patternSpacing: 10) })
+    ]
+    for (name, render) in renderers {
+      let context = try patternedContext()
+      let source = NSImage(cgImage: try XCTUnwrap(context.makeImage()), size: NSSize(width: 64, height: 64))
+      let before = try pixels(context)
+      render(context, source, CGRect(x: 16, y: 16, width: 32, height: 32))
+      let after = try pixels(context)
+      var changedInside = false
+      var changedOutside = 0
+      // Decorative tape has a torn edge and a 2-point offset shadow; blur filters do not.
+      let margin = ["crystallized", "pointillism", "halftone", "tape", "washi"].contains(name) ? 8 : 0
+      for y in 0..<64 {
+        for x in 0..<64 {
+          let offset = y * 256 + x * 4
+          let changed = before[offset..<offset + 4] != after[offset..<offset + 4]
+          if (16..<48).contains(x), (16..<48).contains(y) { changedInside = changedInside || changed }
+          else if !(16 - margin..<48 + margin).contains(x) || !(16 - margin..<48 + margin).contains(y) {
+            if changed { changedOutside += 1 }
+          }
+        }
+      }
+      XCTAssertEqual(changedOutside, 0, "\(name) changed unrelated surrounding content")
+      XCTAssertTrue(changedInside, "\(name) must change the selected content, not merely avoid crashing")
     }
-    guard let cgImage = TestImageFactory.solidColor(width: 100, height: 100) else {
-      XCTFail("Failed to create test image")
-      return
-    }
-    let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: 100, height: 100))
-    BlurEffectRenderer.drawPixelatedRegion(
-      in: context,
-      sourceImage: nsImage,
-      region: CGRect(x: 10, y: 10, width: 80, height: 80),
-      pixelSize: 8
-    )
   }
 
-  func testDrawPixelatedRegion_emptyRegion_returnsEarly() {
-    guard let context = makeContext(width: 100, height: 100) else {
-      XCTFail("Could not create context")
-      return
-    }
-    guard let cgImage = TestImageFactory.solidColor(width: 100, height: 100) else {
-      XCTFail("Failed to create test image")
-      return
-    }
-    let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: 100, height: 100))
-    BlurEffectRenderer.drawPixelatedRegion(
-      in: context,
-      sourceImage: nsImage,
-      region: CGRect(x: 0, y: 0, width: 0, height: 0),
-      pixelSize: 8
-    )
-  }
-
-  func testDrawGaussianRegion_withValidImage_doesNotCrash() {
-    guard let context = makeContext(width: 100, height: 100) else {
-      XCTFail("Could not create context")
-      return
-    }
-    guard let cgImage = TestImageFactory.solidColor(width: 100, height: 100) else {
-      XCTFail("Failed to create test image")
-      return
-    }
-    let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: 100, height: 100))
-    BlurEffectRenderer.drawGaussianRegion(
-      in: context,
-      sourceImage: nsImage,
-      region: CGRect(x: 10, y: 10, width: 80, height: 80),
-      radius: 10
-    )
-  }
-
-  func testDrawHexagonalRegion_withValidImage_doesNotCrash() {
-    guard let context = makeContext(width: 100, height: 100) else {
-      XCTFail("Could not create context")
-      return
-    }
-    guard let cgImage = TestImageFactory.solidColor(width: 100, height: 100) else {
-      XCTFail("Failed to create test image")
-      return
-    }
-    let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: 100, height: 100))
-    BlurEffectRenderer.drawHexagonalRegion(
-      in: context,
-      sourceImage: nsImage,
-      region: CGRect(x: 10, y: 10, width: 80, height: 80),
-      scale: 8
-    )
-  }
-
-  func testDrawCrystallizedRegion_withValidImage_doesNotCrash() {
-    guard let context = makeContext(width: 100, height: 100) else {
-      XCTFail("Could not create context")
-      return
-    }
-    guard let cgImage = TestImageFactory.solidColor(width: 100, height: 100) else {
-      XCTFail("Failed to create test image")
-      return
-    }
-    let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: 100, height: 100))
-    BlurEffectRenderer.drawCrystallizedRegion(
-      in: context,
-      sourceImage: nsImage,
-      region: CGRect(x: 10, y: 10, width: 80, height: 80),
-      radius: 8
-    )
-  }
-
-  func testDrawPointillismRegion_withValidImage_doesNotCrash() {
-    guard let context = makeContext(width: 100, height: 100) else {
-      XCTFail("Could not create context")
-      return
-    }
-    guard let cgImage = TestImageFactory.solidColor(width: 100, height: 100) else {
-      XCTFail("Failed to create test image")
-      return
-    }
-    let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: 100, height: 100))
-    BlurEffectRenderer.drawPointillismRegion(
-      in: context,
-      sourceImage: nsImage,
-      region: CGRect(x: 10, y: 10, width: 80, height: 80),
-      radius: 8
-    )
-  }
-
-  func testDrawHalftoneRegion_withValidImage_doesNotCrash() {
-    guard let context = makeContext(width: 100, height: 100) else {
-      XCTFail("Could not create context")
-      return
-    }
-    guard let cgImage = TestImageFactory.solidColor(width: 100, height: 100) else {
-      XCTFail("Failed to create test image")
-      return
-    }
-    let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: 100, height: 100))
-    BlurEffectRenderer.drawHalftoneRegion(
-      in: context,
-      sourceImage: nsImage,
-      region: CGRect(x: 10, y: 10, width: 80, height: 80),
-      width: 8
-    )
-  }
-
-  func testDrawTapeRegion_doesNotCrash() {
-    guard let context = makeContext(width: 100, height: 100) else {
-      XCTFail("Could not create context")
-      return
-    }
-    BlurEffectRenderer.drawTapeRegion(
-      in: context,
-      region: CGRect(x: 10, y: 10, width: 80, height: 80),
-      patternSpacing: 10
-    )
-
-    guard let cgImage = TestImageFactory.solidColor(width: 100, height: 100) else {
-      XCTFail("Failed to create test image")
-      return
-    }
-    let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: 100, height: 100))
-    BlurEffectRenderer.drawTapeRegion(
-      in: context,
-      sourceImage: nsImage,
-      region: CGRect(x: 10, y: 10, width: 80, height: 80),
-      patternSpacing: 10.0
-    )
-
-    BlurEffectRenderer.drawTapeRegion(
-      in: context,
-      sourceCGImage: cgImage,
-      sourceSize: CGSize(width: 100, height: 100),
-      sourceRegion: CGRect(x: 10, y: 10, width: 80, height: 80),
-      destRegion: CGRect(x: 10, y: 10, width: 80, height: 80),
-      patternSpacing: 10.0
-    )
-  }
-
-  func testDrawWashiRegion_doesNotCrash() {
-    guard let context = makeContext(width: 100, height: 100) else {
-      XCTFail("Could not create context")
-      return
-    }
-    BlurEffectRenderer.drawWashiRegion(
-      in: context,
-      region: CGRect(x: 10, y: 10, width: 80, height: 80),
-      patternSpacing: 10
-    )
-
-    guard let cgImage = TestImageFactory.solidColor(width: 100, height: 100) else {
-      XCTFail("Failed to create test image")
-      return
-    }
-    let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: 100, height: 100))
-    BlurEffectRenderer.drawWashiRegion(
-      in: context,
-      sourceImage: nsImage,
-      region: CGRect(x: 10, y: 10, width: 80, height: 80),
-      patternSpacing: 10.0
-    )
-
-    BlurEffectRenderer.drawWashiRegion(
-      in: context,
-      sourceCGImage: cgImage,
-      sourceSize: CGSize(width: 100, height: 100),
-      sourceRegion: CGRect(x: 10, y: 10, width: 80, height: 80),
-      destRegion: CGRect(x: 10, y: 10, width: 80, height: 80),
-      patternSpacing: 10.0
-    )
-  }
-
-  func testDefaultPixelSize_isPositive() {
-    XCTAssertGreaterThan(BlurEffectRenderer.defaultPixelSize, 0)
-  }
-
-  func testDefaultGaussianRadius_isPositive() {
-    XCTAssertGreaterThan(BlurEffectRenderer.defaultGaussianRadius, 0)
+  func testEmptyRegionPreservesImage() throws {
+    let context = try patternedContext()
+    let image = NSImage(cgImage: try XCTUnwrap(context.makeImage()), size: NSSize(width: 64, height: 64))
+    let before = try pixels(context)
+    BlurEffectRenderer.drawPixelatedRegion(in: context, sourceImage: image, region: .zero)
+    XCTAssertEqual(try pixels(context), before)
   }
 }

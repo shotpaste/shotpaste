@@ -1,7 +1,8 @@
 <Window x:Class="ShotPaste.Windows.Views.InlineAnnotateWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:loc="clr-namespace:ShotPaste.Windows.Services"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        AutomationProperties.AutomationId="InlineAnnotateWindow" Title="ShotPaste · One Shot" WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True" Background="Transparent"
+        AutomationProperties.AutomationId="InlineAnnotateWindow" Title="{loc:Localized Key='ShotPaste · One Shot', IsWindowTitle=True}" WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" Topmost="True" Cursor="Cross"
         PreviewKeyDown="OnPreviewKeyDown" PreviewKeyUp="OnPreviewKeyUp" Closing="OnClosing" Deactivated="OnWindowDeactivated"
         PreviewMouseLeftButtonDown="OnWindowMouseDown" MouseMove="OnWindowMouseMove" MouseLeftButtonUp="OnWindowMouseUp">
@@ -181,46 +182,46 @@
                         HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
                         PanningMode="HorizontalOnly" PreviewMouseWheel="OnToolbarToolsMouseWheel">
             <StackPanel x:Name="AnnotationToolContent" Orientation="Horizontal">
-              <Button x:Name="MoveButton" Content="Move" ContentTemplate="{StaticResource AnnotationToolbarDragIcon}"
+              <Button x:Name="MoveButton" Content="{loc:Localized Key='Move'}" ContentTemplate="{StaticResource AnnotationToolbarDragIcon}"
                       AutomationProperties.AutomationId="OneShotMoveToolbar" Style="{StaticResource HudIconButton}"
-                      ToolTip="拖动以移动工具栏"
+                      ToolTip="{loc:Localized Key='拖动以移动工具栏'}"
                       PreviewMouseLeftButtonDown="OnMoveMouseDown" MouseMove="OnToolbarMoveMouseMove" MouseLeftButtonUp="OnToolbarMoveMouseUp"/>
               <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
-              <Button Content="Selection" AutomationProperties.AutomationId="InlineToolSelection" ContentTemplate="{StaticResource AnnotationSelectionIcon}" Tag="Selection" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="选择"/>
+              <Button Content="{loc:Localized Key='Selection'}" AutomationProperties.AutomationId="InlineToolSelection" ContentTemplate="{StaticResource AnnotationSelectionIcon}" Tag="Selection" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="{loc:Localized Key='选择'}"/>
               <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
-              <Button Content="Rectangle" AutomationProperties.AutomationId="InlineToolRectangle" ContentTemplate="{StaticResource AnnotationRectangleIcon}" Tag="Rectangle" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="矩形"/>
-              <Button Content="FilledRectangle" AutomationProperties.AutomationId="InlineToolFilledRectangle" ContentTemplate="{StaticResource AnnotationFilledRectangleIcon}" Tag="FilledRectangle" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="填充矩形"/>
-              <Button Content="Oval" AutomationProperties.AutomationId="InlineToolOval" ContentTemplate="{StaticResource AnnotationOvalIcon}" Tag="Oval" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="椭圆形"/>
-              <Button Content="Arrow" AutomationProperties.AutomationId="InlineToolArrow" ContentTemplate="{StaticResource AnnotationArrowIcon}" Tag="Arrow" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="箭头"/>
-              <Button Content="Line" AutomationProperties.AutomationId="InlineToolLine" ContentTemplate="{StaticResource AnnotationLineIcon}" Tag="Line" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="直线"/>
+              <Button Content="{loc:Localized Key='Rectangle'}" AutomationProperties.AutomationId="InlineToolRectangle" ContentTemplate="{StaticResource AnnotationRectangleIcon}" Tag="Rectangle" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="{loc:Localized Key='矩形'}"/>
+              <Button Content="{loc:Localized Key='FilledRectangle'}" AutomationProperties.AutomationId="InlineToolFilledRectangle" ContentTemplate="{StaticResource AnnotationFilledRectangleIcon}" Tag="FilledRectangle" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="{loc:Localized Key='填充矩形'}"/>
+              <Button Content="{loc:Localized Key='Oval'}" AutomationProperties.AutomationId="InlineToolOval" ContentTemplate="{StaticResource AnnotationOvalIcon}" Tag="Oval" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="{loc:Localized Key='椭圆形'}"/>
+              <Button Content="{loc:Localized Key='Arrow'}" AutomationProperties.AutomationId="InlineToolArrow" ContentTemplate="{StaticResource AnnotationArrowIcon}" Tag="Arrow" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="{loc:Localized Key='箭头'}"/>
+              <Button Content="{loc:Localized Key='Line'}" AutomationProperties.AutomationId="InlineToolLine" ContentTemplate="{StaticResource AnnotationLineIcon}" Tag="Line" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="{loc:Localized Key='直线'}"/>
               <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
-              <Button Content="Text" AutomationProperties.AutomationId="InlineToolText" ContentTemplate="{StaticResource AnnotationTextIcon}" Tag="Text" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="文字"/>
-              <Button Content="Highlighter" AutomationProperties.AutomationId="InlineToolHighlighter" ContentTemplate="{StaticResource AnnotationHighlighterIcon}" Tag="Highlighter" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="荧光笔"/>
-              <Button Content="Blur" AutomationProperties.AutomationId="InlineToolBlur" ContentTemplate="{StaticResource AnnotationBlurIcon}" Tag="Blur" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="模糊"/>
-              <Button Content="Spotlight" AutomationProperties.AutomationId="InlineToolSpotlight" ContentTemplate="{StaticResource AnnotationSpotlightIcon}" Tag="Spotlight" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="聚光灯"/>
-              <Button Content="Counter" AutomationProperties.AutomationId="InlineToolCounter" ContentTemplate="{StaticResource AnnotationCounterIcon}" Tag="Counter" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="计数器"/>
-              <Button Content="Pencil" AutomationProperties.AutomationId="InlineToolPencil" ContentTemplate="{StaticResource AnnotationPencilIcon}" Tag="Pencil" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="铅笔"/>
+              <Button Content="{loc:Localized Key='Text'}" AutomationProperties.AutomationId="InlineToolText" ContentTemplate="{StaticResource AnnotationTextIcon}" Tag="Text" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="{loc:Localized Key='文字'}"/>
+              <Button Content="{loc:Localized Key='Highlighter'}" AutomationProperties.AutomationId="InlineToolHighlighter" ContentTemplate="{StaticResource AnnotationHighlighterIcon}" Tag="Highlighter" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="{loc:Localized Key='荧光笔'}"/>
+              <Button Content="{loc:Localized Key='Blur'}" AutomationProperties.AutomationId="InlineToolBlur" ContentTemplate="{StaticResource AnnotationBlurIcon}" Tag="Blur" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="{loc:Localized Key='模糊'}"/>
+              <Button Content="{loc:Localized Key='Spotlight'}" AutomationProperties.AutomationId="InlineToolSpotlight" ContentTemplate="{StaticResource AnnotationSpotlightIcon}" Tag="Spotlight" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="{loc:Localized Key='聚光灯'}"/>
+              <Button Content="{loc:Localized Key='Counter'}" AutomationProperties.AutomationId="InlineToolCounter" ContentTemplate="{StaticResource AnnotationCounterIcon}" Tag="Counter" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="{loc:Localized Key='计数器'}"/>
+              <Button Content="{loc:Localized Key='Pencil'}" AutomationProperties.AutomationId="InlineToolPencil" ContentTemplate="{StaticResource AnnotationPencilIcon}" Tag="Pencil" Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="{loc:Localized Key='铅笔'}"/>
             </StackPanel>
           </ScrollViewer>
 
           <StackPanel x:Name="PersistentToolbarActions" Grid.Column="1" Orientation="Horizontal">
             <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
-            <Button x:Name="UndoButton" AutomationProperties.AutomationId="InlineUndo" Content="Undo" ContentTemplate="{StaticResource AnnotationUndoIcon}" Style="{StaticResource HudIconButton}" Click="OnUndo" ToolTip="撤销"/>
-            <Button x:Name="RedoButton" AutomationProperties.AutomationId="InlineRedo" Content="Redo" ContentTemplate="{StaticResource AnnotationRedoIcon}" Style="{StaticResource HudIconButton}" Click="OnRedo" ToolTip="重做"/>
+            <Button x:Name="UndoButton" AutomationProperties.AutomationId="InlineUndo" Content="{loc:Localized Key='Undo'}" ContentTemplate="{StaticResource AnnotationUndoIcon}" Style="{StaticResource HudIconButton}" Click="OnUndo" ToolTip="{loc:Localized Key='撤销'}"/>
+            <Button x:Name="RedoButton" AutomationProperties.AutomationId="InlineRedo" Content="{loc:Localized Key='Redo'}" ContentTemplate="{StaticResource AnnotationRedoIcon}" Style="{StaticResource HudIconButton}" Click="OnRedo" ToolTip="{loc:Localized Key='重做'}"/>
             <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
-            <Button Content="OCR" AutomationProperties.AutomationId="OneShotOcr" ContentTemplate="{StaticResource AnnotationOcrIcon}"
-                    Style="{StaticResource HudIconButton}" Click="OnOneShotOcr" ToolTip="提取文字"/>
+            <Button Content="{loc:Localized Key='OCR'}" AutomationProperties.AutomationId="OneShotOcr" ContentTemplate="{StaticResource AnnotationOcrIcon}"
+                    Style="{StaticResource HudIconButton}" Click="OnOneShotOcr" ToolTip="{loc:Localized Key='提取文字'}"/>
             <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
-            <Button x:Name="PanButton" Content="Pan" ContentTemplate="{StaticResource AnnotationPanIcon}"
+            <Button x:Name="PanButton" Content="{loc:Localized Key='Pan'}" ContentTemplate="{StaticResource AnnotationPanIcon}"
                     AutomationProperties.AutomationId="InlineToolPan" Tag="Pan" IsEnabled="False"
-                    Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="平移画布（按住 Space）"/>
-            <Button Content="ZoomOut" ContentTemplate="{StaticResource AnnotationZoomOutIcon}"
+                    Style="{StaticResource HudIconButton}" Click="OnSelectTool" ToolTip="{loc:Localized Key='平移画布（按住 Space）'}"/>
+            <Button Content="{loc:Localized Key='ZoomOut'}" ContentTemplate="{StaticResource AnnotationZoomOutIcon}"
                     AutomationProperties.AutomationId="InlineZoomOut" Style="{StaticResource HudIconButton}"
-                    Click="OnZoomOut" ToolTip="缩小（Ctrl+-）"/>
-            <Button x:Name="CanvasZoomPicker" AutomationProperties.AutomationId="InlineZoomPicker" AutomationProperties.Name="100%"
-                    Style="{StaticResource HudIconButton}" Width="64" Click="OnZoomMenuClick" ToolTip="缩放比例">
+                    Click="OnZoomOut" ToolTip="{loc:Localized Key='缩小（Ctrl+-）'}"/>
+            <Button x:Name="CanvasZoomPicker" AutomationProperties.AutomationId="InlineZoomPicker" AutomationProperties.Name="{loc:Localized Key='100%'}"
+                    Style="{StaticResource HudIconButton}" Width="64" Click="OnZoomMenuClick" ToolTip="{loc:Localized Key='缩放比例'}">
               <StackPanel Orientation="Horizontal" IsHitTestVisible="False">
-                <TextBlock x:Name="CanvasZoomText" Text="100%" Width="42" TextAlignment="Right" VerticalAlignment="Center"
+                <TextBlock x:Name="CanvasZoomText" Text="{loc:Localized Key='100%'}" Width="42" TextAlignment="Right" VerticalAlignment="Center"
                            FontFamily="Cascadia Mono, Consolas" FontSize="11" FontWeight="SemiBold"/>
                 <Path Width="7" Height="4" Margin="3,1,0,0" VerticalAlignment="Center"
                       Data="M 0,0 L 3.5,3.5 L 7,0" Stretch="Fill" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
@@ -228,35 +229,35 @@
               </StackPanel>
               <Button.ContextMenu>
                 <ContextMenu Placement="Bottom">
-                  <MenuItem Header="适应窗口" InputGestureText="Ctrl+0" AutomationProperties.AutomationId="InlineZoomFit" Click="OnZoomFit"/>
+                  <MenuItem Header="{loc:Localized Key='适应窗口'}" InputGestureText="Ctrl+0" AutomationProperties.AutomationId="InlineZoomFit" Click="OnZoomFit"/>
                   <Separator/>
-                  <MenuItem Header="25%" Tag="0.25" Click="OnZoomPresetSelected"/>
-                  <MenuItem Header="50%" Tag="0.5" Click="OnZoomPresetSelected"/>
-                  <MenuItem Header="75%" Tag="0.75" Click="OnZoomPresetSelected"/>
-                  <MenuItem Header="100%" Tag="1" Click="OnZoomPresetSelected"/>
-                  <MenuItem Header="125%" Tag="1.25" Click="OnZoomPresetSelected"/>
-                  <MenuItem Header="150%" Tag="1.5" Click="OnZoomPresetSelected"/>
-                  <MenuItem Header="200%" Tag="2" Click="OnZoomPresetSelected"/>
-                  <MenuItem Header="300%" Tag="3" Click="OnZoomPresetSelected"/>
-                  <MenuItem Header="400%" Tag="4" Click="OnZoomPresetSelected"/>
-                  <MenuItem Header="600%" Tag="6" Click="OnZoomPresetSelected"/>
-                  <MenuItem Header="800%" Tag="8" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="{loc:Localized Key='25%'}" Tag="0.25" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="{loc:Localized Key='50%'}" Tag="0.5" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="{loc:Localized Key='75%'}" Tag="0.75" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="{loc:Localized Key='100%'}" Tag="1" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="{loc:Localized Key='125%'}" Tag="1.25" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="{loc:Localized Key='150%'}" Tag="1.5" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="{loc:Localized Key='200%'}" Tag="2" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="{loc:Localized Key='300%'}" Tag="3" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="{loc:Localized Key='400%'}" Tag="4" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="{loc:Localized Key='600%'}" Tag="6" Click="OnZoomPresetSelected"/>
+                  <MenuItem Header="{loc:Localized Key='800%'}" Tag="8" Click="OnZoomPresetSelected"/>
                 </ContextMenu>
               </Button.ContextMenu>
             </Button>
-            <Button Content="ZoomIn" ContentTemplate="{StaticResource AnnotationZoomInIcon}"
+            <Button Content="{loc:Localized Key='ZoomIn'}" ContentTemplate="{StaticResource AnnotationZoomInIcon}"
                     AutomationProperties.AutomationId="InlineZoomIn" Style="{StaticResource HudIconButton}"
-                    Click="OnZoomIn" ToolTip="放大（Ctrl++）"/>
+                    Click="OnZoomIn" ToolTip="{loc:Localized Key='放大（Ctrl++）'}"/>
             <Separator Margin="5,5" Background="{DynamicResource HudDividerBrush}"/>
             <StackPanel x:Name="OneShotToolbarActions" Visibility="Collapsed" Orientation="Horizontal">
-              <Button Content="Pin" AutomationProperties.AutomationId="OneShotPin" ContentTemplate="{StaticResource AnnotationPinIcon}"
-                      Style="{StaticResource HudIconButton}" Click="OnPin" ToolTip="贴到屏幕"/>
-              <Button Content="Copy" AutomationProperties.AutomationId="OneShotCopy" ContentTemplate="{StaticResource AnnotationCopyIcon}"
-                      Style="{StaticResource HudIconButton}" Click="OnCopy" ToolTip="复制"/>
-              <Button Content="Cancel" AutomationProperties.AutomationId="OneShotCancel" ContentTemplate="{StaticResource AnnotationCloseIcon}"
-                      Style="{StaticResource HudIconButton}" Click="OnCancel" ToolTip="取消"/>
-              <Button Content="Done" AutomationProperties.AutomationId="OneShotDone" ContentTemplate="{StaticResource AnnotationDoneIcon}"
-                      Style="{StaticResource HudIconButton}" Tag="Selected" Click="OnDone" ToolTip="完成"/>
+              <Button Content="{loc:Localized Key='Pin'}" AutomationProperties.AutomationId="OneShotPin" ContentTemplate="{StaticResource AnnotationPinIcon}"
+                      Style="{StaticResource HudIconButton}" Click="OnPin" ToolTip="{loc:Localized Key='贴到屏幕'}"/>
+              <Button Content="{loc:Localized Key='Copy'}" AutomationProperties.AutomationId="OneShotCopy" ContentTemplate="{StaticResource AnnotationCopyIcon}"
+                      Style="{StaticResource HudIconButton}" Click="OnCopy" ToolTip="{loc:Localized Key='复制'}"/>
+              <Button Content="{loc:Localized Key='Cancel'}" AutomationProperties.AutomationId="OneShotCancel" ContentTemplate="{StaticResource AnnotationCloseIcon}"
+                      Style="{StaticResource HudIconButton}" Click="OnCancel" ToolTip="{loc:Localized Key='取消'}"/>
+              <Button Content="{loc:Localized Key='Done'}" AutomationProperties.AutomationId="OneShotDone" ContentTemplate="{StaticResource AnnotationDoneIcon}"
+                      Style="{StaticResource HudIconButton}" Tag="Selected" Click="OnDone" ToolTip="{loc:Localized Key='完成'}"/>
             </StackPanel>
           </StackPanel>
         </Grid>
@@ -268,11 +269,11 @@
         <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
           <StackPanel x:Name="PropertiesContent" Orientation="Horizontal" VerticalAlignment="Center">
             <Border Height="24" CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource HudInputBrush}" Padding="8,0" Margin="0,0,8,0" MaxWidth="142">
-              <StackPanel Orientation="Horizontal"><TextBlock Text="工具" Foreground="{DynamicResource HudSecondaryTextBrush}" Margin="0,0,7,0"/><TextBlock x:Name="ContextPillText" AutomationProperties.AutomationId="ContextPillText" Text="选择" Foreground="{DynamicResource HudTextBrush}" FontWeight="SemiBold" FontSize="12"/></StackPanel>
+              <StackPanel Orientation="Horizontal"><TextBlock Text="{loc:Localized Key='工具'}" Foreground="{DynamicResource HudSecondaryTextBrush}" Margin="0,0,7,0"/><TextBlock x:Name="ContextPillText" AutomationProperties.AutomationId="ContextPillText" Text="{loc:Localized Key='选择'}" Foreground="{DynamicResource HudTextBrush}" FontWeight="SemiBold" FontSize="12"/></StackPanel>
             </Border>
 
             <StackPanel x:Name="StrokeColorGroup" Orientation="Horizontal" VerticalAlignment="Center">
-              <TextBlock x:Name="StrokeColorLabel" Text="颜色" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,7,0"/>
+              <TextBlock x:Name="StrokeColorLabel" Text="{loc:Localized Key='颜色'}" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,7,0"/>
               <Button Tag="{StaticResource Annotation.Stroke.Red}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="{DynamicResource Annotation.RedBrush}" Click="OnColorSelected"/>
               <Button Tag="{StaticResource Annotation.Stroke.Orange}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="{DynamicResource Annotation.OrangeBrush}" Click="OnColorSelected"/>
               <Button Tag="{StaticResource Annotation.Stroke.Yellow}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="{DynamicResource Annotation.YellowBrush}" Click="OnColorSelected"/>
@@ -284,7 +285,7 @@
             </StackPanel>
 
             <StackPanel x:Name="TextBackgroundGroup" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-              <TextBlock Text="背景" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,7,0"/>
+              <TextBlock Text="{loc:Localized Key='背景'}" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,7,0"/>
               <Button Tag="{StaticResource Annotation.Background.Clear}" Content="{StaticResource Icon.Line}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="Transparent" Click="OnColorSelected"/>
               <Button Tag="{StaticResource Annotation.Background.White}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="{DynamicResource Annotation.WhiteBrush}" Click="OnColorSelected"/>
               <Button Tag="{StaticResource Annotation.Background.Black}" Style="{StaticResource InlineColorSwatchButton}" Margin="0,0,5,0" Background="{DynamicResource Annotation.BlackBrush}" Click="OnColorSelected"/>
@@ -293,65 +294,65 @@
             </StackPanel>
 
             <StackPanel x:Name="BlurTypeGroup" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-              <TextBlock Text="模糊" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,7,0"/>
-              <Button Tag="Blur:Pixelated" Content="{StaticResource Icon.Pixelated}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="像素化"/>
-              <Button Tag="Blur:Gaussian" Content="{StaticResource Icon.Gaussian}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="高斯"/>
-              <Button Tag="Blur:Hexagonal" Content="{StaticResource Icon.Hexagon}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="六边形"/>
-              <Button Tag="Blur:Crystallized" Content="{StaticResource Icon.Crystal}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="结晶"/>
-              <Button Tag="Blur:Pointillism" Content="{StaticResource Icon.Points}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="点彩"/>
-              <Button Tag="Blur:Halftone" Content="{StaticResource Icon.Halftone}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="半色调"/>
-              <Button Tag="Blur:Tape" Content="{StaticResource Icon.Tape}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="胶带"/>
-              <Button Tag="Blur:Washi" Content="{StaticResource Icon.Washi}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="和纸"/>
+              <TextBlock Text="{loc:Localized Key='模糊'}" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,7,0"/>
+              <Button Tag="Blur:Pixelated" Content="{StaticResource Icon.Pixelated}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="{loc:Localized Key='像素化'}"/>
+              <Button Tag="Blur:Gaussian" Content="{StaticResource Icon.Gaussian}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="{loc:Localized Key='高斯'}"/>
+              <Button Tag="Blur:Hexagonal" Content="{StaticResource Icon.Hexagon}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="{loc:Localized Key='六边形'}"/>
+              <Button Tag="Blur:Crystallized" Content="{StaticResource Icon.Crystal}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="{loc:Localized Key='结晶'}"/>
+              <Button Tag="Blur:Pointillism" Content="{StaticResource Icon.Points}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="{loc:Localized Key='点彩'}"/>
+              <Button Tag="Blur:Halftone" Content="{StaticResource Icon.Halftone}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="{loc:Localized Key='半色调'}"/>
+              <Button Tag="Blur:Tape" Content="{StaticResource Icon.Tape}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="{loc:Localized Key='胶带'}"/>
+              <Button Tag="Blur:Washi" Content="{StaticResource Icon.Washi}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="{loc:Localized Key='和纸'}"/>
             </StackPanel>
 
             <StackPanel x:Name="ArrowStyleGroup" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-              <TextBlock Text="样式" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,7,0"/>
-              <Button Tag="ArrowStyle:Straight" Content="{StaticResource Icon.ArrowStraight}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="直线"/>
-              <Button Tag="ArrowStyle:CurvedRight" Content="{StaticResource Icon.ArrowRightCurve}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="右弯"/>
-              <Button Tag="ArrowStyle:CurvedLeft" Content="{StaticResource Icon.ArrowLeftCurve}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="左弯"/>
-              <TextBlock Text="外观" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
-              <Button Tag="ArrowType:Classic" Content="{StaticResource Icon.ArrowClassic}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="经典"/>
-              <Button Tag="ArrowType:Tapered" Content="{StaticResource Icon.ArrowTapered}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="渐变"/>
-              <Button Tag="ArrowType:Outlined" Content="{StaticResource Icon.ArrowOutlined}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="描边"/>
+              <TextBlock Text="{loc:Localized Key='样式'}" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,7,0"/>
+              <Button Tag="ArrowStyle:Straight" Content="{StaticResource Icon.ArrowStraight}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="{loc:Localized Key='直线'}"/>
+              <Button Tag="ArrowStyle:CurvedRight" Content="{StaticResource Icon.ArrowRightCurve}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="{loc:Localized Key='右弯'}"/>
+              <Button Tag="ArrowStyle:CurvedLeft" Content="{StaticResource Icon.ArrowLeftCurve}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="{loc:Localized Key='左弯'}"/>
+              <TextBlock Text="{loc:Localized Key='外观'}" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
+              <Button Tag="ArrowType:Classic" Content="{StaticResource Icon.ArrowClassic}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="{loc:Localized Key='经典'}"/>
+              <Button Tag="ArrowType:Tapered" Content="{StaticResource Icon.ArrowTapered}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="{loc:Localized Key='渐变'}"/>
+              <Button Tag="ArrowType:Outlined" Content="{StaticResource Icon.ArrowOutlined}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected" ToolTip="{loc:Localized Key='描边'}"/>
             </StackPanel>
 
             <StackPanel x:Name="ArrowBendGroup" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-              <TextBlock Text="弯曲" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
+              <TextBlock Text="{loc:Localized Key='弯曲'}" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
               <Button Tag="ArrowBend:Primary" Content="{StaticResource Icon.BendPrimary}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
               <Button Tag="ArrowBend:Alternate" Content="{StaticResource Icon.BendAlternate}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
             </StackPanel>
 
             <StackPanel x:Name="ArrowEndpointGroup" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-              <TextBlock Text="起点" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
+              <TextBlock Text="{loc:Localized Key='起点'}" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
               <Button Tag="StartHead:None" Content="{StaticResource Icon.Line}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
               <Button Tag="StartHead:Arrow" Content="{StaticResource Icon.ArrowHead}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
               <Button Tag="StartHead:Circle" Content="{StaticResource Icon.Circle}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
-              <TextBlock Text="终点" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
+              <TextBlock Text="{loc:Localized Key='终点'}" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
               <Button Tag="EndHead:None" Content="{StaticResource Icon.Line}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
               <Button Tag="EndHead:Arrow" Content="{StaticResource Icon.ArrowHead}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
               <Button Tag="EndHead:Circle" Content="{StaticResource Icon.Circle}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource InlinePropertyOptionButton}" Click="OnPropertyOptionSelected"/>
             </StackPanel>
 
             <StackPanel x:Name="StrokeWidthGroup" Orientation="Horizontal" VerticalAlignment="Center">
-              <TextBlock x:Name="StrokeWidthLabel" Text="描边" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
+              <TextBlock x:Name="StrokeWidthLabel" Text="{loc:Localized Key='描边'}" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
               <ContentControl Content="{StaticResource Icon.Line}" ContentTemplate="{StaticResource Icon.Template}" Foreground="{DynamicResource HudTextBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
               <Slider x:Name="StrokeSlider" Style="{StaticResource HudSlider}" Minimum="1" Maximum="20" Value="4" Width="58" ValueChanged="OnStrokeChanged"
                       PreviewMouseLeftButtonDown="OnPropertySliderStarted" PreviewMouseLeftButtonUp="OnPropertySliderCompleted"/>
-              <TextBlock x:Name="StrokeValue" Text="4" Foreground="{DynamicResource HudTextBrush}" FontSize="10" Width="34" TextAlignment="Right" VerticalAlignment="Center"/>
+              <TextBlock x:Name="StrokeValue" Text="{loc:Localized Key='4'}" Foreground="{DynamicResource HudTextBrush}" FontSize="10" Width="34" TextAlignment="Right" VerticalAlignment="Center"/>
             </StackPanel>
 
             <StackPanel x:Name="FontSizeGroup" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-              <TextBlock Text="字号" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
+              <TextBlock Text="{loc:Localized Key='字号'}" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
               <Slider x:Name="FontSizeSlider" Style="{StaticResource HudSlider}" Minimum="12" Maximum="72" Value="20" Width="58" ValueChanged="OnFontSizeChanged"
                       PreviewMouseLeftButtonDown="OnPropertySliderStarted" PreviewMouseLeftButtonUp="OnPropertySliderCompleted"/>
-              <TextBlock x:Name="FontSizeValue" Text="20" Foreground="{DynamicResource HudTextBrush}" FontSize="10" Width="34" TextAlignment="Right" VerticalAlignment="Center"/>
+              <TextBlock x:Name="FontSizeValue" Text="{loc:Localized Key='20'}" Foreground="{DynamicResource HudTextBrush}" FontSize="10" Width="34" TextAlignment="Right" VerticalAlignment="Center"/>
             </StackPanel>
 
             <StackPanel x:Name="CornerRadiusGroup" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-              <TextBlock Text="圆角" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
+              <TextBlock Text="{loc:Localized Key='圆角'}" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,7,0"/>
               <Slider x:Name="CornerRadiusSlider" Style="{StaticResource HudSlider}" Minimum="0" Maximum="60" Value="0" Width="58" ValueChanged="OnCornerRadiusChanged"
                       PreviewMouseLeftButtonDown="OnPropertySliderStarted" PreviewMouseLeftButtonUp="OnPropertySliderCompleted"/>
-              <TextBlock x:Name="CornerRadiusValue" Text="0" Foreground="{DynamicResource HudTextBrush}" FontSize="10" Width="34" TextAlignment="Right" VerticalAlignment="Center"/>
+              <TextBlock x:Name="CornerRadiusValue" Text="{loc:Localized Key='0'}" Foreground="{DynamicResource HudTextBrush}" FontSize="10" Width="34" TextAlignment="Right" VerticalAlignment="Center"/>
             </StackPanel>
           </StackPanel>
         </ScrollViewer>
@@ -366,36 +367,36 @@
             <ColumnDefinition Width="34"/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/>
           </Grid.ColumnDefinitions>
           <Button x:Name="OneShotDragHandle" AutomationProperties.AutomationId="OneShotSwitcherDragHandle" Width="34" Height="44" Style="{StaticResource HudIconButton}"
-                  Cursor="SizeWE" ToolTip="水平拖动以移动 One Shot"
+                  Cursor="SizeWE" ToolTip="{loc:Localized Key='水平拖动以移动 One Shot'}"
                   PreviewMouseLeftButtonDown="OnOneShotDragMouseDown" MouseMove="OnOneShotDragMouseMove" MouseLeftButtonUp="OnOneShotDragMouseUp">
-            <ContentControl Content="Drag" ContentTemplate="{StaticResource AnnotationToolbarDragIcon}" IsHitTestVisible="False"/>
+            <ContentControl Content="{loc:Localized Key='Drag'}" ContentTemplate="{StaticResource AnnotationToolbarDragIcon}" IsHitTestVisible="False"/>
           </Button>
           <Button x:Name="OneShotScreenshotButton" Grid.Column="1" Tag="Screenshot" Click="OnOneShotMode"
                   Style="{StaticResource OneShotTabButton}" AutomationProperties.AutomationId="OneShotScreenshot" Margin="2">
             <StackPanel Orientation="Horizontal" IsHitTestVisible="False">
-              <ContentControl Content="Screenshot" ContentTemplate="{StaticResource OneShotScreenshotIcon}" Margin="0,0,6,0"/>
-              <TextBlock Text="截图" VerticalAlignment="Center"/>
+              <ContentControl Content="{loc:Localized Key='Screenshot'}" ContentTemplate="{StaticResource OneShotScreenshotIcon}" Margin="0,0,6,0"/>
+              <TextBlock Text="{loc:Localized Key='截图'}" VerticalAlignment="Center"/>
             </StackPanel>
           </Button>
           <Button x:Name="OneShotScrollingButton" Grid.Column="2" Tag="Scrolling" Click="OnOneShotMode"
                   Style="{StaticResource OneShotTabButton}" AutomationProperties.AutomationId="OneShotScrolling" Margin="2">
             <StackPanel Orientation="Horizontal" IsHitTestVisible="False">
-              <ContentControl Content="Scrolling" ContentTemplate="{StaticResource OneShotScrollingIcon}" Margin="0,0,6,0"/>
-              <TextBlock Text="滚动截屏" VerticalAlignment="Center"/>
+              <ContentControl Content="{loc:Localized Key='Scrolling'}" ContentTemplate="{StaticResource OneShotScrollingIcon}" Margin="0,0,6,0"/>
+              <TextBlock Text="{loc:Localized Key='滚动截屏'}" VerticalAlignment="Center"/>
             </StackPanel>
           </Button>
           <Button x:Name="OneShotRecordingButton" Grid.Column="3" Tag="Recording" Click="OnOneShotMode"
                   Style="{StaticResource OneShotTabButton}" AutomationProperties.AutomationId="OneShotRecording" Margin="2">
             <StackPanel Orientation="Horizontal" IsHitTestVisible="False">
-              <ContentControl Content="Recording" ContentTemplate="{StaticResource OneShotRecordingIcon}" Margin="0,0,6,0"/>
-              <TextBlock Text="录屏" VerticalAlignment="Center"/>
+              <ContentControl Content="{loc:Localized Key='Recording'}" ContentTemplate="{StaticResource OneShotRecordingIcon}" Margin="0,0,6,0"/>
+              <TextBlock Text="{loc:Localized Key='录屏'}" VerticalAlignment="Center"/>
             </StackPanel>
           </Button>
           <Button x:Name="OneShotClipboardButton" Grid.Column="4" Tag="Clipboard" Click="OnOneShotMode"
                   Style="{StaticResource OneShotTabButton}" AutomationProperties.AutomationId="OneShotClipboard" Margin="2">
             <StackPanel Orientation="Horizontal" IsHitTestVisible="False">
-              <ContentControl Content="Clipboard" ContentTemplate="{StaticResource OneShotClipboardIcon}" Margin="0,0,6,0"/>
-              <TextBlock Text="剪贴板历史" VerticalAlignment="Center"/>
+              <ContentControl Content="{loc:Localized Key='Clipboard'}" ContentTemplate="{StaticResource OneShotClipboardIcon}" Margin="0,0,6,0"/>
+              <TextBlock Text="{loc:Localized Key='剪贴板历史'}" VerticalAlignment="Center"/>
             </StackPanel>
           </Button>
         </Grid>
@@ -408,43 +409,43 @@
           <StackPanel x:Name="OneShotScrollingPanel" Visibility="Collapsed">
             <TextBlock x:Name="OneShotScrollingHelpText" Visibility="Collapsed" Width="330" TextWrapping="Wrap"
                        Foreground="{DynamicResource HudTextBrush}" Margin="3,0,3,10"
-                       Text="保持内容位于选区内，开始截屏后纵向滚动，直到完整页面收集完成。"/>
+                       Text="{loc:Localized Key='保持内容位于选区内，开始截屏后纵向滚动，直到完整页面收集完成。'}"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-              <Button Content="开始滚动截屏" Click="OnOneShotStartScrolling" Style="{StaticResource AccentButton}" Padding="15,7" Margin="0,0,8,0"
+              <Button Content="{loc:Localized Key='开始滚动截屏'}" Click="OnOneShotStartScrolling" Style="{StaticResource AccentButton}" Padding="15,7" Margin="0,0,8,0"
                       AutomationProperties.AutomationId="OneShotStartScrolling"/>
-              <Button Content="帮助" Click="OnOneShotToggleScrollingHelp" Padding="12,7"
+              <Button Content="{loc:Localized Key='帮助'}" Click="OnOneShotToggleScrollingHelp" Padding="12,7"
                       AutomationProperties.AutomationId="OneShotScrollingHelp"/>
             </StackPanel>
           </StackPanel>
           <StackPanel x:Name="OneShotRecordingPanel" Visibility="Collapsed" VerticalAlignment="Center">
-            <Button Content="开始录屏" Click="OnOneShotStartRecording" Style="{StaticResource AccentButton}" MinHeight="36" Padding="15,8" Margin="0,0,0,14"
+            <Button Content="{loc:Localized Key='开始录屏'}" Click="OnOneShotStartRecording" Style="{StaticResource AccentButton}" MinHeight="36" Padding="15,8" Margin="0,0,0,14"
                     AutomationProperties.AutomationId="OneShotStartRecording"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,14">
-              <TextBlock Text="格式" Foreground="{DynamicResource HudSecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-              <RadioButton x:Name="OneShotVideo" Content="MP4" GroupName="OneShotOutput" Checked="OnOneShotRecordingOptionChanged" Margin="0,0,14,0"
+              <TextBlock Text="{loc:Localized Key='格式'}" Foreground="{DynamicResource HudSecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+              <RadioButton x:Name="OneShotVideo" Content="{loc:Localized Key='MP4'}" GroupName="OneShotOutput" Checked="OnOneShotRecordingOptionChanged" Margin="0,0,14,0"
                            Foreground="{DynamicResource HudTextBrush}"/>
-              <RadioButton x:Name="OneShotGif" Content="GIF" GroupName="OneShotOutput" Checked="OnOneShotRecordingOptionChanged"
+              <RadioButton x:Name="OneShotGif" Content="{loc:Localized Key='GIF'}" GroupName="OneShotOutput" Checked="OnOneShotRecordingOptionChanged"
                            Foreground="{DynamicResource HudTextBrush}"/>
             </StackPanel>
             <WrapPanel HorizontalAlignment="Center">
-              <CheckBox x:Name="OneShotRecordingCursor" Content="鼠标指针" Click="OnOneShotRecordingOptionChanged" Margin="6,3" Style="{DynamicResource HudCheckBox}"
+              <CheckBox x:Name="OneShotRecordingCursor" Content="{loc:Localized Key='鼠标指针'}" Click="OnOneShotRecordingOptionChanged" Margin="6,3" Style="{DynamicResource HudCheckBox}"
                         Foreground="{DynamicResource HudTextBrush}"/>
-              <CheckBox x:Name="OneShotSystemAudio" Content="系统声音" Click="OnOneShotRecordingOptionChanged" Margin="6,3" Style="{DynamicResource HudCheckBox}"
+              <CheckBox x:Name="OneShotSystemAudio" Content="{loc:Localized Key='系统声音'}" Click="OnOneShotRecordingOptionChanged" Margin="6,3" Style="{DynamicResource HudCheckBox}"
                         Foreground="{DynamicResource HudTextBrush}"/>
-              <CheckBox x:Name="OneShotMicrophone" Content="麦克风" Click="OnOneShotRecordingOptionChanged" Margin="6,3" Style="{DynamicResource HudCheckBox}"
+              <CheckBox x:Name="OneShotMicrophone" Content="{loc:Localized Key='麦克风'}" Click="OnOneShotRecordingOptionChanged" Margin="6,3" Style="{DynamicResource HudCheckBox}"
                         Foreground="{DynamicResource HudTextBrush}"/>
             </WrapPanel>
-            <CheckBox x:Name="OneShotTranscription" Content="录屏完成后转写" Margin="6,10,6,3" Style="{DynamicResource HudCheckBox}" Click="OnOneShotRecordingOptionChanged"/>
-            <CheckBox x:Name="OneShotUseAI" Content="转写后使用 AI 整理" Margin="6,3" Style="{DynamicResource HudCheckBox}" Click="OnOneShotRecordingOptionChanged"/>
+            <CheckBox x:Name="OneShotTranscription" Content="{loc:Localized Key='录屏完成后转写'}" Margin="6,10,6,3" Style="{DynamicResource HudCheckBox}" Click="OnOneShotRecordingOptionChanged"/>
+            <CheckBox x:Name="OneShotUseAI" Content="{loc:Localized Key='转写后使用 AI 整理'}" Margin="6,3" Style="{DynamicResource HudCheckBox}" Click="OnOneShotRecordingOptionChanged"/>
             <ComboBox x:Name="OneShotLanguage" Margin="6,6" AutomationProperties.AutomationId="OneShotTranscriptionLanguage"/>
-            <TextBlock x:Name="OneShotCloudHint" Text="请先在设置中保存并测试云端转写配置。" Margin="6,3" MaxWidth="300" TextWrapping="Wrap" Foreground="{DynamicResource HudSecondaryTextBrush}"/>
+            <TextBlock x:Name="OneShotCloudHint" Text="{loc:Localized Key='请先在设置中保存并测试云端转写配置。'}" Margin="6,3" MaxWidth="300" TextWrapping="Wrap" Foreground="{DynamicResource HudSecondaryTextBrush}"/>
 
           </StackPanel>
         </Grid>
       </Border>
 
       <Border x:Name="InstructionBadge" CornerRadius="{DynamicResource Radius.Lg}" Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="14,8">
-        <TextBlock x:Name="InstructionText" Foreground="{DynamicResource HudTextBrush}" Text="拖动选择区域  ·  Esc 取消" FontSize="12" FontWeight="SemiBold"/>
+        <TextBlock x:Name="InstructionText" Foreground="{DynamicResource HudTextBrush}" Text="{loc:Localized Key='拖动选择区域  ·  Esc 取消'}" FontSize="12" FontWeight="SemiBold"/>
       </Border>
       <Border x:Name="SizeBadge" Visibility="Collapsed" IsHitTestVisible="False" CornerRadius="{DynamicResource Radius.Md}"
               Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="9,5">
@@ -476,7 +477,7 @@
           <StackPanel Grid.Row="1" Margin="9,6" VerticalAlignment="Center">
             <TextBlock x:Name="MagnifierCoordinateText" Foreground="{DynamicResource HudTextBrush}" FontFamily="Cascadia Mono, Consolas" FontSize="10.5"/>
             <TextBlock x:Name="MagnifierColorText" Foreground="{DynamicResource HudTextBrush}" FontFamily="Cascadia Mono, Consolas" FontSize="10.5" Margin="0,2,0,0"/>
-            <TextBlock Text="Ctrl+C 复制颜色 · Shift 切换 HEX/RGB" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="9.5" Margin="0,2,0,0"/>
+            <TextBlock Text="{loc:Localized Key='Ctrl+C 复制颜色 · Shift 切换 HEX/RGB'}" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="9.5" Margin="0,2,0,0"/>
           </StackPanel>
         </Grid>
       </Border>

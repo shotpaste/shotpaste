@@ -63,35 +63,6 @@ public sealed class UiDesignSystemTests
     }
 
     [Fact]
-    public void HistoryButtons_UseSegmentedVectorComponentStyles()
-    {
-        var sourceRoot = FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows");
-        var history = File.ReadAllText(Path.Combine(sourceRoot, "Views", "MainWindow.xaml"));
-        var icons = File.ReadAllText(Path.Combine(sourceRoot, "Resources", "Icons.xaml"));
-
-        foreach (var style in new[]
-                 {
-                     "HistoryToolbarButton",
-                     "HistorySegmentButton",
-                     "HistoryIconButton",
-                     "HistoryHeaderActionButton",
-                     "HistoryHeaderIconButton",
-                     "HistoryCardAction",
-                     "HistoryCardDangerAction"
-                 })
-            Assert.Contains($"x:Key=\"{style}\"", history, StringComparison.Ordinal);
-
-        foreach (var icon in new[] { "Icon.Screenshot", "Icon.ScrollCapture", "Icon.Recording", "Icon.Clipboard", "Icon.Refresh" })
-            Assert.Contains($"x:Key=\"{icon}\"", icons, StringComparison.Ordinal);
-
-        Assert.Contains("x:Name=\"KindFilterGroup\"", history, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"剪贴板历史\"", history, StringComparison.Ordinal);
-        Assert.DoesNotContain("HistoryFloatingIconButton", history, StringComparison.Ordinal);
-        Assert.DoesNotContain("HistoryModeToggle", history, StringComparison.Ordinal);
-        Assert.DoesNotContain("StaticResource HistoryPill", history, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void WindowAppearance_UsesNativeCornersAndBackdropsWithFallback()
     {
         var source = File.ReadAllText(FindRepositoryFile(

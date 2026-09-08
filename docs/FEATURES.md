@@ -1,237 +1,199 @@
-# Feature list
+<a id="feature-list"></a>
 
-ShotPaste is a local-first desktop capture application with separate native
-implementations for macOS and Windows. The two clients aim for the same product
-workflow while using the APIs and conventions of each operating system.
+# 功能契约
+
+ShotPaste 是本地优先的桌面捕获应用，macOS 与 Windows 分别采用原生实现。
+两个客户端遵循相同的产品流程，同时使用各自操作系统的 API 与交互规范。
 
 ## One Shot
 
-- One global shortcut and tray/menu entry starts capture.
-- The user selects one frozen screen region.
-- The same region can be used for Screenshot, Scrolling, or Recording before a
-  mode is committed.
-- Clipboard opens Clipboard History without starting a capture.
-- Capture windows and temporary state are restored or removed on cancel.
+- 通过一个全局快捷键或菜单栏/托盘入口开始捕获。
+- 用户在冻结的屏幕上选择一个区域。
+- 确定模式前，同一区域可以用于截图、滚动截屏或录屏。
+- 剪贴板入口直接打开剪贴板历史，不启动捕获。
+- 取消时恢复或移除捕获窗口及临时状态。
 
-## Screenshot and annotation
+<a id="screenshot-and-annotation"></a>
 
-- Adjustable region selection across the virtual desktop.
-- Frozen selection surface with window targeting and magnification support.
-- PNG, JPEG, and WebP screenshot output where supported.
-- Configurable name templates, folder, scale, color space, cursor, desktop
-  visibility, and notifications.
-- Inline tools: select, rectangle, ellipse, line, arrow, text, highlighter,
-  mosaic, spotlight, counter, pencil, and erasing/selection actions.
-- Multi-selection, move, resize, property editing, undo, and redo.
-- Local OCR, QR recognition, link detection, clipboard copy, and pinning.
-- Fixed palettes and an intentionally reduced editor surface; there is no
-  separate file-open annotation application.
+## 截图与标注
 
-## Scrolling capture
+- 支持在整个虚拟桌面调整选区。
+- 冻结选区支持窗口定位与放大镜。
+- 在原生平台支持的范围内输出 PNG、JPEG 和 WebP。
+- 可配置文件名模板、目录、缩放、色彩空间、光标、桌面显示与通知。
+- 内联工具包括选择、矩形、椭圆、直线、箭头、文字、高亮、马赛克、聚光灯、
+  序号、画笔，以及擦除和选择操作。
+- 支持多选、移动、缩放、属性编辑、撤销与重做。
+- 支持本地 OCR、二维码识别、链接检测、复制到剪贴板与贴图。
+- 使用固定调色板和精简编辑界面，不提供独立的文件打开式标注应用。
 
-- Starts from the selected One Shot region.
-- Manual and automatic scrolling.
-- Live preview and incremental frame processing.
-- Overlap matching, duplicate rejection, direction protection, fixed-edge
-  handling, recovery matching, and final-tail sealing.
-- Produces one long image and uses the normal screenshot output actions.
+<a id="scrolling-capture"></a>
 
-## Recording
+## 滚动截屏
 
-- Records the selected One Shot region; there is no separate display/window
-  recording entry.
-- Video and GIF workflows.
-- H.264 support on both platforms; additional format/codec options are exposed
-  only when the native platform supports them.
-- System audio and microphone controls, including independent volume settings.
-- The One Shot pre-recording panel also owns automatic transcription,
-  AI processing and spoken-language choices. GIF and recordings without an audio
-  source cannot enable transcription. A verified AI Transcription account is
-  required. Starting remembers the choices and passes them with that recording;
-  cancelling the panel does not save its draft options.
-- Cursor, click highlight, keystroke overlay, and non-selected-area dimming.
-- Pause/resume, restart, discard, stop, snapshot, and live annotation controls.
-- Temporary and recovery files are managed until the output is committed.
+- 从 One Shot 已选区域开始。
+- 支持手动和自动滚动。
+- 提供实时预览与增量帧处理。
+- 支持重叠匹配、重复帧拒绝、方向保护、固定边缘处理、恢复匹配和尾帧收口。
+- 输出一张长图，复用普通截图的输出操作。
 
-## Quick Access and pins
+<a id="recording"></a>
 
-- Up to five recent post-capture cards.
-- Configurable position, size, timeout, hover pause, animation, actions, and
-  swipe behavior.
-- Copy, save/open, dismiss, delete, and pin actions.
-- Drag files into other applications.
-- Always-on-top screenshot pins with zoom, opacity, lock/click-through, copy,
-  save, and drag-out support.
+## 录屏
 
-## Clipboard History
+- 录制 One Shot 已选区域，不提供独立的显示器/窗口录制入口。
+- 支持视频和 GIF。
+- 两个平台均支持 H.264；额外格式或编码器仅在原生平台支持时开放。
+- 系统声音与麦克风分别控制，支持独立音量。
+- One Shot 录制准备面板负责自动转写、AI 整理和语音语言选择。
+  GIF 或未启用任何音源的录制不能开启转写；转写需要已验证的 AI 转写账户。
+  开始时记住选项并随本次录制传递；取消面板不保存草稿选项。
+- 支持光标、点击高亮、按键叠层和选区外暗化。
+- 支持暂停/继续、重新开始、丢弃、停止、快照和实时标注。
+- 输出提交前持续管理临时文件与恢复文件。
 
-- Local SQLite-backed history for screenshots, scrolling captures, recordings,
-  GIFs, clipboard text, images, and copied files.
-- Managed copies of clipboard files so history does not depend on the original
-  path remaining available.
-- Content hashing and deduplication.
-- Filtering, search, compact/expanded layouts, multiple selection, copy, open,
-  restore, and delete actions.
-- Configurable retention and maximum item count.
-- Transient and private clipboard formats are ignored.
+<a id="quick-access-and-pins"></a>
 
-## Preferences and automation
+## Quick Access 与贴图
 
-- General, capture, Quick Access, history, shortcuts, permissions, and advanced
-  settings.
-- On macOS, AI Features groups the LLM provider, AI Transcription, AI Translation
-  and Agent Mode controls. Preferences contain configuration only; transcripts
-  and task progress are shown in the independent Transcription Results window.
-- Separate after-capture actions for screenshots and recordings: save, copy,
-  and show Quick Access.
-- Configurable One Shot, Clipboard History, and active-recording shortcuts.
-- Expanded `shotpaste://` commands for capture modes, filtered history,
-  settings, and recording controls.
-- Authenticated local MCP Streamable HTTP tools for macOS agents; see
-  [AUTOMATION.md](AUTOMATION.md).
-- Appearance, language, diagnostics, startup, storage, output, recording, and
-  history controls.
-- macOS also maintains a local TOML preferences file; Windows stores settings
-  in its local application-data directory.
+- 最多展示五张最近捕获卡片。
+- 可配置位置、大小、超时、悬停暂停、动画、操作和滑动行为。
+- 支持复制、保存/打开、关闭、删除与贴图。
+- 可将文件拖入其它应用。
+- 截图贴图保持置顶，支持缩放、透明度、锁定/点击穿透、复制、保存与拖出。
 
-## Audio recording
+<a id="clipboard-history"></a>
 
-- Start audio recording from the menu bar/tray or an optional dedicated shortcut,
-  without a One Shot selection on either platform.
-  Start Audio Recording and Transcription Results are adjacent, with separators
-  around their menu group.
-- Choose system audio, microphone, or both. The control bar and history use
-  audio-specific presentation; the history category groups video and audio.
-- Windows uses native WASAPI loopback and microphone capture without a screen
-  stream. Source-role PCM is retained in private recovery sessions until validated
-  M4A and durable receipts exist; separate source M4As preserve system/microphone
-  attribution during transcription. Pause, resume, restart, discard and stop are
-  available from its audio control window and active-recording shortcuts.
-- Stopping saves validated audio-only M4A. Disabling history is a deliberate
-  opt-out, not a save failure, and never creates a synthetic history row.
-  Temporary video deletion still requires validated audio and a durable task.
-- Quitting during recording waits for audio saving; a failed save cancels quit.
-  Transcription and organization run after capture has stopped and do
-  not block screenshots. System capture permission and indicators still apply.
-- Audio saving allows bounded audio/video duration differences from the private
-  1 fps capture (up to 1.1 seconds for short recordings, capped at 20% before
-  the existing duration tolerance). Manifest/container checks remain strict;
-  clearly truncated audio remains recoverable instead of being silently accepted.
-- A saved recording with failed transcription is labeled separately from capture
-  failure. Retry retains the original audio and durable processing task.
-  Processing status and retry are available in Transcription Results; the menu
-  bar menu and icon tooltip do not show a separate post-processing status item.
-- Transcription is opt-in and uses a speech API Key plus dedicated TOS
-  AK/SK in AI Features → AI Transcription. Save only stores credentials locally;
-  Save and test also configures private storage and verifies a paid public sample.
-  Auto detects speech language;
-  the ten UI languages are selectable. Only selected audio is sent, never frames.
-  Apple Speech permission and local speech models are not required by this pipeline.
-- Optional intelligent processing sends segment IDs and transcript text to the
-  configured Agent LLM API (OpenAI-compatible or Anthropic Messages). Audio,
-  media paths and video frames are excluded. Local validation checks citations;
-  failed AI processing preserves the raw transcript for retry.
+## 剪贴板历史
 
-## Recording transcription
+- 使用本地 SQLite 保存截图、滚动截屏、录屏、GIF、剪贴板文字、图片和复制的文件。
+- 为剪贴板文件保留托管副本，使历史不依赖原路径持续存在。
+- 支持内容哈希与去重。
+- 支持筛选、搜索、紧凑/展开布局、多选、复制、打开、恢复和删除。
+- 可配置保留期限与最大条目数。
+- 忽略瞬态及私密剪贴板格式。
 
-- Both platforms use file recognition 2.0 (`volc.seedasr.auc`), replacing CLASI. On
-  macOS, the speech
-  Key and dedicated TOS AK/SK are explicitly saved in variant-isolated local
-  preferences, using the same storage approach as the LLM API key. Credentials
-  are masked in the UI and excluded from TOML exports, task records and logs.
-  The app does not access Keychain for transcription; credentials that were only
-  stored there must be entered again. Model IDs and arbitrary upload endpoints
-  are not user inputs. Blank credential fields retain saved values; repeated
-  saves retain the verified account and automatic-processing opt-ins.
-- Initialization creates private standard Beijing storage with 2-day expiration
-  and incomplete-multipart cleanup scoped to the installation prefix. Advanced
-  existing storage must use an application bucket/prefix and pass private ACL,
-  standard class, region and unversioned checks. Other lifecycle rules are retained.
-  AI Transcription preferences contain credentials, connection testing and
-  advanced private-storage options. Automatic screen transcription, AI processing
-  and language are configured in the pre-recording panel, with separate opt-ins
-  after successful account testing.
-- Temporary GET URLs expire after 24 hours and are sent only to the fixed speech
-  service. URLs and credentials never enter task records or diagnostics.
-- Local saving completes first. Short audio is submitted whole, with per-part
-  caps of 4 hours and 256 MiB. Longer exports choose the quietest 100 ms in the
-  30 seconds before the cap, reduce duration again if oversized, and preserve
-  absolute offsets without overlapping audio. Speaker IDs are scoped to a part;
-  source tracks retain their separate system/microphone meaning.
-- Private durable jobs preserve the original request ID before submission,
-  optional provider task ID, raw results and deletion status. Interrupted submits
-  query the original ID; they are not automatically submitted again. Polling
-  backs off with Retry-After and has a total query-attempt limit. Startup and
-  periodic maintenance resume unfinished jobs and independently retry deletion.
-  Parent recording receipts retain saved local media references and the complete
-  timeline so restart can continue remaining long-file parts.
-- Closing a result window keeps work running. Explicit cancellation stops new
-  requests and cleans cloud copies, but cannot undo provider billing. Background
-  query/cleanup recovery continues independently of Preferences. Cloud task lists
-  and original JSON export are no longer exposed in Preferences.
-- macOS has one independent Transcription Results window, available from the menu
-  bar and history toolbar. Audio and screen recording tasks share
-  a searchable list with type filters, dates and processing/failure states. Starting
-  automatic transcription opens and selects that task; closing the window does
-  not cancel it. History cards and their context menus link to the matching task.
-- Raw text is persisted before cleanup and AI. Original transcripts, polished
-  text and organized notes have separate tabs; Copy and Save operate on the
-  selected artifact. Text exports preserve transcript timestamps and structured
-  note source times. Generated artifacts survive window closure and relaunch and
-  remain readable if source media is removed. Results are retained independently
-  of clipboard-history retention, in the existing variant-isolated task stores.
-- AI results for screen recordings are persisted alongside their raw transcripts.
-  Failed processing preserves previously generated artifacts for inspection and
-  retry from the existing raw text without new ASR.
-  Pending deletion keeps the original profile credentials available. Removing
-  the current credentials is blocked while its active jobs/deletions remain.
-- Automatic screen transcription and AI are independent opt-ins. The validation
-  button uploads only a short public sample and discloses usage charges. Prices
-  are dated estimates; actual account bills determine charges.
-- Windows exposes cloud credentials and text-model configuration in Recording
-  settings. Credentials and per-recording account snapshots use DPAPI under the
-  current Windows user. Blank credential fields retain saved values. Snapshots
-  bind capture, retries and cloud cleanup to the original account; exports omit
-  both plaintext and encrypted credentials. Saving unchanged credentials retains
-  verification; testing again performs a new paid public-sample request.
-- Windows provides a searchable Transcription Results browser with audio/video
-  filters and links from history. Detail windows retain original text, timestamps,
-  polished text and structured notes separately. OpenAI-compatible Chat,
-  Anthropic Messages and Responses providers accept text and stable segment IDs;
-  organized results must cite existing segments. AI batches checkpoint locally so
-  retry does not need new ASR. General notes and interview Q&A templates are available.
-- Windows long audio uses persisted, non-overlapping part ranges with absolute
-  offsets and the same 4-hour/256-MiB limits. Quiet-boundary selection reduces
-  sentence cuts without promising natural sentence boundaries. Startup and
-  minute-based maintenance resume original request IDs and retry cloud deletion.
-  A new billable submission after a terminal failure requires explicit confirmation.
-- Windows audio and screen-recording receipts preserve the capture-time cloud
-  choice through saving, quitting and crash recovery. A durable job acknowledges
-  the receipt; repeated recovery reuses that job instead of creating a second
-  submission. Closing result windows does not cancel work.
-- Windows implementation and cross-compilation do not establish native desktop
-  or hardware acceptance. Those checks remain required on a powered-on Windows
-  machine before release.
+<a id="preferences-and-automation"></a>
 
-## Languages
+## 设置与自动化
 
-The interface supports English, Vietnamese, Simplified Chinese, Traditional
-Chinese, Spanish, Japanese, Korean, Russian, French, and German. Some
-Windows-only text uses English when a locale-specific translation is
-unavailable.
+- 包含通用、捕获、Quick Access、历史、快捷键、权限和高级设置。
+- macOS 的 AI 功能分组包含 LLM 供应商、AI 转写、AI 翻译和 Agent Mode。
+  设置仅承载配置；转写内容与任务进度在独立的“转写结果”窗口显示。
+- 截图与录屏分别配置捕获后操作：保存、复制和显示 Quick Access。
+- 可配置 One Shot、剪贴板历史和录制中的快捷键。
+- `shotpaste://` 支持捕获模式、筛选历史、设置和录制控制。
+- macOS 为 Agent 提供经过鉴权的本地 MCP Streamable HTTP 工具，见
+  [自动化说明](AUTOMATION.md)。
+- 支持外观、语言、诊断、启动、存储、输出、录制和历史控制。
+- macOS 同时维护本地 TOML 配置文件；Windows 将设置保存在本地应用数据目录。
 
-## Privacy boundary
+<a id="audio-recording"></a>
 
-- Processing and storage are local to the device.
-- ShotPaste has no project-operated account, telemetry, upload, cloud storage,
-  or sync service.
-- OCR and QR payloads are treated as text and are not executed automatically.
-- Screen capture, microphone, accessibility/input, file, and startup permissions
-  are requested only for features that need them.
-- To obtain macOS system audio, ShotPaste may internally use a very small
-  temporary screen media stream. Ultimately, only the audio selected by the
-  user and derived content are retained; temporary video never enters history
-  or the user directory and is deleted after audio saving completes. If saving
-  fails, it remains only in a private recovery session and is never exposed as
-  video. This boundary does not claim that pixels are never captured during
-  this internal step.
+## 录音
+
+配置、日常使用、导出和恢复说明见[录音与转写指南](RECORDING_TRANSCRIPTION.md)。
+
+- 两个平台均可从菜单栏/托盘或可选专用快捷键开始录音，无需 One Shot 选区。
+  “开始录音”与“转写结果”相邻，并通过分隔线与其它菜单项分组。
+- 可选择系统声音、麦克风或两者。控制条与历史采用音频专用展示；历史类别将视频和音频归为录制。
+- Windows 使用原生 WASAPI 回环与麦克风捕获，不创建屏幕流。
+  带音源角色的 PCM 在验证 M4A 与持久化回执存在前保留于私有恢复会话；
+  独立音源 M4A 在转写时保留系统/麦克风归属。
+  音频控制窗口与录制快捷键支持暂停、继续、重启、丢弃和停止。
+- 停止后保存经验证的纯音频 M4A。禁用历史是主动退出历史保存，不是保存失败，
+  也不生成虚构历史行。临时视频删除仍以音频验证成功和任务持久化为前提。
+- 录音时退出应用会等待音频保存，保存失败则取消退出。
+  转写与整理在捕获停止后执行，不阻塞截图；系统捕获权限与指示仍适用。
+- macOS 对私有 1 fps 捕获允许有界的音视频时长差异：短录制最多 1.1 秒，
+  在叠加既有时长容差前上限为 20%。清单与容器检查仍严格执行；
+  明显截断的音频保留为可恢复状态，不静默接受。
+- 已保存录音的转写失败与捕获失败分别标记。重试保留原音频及持久化处理任务。
+  “转写结果”提供状态与重试；菜单栏菜单及图标悬浮提示不单独显示后处理状态项。
+- 转写默认需主动开启，在 AI 功能 → AI 转写中配置语音 API Key 与专用 TOS AK/SK。
+  “保存”仅本地保存凭据；“保存并测试”还会配置私有存储并验证付费公开样本。
+  Auto 自动识别语音语言，也可选择十种界面语言之一。
+  仅发送选定音频，不发送画面；该流程不需要 Apple Speech 权限或本地语音模型。
+- 可选智能整理向已配置的 Agent LLM API（OpenAI 兼容或 Anthropic Messages）
+  发送分句 ID 与转写文字，不包含音频、媒体路径或视频帧。
+  本地验证引用；AI 失败时保留原文供重试。
+
+<a id="recording-transcription"></a>
+
+## 录制转写
+
+- 两个平台均使用文件识别 2.0（`volc.seedasr.auc`）替代 CLASI。
+  macOS 语音 Key 和专用 TOS AK/SK 显式保存到按构建身份隔离的本地设置，
+  与 LLM API Key 使用相同存储方式。界面掩码显示，TOML 导出、任务记录和日志不含凭据。
+  转写不访问 Keychain；仅存于旧 Keychain 的凭据需重新输入。
+  不允许用户填写模型 ID 或任意上传端点。空凭据字段保留已保存值；
+  重复保存保留账户验证状态和自动处理选项。
+- 初始化创建北京区域私有标准存储，配置两天过期及未完成分片上传清理，规则限定到安装前缀。
+  高级已有存储须使用应用专用桶/前缀，并通过私有 ACL、标准存储、区域和未启用版本控制检查。
+  保留其它生命周期规则。AI 转写设置包含凭据、连接测试和高级私有存储选项。
+  自动录屏转写、AI 整理与语言由录制准备面板配置，账户验证成功后仍需分别主动开启。
+- 临时 GET URL 在 24 小时后失效，仅发送至固定语音服务；URL 与凭据不进入任务记录或诊断。
+- 先完成本地保存。短音频整段提交，每段上限四小时、256 MiB。
+  长音频在上限前 30 秒内选择最安静的 100 ms 作为切点；超大小时进一步缩短，
+  保留绝对偏移且音频不重叠。说话人 ID 仅在分段内有效；音源轨道保留系统/麦克风含义。
+- 私有持久化任务在提交前保存原始请求 ID、可选供应商任务 ID、原始结果与删除状态。
+  提交中断后查询原 ID，不自动重复提交。轮询遵循 Retry-After 退避，并限制总查询次数。
+  启动和定期维护恢复未完成任务，独立重试删除。
+  父录制回执保留本地媒体引用及完整时间线，以便重启后继续剩余长文件分段。
+- 关闭结果窗口不停止任务。显式取消会停止新请求并清理云端副本，但无法撤销已有计费。
+  后台查询/清理恢复独立于设置窗口。设置不再暴露云任务列表和原始 JSON 导出。
+- macOS 提供一个独立“转写结果”窗口，可从菜单栏和历史工具栏打开。
+  录音与录屏任务共用可搜索列表，支持类型筛选、日期和处理/失败状态。
+  自动转写开始时打开并选中任务，关闭窗口不取消任务。
+  历史卡片与右键菜单可跳转到对应任务。
+- macOS 音轨回执显式记录父录音会话 ID。结果导航和重新提交使用该 ID，
+  不改写原请求 ID 或账户快照。
+- 原始文字在清理和 AI 处理前持久化。原文、润色文本与整理笔记分标签展示；
+  复制和保存作用于当前内容。文本导出保留转写时间戳与结构化笔记来源时间。
+  生成内容在窗口关闭、应用重启后仍可访问，源媒体删除后仍可阅读。
+  结果独立于剪贴板历史保留，存放在既有按构建身份隔离的任务存储中。
+- 录屏 AI 结果与原文一起持久化。处理失败保留已有内容供查看，并从原文重试，无需新的 ASR。
+  待删除任务保留原账户凭据。当前账户仍有活动任务或待删除对象时，阻止移除凭据。
+- 自动录屏转写和 AI 分别主动开启。验证按钮只上传短公开样本，并告知使用费用。
+  展示价格是注明日期的估算，实际费用以账户账单为准。
+- Windows 在录制设置中配置云凭据与文字模型。凭据及录制账户快照使用当前用户 DPAPI。
+  空字段保留原值；快照将捕获、重试与清理绑定到原账户。
+  导出排除明文与加密凭据。凭据不变时保存保留验证状态，再次测试会发起新的付费公开样本请求。
+- Windows 提供可搜索的“转写结果”列表、音频/视频筛选及历史跳转。
+  详情分别保留原文、时间戳、润色文字与结构化笔记。
+  OpenAI 兼容 Chat、Anthropic Messages 和 Responses 供应商接收文字与稳定分句 ID，
+  整理结果必须引用已有分句。AI 批次在本地记录检查点，重试不需要新的 ASR。
+  提供通用笔记与访谈问答模板。
+- Windows 长音频使用持久化且不重叠的分段范围、绝对偏移及相同四小时/256 MiB 限制。
+  安静边界选择减少句中切断，但不承诺自然句界。启动与每分钟维护恢复原请求 ID 并重试云端删除。
+  终态失败后发起新计费提交需显式确认。
+- Windows 录音/录屏回执在保存、退出和崩溃恢复过程中保留捕获时云处理选择。
+  持久化任务确认回执后，重复恢复复用同一任务，不产生第二次提交。
+  关闭结果窗口不取消工作。
+- Windows 实现和交叉编译不能证明原生桌面或硬件验收。发布前仍须在运行中的 Windows 设备验证。
+
+<a id="languages"></a>
+
+## 语言
+
+界面支持英语、越南语、简体中文、繁体中文、西班牙语、日语、韩语、俄语、法语和德语。
+部分 Windows 专有文字缺少对应语言翻译时使用英语。
+
+产品本地化仅作用于界面文案。切换界面语言不改写剪贴板文字、文件名、OCR 或转写内容。
+文档语言约定见[文档导航](README.md)，与产品界面支持语言分别维护。
+
+<a id="privacy-boundary"></a>
+
+## 隐私边界
+
+- 捕获、OCR、历史与剪贴板处理在本地进行。
+  主动开启转写后，选定音频直接发送到用户自有私有 TOS 存储及语音服务；
+  可选 AI 整理向已配置 LLM 发送转写文字。
+  翻译同样只向已配置供应商发送识别文字。见[安全模型](../SECURITY.md#security-model)。
+- ShotPaste 不运营项目账号、遥测、上传、云存储或同步服务。
+- OCR 和二维码内容视为文本，不自动执行。
+- 仅在功能需要时请求屏幕捕获、麦克风、辅助功能/输入、文件和启动权限。
+- macOS 获取系统音频时可能在内部使用极小的临时屏幕媒体流。
+  最终仅保留用户选择的音频及派生内容；临时视频不进入历史或用户目录，音频保存完成后删除。
+  保存失败时仅保留在私有恢复会话，不作为视频暴露。
+  这不代表内部步骤从不捕获像素。

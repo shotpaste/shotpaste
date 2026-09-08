@@ -95,7 +95,7 @@ public partial class SettingsWindow : Window
             }
         }, new JsonSerializerOptions { WriteIndented = true });
         System.Windows.Clipboard.SetText(configuration);
-        McpServerStatusText.Text = "连接配置已复制；其中包含私密 Token，请勿公开或提交到仓库。";
+        McpServerStatusText.Text = ShotPaste.Windows.Services.LocalizationService.TranslatePhrase("连接配置已复制；其中包含私密 Token，请勿公开或提交到仓库。");
         ScheduleLiveApply();
     }
 
@@ -114,12 +114,12 @@ public partial class SettingsWindow : Window
             _draft.RecordingVideoCodec,
             support);
         RecordingHevcItem.IsEnabled = support.HevcEncoderAvailable;
-        RecordingHevcItem.ToolTip = support.HevcEncoderAvailable
+        RecordingHevcItem.ToolTip = LocalizationService.TranslatePhrase(support.HevcEncoderAvailable
             ? $"Windows 已检测到 {support.HevcEncoderCount} 个 HEVC 编码器。"
-            : "当前系统没有可用的 HEVC 编码器；选择或导入 HEVC 时会安全回退到 H.264。";
-        RecordingFormatStatus.Text = decision.UsedFallback
+            : "当前系统没有可用的 HEVC 编码器；选择或导入 HEVC 时会安全回退到 H.264。");
+        RecordingFormatStatus.Text = LocalizationService.TranslatePhrase(decision.UsedFallback
             ? $"当前偏好将实际输出 {decision.ActualContainer.ToUpperInvariant()} / {DisplayRecordingCodec(decision.ActualCodec)}。{support.Detail}"
-            : $"可用：{decision.ActualContainer.ToUpperInvariant()} / {DisplayRecordingCodec(decision.ActualCodec)}。{support.Detail}";
+            : $"可用：{decision.ActualContainer.ToUpperInvariant()} / {DisplayRecordingCodec(decision.ActualCodec)}。{support.Detail}");
     }
 
     private static string DisplayRecordingCodec(string codec) => codec.Equals("Hevc", StringComparison.OrdinalIgnoreCase)
@@ -387,9 +387,9 @@ public partial class SettingsWindow : Window
             _settingsApplied?.Invoke();
             RefreshHotkeyStatuses();
             if (McpServerStatusText is not null)
-                McpServerStatusText.Text = _draft.McpServerEnabled
+                McpServerStatusText.Text = LocalizationService.TranslatePhrase(_draft.McpServerEnabled
                     ? $"监听地址：http://127.0.0.1:{_draft.McpServerPort}/mcp"
-                    : "MCP Server 已关闭；仅启用时监听本机回环地址。";
+                    : "MCP Server 已关闭；仅启用时监听本机回环地址。");
             return true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
@@ -490,8 +490,8 @@ public partial class SettingsWindow : Window
     private async Task RefreshHistoryStorageAsync()
     {
         if (CaptureStorageUsageText is null || ClipboardStorageUsageText is null) return;
-        CaptureStorageUsageText.Text = "正在计算截图与录屏目录占用…";
-        ClipboardStorageUsageText.Text = "正在计算媒体剪贴板目录占用…";
+        CaptureStorageUsageText.Text = ShotPaste.Windows.Services.LocalizationService.TranslatePhrase("正在计算截图与录屏目录占用…");
+        ClipboardStorageUsageText.Text = ShotPaste.Windows.Services.LocalizationService.TranslatePhrase("正在计算媒体剪贴板目录占用…");
         try
         {
             var sizes = await Task.Run(() => (
@@ -504,8 +504,8 @@ public partial class SettingsWindow : Window
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            CaptureStorageUsageText.Text = $"无法读取存储占用：{exception.Message}";
-            ClipboardStorageUsageText.Text = $"无法读取存储占用：{exception.Message}";
+            CaptureStorageUsageText.Text = LocalizationService.TranslatePhrase($"无法读取存储占用：{exception.Message}");
+            ClipboardStorageUsageText.Text = LocalizationService.TranslatePhrase($"无法读取存储占用：{exception.Message}");
         }
     }
 

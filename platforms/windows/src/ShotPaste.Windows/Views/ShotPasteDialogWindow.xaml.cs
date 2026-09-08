@@ -22,7 +22,7 @@ public partial class ShotPasteDialogWindow : Window
     {
         InitializeComponent();
         WindowAppearanceService.Attach(this, WindowBackdropKind.Mica);
-        Title = caption;
+        Title = AppBuildIdentity.Current.FormatWindowTitle(caption);
         MessageText.Text = message;
         _buttons = buttons;
         ConfigureIcon(image);

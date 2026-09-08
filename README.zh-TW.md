@@ -2,17 +2,16 @@
 
 適用於 macOS 與 Windows 的原生、本機優先螢幕擷取與錄影工具。
 
-[English](README.md) · [Tiếng Việt](README.vi.md) ·
-[简体中文](README.zh-CN.md) · **繁體中文** · [Español](README.es.md) ·
-[日本語](README.ja.md) · [한국어](README.ko.md) ·
-[Русский](README.ru.md) · [Français](README.fr.md) ·
+[简体中文](README.md) · [English](README.en.md) · [Tiếng Việt](README.vi.md) ·
+**繁體中文** · [Español](README.es.md) · [日本語](README.ja.md) ·
+[한국어](README.ko.md) · [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
 **官方網站：** [shotpaste.com](https://www.shotpaste.com/)
 
-ShotPaste 為 macOS 與 Windows 提供彼此獨立的原生客戶端。擷取、OCR、錄影、
-歷史記錄、剪貼簿處理與設定皆保留在本機。專案不提供帳號、遙測、雲端上傳、
-遠端儲存或同步服務。
+ShotPaste 為 macOS 與 Windows 提供彼此獨立的原生客戶端。擷取、OCR、錄製、
+歷史記錄、剪貼簿處理與設定保留在本機。選用的翻譯、音訊轉寫與 AI 文字整理僅將
+選取的文字或音訊傳送至使用者設定的服務。專案不營運帳號、遙測、上傳中繼或同步服務。
 
 ## 功能
 
@@ -43,6 +42,12 @@ ShotPaste 為 macOS 與 Windows 提供彼此獨立的原生客戶端。擷取、
   重新錄製、捨棄、快照與即時畫筆。
 
   [![錄影與即時畫筆](assets/readme/recording.gif)](assets/readme/recording.gif)
+
+- **錄音：** 從選單列或系統匣錄製系統聲音、麥克風或兩者，無需選取螢幕區域，
+  儲存為純音訊 M4A。
+- **轉寫與 AI 筆記：** 使用自己的火山引擎帳戶選擇啟用轉寫，再透過已設定的
+  LLM 潤飾與整理文字。在「轉寫結果」中搜尋、複製和匯出已儲存的結果。
+  參閱[設定、使用與隱私說明](docs/RECORDING_TRANSCRIPTION.md)。
 
 - **Quick Access 與釘選：** 可設定的擷取後卡片、複製/儲存/開啟、拖放、滑動、
   置頂圖片。

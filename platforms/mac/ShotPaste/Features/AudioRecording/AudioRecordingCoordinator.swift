@@ -47,37 +47,6 @@ nonisolated enum AudioRecordingCoordinatorState: String, CaseIterable, Equatable
 
 typealias AudioRecordingState = AudioRecordingCoordinatorState
 
-nonisolated enum AudioRecordingTransactionStep: Equatable, Sendable {
-  case extract
-  case history
-  case transcriptionTask
-  case deleteInternalVideo
-  case complete
-}
-
-/// Pure transaction policy used by the Coordinator and focused tests. A
-/// missing earlier gate can never be skipped by a later side effect.
-nonisolated enum AudioRecordingTransactionGatePolicy {
-  static func nextStep(
-    finalAudioValidated: Bool,
-    historyPersisted: Bool,
-    transcriptionTaskPersisted: Bool
-  ) -> AudioRecordingTransactionStep {
-    if !finalAudioValidated { return .extract }
-    if !historyPersisted { return .history }
-    if !transcriptionTaskPersisted { return .transcriptionTask }
-    return .deleteInternalVideo
-  }
-
-  static func canDelete(
-    finalAudioValidated: Bool,
-    historyPersisted: Bool,
-    transcriptionTaskPersisted: Bool
-  ) -> Bool {
-    finalAudioValidated && historyPersisted && transcriptionTaskPersisted
-  }
-}
-
 nonisolated enum AudioRecordingSaveToastNotice: Equatable, Sendable {
   case saved
   case endedEarlySaved
@@ -190,44 +159,12 @@ private final class AudioDisplayRecoveryGate: @unchecked Sendable {
 
 @MainActor
 protocol AudioRecordingPostCaptureHandling: AnyObject {
-  func handleAudioCapture(
-    url: URL,
-    skipQuickAccess: Bool
-  ) async
-    -> AudioCapturePostProcessingResult
-}
-
-@MainActor
-private protocol AudioRecordingPreferredPostCaptureHandling: AnyObject {
-  func handleAudioCapture(
-    url: URL,
-    skipQuickAccess: Bool,
-    preferredHistoryID: UUID?
-  ) async -> AudioCapturePostProcessingResult
-}
-
-extension AudioRecordingPostCaptureHandling {
-  func handleAudioCapture(
-    url: URL,
-    skipQuickAccess: Bool,
-    preferredHistoryID: UUID? = nil
-  ) async -> AudioCapturePostProcessingResult {
-    if let preferred = self as? any AudioRecordingPreferredPostCaptureHandling {
-      return await preferred.handleAudioCapture(
-        url: url,
-        skipQuickAccess: skipQuickAccess,
-        preferredHistoryID: preferredHistoryID
-      )
-    }
-    return await handleAudioCapture(url: url, skipQuickAccess: skipQuickAccess)
-  }
+  func handleAudioCapture(url: URL, skipQuickAccess: Bool,
+                          preferredHistoryID: UUID?) async -> AudioCapturePostProcessingResult
 }
 
 @MainActor
 extension PostCaptureActionHandler: AudioRecordingPostCaptureHandling {}
-
-@MainActor
-extension PostCaptureActionHandler: AudioRecordingPreferredPostCaptureHandling {}
 
 nonisolated enum AudioRecordingCoordinatorError: LocalizedError, Equatable, Sendable {
   case noSession
@@ -761,70 +698,14 @@ final class AudioRecordingCoordinator: ObservableObject {
       if let current = try? sessionStore.load(sessionID: sessionID),
          current.manifest.stage != .recording,
          current.manifest.stage != .paused {
-        try await stopAndPersistExistingSegments(sessionID: sessionID)
+        try await persistStoppedSession(sessionID: sessionID)
         return
       }
       guard let captureURL = try await adapter.stop(),
             FileManager.default.fileExists(atPath: captureURL.path) else {
         throw AudioRecordingCoordinatorError.noCaptureOutput
       }
-      let extraction = try await extractionPipeline.extract(sessionID: sessionID)
-      let inputBundle = try transcriptionInputBundle(
-        for: sessionID,
-        extraction: extraction
-      )
-      let postCaptureResult = await postCapture.handleAudioCapture(
-        url: extraction.mixed.url,
-        skipQuickAccess: false,
-        preferredHistoryID: sessionID
-      )
-      let historyRecordID = try persistHistoryOutcome(postCaptureResult, sessionID: sessionID)
-
-      let normalizedConfiguration = configuration.normalized
-      let task = AudioProcessingTask(
-        sessionID: sessionID,
-        language: normalizedConfiguration.primaryLanguage,
-        template: normalizedConfiguration.template,
-        autoTranscribe: normalizedConfiguration.automaticTranscription,
-        autoAI: normalizedConfiguration.automaticAI,
-        sourcePaths: inputBundle.sourcePaths,
-        cloudConfiguration: try sessionStore.load(sessionID: sessionID).manifest.processingCloudConfiguration
-      )
-      let taskID = try processingStore.persistTask(sessionID: sessionID, task: task)
-      _ = try sessionStore.markTranscriptionTaskPersisted(
-        sessionID: sessionID,
-        reference: taskID
-      )
-      if let historyRecordID {
-        historyProcessingStatusStore.associate(
-          historyRecordID: historyRecordID,
-          sessionID: sessionID,
-          taskID: taskID,
-          stage: task.stage.rawValue
-        )
-      }
-
-      try await sessionStore.deleteInternalVideo(sessionID: sessionID)
-      closeCaptureUI()
-      SoundManager.play("Glass")
-      await showSuccessToast(successToastMessage(for: sessionID, endedEarly: endedEarly))
-
-      if normalizedConfiguration.automaticTranscription {
-        state = .transcribing
-        startProcessing(
-          taskID: taskID,
-          sessionID: sessionID,
-          sourceInputs: inputBundle.inputs
-        )
-      } else {
-        historyProcessingStatusStore.update(
-          sessionID: sessionID,
-          taskID: taskID,
-          stage: AudioProcessingTaskStage.completed.rawValue
-        )
-        state = .completed
-        scheduleReturnToIdle()
-      }
+      try await persistStoppedSession(sessionID: sessionID, playSound: true)
     } catch {
       lastError = error.localizedDescription
       state = .recoverable
@@ -841,7 +722,7 @@ final class AudioRecordingCoordinator: ObservableObject {
   /// A timeout/cancel can leave the adapter at a failed extraction boundary
   /// after rolling back its newest unresolved placeholder. Save the completed
   /// prefix directly instead of calling Tiny.stop on an invalid stage.
-  private func stopAndPersistExistingSegments(sessionID: UUID) async throws {
+  private func persistStoppedSession(sessionID: UUID, playSound: Bool = false) async throws {
     let extraction = try await extractionPipeline.extract(sessionID: sessionID)
     let inputBundle = try transcriptionInputBundle(for: sessionID, extraction: extraction)
     let postCaptureResult = await postCapture.handleAudioCapture(
@@ -849,32 +730,14 @@ final class AudioRecordingCoordinator: ObservableObject {
       skipQuickAccess: false,
       preferredHistoryID: sessionID
     )
-    let historyRecordID = try persistHistoryOutcome(postCaptureResult, sessionID: sessionID)
-    let normalizedConfiguration = configuration.normalized
-    let task = AudioProcessingTask(
-      sessionID: sessionID,
-      language: normalizedConfiguration.primaryLanguage,
-      template: normalizedConfiguration.template,
-      autoTranscribe: normalizedConfiguration.automaticTranscription,
-      autoAI: normalizedConfiguration.automaticAI,
-      sourcePaths: inputBundle.sourcePaths,
-      cloudConfiguration: try sessionStore.load(sessionID: sessionID).manifest.processingCloudConfiguration
-    )
-    let taskID = try processingStore.persistTask(sessionID: sessionID, task: task)
-    _ = try sessionStore.markTranscriptionTaskPersisted(sessionID: sessionID, reference: taskID)
-    if let historyRecordID {
-      historyProcessingStatusStore.associate(
-        historyRecordID: historyRecordID,
-        sessionID: sessionID,
-        taskID: taskID,
-        stage: task.stage.rawValue
-      )
-    }
-    try await sessionStore.deleteInternalVideo(sessionID: sessionID)
+    try persistHistoryOutcome(postCaptureResult, sessionID: sessionID)
+    let task = try await persistProcessingReceipt(sessionID: sessionID, sourcePaths: inputBundle.sourcePaths)
+    let taskID = task.id
     closeCaptureUI()
+    if playSound { SoundManager.play("Glass") }
     await showSuccessToast(successToastMessage(for: sessionID, endedEarly: endedEarly))
-    state = normalizedConfiguration.automaticTranscription ? .transcribing : .completed
-    if normalizedConfiguration.automaticTranscription {
+    state = task.autoTranscribe ? .transcribing : .completed
+    if task.autoTranscribe {
       startProcessing(taskID: taskID, sessionID: sessionID, sourceInputs: inputBundle.inputs)
     } else {
       historyProcessingStatusStore.update(
@@ -1241,61 +1104,70 @@ final class AudioRecordingCoordinator: ObservableObject {
 
   private func completeRecoveryTranscription(sessionID: UUID) async {
     do {
-      let session = try sessionStore.load(sessionID: sessionID)
-      let taskID: UUID
-      let task: AudioProcessingTask
-      if let existing = try? processingStore.loadTask(sessionID: sessionID) {
-        taskID = existing.id
-        task = existing
-      } else {
-        let hasPersistedOptions = session.manifest.processingLanguage != nil
-          && session.manifest.processingTemplate != nil
-          && session.manifest.processingAutoTranscribe != nil
-          && session.manifest.processingAutoAI != nil
-        if !hasPersistedOptions {
-          lastError = "Audio processing options were unavailable; recovery used defaults."
-        }
-        task = AudioProcessingTask(
-          sessionID: sessionID,
-          language: session.manifest.processingLanguage ?? .auto,
-          template: session.manifest.processingTemplate ?? .transcriptOnly,
-          autoTranscribe: session.manifest.processingAutoTranscribe ?? false,
-          autoAI: (session.manifest.processingAutoAI ?? false)
-            && (session.manifest.processingAutoTranscribe ?? false),
-          sourcePaths: finalSourcePaths(from: session.manifest),
-          cloudConfiguration: session.manifest.processingCloudConfiguration
-        )
-        taskID = try processingStore.persistTask(sessionID: sessionID, task: task)
-      }
-      if !session.manifest.transcriptionTaskPersisted {
-        _ = try sessionStore.markTranscriptionTaskPersisted(
-          sessionID: sessionID,
-          reference: taskID
-        )
-      }
-      if let historyID = session.manifest.historyRecordReference {
-        historyProcessingStatusStore.associate(
-          historyRecordID: historyID,
-          sessionID: sessionID,
-          taskID: taskID,
-          stage: task.stage.rawValue
-        )
-        if session.manifest.processingLanguage == nil
-          || session.manifest.processingTemplate == nil
-          || session.manifest.processingAutoTranscribe == nil
-          || session.manifest.processingAutoAI == nil {
-          historyProcessingStatusStore.update(
-            sessionID: sessionID,
-            taskID: taskID,
-            stage: AudioProcessingTaskStage.failed.rawValue
-          )
-        }
-      }
-      try await sessionStore.deleteInternalVideo(sessionID: sessionID)
-      _ = task
+      _ = try await persistProcessingReceipt(sessionID: sessionID)
     } catch {
       DiagnosticLogger.shared.logError(.recording, error, "Audio transcription recovery deferred")
     }
+  }
+
+  /// Shared by normal stopping, interrupted capture and startup recovery.
+  /// Only durable receipts and validated media can open the deletion gate.
+  private func persistProcessingReceipt(
+    sessionID: UUID,
+    sourcePaths: [AudioRecordingSource: String]? = nil
+  ) async throws -> AudioProcessingTask {
+    let session = try sessionStore.load(sessionID: sessionID)
+    let taskID: UUID
+    let task: AudioProcessingTask
+    if let existing = try? processingStore.loadTask(sessionID: sessionID) {
+      taskID = existing.id
+      task = existing
+    } else {
+      let hasPersistedOptions = session.manifest.processingLanguage != nil
+        && session.manifest.processingTemplate != nil
+        && session.manifest.processingAutoTranscribe != nil
+        && session.manifest.processingAutoAI != nil
+      if !hasPersistedOptions {
+        lastError = "Audio processing options were unavailable; recovery used defaults."
+      }
+      task = AudioProcessingTask(
+        sessionID: sessionID,
+        language: session.manifest.processingLanguage ?? .auto,
+        template: session.manifest.processingTemplate ?? .transcriptOnly,
+        autoTranscribe: session.manifest.processingAutoTranscribe ?? false,
+        autoAI: (session.manifest.processingAutoAI ?? false)
+          && (session.manifest.processingAutoTranscribe ?? false),
+        sourcePaths: sourcePaths ?? finalSourcePaths(from: session.manifest),
+        cloudConfiguration: session.manifest.processingCloudConfiguration
+      )
+      taskID = try processingStore.persistTask(sessionID: sessionID, task: task)
+    }
+    if !session.manifest.transcriptionTaskPersisted {
+      _ = try sessionStore.markTranscriptionTaskPersisted(
+        sessionID: sessionID,
+        reference: taskID
+      )
+    }
+    if let historyID = session.manifest.historyRecordReference {
+      historyProcessingStatusStore.associate(
+        historyRecordID: historyID,
+        sessionID: sessionID,
+        taskID: taskID,
+        stage: task.stage.rawValue
+      )
+      if session.manifest.processingLanguage == nil
+        || session.manifest.processingTemplate == nil
+        || session.manifest.processingAutoTranscribe == nil
+        || session.manifest.processingAutoAI == nil {
+        historyProcessingStatusStore.update(
+          sessionID: sessionID,
+          taskID: taskID,
+          stage: AudioProcessingTaskStage.failed.rawValue
+        )
+      }
+    }
+    try await sessionStore.deleteInternalVideo(sessionID: sessionID)
+    return task
   }
 
   private func finalSourcePaths(
@@ -1318,14 +1190,14 @@ final class AudioRecordingCoordinator: ObservableObject {
       event.wasAdapterStartClaimed else { return }
     guard !streamFailureStopScheduled else { return }
     endedEarly = true
-    if state == .preparing {
+    if AudioRecordingStreamFailurePolicy.shouldDeferUntilStartReturns(state: state, event: event) {
       // The manager can publish the failure after its atomic start claim but
       // before adapter.start() returns. Queue the save; prepareAndStart will
       // enter recording state only long enough to run the normal stop gate.
       pendingStreamFailure = true
       return
     }
-    guard isRecording else { return }
+    guard AudioRecordingStreamFailurePolicy.shouldQueueStop(state: state, event: event) else { return }
     streamFailureStopScheduled = true
     stop()
   }

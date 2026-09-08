@@ -101,7 +101,9 @@ jobs:
 
       - name: Run interactive Windows parity suite
         shell: pwsh
-        run: ./scripts/test-windows-parity.ps1 -Configuration Debug -Tier Interactive -SkipBuild -RequireDpiScale 1.5
+        run: |
+          $product = (Resolve-Path './platforms/windows/src/ShotPaste.Windows/bin/x64/Debug/net8.0-windows10.0.19041.0/win-x64/ShotPasteDebug.exe').Path
+          ./scripts/test-windows-parity.ps1 -Configuration Debug -Tier Interactive -SkipBuild -ProductExecutable $product -RequireDpiScale 1.5
 
       - name: Upload Windows parity evidence
         if: always()

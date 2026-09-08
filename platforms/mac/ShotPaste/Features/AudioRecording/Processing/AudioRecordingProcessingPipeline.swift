@@ -57,62 +57,18 @@ nonisolated protocol AudioTranscribing: Sendable {
     sources: [AudioTranscriptionSourceInput],
     language: AudioRecordingLanguage,
     processingDirectory: URL?,
-    sessionID: UUID?
-  ) async throws -> AudioRawTranscript
-
-  func transcribe(
-    sources: [AudioTranscriptionSourceInput],
-    language: AudioRecordingLanguage,
-    processingDirectory: URL?,
     sessionID: UUID?,
     cloudConfiguration: RecordingTranscriptionConfiguration?
   ) async throws -> AudioRawTranscript
-}
-
-extension AudioTranscribing {
-  func transcribe(
-    sources: [AudioTranscriptionSourceInput],
-    language: AudioRecordingLanguage,
-    processingDirectory: URL?,
-    sessionID: UUID?,
-    cloudConfiguration: RecordingTranscriptionConfiguration?
-  ) async throws -> AudioRawTranscript {
-    try await transcribe(sources: sources, language: language,
-      processingDirectory: processingDirectory, sessionID: sessionID)
-  }
 }
 
 nonisolated protocol AudioLLMProcessing: Sendable {
   func process(
     raw: AudioRawTranscript,
     template: AudioOrganizationTemplate,
-    language: AudioRecordingLanguage?
-  ) async throws -> AudioLLMProcessingResult
-
-  func process(
-    raw: AudioRawTranscript,
-    template: AudioOrganizationTemplate,
     language: AudioRecordingLanguage?,
     existingPolished: AudioPolishedTranscript?
   ) async throws -> AudioLLMProcessingResult
-}
-
-extension AudioLLMProcessing {
-  /// Implementations that support durable polished checkpoints can override
-  /// this overload to organize only.  A legacy provider may still use the
-  /// three-argument entry point for a fresh run, but it must not silently
-  /// polish a transcript again when recovery supplies a checkpoint.
-  func process(
-    raw: AudioRawTranscript,
-    template: AudioOrganizationTemplate,
-    language: AudioRecordingLanguage?,
-    existingPolished: AudioPolishedTranscript?
-  ) async throws -> AudioLLMProcessingResult {
-    guard existingPolished == nil else {
-      throw AudioLocalLLMError.invalidOutput
-    }
-    return try await process(raw: raw, template: template, language: language)
-  }
 }
 
 extension LocalAudioTranscriber: AudioTranscribing {}
@@ -454,8 +410,7 @@ nonisolated final class AudioRecordingProcessingPipeline: @unchecked Sendable {
 
       if task.autoTranscribe, raw == nil {
         if task.cloudConfiguration == nil,
-           let local = transcriber as? LocalAudioTranscriber,
-           local.usesCloudRecognition {
+           transcriber is LocalAudioTranscriber {
           let paths = Set(inputs.map { $0.url.standardizedFileURL.path })
           let receipts = await VolcengineRecordingWorkStore.shared.works().filter {
             paths.contains($0.recordingURL.standardizedFileURL.path)
@@ -713,7 +668,6 @@ nonisolated final class AudioRecordingProcessingPipeline: @unchecked Sendable {
 
   private func errorCode(for error: Error) -> String {
     switch error {
-    case AudioTranscriberError.dictationDisabled: "speech_service_disabled"
     case is AudioTranscriberError: "transcription_failed"
     case is AudioLocalLLMError: "model_processing_failed"
     case is AudioProcessingTaskStoreError: "persistence_failed"

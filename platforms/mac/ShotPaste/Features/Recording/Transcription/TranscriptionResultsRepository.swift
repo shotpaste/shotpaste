@@ -91,12 +91,18 @@ actor TranscriptionResultsRepository {
   }
 
   func summaries() async -> [TranscriptionResultSummary] {
+    let audioTasks = audioStore.allTasks().filter(\.autoTranscribe)
+    let sourceURLs = Dictionary(uniqueKeysWithValues: audioTasks.map { task in
+      let directory = audioStore.sessionsDirectory.appendingPathComponent(task.sessionID.uuidString)
+      return (task.sessionID, Set(task.sourcePaths.values.map { directory.appendingPathComponent($0) }))
+    })
+    try? await videoStore.associateLegacyAudioTasks(sourceURLs)
     let works = await videoStore.works()
     let failedParents = Set(await cloudJobs.jobs().filter {
       $0.stage == .failed && $0.lastError != "20000003"
     }.compactMap(\.parentWorkID))
     let sessions = AudioAdapterSessionStore(sessionsDirectory: audioStore.sessionsDirectory)
-    var results = audioStore.allTasks().filter(\.autoTranscribe).map { task in
+    var results = audioTasks.map { task in
       let session = try? sessions.load(sessionID: task.sessionID)
       let directory = audioStore.sessionsDirectory.appendingPathComponent(task.sessionID.uuidString)
       var urls = task.sourcePaths.values.map { directory.appendingPathComponent($0) }
@@ -107,7 +113,7 @@ actor TranscriptionResultsRepository {
         mediaURLs: urls, historyRecordID: session?.manifest.historyRecordReference,
         stage: task.stage)
       result.requiresResubmission = works.contains {
-        failedParents.contains($0.id) && urls.contains($0.recordingURL)
+        failedParents.contains($0.id) && $0.audioSessionIDs?.contains(task.sessionID) == true
       }
       return result
     }
@@ -115,7 +121,7 @@ actor TranscriptionResultsRepository {
     // Its user-facing parent is already represented above; verification MP3s
     // and internal M4A tracks are never standalone screen recordings.
     results += works.filter {
-      ["mov", "mp4", "m4v"].contains($0.recordingURL.pathExtension.lowercased())
+      $0.kind == .video
     }.map { work in
       let stage: AudioProcessingTaskStage
       switch work.state {
@@ -229,8 +235,8 @@ actor TranscriptionResultsRepository {
     let parents: Set<String>
     switch id {
     case let .video(workID): parents = [workID]
-    case .audio:
-      parents = Set(await videoStore.works().filter { summary.mediaURLs.contains($0.recordingURL) }.map(\.id))
+    case let .audio(sessionID):
+      parents = Set(await videoStore.works().filter { $0.audioSessionIDs?.contains(sessionID) == true }.map(\.id))
     }
     await cloudJobs.retryCleanup()
     for job in await cloudJobs.jobs() where job.stage == .failed && job.lastError != "20000003"

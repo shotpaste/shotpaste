@@ -2,17 +2,18 @@
 
 macOS と Windows 向けのネイティブかつローカル優先の画面キャプチャツールです。
 
-[English](README.md) · [Tiếng Việt](README.vi.md) ·
-[简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) ·
-[Español](README.es.md) · **日本語** · [한국어](README.ko.md) ·
-[Русский](README.ru.md) · [Français](README.fr.md) ·
+[简体中文](README.md) · [English](README.en.md) · [Tiếng Việt](README.vi.md) ·
+[繁體中文](README.zh-TW.md) · [Español](README.es.md) · **日本語** ·
+[한국어](README.ko.md) · [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
 **公式サイト:** [shotpaste.com](https://www.shotpaste.com/)
 
 ShotPaste は macOS と Windows に独立したネイティブクライアントを提供します。
-キャプチャ、OCR、録画、履歴、クリップボード処理、設定は端末内に保持されます。
-アカウント、テレメトリ、クラウドアップロード、リモート保存、同期機能はありません。
+キャプチャ、OCR、録音・録画、履歴、クリップボード処理、設定は端末内に保持されます。
+任意の翻訳、音声文字起こし、AI テキスト整理では、選択したテキストまたは音声のみを
+ユーザーが設定したサービスへ送信します。プロジェクトはアカウント、テレメトリ、
+アップロード中継、同期サービスを運営しません。
 
 ## 機能
 
@@ -46,6 +47,13 @@ ShotPaste は macOS と Windows に独立したネイティブクライアント
   一時停止、再録画、破棄、スナップショット、ライブ描画。
 
   [![ライブ注釈付き録画](assets/readme/recording.gif)](assets/readme/recording.gif)
+
+- **録音：** メニューバーまたはトレイからシステム音声、マイク、または両方を
+  録音し、音声のみの M4A として保存します。画面範囲の選択は不要です。
+- **文字起こしと AI ノート：** 自分の Volcengine アカウントで文字起こしを有効にし、
+  必要に応じて設定済み LLM で文章を推敲・整理できます。文字起こし結果ウィンドウで
+  保存済みの結果を検索、コピー、書き出しできます。
+  [設定・使い方・プライバシー](docs/RECORDING_TRANSCRIPTION.en.md)を参照してください。
 
 - **Quick Access とピン：** 設定可能なカード、コピー/保存/開く、ドラッグ、
   スワイプ、常に手前に表示する画像。
@@ -116,4 +124,4 @@ ShareX の調査からも一部知見を得つつ、同じ ShotPaste 製品ワ�
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) に収録しています。
 
 貢献、サポート、責任ある報告については [CONTRIBUTING.md](CONTRIBUTING.md)、
-[SUPPORT.md](SUPPORT.md)、[SECURITY.md](SECURITY.md) を参照してください。
+[SUPPORT.en.md](SUPPORT.en.md)、[SECURITY.md](SECURITY.md) を参照してください。

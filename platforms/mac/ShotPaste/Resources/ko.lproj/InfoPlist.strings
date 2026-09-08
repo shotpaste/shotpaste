@@ -1,3 +1,2 @@
 "NSMicrophoneUsageDescription" = "ShotPaste가 오디오 녹음과 화면 녹화를 하려면 마이크 접근 권한이 필요합니다.";
-"NSSpeechRecognitionUsageDescription" = "ShotPaste가 이 Mac에서 오디오 녹음을 받아쓰려면 음성 인식 접근 권한이 필요합니다.";
 "NSScreenCaptureUsageDescription" = "ShotPaste가 스크린샷을 캡처하고 화면을 녹화하려면 화면 녹화 권한이 필요합니다.";

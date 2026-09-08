@@ -190,7 +190,7 @@ public partial class RecordingToolbarWindow : Window
         if (_displayedPaused == paused) return;
         _displayedPaused = paused;
         PauseGlyph.Content = FindResource(paused ? "Icon.Resume" : "Icon.Pause");
-        PauseButton.ToolTip = paused ? "继续录制" : "暂停录制";
+        PauseButton.ToolTip = LocalizationService.TranslatePhrase(paused ? "继续录制" : "暂停录制");
         AutomationProperties.SetName(PauseButton,
             LocalizationService.TranslatePhrase(paused ? "继续录制" : "暂停录制"));
         StatusDot.Fill = (System.Windows.Media.Brush)FindResource(paused ? "WarningBrush" : "Annotation.RedBrush");
@@ -201,7 +201,7 @@ public partial class RecordingToolbarWindow : Window
     public void SetPenActive(bool active)
     {
         PenButton.Background = (System.Windows.Media.Brush)FindResource(active ? "HudSelectedBrush" : "HudInputBrush");
-        PenButton.ToolTip = active ? "关闭标注" : "在录制画面上标注";
+        PenButton.ToolTip = LocalizationService.TranslatePhrase(active ? "关闭标注" : "在录制画面上标注");
         AutomationProperties.SetName(PenButton,
             LocalizationService.TranslatePhrase(active ? "关闭录屏标注" : "打开录屏标注"));
     }

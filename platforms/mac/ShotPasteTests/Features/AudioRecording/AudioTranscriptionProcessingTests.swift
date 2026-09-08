@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import Speech
 @testable import ShotPaste
 import XCTest
 
@@ -30,7 +29,7 @@ final class AudioTranscriptionProcessingTests: XCTestCase {
   }
 
   func testSilentSystemTrackPreservesMicrophoneTranscript() async throws {
-    let engine = VolcengineAudioRecognitionEngine(recognize: { url, _ in
+    let engine = VolcengineAudioRecognitionEngine(recognize: { url, _, _ in
       if url.lastPathComponent == "system.m4a" { return .init() }
       return .init(segments: [.init(text: "microphone speech", startTime: 0, duration: 1, source: .microphone)])
     })
@@ -41,17 +40,6 @@ final class AudioTranscriptionProcessingTests: XCTestCase {
     XCTAssertEqual(result.segments.count, 1)
     XCTAssertEqual(result.segments.first?.source, .microphone)
     XCTAssertEqual(result.segments.first?.text, "microphone speech")
-  }
-
-  func testSpeechFrameworkErrorsRetainActionableRecoveryReason() {
-    XCTAssertEqual(SpeechFrameworkAudioRecognitionEngine.mapRecognitionError(
-      NSError(domain: "kLSRErrorDomain", code: 201)), .dictationDisabled)
-    XCTAssertEqual(SpeechFrameworkAudioRecognitionEngine.mapRecognitionError(
-      NSError(domain: "kLSRErrorDomain", code: 102)), .onDeviceModelUnavailable)
-    XCTAssertEqual(SpeechFrameworkAudioRecognitionEngine.mapRecognitionError(
-      NSError(domain: "kLSRErrorDomain", code: 301)), .cancelled)
-    XCTAssertEqual(SpeechFrameworkAudioRecognitionEngine.mapRecognitionError(
-      NSError(domain: "unrelated", code: 201)), .recognitionFailed)
   }
 
   @MainActor
@@ -308,16 +296,7 @@ final class AudioTranscriptionProcessingTests: XCTestCase {
     XCTAssertEqual(provider.organizeCount, 0)
   }
 
-  func testLongRecordingChunkPlanIsBounded() throws {
-    let chunks = try AudioTranscriptionChunkPlanner.plan(
-      durationSeconds: 3_901,
-      chunkDurationSeconds: 600
-    )
-    XCTAssertEqual(chunks.count, 7)
-    XCTAssertTrue(chunks.allSatisfy { $0.duration <= 600 && $0.duration > 0 })
-    XCTAssertEqual(chunks.first?.startTime, 0)
-    XCTAssertEqual(try XCTUnwrap(chunks.last).endTime, 3_901, accuracy: 0.0001)
-
+  func testLongTranscriptBatchesAreBounded() throws {
     let raw = AudioRawTranscript(segments: (0..<241).map { index in
       AudioTranscriptSegment(
         text: "segment-\(index)",
@@ -532,109 +511,6 @@ final class AudioTranscriptionProcessingTests: XCTestCase {
     XCTAssertEqual(counter.value, 1)
   }
 
-  func testSpeechContinuationTimeoutAndCancellationResumeExactlyOnce() async {
-    let timeoutState = SpeechRecognitionContinuationState<Int>(timeoutSeconds: 0.01)
-    let timeoutWaiter = Task.detached { () -> Result<Int, Error> in
-      do {
-        let value = try await withCheckedThrowingContinuation {
-          (continuation: CheckedContinuation<Int, Error>) in
-          XCTAssertTrue(timeoutState.installContinuation(continuation))
-          timeoutState.startTimeout()
-        }
-        return .success(value)
-      } catch {
-        return .failure(error)
-      }
-    }
-    let timeoutResult = await timeoutWaiter.value
-    if case let .failure(error) = timeoutResult {
-      XCTAssertEqual(error as? AudioTranscriberError, .recognitionTimedOut)
-    } else {
-      XCTFail("timeout must resume with an error")
-    }
-
-    let cancelState = SpeechRecognitionContinuationState<Int>(timeoutSeconds: 1)
-    // Exercise the cancellation-before-continuation-install race explicitly.
-    cancelState.cancel()
-    let cancelWaiter = Task.detached { () -> Result<Int, Error> in
-      do {
-        let value = try await withCheckedThrowingContinuation {
-          (continuation: CheckedContinuation<Int, Error>) in
-          _ = cancelState.installContinuation(continuation)
-        }
-        return .success(value)
-      } catch {
-        return .failure(error)
-      }
-    }
-    cancelState.finish(returning: 42)
-    let cancelResult = await cancelWaiter.value
-    if case let .failure(error) = cancelResult {
-      XCTAssertEqual(error as? AudioTranscriberError, .cancelled)
-    } else {
-      XCTFail("cancel must win exactly once")
-    }
-  }
-
-  func testSpeechAuthorizationBridgeTimeoutAndLateCallbackAreExactlyOnce() async {
-    let requester = AuthorizationRequesterSpy()
-    let bridge = SpeechAuthorizationBridge(requester: requester, timeoutSeconds: 0.01)
-    let waiter = Task { () -> Result<SFSpeechRecognizerAuthorizationStatus, Error> in
-      do {
-        return .success(try await bridge.requestAuthorization())
-      } catch {
-        return .failure(error)
-      }
-    }
-    let result = await waiter.value
-    if case let .failure(error) = result {
-      XCTAssertEqual(error as? AudioTranscriberError, .authorizationTimedOut)
-    } else {
-      XCTFail("authorization timeout must resume with an error")
-    }
-
-    requester.respond(.authorized)
-    XCTAssertEqual(requester.responseCount, 1)
-  }
-
-  func testSpeechAuthorizationBridgeCancellationResumesBeforeLateCallback() async {
-    let requester = AuthorizationRequesterSpy()
-    let bridge = SpeechAuthorizationBridge(requester: requester, timeoutSeconds: 10)
-    let waiter = Task { () -> Result<SFSpeechRecognizerAuthorizationStatus, Error> in
-      do {
-        return .success(try await bridge.requestAuthorization())
-      } catch {
-        return .failure(error)
-      }
-    }
-
-    for _ in 0..<100 where !requester.hasHandler {
-      try? await Task.sleep(nanoseconds: 1_000_000)
-    }
-    waiter.cancel()
-    let result = await waiter.value
-    if case let .failure(error) = result {
-      XCTAssertEqual(error as? AudioTranscriberError, .cancelled)
-    } else {
-      XCTFail("authorization cancellation must resume immediately")
-    }
-
-    requester.respond(.authorized)
-    XCTAssertEqual(requester.responseCount, 1)
-  }
-
-  func testSpeechAuthorizationPolicyDistinguishesNotDeterminedAndRestricted() {
-    XCTAssertEqual(
-      AudioSpeechAuthorizationPolicy.error(for: .notDetermined),
-      .authorizationDenied
-    )
-    XCTAssertEqual(
-      AudioSpeechAuthorizationPolicy.error(for: .restricted),
-      .authorizationRestricted
-    )
-    XCTAssertNil(AudioSpeechAuthorizationPolicy.error(for: .authorized))
-  }
-
   func testRawWordIDsMustBeUnique() {
     let first = AudioTranscriptWord(id: "duplicate", text: "one", startTime: 0, duration: 1, source: .mixed)
     let second = AudioTranscriptWord(id: "duplicate", text: "two", startTime: 1, duration: 1, source: .mixed)
@@ -837,28 +713,6 @@ final class AudioTranscriptionProcessingTests: XCTestCase {
     XCTAssertTrue(FileManager.default.fileExists(atPath: reserved.path))
   }
 
-  func testDefaultExistingPolishedOverloadRejectsCheckpoint() async throws {
-    let raw = AudioRawTranscript(segments: [
-      AudioTranscriptSegment(text: "checkpoint", startTime: 0, duration: 1, source: .mixed)
-    ])
-    let checkpoint = AudioPolishedTranscript(
-      text: "already polished",
-      sourceSegmentIDs: raw.segments.map(\.id)
-    )
-    let provider: any AudioLLMProcessing = LegacyLLM()
-    do {
-      _ = try await provider.process(
-        raw: raw,
-        template: .generalNotes,
-        language: nil,
-        existingPolished: checkpoint
-      )
-      XCTFail("legacy providers must not silently re-polish a checkpoint")
-    } catch let error as AudioLocalLLMError {
-      XCTAssertEqual(error, .invalidOutput)
-    }
-  }
-
   private func makeSourceFile(sessionID: UUID, name: String = "mixed.m4a") throws -> URL {
     let directory = root.appendingPathComponent(sessionID.uuidString, isDirectory: true)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -876,7 +730,8 @@ final class AudioTranscriptionProcessingTests: XCTestCase {
       sources: [AudioTranscriptionSourceInput],
       language: AudioRecordingLanguage,
       processingDirectory: URL?,
-      sessionID: UUID?
+      sessionID: UUID?,
+      cloudConfiguration: RecordingTranscriptionConfiguration?
     ) async throws -> AudioRawTranscript {
       raw
     }
@@ -884,12 +739,6 @@ final class AudioTranscriptionProcessingTests: XCTestCase {
 
   private struct ConfigurationCheckingTranscriber: AudioTranscribing {
     let expected: RecordingTranscriptionConfiguration
-
-    func transcribe(sources: [AudioTranscriptionSourceInput], language: AudioRecordingLanguage,
-                    processingDirectory: URL?, sessionID: UUID?) async throws -> AudioRawTranscript {
-      XCTFail("Pipeline must pass the persisted profile to the recognizer")
-      throw RecordingTranscriptionError.invalidConfiguration
-    }
 
     func transcribe(sources: [AudioTranscriptionSourceInput], language: AudioRecordingLanguage,
                     processingDirectory: URL?, sessionID: UUID?,
@@ -914,7 +763,8 @@ final class AudioTranscriptionProcessingTests: XCTestCase {
       sources: [AudioTranscriptionSourceInput],
       language: AudioRecordingLanguage,
       processingDirectory: URL?,
-      sessionID: UUID?
+      sessionID: UUID?,
+      cloudConfiguration: RecordingTranscriptionConfiguration?
     ) async throws -> AudioRawTranscript {
       await started.signal()
       await release.wait()
@@ -929,7 +779,8 @@ final class AudioTranscriptionProcessingTests: XCTestCase {
       sources: [AudioTranscriptionSourceInput],
       language: AudioRecordingLanguage,
       processingDirectory: URL?,
-      sessionID: UUID?
+      sessionID: UUID?,
+      cloudConfiguration: RecordingTranscriptionConfiguration?
     ) async throws -> AudioRawTranscript {
       await started.signal()
       try await Task.sleep(for: .seconds(60))
@@ -972,20 +823,6 @@ final class AudioTranscriptionProcessingTests: XCTestCase {
       existingPolished: AudioPolishedTranscript?
     ) async throws -> AudioLLMProcessingResult {
       throw AudioLocalLLMError.modelUnavailable("test")
-    }
-  }
-
-  private struct LegacyLLM: AudioLLMProcessing {
-    func process(
-      raw: AudioRawTranscript,
-      template: AudioOrganizationTemplate,
-      language: AudioRecordingLanguage?
-    ) async throws -> AudioLLMProcessingResult {
-      let ids = raw.segments.map(\.id)
-      return AudioLLMProcessingResult(
-        polished: AudioPolishedTranscript(text: "polished", sourceSegmentIDs: ids),
-        structured: AudioStructuredContent(template: template, transcriptSegmentIDs: ids)
-      )
     }
   }
 
@@ -1043,41 +880,6 @@ final class AudioTranscriptionProcessingTests: XCTestCase {
       lock.lock()
       storedOrganizeCount += 1
       lock.unlock()
-    }
-  }
-
-  private final class AuthorizationRequesterSpy: @unchecked Sendable,
-    SpeechAuthorizationRequester {
-    private let lock = NSLock()
-    private var handler: ((SFSpeechRecognizerAuthorizationStatus) -> Void)?
-    private var storedResponseCount = 0
-
-    var hasHandler: Bool {
-      lock.lock()
-      defer { lock.unlock() }
-      return handler != nil
-    }
-
-    var responseCount: Int {
-      lock.lock()
-      defer { lock.unlock() }
-      return storedResponseCount
-    }
-
-    func requestAuthorization(
-      _ handler: @escaping (SFSpeechRecognizerAuthorizationStatus) -> Void
-    ) {
-      lock.lock()
-      self.handler = handler
-      lock.unlock()
-    }
-
-    func respond(_ status: SFSpeechRecognizerAuthorizationStatus) {
-      lock.lock()
-      let callback = handler
-      storedResponseCount += 1
-      lock.unlock()
-      callback?(status)
     }
   }
 

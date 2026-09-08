@@ -33,7 +33,7 @@ public partial class MainWindow : Window
         _history = history;
         _settings = settings;
         WindowAppearanceService.Attach(this, WindowBackdropKind.Mica);
-        Title = LocalizationService.Text(settings.Current.Language, "history.title");
+        Title = AppBuildIdentity.Current.FormatWindowTitle(LocalizationService.Text(settings.Current.Language, "history.title"));
         Width = settings.Current.HistoryExpandedWidth;
         Height = settings.Current.HistoryExpandedHeight;
         DataContext = settings.Current;
@@ -80,8 +80,7 @@ public partial class MainWindow : Window
 
     public void RefreshLocalization()
     {
-        Title = LocalizationService.Text(LocalizationService.CurrentLanguage, "history.title");
-        LocalizationService.LocalizeWindow(this);
+        Title = AppBuildIdentity.Current.FormatWindowTitle(LocalizationService.Text(LocalizationService.CurrentLanguage, "history.title"));
         HistoryItems.Items.Refresh();
     }
 
@@ -316,7 +315,7 @@ public partial class MainWindow : Window
         if (sender is not ListBox list || !ReferenceEquals(list, HistoryItems)) return;
         var count = HistoryItems.SelectedItems.Count;
         SelectionActions.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        SelectionSummary.Text = $"已选择 {count} 项";
+        SelectionSummary.Text = LocalizationService.TranslatePhrase($"已选择 {count} 项");
     }
 
     private void OnCopySelection(object sender, RoutedEventArgs e) =>

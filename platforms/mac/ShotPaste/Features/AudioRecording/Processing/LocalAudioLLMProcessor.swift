@@ -208,19 +208,6 @@ nonisolated final class LocalAudioLLMProcessor: @unchecked Sendable {
 
   var availability: AudioLocalModelAvailability { provider.availability }
 
-  func process(
-    raw: AudioRawTranscript,
-    template: AudioOrganizationTemplate,
-    language: AudioRecordingLanguage? = nil
-  ) async throws -> AudioLLMProcessingResult {
-    try await process(
-      raw: raw,
-      template: template,
-      language: language,
-      existingPolished: nil
-    )
-  }
-
   /// Processes a raw transcript while optionally reusing a durable polished
   /// checkpoint.  A crash after the polished artifact is written must not
   /// cause the next run to ask the model to polish the same transcript again.
@@ -229,7 +216,7 @@ nonisolated final class LocalAudioLLMProcessor: @unchecked Sendable {
     raw: AudioRawTranscript,
     template: AudioOrganizationTemplate,
     language: AudioRecordingLanguage? = nil,
-    existingPolished: AudioPolishedTranscript?
+    existingPolished: AudioPolishedTranscript? = nil
   ) async throws -> AudioLLMProcessingResult {
     guard raw.hasValidStructure else {
       throw AudioLocalLLMError.invalidOutput

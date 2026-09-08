@@ -30,7 +30,7 @@ public sealed class AudioRecordingPreparationWindow : Window
     {
         SetResourceReference(ForegroundProperty, "TextBrush");
         System.Windows.Automation.AutomationProperties.SetAutomationId(this, "AudioRecordingPreparationWindow");
-        Title = L("audio-recording.start-button", "Start Audio Recording");
+        Title = AppBuildIdentity.Current.FormatWindowTitle(L("audio-recording.start-button", "Start Audio Recording"));
         Width = 450; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.NoResize;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         var body = new StackPanel { Margin = new Thickness(24) };
@@ -102,7 +102,7 @@ public sealed class AudioRecordingControlWindow : Window
     {
         SetResourceReference(ForegroundProperty, "TextBrush");
         System.Windows.Automation.AutomationProperties.SetAutomationId(this, "AudioRecordingControlWindow");
-        Title = AudioRecordingPreparationWindow.L("audio-recording.recording", "Audio recording");
+        Title = AppBuildIdentity.Current.FormatWindowTitle(AudioRecordingPreparationWindow.L("audio-recording.recording", "Audio recording"));
         SizeToContent = SizeToContent.WidthAndHeight; ResizeMode = ResizeMode.NoResize;
         Topmost = true; WindowStartupLocation = WindowStartupLocation.CenterScreen;
         var body = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(12) };

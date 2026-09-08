@@ -1,7 +1,8 @@
 <Window x:Class="ShotPaste.Windows.Views.QuickAccessWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:loc="clr-namespace:ShotPaste.Windows.Services"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="ShotPaste · Quick Access" Width="180" Height="112" WindowStyle="None" ResizeMode="NoResize"
+        Title="{loc:Localized Key='ShotPaste · Quick Access', IsWindowTitle=True}" Width="180" Height="112" WindowStyle="None" ResizeMode="NoResize"
         Background="{DynamicResource WindowBackdropBrush}" ShowInTaskbar="False" Topmost="True" ShowActivated="False"
         AutomationProperties.AutomationId="QuickAccessWindow"
         PreviewKeyDown="OnPreviewKeyDown" Deactivated="OnDeactivated"
@@ -20,7 +21,7 @@
     <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="18" ShadowDepth="7" Opacity="0.48"/></Border.Effect>
     <Grid>
       <Image x:Name="Preview" Source="{Binding PreviewSource}" Stretch="UniformToFill"
-             AutomationProperties.AutomationId="QuickAccessPreview" AutomationProperties.Name="截图预览"/>
+             AutomationProperties.AutomationId="QuickAccessPreview" AutomationProperties.Name="{loc:Localized Key='截图预览'}"/>
       <Grid x:Name="TextPreview" Background="{DynamicResource HudBrush}"
             AutomationProperties.AutomationId="QuickAccessTextPreview">
         <Grid.Style>
@@ -38,19 +39,19 @@
       </Grid>
       <Border x:Name="HoverOverlay" Background="{DynamicResource HudOverlayBrush}" Opacity="0" IsHitTestVisible="False">
         <WrapPanel x:Name="Actions" HorizontalAlignment="Center" VerticalAlignment="Center" Width="176" ItemWidth="84">
-          <Button x:Name="CopyAction" AutomationProperties.AutomationId="QuickAccessCopy" Content="复制" Style="{StaticResource HudTextButton}" Width="78" Height="28" Margin="1,1" Click="OnCopy"/>
-          <Button x:Name="SaveAction" AutomationProperties.AutomationId="QuickAccessSave" Content="保存" Style="{StaticResource HudTextButton}" Width="78" Height="28" Margin="1,1" Click="OnSave"/>
-          <Button x:Name="PinAction" AutomationProperties.AutomationId="QuickAccessPin" Content="贴图" Style="{StaticResource HudTextButton}" Width="78" Height="28" Margin="1,1" Click="OnPin"/>
-          <Button x:Name="OpenAction" AutomationProperties.AutomationId="QuickAccessOpen" Content="打开" Style="{StaticResource HudTextButton}" Width="78" Height="28" Margin="1,1" Click="OnOpen"/>
-          <Button x:Name="DragAction" AutomationProperties.AutomationId="QuickAccessDrag" Content="拖出" Style="{StaticResource HudTextButton}" Width="78" Height="28" Margin="1,1" PreviewMouseLeftButtonDown="OnDragOut"/>
-          <Button x:Name="DeleteAction" AutomationProperties.AutomationId="QuickAccessDelete" Content="删除" Style="{StaticResource HudTextButton}" Width="78" Height="28" Margin="1,1" Click="OnDelete"/>
-          <Button x:Name="CloseAction" AutomationProperties.AutomationId="QuickAccessClose" Content="关闭" Style="{StaticResource HudTextButton}" Width="78" Height="28" Margin="1,1" Click="OnClose"/>
+          <Button x:Name="CopyAction" AutomationProperties.AutomationId="QuickAccessCopy" Content="{loc:Localized Key='复制'}" Style="{StaticResource HudTextButton}" Width="78" Height="28" Margin="1,1" Click="OnCopy"/>
+          <Button x:Name="SaveAction" AutomationProperties.AutomationId="QuickAccessSave" Content="{loc:Localized Key='保存'}" Style="{StaticResource HudTextButton}" Width="78" Height="28" Margin="1,1" Click="OnSave"/>
+          <Button x:Name="PinAction" AutomationProperties.AutomationId="QuickAccessPin" Content="{loc:Localized Key='贴图'}" Style="{StaticResource HudTextButton}" Width="78" Height="28" Margin="1,1" Click="OnPin"/>
+          <Button x:Name="OpenAction" AutomationProperties.AutomationId="QuickAccessOpen" Content="{loc:Localized Key='打开'}" Style="{StaticResource HudTextButton}" Width="78" Height="28" Margin="1,1" Click="OnOpen"/>
+          <Button x:Name="DragAction" AutomationProperties.AutomationId="QuickAccessDrag" Content="{loc:Localized Key='拖出'}" Style="{StaticResource HudTextButton}" Width="78" Height="28" Margin="1,1" PreviewMouseLeftButtonDown="OnDragOut"/>
+          <Button x:Name="DeleteAction" AutomationProperties.AutomationId="QuickAccessDelete" Content="{loc:Localized Key='删除'}" Style="{StaticResource HudTextButton}" Width="78" Height="28" Margin="1,1" Click="OnDelete"/>
+          <Button x:Name="CloseAction" AutomationProperties.AutomationId="QuickAccessClose" Content="{loc:Localized Key='关闭'}" Style="{StaticResource HudTextButton}" Width="78" Height="28" Margin="1,1" Click="OnClose"/>
         </WrapPanel>
       </Border>
       <Button x:Name="PinButton" Content="{StaticResource Icon.Pin}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource HudIconButton}" Width="28" Height="28" Visibility="Collapsed"
-              HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5" Opacity="0" Click="OnPin" ToolTip="贴到屏幕"/>
+              HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5" Opacity="0" Click="OnPin" ToolTip="{loc:Localized Key='贴到屏幕'}"/>
       <Button x:Name="CloseButton" Content="{StaticResource Icon.Close}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource HudIconButton}" Width="28" Height="28" Visibility="Collapsed"
-              HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Opacity="0" Click="OnClose" ToolTip="关闭"/>
+              HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Opacity="0" Click="OnClose" ToolTip="{loc:Localized Key='关闭'}"/>
       <Border x:Name="DurationBadge" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="7"
               Background="{DynamicResource HudBadgeBrush}" CornerRadius="{DynamicResource Radius.Sm}" Padding="6,2">
         <TextBlock x:Name="DurationText" Foreground="{DynamicResource HudTextBrush}" FontFamily="Cascadia Mono, Consolas" FontSize="10" FontWeight="SemiBold"/>

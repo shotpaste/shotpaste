@@ -83,10 +83,15 @@ One Shot 的核心语义是“选区一次，再决定截图、滚动截屏或�
 
 ### 文档同步
 
+- **文档以简体中文为主**：开发、架构、功能契约、评审、安全与协作文档只维护中文主文档，不再增加平行英文版本。
+- **多语言仅用于 README 与使用指南**：根目录 `README.md` 默认使用简体中文，英文为 `README.en.md`，保留现有十种语言；`README.zh-CN.md` 仅为旧链接入口；操作、配置、排障、自动化接入和发布启动说明保留已有译本。无语言后缀使用指南为中文主文档，英文使用 `.en.md`，发布介绍可保留同文件双语。更新时同步已有译本，不强制新增尚不存在的语言版本。
+- 命令、路径、协议字段、配置键与代码标识符保留原样；许可证、版权及授权文本保留原文。翻译标题须保留被引用的旧锚点。
+- 文档分类、入口与译本列表见 [`docs/README.md`](docs/README.md)。
+
 - 跨平台功能契约变化：更新 [`docs/FEATURES.md`](docs/FEATURES.md)。
 - 构建、测试、目录、签名或发布流程变化：更新 [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)。
 - URL Scheme 或 MCP 行为变化：更新 [`docs/AUTOMATION.md`](docs/AUTOMATION.md)。
-- 面向用户的产品介绍、平台要求、构建入口或下载说明变化：同步全部 10 个 `README*.md`，不得只更新单一语言。
+- 面向用户的产品介绍、平台要求、构建入口或下载说明变化：同步全部十种语言的 README 主文档，不得只更新单一语言。
 - 安全边界、漏洞处理或发布信任变化：更新 [`SECURITY.md`](SECURITY.md)。
 - 贡献与分支流程变化：更新 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
 - 发布启动说明或固定发布文案变化：同步 `docs/release/` 下对应平台文件。
@@ -147,7 +152,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-windows.
 platforms/windows/src/ShotPaste.Windows/bin/x64/Debug/net8.0-windows10.0.19041.0/win-x64/ShotPasteDebug.exe
 ```
 
-- 该脚本是 Windows restore、测试、构建身份检查、E2E 编译和 headless parity 的统一入口；摘要位于 `build/e2e/windows-parity/summary.json`。
+- 该脚本是 Windows restore、测试、构建身份检查、E2E 编译和 headless parity 的统一入口；摘要位于 `build/e2e/windows-parity/summary.json`。完整构建通过 `-Tier Headless -FullSuite` 执行互补测试组，不重复跑合同子集；带 `Category=NativeDesktop` 的真实桌面测试由 Interactive 层执行，不能计为 headless 已通过。
 - UI、截屏、滚动、录屏、OCR、剪贴板、权限、快捷键、DPI 或窗口管理变更必须在已登录的真实 Windows 桌面运行交互验证，并显式传入 Debug 产物：
 
   ```powershell

@@ -1,3 +1,2 @@
 "NSMicrophoneUsageDescription" = "ShotPaste 需要麥克風存取權才能進行錄音和螢幕錄製。";
-"NSSpeechRecognitionUsageDescription" = "ShotPaste 需要語音辨識權限，才能在此 Mac 上轉錄錄音。";
 "NSScreenCaptureUsageDescription" = "ShotPaste 需要螢幕錄製權限才能擷取螢幕截圖並錄製螢幕。";

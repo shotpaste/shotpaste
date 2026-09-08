@@ -7,6 +7,7 @@ namespace ShotPaste.Windows.Tests;
 public sealed class WindowCaptureExclusionServiceTests
 {
     [Fact]
+    [Trait("Category", "NativeDesktop")]
     public void EnabledService_ExcludesWindowsOpenedLaterAndRestoresTheirAffinity()
     {
         Exception? failure = null;
@@ -18,9 +19,18 @@ public sealed class WindowCaptureExclusionServiceTests
                 service.SetEnabled(true);
                 using var first = CreateTestWindow("ShotPasteCaptureExclusionTest.First");
                 using var later = CreateTestWindow("ShotPasteCaptureExclusionTest.Later");
-                // Force the same refresh that the production timer performs;
-                // this test thread intentionally has no WPF Application loop.
-                service.SetEnabled(true);
+                // Pump the real dispatcher timer: no manual refresh substitutes for discovery.
+                var frame = new System.Windows.Threading.DispatcherFrame();
+                var deadline = DateTime.UtcNow.AddSeconds(3);
+                var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
+                timer.Tick += (_, _) =>
+                {
+                    if ((service.IsHandleExcluded(first.Handle) && service.IsHandleExcluded(later.Handle))
+                        || DateTime.UtcNow >= deadline) frame.Continue = false;
+                };
+                timer.Start();
+                System.Windows.Threading.Dispatcher.PushFrame(frame);
+                timer.Stop();
 
                 AssertAffinity(first.Handle, NativeMethods.WdaExcludeFromCapture);
                 AssertAffinity(later.Handle, NativeMethods.WdaExcludeFromCapture);

@@ -1,3 +1,2 @@
 "NSMicrophoneUsageDescription" = "ShotPaste needs microphone access for audio recordings and screen recordings.";
-"NSSpeechRecognitionUsageDescription" = "ShotPaste needs speech recognition access to transcribe audio recordings on this Mac.";
 "NSScreenCaptureUsageDescription" = "ShotPaste needs screen recording permission to capture screenshots and record your screen.";

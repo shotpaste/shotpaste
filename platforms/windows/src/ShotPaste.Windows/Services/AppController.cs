@@ -93,7 +93,6 @@ public sealed partial class AppController : IDisposable
         if (_settings.Current.DiagnosticsEnabled)
             DiagnosticsService.RunStartupMaintenance(_settings.Current.DiagnosticsRetentionDays);
         LocalizationService.Apply(_settings.Current);
-        LocalizationService.EnableAutomaticWpfLocalization();
         ThemeService.Apply(_settings.Current.Theme);
         ApplyOperatingSystemIntegrations();
         if (!await EnsureHistoryDatabaseReadyForLaunchAsync()) return;
@@ -1314,8 +1313,6 @@ public sealed partial class AppController : IDisposable
     {
         ThemeService.Apply(_settings.Current.Theme);
         LocalizationService.Apply(_settings.Current);
-        foreach (Window openWindow in System.Windows.Application.Current.Windows)
-            LocalizationService.LocalizeWindow(openWindow);
         _mainWindow?.RefreshLocalization();
         _mainWindow?.ApplyHistoryPresentation();
         _quickAccess?.RefreshSettings();
@@ -1509,42 +1506,6 @@ public sealed partial class AppController : IDisposable
         }
 
         dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Send, () => TryShow("initial"));
-        if (item.Kind is CaptureKind.Screenshot or CaptureKind.ScrollingScreenshot or CaptureKind.ClipboardImage or
-            CaptureKind.Recording or CaptureKind.Gif or CaptureKind.ClipboardGif or CaptureKind.ClipboardVideo)
-        {
-            RetryShowQuickAccess(item, 12, TimeSpan.FromMilliseconds(250));
-        }
-    }
-
-    private void RetryShowQuickAccess(CaptureHistoryItem item, int attempts, TimeSpan interval)
-    {
-        if (attempts <= 0)
-        {
-            App.WriteQuickAccessLog($"RetryShowQuickAccess skipped attempts<=0 kind={item.Kind} file={(string.IsNullOrWhiteSpace(item.FilePath) ? "(null)" : item.FilePath)}");
-            return;
-        }
-
-        var timer = new System.Windows.Threading.DispatcherTimer { Interval = interval };
-        var remaining = attempts;
-        timer.Tick += (_, _) =>
-        {
-            if (remaining <= 0)
-            {
-                timer.Stop();
-                return;
-            }
-
-            remaining--;
-            if (System.Windows.Application.Current is null || _quickAccess is null) return;
-            try { _quickAccess.Show(item); }
-            catch (Exception exception)
-            {
-                App.WriteQuickAccessLog($"RetryShowQuickAccess failed: {exception.Message}");
-                try { App.WriteCrashLog(exception); } catch { }
-            }
-            if (remaining == 0) timer.Stop();
-        };
-        timer.Start();
     }
 
     public void RestoreHistoryItem(CaptureHistoryItem item)

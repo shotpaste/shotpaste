@@ -11,8 +11,7 @@ import CryptoKit
 import Foundation
 
 /// Languages exposed by cloud file transcription. Automatic mode requests
-/// provider language detection. The injectable on-device legacy adapter still
-/// uses the current recognizer locale for its offline tests.
+/// provider language detection.
 nonisolated enum AudioRecordingLanguage: String, CaseIterable, Codable, Sendable {
   case auto
   case en

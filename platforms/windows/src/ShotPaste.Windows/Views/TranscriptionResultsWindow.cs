@@ -27,7 +27,7 @@ public sealed class TranscriptionResultsWindow : Window
         _list.SetResourceReference(System.Windows.Controls.Control.ForegroundProperty, "TextBrush");
         _list.SetResourceReference(System.Windows.Controls.Control.BackgroundProperty, "SurfaceBrush");
         _empty.SetResourceReference(TextBlock.ForegroundProperty, "SecondaryTextBrush");
-        Title = LocalizationService.TranslatePhrase("转写结果"); Width = 720; Height = 480;
+        Title = AppBuildIdentity.Current.FormatWindowTitle(LocalizationService.TranslatePhrase("转写结果")); Width = 720; Height = 480;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         WindowAppearanceService.Attach(this, WindowBackdropKind.Mica);
         var grid = new DockPanel();

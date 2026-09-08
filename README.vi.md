@@ -2,18 +2,18 @@
 
 Công cụ chụp và ghi màn hình gốc, ưu tiên dữ liệu cục bộ cho macOS và Windows.
 
-[English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) ·
-[繁體中文](README.zh-TW.md) · [Español](README.es.md) ·
-[日本語](README.ja.md) · [한국어](README.ko.md) ·
-[Русский](README.ru.md) · [Français](README.fr.md) ·
+[简体中文](README.md) · [English](README.en.md) · **Tiếng Việt** ·
+[繁體中文](README.zh-TW.md) · [Español](README.es.md) · [日本語](README.ja.md) ·
+[한국어](README.ko.md) · [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
 **Trang web chính thức:** [shotpaste.com](https://www.shotpaste.com/)
 
 ShotPaste cung cấp hai ứng dụng gốc độc lập cho macOS và Windows. Ảnh chụp,
-OCR, bản ghi, lịch sử, dữ liệu bảng tạm và cấu hình đều nằm trên thiết bị. Dự án
-không cung cấp tài khoản, đo lường từ xa, tải lên đám mây, lưu trữ từ xa hay
-đồng bộ.
+OCR, bản ghi, lịch sử, dữ liệu bảng tạm và cấu hình được giữ trên thiết bị.
+Các tính năng dịch, chuyển âm thanh thành văn bản và xử lý văn bản bằng AI là
+tùy chọn, chỉ gửi văn bản hoặc âm thanh đã chọn tới dịch vụ do người dùng cấu hình.
+Dự án không vận hành dịch vụ tài khoản, đo lường từ xa, trung chuyển tải lên hay đồng bộ.
 
 ## Tính năng
 
@@ -47,6 +47,13 @@ không cung cấp tài khoản, đo lường từ xa, tải lên đám mây, lư
   hiển thị phím, tạm dừng, ghi lại, hủy, ảnh nhanh và vẽ trực tiếp.
 
   [![Ghi màn hình với chú thích trực tiếp](assets/readme/recording.gif)](assets/readme/recording.gif)
+
+- **Ghi âm:** ghi âm thanh hệ thống, micrô hoặc cả hai từ thanh menu hay khay
+  hệ thống mà không cần chọn vùng màn hình; lưu thành M4A chỉ chứa âm thanh.
+- **Chuyển âm thanh thành văn bản và ghi chú AI:** tùy chọn bật nhận dạng bằng
+  tài khoản Volcengine riêng, rồi chỉnh sửa và sắp xếp văn bản bằng LLM đã cấu hình.
+  Tìm kiếm, sao chép và xuất kết quả đã lưu trong cửa sổ kết quả chuyển văn bản.
+  Xem [thiết lập, cách dùng và quyền riêng tư](docs/RECORDING_TRANSCRIPTION.en.md).
 
 - **Quick Access và ghim:** thẻ sau khi chụp có thể cấu hình, sao chép/lưu/mở,
   kéo thả, vuốt và ảnh luôn nổi.
@@ -116,5 +123,5 @@ sản phẩm ShotPaste, đồng thời có tham khảo một phần từ việc 
 Các thông báo bản quyền và văn bản giấy phép bắt buộc của bên thứ ba được lưu
 trong [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Xem [CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.md](SUPPORT.md) và
+Xem [CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.en.md](SUPPORT.en.md) và
 [SECURITY.md](SECURITY.md) để đóng góp, nhận trợ giúp hoặc báo cáo có trách nhiệm.

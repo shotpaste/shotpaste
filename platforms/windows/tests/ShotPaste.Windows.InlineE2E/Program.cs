@@ -44,6 +44,7 @@ internal static class Program
                 ("pin", ScenarioAction.Pin, false),
                 ("quick_access", ScenarioAction.QuickAccess, false),
                 ("quick_access_drag", ScenarioAction.QuickAccessDrag, false),
+                ("quick_access_close", ScenarioAction.QuickAccessClose, false),
                 ("quick_access_delete", ScenarioAction.QuickAccessDelete, false),
                 ("editor_removed", ScenarioAction.EditorRemoved, false),
                 ("copy_recovery", ScenarioAction.CopyRecovery, false),
@@ -455,6 +456,23 @@ internal static class Program
                     screenshot = quickVerification.PreviewScreenshot;
                     detail = $"Quick Access rendered the asynchronously decoded screenshot thumbnail, kept fixed action slots, and resumed its saved countdown in {quickVerification.ResumeSeconds:0.00}s.";
                     break;
+                case ScenarioAction.QuickAccessClose:
+                    SendKey(overlay, 0x0D);
+                    WaitForCaptureCount(captureDirectory, 1);
+                    Invoke(WaitForAutomationId(process.Id, "QuickAccessClose"));
+                    WaitUntil(() => FindVisibleByAutomationId(process.Id, "QuickAccessWindow") is null,
+                        "Quick Access did not close.");
+                    var closedClock = Stopwatch.StartNew();
+                    while (closedClock.Elapsed < TimeSpan.FromSeconds(3.5))
+                    {
+                        if (FindVisibleByAutomationId(process.Id, "QuickAccessWindow") is not null)
+                            throw new InvalidOperationException("A visibility retry reopened the dismissed Quick Access card.");
+                        Thread.Sleep(50);
+                    }
+                    screenshot = Path.Combine(root, "quick-access-closed.png");
+                    SaveDesktopScreenshot(screenshot);
+                    detail = "Explicit dismissal remained closed beyond the previous visibility-retry window; saved media was retained.";
+                    break;
                 case ScenarioAction.QuickAccessDrag:
                     SendKey(overlay, 0x0D);
                     WaitForCaptureCount(captureDirectory, 1);
@@ -553,7 +571,7 @@ internal static class Program
                 ? Directory.GetFiles(captureDirectory, "*.png")
                 : [];
             var expectedCount = action is ScenarioAction.DoneWithEnter or ScenarioAction.PanToolbarRecovery or ScenarioAction.DirtySave or ScenarioAction.DirtyExitSave or ScenarioAction.Pin or
-                ScenarioAction.QuickAccess or ScenarioAction.QuickAccessDrag or ScenarioAction.PerformanceBaseline ? 1 : 0;
+                ScenarioAction.QuickAccess or ScenarioAction.QuickAccessClose or ScenarioAction.QuickAccessDrag or ScenarioAction.PerformanceBaseline ? 1 : 0;
             if (captures.Length != expectedCount)
                 throw new InvalidOperationException($"{name}: expected {expectedCount} output file(s), got {captures.Length}.");
             var historyItems = process.HasExited ? PersistedHistoryItemCount(database) : HistoryItemCount(process.Id);
@@ -996,7 +1014,7 @@ internal static class Program
             SaveScreenshots = true,
             CopyScreenshots = false,
             CopyAfterCapture = false,
-            ShowQuickAccess = action is ScenarioAction.QuickAccess or ScenarioAction.QuickAccessDrag or ScenarioAction.QuickAccessDelete,
+            ShowQuickAccess = action is ScenarioAction.QuickAccessClose or ScenarioAction.QuickAccess or ScenarioAction.QuickAccessDrag or ScenarioAction.QuickAccessDelete,
             QuickAccessAutoDismissSeconds = 6,
             // Drag/delete scenarios verify their own actions, not the expiry timer.
             QuickAccessAutoDismissEnabled = action is not (ScenarioAction.QuickAccessDrag or ScenarioAction.QuickAccessDelete),
@@ -1185,6 +1203,7 @@ internal static class Program
         QuickAccess,
         QuickAccessDrag,
         QuickAccessDelete,
+        QuickAccessClose,
         EditorRemoved,
         CopyRecovery,
         SelectionSizeBadgeDefault,

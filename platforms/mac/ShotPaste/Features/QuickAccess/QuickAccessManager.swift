@@ -221,6 +221,26 @@ final class QuickAccessManager: ObservableObject {
 
   // MARK: - Public Methods
 
+  /// One owner for stack eviction, panel visibility and initial card lifetime.
+  private func insertPreparedItem(_ item: QuickAccessItem) {
+    withAnimation(QuickAccessAnimations.cardInsert) {
+      if items.count >= maxVisibleItems, let oldestId = items.last?.id {
+        cancelDismissTimer(for: oldestId)
+        pinWindowManager.close(id: oldestId)
+        items.removeLast()
+        DiagnosticLogger.shared.log(
+          .debug,
+          .ui,
+          "Quick access trimmed oldest item",
+          context: ["maxVisibleItems": "\(maxVisibleItems)"]
+        )
+      }
+      items.insert(item, at: 0)
+    }
+    showPanelIfNeeded()
+    if autoDismissEnabled { startDismissTimer(for: item.id) }
+  }
+
   /// Add a new screenshot to the quick access stack
   @discardableResult
   func addScreenshot(url: URL) async -> QuickAccessItem? {
@@ -257,21 +277,7 @@ final class QuickAccessManager: ObservableObject {
 
     let item = QuickAccessItem(url: url, thumbnail: thumbnail)
 
-    // Animate insertion explicitly — no implicit .animation on the stack
-    withAnimation(QuickAccessAnimations.cardInsert) {
-      if items.count >= maxVisibleItems, let oldestId = items.last?.id {
-        cancelDismissTimer(for: oldestId)
-        pinWindowManager.close(id: oldestId)
-        items.removeLast()
-        DiagnosticLogger.shared.log(
-          .debug,
-          .ui,
-          "Quick access trimmed oldest item",
-          context: ["maxVisibleItems": "\(maxVisibleItems)"]
-        )
-      }
-      items.insert(item, at: 0)
-    }
+    insertPreparedItem(item)
     DiagnosticLogger.shared.log(
       .info,
       .action,
@@ -279,14 +285,7 @@ final class QuickAccessManager: ObservableObject {
       context: ["fileName": url.lastPathComponent, "itemCount": "\(items.count)"]
     )
 
-    // Ensure the panel window exists — heals any state where items outlived
-    // the panel (e.g. a previously interrupted show/hide transition).
-    showPanelIfNeeded()
 
-    // Start auto-dismiss timer
-    if autoDismissEnabled {
-      startDismissTimer(for: item.id)
-    }
 
     // Schedule background thumbnail retry if needed
     if needsRetry {
@@ -333,29 +332,9 @@ final class QuickAccessManager: ObservableObject {
     // Use actual duration or nil (will show no badge if duration unavailable)
     let item = QuickAccessItem(url: url, thumbnail: thumbnail, duration: result.duration ?? 0)
 
-    // Animate insertion explicitly — no implicit .animation on the stack
-    withAnimation(QuickAccessAnimations.cardInsert) {
-      if items.count >= maxVisibleItems, let oldestId = items.last?.id {
-        cancelDismissTimer(for: oldestId)
-        pinWindowManager.close(id: oldestId)
-        items.removeLast()
-        DiagnosticLogger.shared.log(
-          .debug,
-          .ui,
-          "Quick access trimmed oldest item",
-          context: ["maxVisibleItems": "\(maxVisibleItems)"]
-        )
-      }
-      items.insert(item, at: 0)
-    }
+    insertPreparedItem(item)
 
-    // Ensure the panel window exists — heals any state where items outlived
-    // the panel (e.g. a previously interrupted show/hide transition).
-    showPanelIfNeeded()
 
-    if autoDismissEnabled {
-      startDismissTimer(for: item.id)
-    }
 
     // Schedule background thumbnail retry if needed
     if needsRetry {
@@ -419,25 +398,8 @@ final class QuickAccessManager: ObservableObject {
       duration: duration
     )
 
-    withAnimation(QuickAccessAnimations.cardInsert) {
-      if items.count >= maxVisibleItems, let oldestId = items.last?.id {
-        cancelDismissTimer(for: oldestId)
-        pinWindowManager.close(id: oldestId)
-        items.removeLast()
-        DiagnosticLogger.shared.log(
-          .debug,
-          .ui,
-          "Quick access trimmed oldest item",
-          context: ["maxVisibleItems": "\(maxVisibleItems)"]
-        )
-      }
-      items.insert(item, at: 0)
-    }
+    insertPreparedItem(item)
 
-    showPanelIfNeeded()
-    if autoDismissEnabled {
-      startDismissTimer(for: item.id)
-    }
     DiagnosticLogger.shared.log(
       .info,
       .action,

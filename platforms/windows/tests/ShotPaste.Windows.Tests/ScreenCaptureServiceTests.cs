@@ -6,6 +6,7 @@ namespace ShotPaste.Windows.Tests;
 public sealed class ScreenCaptureServiceTests
 {
     [Fact]
+    [Trait("Category", "NativeDesktop")]
     public void CaptureRectangle_ReturnsRequestedPixelSize()
     {
         var service = new ScreenCaptureService();

@@ -113,10 +113,11 @@ nonisolated extension AudioRecordingLanguage {
 nonisolated struct VolcengineRecordingTranscriptionService: Sendable {
   func transcribe(recordingURL: URL, configuration: RecordingTranscriptionConfiguration,
                   automaticAI: Bool = false,
+                  sourceKind: VolcengineRecordingWork.Kind = .video, audioSessionID: UUID? = nil,
                   progress: @escaping @Sendable (String) -> Void = { _ in }) async throws -> RecordingTranscript {
     let sourceID = try VolcengineAudioPreparation.checksum(recordingURL)
     let work = try await VolcengineRecordingWorkStore.shared.begin(url: recordingURL, configuration: configuration,
-      checksum: sourceID, automaticAI: automaticAI)
+      checksum: sourceID, automaticAI: automaticAI, kind: sourceKind, audioSessionID: audioSessionID)
     let historyID = await MainActor.run {
       CaptureHistoryStore.shared.record(forFilePath: recordingURL.path)?.id
     }

@@ -1,8 +1,9 @@
 <Window x:Class="ShotPaste.Windows.Views.ShotPasteDialogWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:loc="clr-namespace:ShotPaste.Windows.Services"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:ShotPaste.Windows.Controls"
-        Title="ShotPaste" Width="430" MinWidth="430" MaxWidth="680" SizeToContent="Height" MinHeight="190" MaxHeight="640"
+        Title="{loc:Localized Key='ShotPaste', IsWindowTitle=True}" Width="430" MinWidth="430" MaxWidth="680" SizeToContent="Height" MinHeight="190" MaxHeight="640"
         WindowStyle="None" ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False" Background="{DynamicResource WindowBackdropBrush}"
         AutomationProperties.AutomationId="ShotPasteDialog">

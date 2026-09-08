@@ -1,25 +1,24 @@
-# Third-party notices
+# 第三方声明
 
-This file accompanies ShotPaste source and binary distributions. The project
-documentation is intentionally concise; required copyright and license text is
-kept here without abbreviation.
+本文件随 ShotPaste 源码与二进制分发。依赖用途等说明使用中文；
+所需版权声明、许可证及授权文本保留原文，不翻译、不缩写。
 
-| Component | Use | License | Source |
+| 组件 | 用途 | 许可证 | 来源 |
 | --- | --- | --- | --- |
-| Snapzy | Upstream base of the macOS client | BSD-3-Clause | [duongductrong/Snapzy](https://github.com/duongductrong/Snapzy) |
-| GRDB.swift | macOS SQLite persistence | MIT | [groue/GRDB.swift](https://github.com/groue/GRDB.swift) |
-| Swift-WebP | macOS WebP integration | MIT | [ainame/Swift-WebP](https://github.com/ainame/Swift-WebP) |
-| libwebp | WebP codec | BSD-3-Clause with patent grant | [webmproject/libwebp](https://chromium.googlesource.com/webm/libwebp) |
-| ScreenRecorderLib | Windows recording | MIT | [sskodje/ScreenRecorderLib](https://github.com/sskodje/ScreenRecorderLib) |
-| Microsoft.Data.Sqlite | Windows SQLite access | MIT | [dotnet/efcore](https://github.com/dotnet/efcore) |
-| NAudio | Windows recording-audio decoding and resampling | MIT | [naudio/NAudio](https://github.com/naudio/NAudio) |
-| System.Security.Cryptography.ProtectedData | Windows credential encryption | MIT | [dotnet/runtime](https://github.com/dotnet/runtime) |
-| SQLitePCLRaw | Native SQLite packaging | Apache-2.0 | [ericsink/SQLitePCL.raw](https://github.com/ericsink/SQLitePCL.raw) |
-| SQLite | Database engine | Public Domain | [sqlite.org](https://www.sqlite.org/copyright.html) |
-| SkiaSharp | Windows drawing and image processing | MIT | [mono/SkiaSharp](https://github.com/mono/SkiaSharp) |
-| ZXing.Net | Windows QR decoding | Apache-2.0 | [micjahn/ZXing.Net](https://github.com/micjahn/ZXing.Net) |
+| Snapzy | macOS 客户端上游基础 | BSD-3-Clause | [duongductrong/Snapzy](https://github.com/duongductrong/Snapzy) |
+| GRDB.swift | macOS SQLite 持久化 | MIT | [groue/GRDB.swift](https://github.com/groue/GRDB.swift) |
+| Swift-WebP | macOS WebP 集成 | MIT | [ainame/Swift-WebP](https://github.com/ainame/Swift-WebP) |
+| libwebp | WebP 编解码 | BSD-3-Clause（含专利授权） | [webmproject/libwebp](https://chromium.googlesource.com/webm/libwebp) |
+| ScreenRecorderLib | Windows 录制 | MIT | [sskodje/ScreenRecorderLib](https://github.com/sskodje/ScreenRecorderLib) |
+| Microsoft.Data.Sqlite | Windows SQLite 访问 | MIT | [dotnet/efcore](https://github.com/dotnet/efcore) |
+| NAudio | Windows 录制音频解码与重采样 | MIT | [naudio/NAudio](https://github.com/naudio/NAudio) |
+| System.Security.Cryptography.ProtectedData | Windows 凭据加密 | MIT | [dotnet/runtime](https://github.com/dotnet/runtime) |
+| SQLitePCLRaw | 原生 SQLite 打包 | Apache-2.0 | [ericsink/SQLitePCL.raw](https://github.com/ericsink/SQLitePCL.raw) |
+| SQLite | 数据库引擎 | 公有领域 | [sqlite.org](https://www.sqlite.org/copyright.html) |
+| SkiaSharp | Windows 绘图与图像处理 | MIT | [mono/SkiaSharp](https://github.com/mono/SkiaSharp) |
+| ZXing.Net | Windows 二维码解码 | Apache-2.0 | [micjahn/ZXing.Net](https://github.com/micjahn/ZXing.Net) |
 
-## macOS upstream base
+## macOS 上游基础
 
 BSD 3-Clause License
 
@@ -293,12 +292,11 @@ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 License for the specific language governing permissions and limitations under
 the License.
 
-## Volcengine TOS Python SDK (development only)
+## 火山引擎 TOS Python SDK（仅开发使用）
 
-The optional account probe uses `tos==2.9.2` and its signing outputs as
-protocol-test fixtures. The SDK and its dependencies are installed only in a
-development virtual environment and are not bundled in the native apps.
-The native signing client uses Apple CryptoKit.
+可选账户探针使用 `tos==2.9.2`，其签名输出用作协议测试数据。
+SDK 及其依赖仅安装在开发虚拟环境，不打包到原生应用。
+原生签名客户端使用 Apple CryptoKit。
 
  Apache License
                            Version 2.0, January 2004

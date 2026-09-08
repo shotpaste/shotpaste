@@ -4,7 +4,10 @@ import Foundation
 /// Paths refer only to already saved local media; no keys or signed URLs are stored.
 nonisolated struct VolcengineRecordingWork: Codable, Identifiable, Sendable {
   enum State: String, Codable, Sendable { case running, failed, cancelled, completed }
+  enum Kind: String, Codable, Sendable { case video, audioTrack, verification }
   let id: String
+  var kind: Kind?
+  var audioSessionIDs: Set<UUID>?
   let recordingURL: URL
   let configuration: RecordingTranscriptionConfiguration
   let sourceChecksum: String
@@ -34,6 +37,11 @@ actor VolcengineRecordingWorkStore {
     var loaded: [String: VolcengineRecordingWork] = [:]
     for file in (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? [] where file.pathExtension == "json" {
       if let data = try? Data(contentsOf: file), var work = try? JSONDecoder().decode(VolcengineRecordingWork.self, from: data) {
+        // Read older local receipts without changing their request or account identity.
+        if work.kind == nil {
+          work.kind = ["mov", "mp4", "m4v"].contains(work.recordingURL.pathExtension.lowercased())
+            ? .video : .audioTrack
+        }
         if work.createdAt == nil {
           work.createdAt = (try? file.resourceValues(forKeys: [.creationDateKey]))?.creationDate ?? Date()
         }
@@ -51,11 +59,18 @@ actor VolcengineRecordingWorkStore {
     cache?[work.id] = work
   }
   func begin(url: URL, configuration: RecordingTranscriptionConfiguration, checksum: String,
-             automaticAI: Bool = false) async throws -> VolcengineRecordingWork {
+             automaticAI: Bool = false, kind: VolcengineRecordingWork.Kind = .video,
+             audioSessionID: UUID? = nil) async throws -> VolcengineRecordingWork {
     let id = VolcengineTOSSigner.sha256(Data("\(configuration.account.id)|\(configuration.sourceLanguage.rawValue)|\(checksum)".utf8))
     while active.contains(id) { try await Task.sleep(for: .milliseconds(200)) }
     var work = load()[id] ?? VolcengineRecordingWork(id: id, recordingURL: url, configuration: configuration, sourceChecksum: checksum)
+    if work.kind == nil { work.kind = kind }
+    if let audioSessionID {
+      work.kind = .audioTrack
+      work.audioSessionIDs = (work.audioSessionIDs ?? []).union([audioSessionID])
+    }
     if work.automaticAI == nil { work.automaticAI = automaticAI }
+    try save(work)
     if work.transcript != nil { return work }
     if work.state == .cancelled { throw CancellationError() }
     work.state = .running; try save(work); active.insert(id)
@@ -69,6 +84,14 @@ actor VolcengineRecordingWorkStore {
     try save(work)
   }
   func works() -> [VolcengineRecordingWork] { Array(load().values).sorted { $0.id < $1.id } }
+  /// One-time relationship repair for receipts written before explicit audio parents.
+  /// This only writes local metadata; it never submits or queries a cloud job.
+  func associateLegacyAudioTasks(_ sources: [UUID: Set<URL>]) throws {
+    for var work in load().values where work.kind == .audioTrack && work.audioSessionIDs == nil {
+      let owners = Set(sources.filter { $0.value.contains(work.recordingURL) }.map(\.key))
+      if !owners.isEmpty { work.audioSessionIDs = owners; try save(work) }
+    }
+  }
   func work(_ id: String) -> VolcengineRecordingWork? { load()[id] }
 
   /// The complete derived result belongs to the durable task, never to a window.
@@ -123,7 +146,8 @@ actor VolcengineRecordingWorkStore {
       }
       do {
         _ = try await VolcengineRecordingTranscriptionService().transcribe(recordingURL: work.recordingURL,
-          configuration: work.configuration)
+          configuration: work.configuration, sourceKind: work.kind ?? .video,
+          audioSessionID: work.audioSessionIDs?.first)
       } catch { /* Service persists failure or cancellation; original media remains intact. */ }
     }
     for work in load().values where work.transcript != nil

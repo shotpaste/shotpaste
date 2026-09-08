@@ -1,127 +1,123 @@
 # ShotPaste
 
-Native, local-first screen capture for macOS and Windows.
+面向 macOS 与 Windows 的原生、本地优先截屏与录屏工具。
 
-**English** · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) ·
-[繁體中文](README.zh-TW.md) · [Español](README.es.md) ·
-[日本語](README.ja.md) · [한국어](README.ko.md) ·
-[Русский](README.ru.md) · [Français](README.fr.md) ·
+**简体中文** · [English](README.en.md) · [Tiếng Việt](README.vi.md) ·
+[繁體中文](README.zh-TW.md) · [Español](README.es.md) · [日本語](README.ja.md) ·
+[한국어](README.ko.md) · [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
-**Official website:** [shotpaste.com](https://www.shotpaste.com/)
+**官网：** [shotpaste.com](https://www.shotpaste.com/)
 
-ShotPaste provides independent native clients for macOS and Windows. Capture,
-OCR, recording, history, clipboard processing, and configuration stay on the
-device. The project does not provide accounts, telemetry, cloud upload, remote
-storage, or synchronization.
+ShotPaste 为 macOS 和 Windows 提供彼此独立的原生客户端。截屏、OCR、录制、
+历史记录、剪贴板处理和配置保留在本机。可选的翻译、音频转写与 AI 文字整理仅将
+选定的文字或音频发送到用户配置的服务。项目不运营账号、遥测、上传中转或同步服务。
 
-## Features
+## 功能
 
-- **One Shot:** select an area once, then choose Screenshot, Scrolling,
-  Recording, Translation, or Clipboard History.
+- **One Shot：** 只选择一次区域，即可切换截图、滚动截屏、录屏、翻译或剪贴板历史。
 
-  [![One Shot mode picker](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+  [![One Shot 模式选择器](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
 
-- **Screenshots and OCR:** frozen region selection, window targeting, local
-  text recognition, and configurable output format, naming, scale, cursor,
-  desktop, and notification behavior.
+- **截图与 OCR：** 冻结选区、窗口识别、输出格式、命名、缩放、光标和桌面显示
+  设置，以及本地文字识别。
 
-  [![Local OCR from a screenshot](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+  [![截图本地 OCR](assets/readme/OCR.gif)](assets/readme/OCR.gif)
 
-- **Translation:** translate text from a frozen One Shot region with local OCR,
-  automatic source-language detection, configurable target languages, and a
-  user-configured provider. Only recognized text is sent for translation.
+- **翻译：** 使用本地 OCR 识别冻结的 One Shot 选区，自动检测源语言并选择目标
+  语言，通过用户配置的 Provider 翻译；仅发送识别出的文字。
 
-  [![Screenshot translation](assets/readme/translate.gif)](assets/readme/translate.gif)
+  [![截图翻译](assets/readme/translate.gif)](assets/readme/translate.gif)
 
-- **Inline annotation:** selection, shapes, arrows, text, highlighter, mosaic,
-  spotlight, counter, pencil, undo/redo, QR detection, copy, and pin.
+- **内联标注：** 选择、形状、箭头、文字、高亮、马赛克、聚光灯、序号、画笔、
+  撤销/重做、二维码、复制和贴图。
 
-  [![Inline annotation tools](assets/readme/inline.gif)](assets/readme/inline.gif)
+  [![内联标注工具](assets/readme/inline.gif)](assets/readme/inline.gif)
 
-- **Scrolling capture:** manual and automatic scrolling, live preview,
-  duplicate/direction protection, and long-image stitching.
+- **滚动截屏：** 手动/自动滚动、实时预览、方向和重复帧保护、长图拼接。
 
-  [![Scrolling capture](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+  [![滚动截屏](assets/readme/scroll.gif)](assets/readme/scroll.gif)
 
-- **Recording:** region video or GIF, system audio, microphone, cursor and click
-  effects, keystroke overlay, pause/restart/discard, snapshots, and live ink.
+- **录屏：** 区域视频或 GIF、系统声音、麦克风、鼠标效果、按键显示、暂停、
+  重录、丢弃、快照和实时画笔。
 
-  [![Recording with live annotation](assets/readme/recording.gif)](assets/readme/recording.gif)
+  [![录屏与实时画笔](assets/readme/recording.gif)](assets/readme/recording.gif)
 
-- **Quick Access and pins:** configurable post-capture cards, copy/save/open,
-  drag and swipe actions, and always-on-top image pins.
+- **录音：** 从菜单栏或托盘录制系统声音、麦克风或两者，无需选择屏幕区域，
+  保存为纯音频 M4A。
+- **转写与 AI 笔记：** 使用自己的火山引擎账户按需开启转写，再通过已配置的
+  LLM 润色与整理文字。在“转写结果”中搜索、复制和导出已保存的结果。
+  参见[配置、使用与隐私说明](docs/RECORDING_TRANSCRIPTION.md)。
 
-  [![Quick Access image pin](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+- **Quick Access 与贴图：** 可配置的捕获后卡片、复制/保存/打开、拖拽、滑动、
+  置顶图片。
 
-  [![Multiple always-on-top image pins](assets/readme/pin.gif)](assets/readme/pin.gif)
+  [![Quick Access 贴图](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
 
-- **Clipboard History:** local SQLite history for captures, recordings, text,
-  images, and copied files, with search, filters, retention, and cleanup.
+  [![多张置顶贴图](assets/readme/pin.gif)](assets/readme/pin.gif)
 
-  [![Searchable capture and clipboard history](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+- **剪贴板历史：** 本地 SQLite 保存截图、录屏、文本、图片和复制的文件，支持
+  搜索、筛选、保留策略和清理。
 
-- **Customization:** global shortcuts, after-capture actions, output folders,
-  appearance, diagnostics, URL commands, and ten interface languages.
+  [![可搜索的捕获与剪贴板历史](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
 
-  [![ShotPaste settings](assets/readme/settings.gif)](assets/readme/settings.gif)
+- **自定义：** 全局快捷键、捕获后动作、输出目录、外观、诊断、URL 命令和
+  10 种界面语言。
 
-See [the complete feature list](docs/FEATURES.md).
+  [![ShotPaste 设置](assets/readme/settings.gif)](assets/readme/settings.gif)
 
-## Platforms
+完整说明见[功能列表](docs/FEATURES.md)。
+
+## 平台
 
 | | macOS | Windows |
 | --- | --- | --- |
-| Requirements | macOS 13+, Apple Silicon | Windows 10 2004+, x64 |
-| Native stack | SwiftUI, AppKit, ScreenCaptureKit, Vision | WPF, Win32, Windows capture/OCR/media APIs |
-| Source | `platforms/mac` | `platforms/windows` |
+| 系统要求 | macOS 13+，Apple Silicon | Windows 10 2004+，x64 |
+| 原生技术 | SwiftUI、AppKit、ScreenCaptureKit、Vision | WPF、Win32、Windows 截屏/OCR/媒体 API |
+| 源码目录 | `platforms/mac` | `platforms/windows` |
 
-The clients share product behavior and localization resources, not application
-code or a cross-platform UI framework.
+两个客户端共享产品行为与本地化资源，但不共享应用代码或跨平台 UI 框架。
 
-## Build
+## 构建
 
-macOS:
+macOS：
 
 ```bash
 ./scripts/build_and_run.sh build
 ./scripts/run-tests.sh
 ```
 
-Windows PowerShell:
+Windows PowerShell：
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1 -Configuration Debug
 ```
 
-See [project structure and build instructions](docs/DEVELOPMENT.md).
+参见[项目结构与构建说明](docs/DEVELOPMENT.md)。
 
-## Downloads
+## 下载
 
-Download the latest macOS DMG or Windows portable ZIP from
-[GitHub Releases](https://github.com/shotpaste/shotpaste/releases). Verify the
-included checksums and read the [release trust notes](SECURITY.md#release-trust)
-before opening a package.
+可在 [GitHub Releases](https://github.com/shotpaste/shotpaste/releases) 下载
+最新的 macOS DMG 或 Windows 便携 ZIP。打开安装包前，请核对随附的校验和并阅读
+[发布信任说明](SECURITY.md#release-trust)。
 
-## License and acknowledgements
+## 协议与致谢
 
-ShotPaste is released under the [BSD 3-Clause License](LICENSE).
+ShotPaste 使用 [BSD 3-Clause License](LICENSE)。
 
-### Acknowledgements and source history
+### 致谢与来源历史
 
-ShotPaste is grateful to [Snapzy](https://github.com/duongductrong/Snapzy)
-and [ShareX](https://github.com/ShareX/ShareX). Their open-source work provided
-substantial help and inspiration while this project was developed.
+ShotPaste 感谢 [Snapzy](https://github.com/duongductrong/Snapzy) 与
+[ShareX](https://github.com/ShareX/ShareX)。在本项目的开发过程中，它们的开源成果
+提供了重要帮助与灵感。
 
-The macOS client started from Snapzy commit
-[`a6f8edf01a48e9dd9bdc4212b0e3472725219274`](https://github.com/duongductrong/Snapzy/commit/a6f8edf01a48e9dd9bdc4212b0e3472725219274)
-under the BSD 3-Clause License and has since diverged substantially. The Windows
-client is an independent native implementation of the same ShotPaste product
-workflow, informed in part by studying ShareX.
+macOS 客户端最初基于 Snapzy 的提交
+[`a6f8edf01a48e9dd9bdc4212b0e3472725219274`](https://github.com/duongductrong/Snapzy/commit/a6f8edf01a48e9dd9bdc4212b0e3472725219274)，
+并遵循 BSD 3-Clause License；此后，其代码已产生大量演进与差异。Windows 客户端
+则是同一 ShotPaste 产品工作流的独立原生实现，其开发也部分借鉴了 ShareX。
 
-Required third-party copyright and license text is preserved in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+必须保留的第三方版权与许可文本收录于
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-Contributions are welcome; read [CONTRIBUTING.md](CONTRIBUTING.md) before
-opening a pull request. For help or responsible reporting, see
-[SUPPORT.md](SUPPORT.md) and [SECURITY.md](SECURITY.md).
+欢迎参与贡献；提交拉取请求前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。使用帮助
+和安全问题报告方式见 [SUPPORT.md](SUPPORT.md) 与 [SECURITY.md](SECURITY.md)。

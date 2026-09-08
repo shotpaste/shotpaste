@@ -19,55 +19,6 @@ final class AudioRecordingCoordinatorPolicyTests: XCTestCase {
     )
   }
 
-  func testTransactionGatesAreStrictlyOrdered() {
-    XCTAssertEqual(
-      AudioRecordingTransactionGatePolicy.nextStep(
-        finalAudioValidated: false,
-        historyPersisted: false,
-        transcriptionTaskPersisted: false
-      ),
-      .extract
-    )
-    XCTAssertEqual(
-      AudioRecordingTransactionGatePolicy.nextStep(
-        finalAudioValidated: true,
-        historyPersisted: false,
-        transcriptionTaskPersisted: false
-      ),
-      .history
-    )
-    XCTAssertEqual(
-      AudioRecordingTransactionGatePolicy.nextStep(
-        finalAudioValidated: true,
-        historyPersisted: true,
-        transcriptionTaskPersisted: false
-      ),
-      .transcriptionTask
-    )
-    XCTAssertEqual(
-      AudioRecordingTransactionGatePolicy.nextStep(
-        finalAudioValidated: true,
-        historyPersisted: true,
-        transcriptionTaskPersisted: true
-      ),
-      .deleteInternalVideo
-    )
-    XCTAssertTrue(
-      AudioRecordingTransactionGatePolicy.canDelete(
-        finalAudioValidated: true,
-        historyPersisted: true,
-        transcriptionTaskPersisted: true
-      )
-    )
-    XCTAssertFalse(
-      AudioRecordingTransactionGatePolicy.canDelete(
-        finalAudioValidated: true,
-        historyPersisted: true,
-        transcriptionTaskPersisted: false
-      )
-    )
-  }
-
   func testDisplayRecoveryAllowsOnlyOneAutomaticAttempt() {
     XCTAssertTrue(AudioRecordingDisplayRecoveryPolicy.shouldAttempt(recoveryCount: 0))
     XCTAssertFalse(AudioRecordingDisplayRecoveryPolicy.shouldAttempt(recoveryCount: 1))

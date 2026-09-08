@@ -1,51 +1,41 @@
-# Contributor Covenant Code of Conduct
+# 贡献者行为准则
 
-## Our pledge
+## 我们的承诺
 
-We as members, contributors, and maintainers pledge to make participation in the
-ShotPaste community a harassment-free experience for everyone, regardless of
-age, body size, visible or invisible disability, ethnicity, sex characteristics,
-gender identity and expression, level of experience, education,
-socio-economic status, nationality, personal appearance, race, religion, or
-sexual identity and orientation.
+作为 ShotPaste 社区成员、贡献者和维护者，我们承诺为所有人提供无骚扰的参与体验，
+不因年龄、体型、可见或不可见的残障、族裔、性别特征、性别认同与表达、经验水平、教育程度、
+社会经济地位、国籍、个人外貌、种族、宗教或性身份与性取向而区别对待。
 
-We pledge to act and interact in ways that contribute to an open, welcoming,
-diverse, inclusive, and healthy community.
+我们承诺以有助于建立开放、友善、多元、包容和健康社区的方式行动与交流。
 
-## Our standards
+## 行为标准
 
-Examples of positive behavior include:
+积极行为包括：
 
-- Demonstrating empathy and kindness.
-- Respecting differing opinions, viewpoints, and experiences.
-- Giving and gracefully accepting constructive feedback.
-- Taking responsibility, apologizing, and learning from mistakes.
-- Focusing on what is best for the community.
+- 表现出同理心与善意。
+- 尊重不同意见、观点和经历。
+- 提出并善意接受建设性反馈。
+- 承担责任、道歉并从错误中学习。
+- 以社区共同利益为重。
 
-Unacceptable behavior includes:
+不可接受的行为包括：
 
-- Sexualized language or imagery and unwelcome sexual attention or advances.
-- Trolling, insulting or derogatory comments, and personal or political attacks.
-- Public or private harassment.
-- Publishing another person's private information without explicit permission.
-- Other conduct that could reasonably be considered inappropriate in a
-  professional setting.
+- 性暗示语言或图像，以及不受欢迎的性关注或示好。
+- 挑衅、侮辱或贬损评论，以及人身或政治攻击。
+- 公开或私下骚扰。
+- 未经明确许可公开他人私有信息。
+- 其它可合理视为不适合专业场合的行为。
 
-## Enforcement and scope
+## 执行与适用范围
 
-Maintainers may remove, edit, or reject comments, commits, code, issues, and
-other contributions that do not align with this Code of Conduct, and may take
-fair corrective action in response to harmful behavior.
+维护者可移除、编辑或拒绝不符合本准则的评论、提交、代码、Issue 及其它贡献，
+并针对有害行为采取公平的纠正措施。
 
-This Code of Conduct applies in all project spaces and when an individual is
-officially representing the project. Reports should be made privately to a
-maintainer through the contact method available on their GitHub profile. The
-privacy and security of reporters will be respected.
+本准则适用于所有项目空间，也适用于个人正式代表项目的场合。
+请通过维护者 GitHub 个人资料中提供的联系方式私下报告；报告者的隐私与安全将受到尊重。
 
-Consequences may include a private correction, warning, temporary ban, or
-permanent ban, proportionate to the impact and pattern of the behavior.
+根据行为影响及重复情况，后果可能包括私下纠正、警告、临时封禁或永久封禁。
 
-## Attribution
+## 来源
 
-This Code of Conduct is adapted from the
-[Contributor Covenant](https://www.contributor-covenant.org/), version 2.1.
+本准则改编自 [Contributor Covenant](https://www.contributor-covenant.org/) 2.1 版。

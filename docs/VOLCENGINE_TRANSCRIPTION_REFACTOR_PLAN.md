@@ -1,8 +1,10 @@
 # 用户自有火山账户：录音文件转写改造方案
 
-状态：macOS 文件识别、设置与持久化入口已接入；受限账户 HTTP PoC 与原生 App 公开样本真实链路均通过。Windows 暂缓。核对日期：2026-09-06。
+状态：当前源码已接入 macOS 与 Windows 的文件 ASR 2.0、私有 TOS、录音与转写结果管理。文档核对日期：2026-09-08。
 
-本次实施范围按用户最新要求限定为 macOS；Windows 暂不实现，下文 Windows 项保留为后续计划。
+本文保留设计依据与按日期记录的实施历史，不作为当前分支的验收报告。第 11 节中早期的“Windows 暂缓”和 Keychain 方案已被后续实现取代：macOS 当前使用本地 UserDefaults 档案，Windows 使用 DPAPI。历史测试通过仅对应当时的代码与环境，本次文档同步未重新执行原生或云端验收。
+
+当前用户流程见[录音与转写使用指南](RECORDING_TRANSCRIPTION.md)，产品契约见 [FEATURES.md](FEATURES.md)，当前构建、存储位置与验证入口见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 
 ## 1. 交付目标与选型
 

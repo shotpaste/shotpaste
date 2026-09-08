@@ -13,8 +13,7 @@ final class TranscriptionResultsTests: XCTestCase {
     let sessionID = UUID()
     try audio.persistTask(.init(sessionID: sessionID, sourcePaths: [.mixed: "mixed.m4a"], stage: .failed))
     let configuration = RecordingTranscriptionConfiguration(account: .init(), sourceLanguage: .auto)
-    let track = try await video.begin(url: audio.sessionsDirectory.appendingPathComponent(sessionID.uuidString)
-      .appendingPathComponent("mixed.m4a"), configuration: configuration, checksum: "track")
+    let track = try await video.begin(url: root.appendingPathComponent("renamed-track.m4a"), configuration: configuration, checksum: "track", kind: .audioTrack, audioSessionID: sessionID)
     let movie = try await video.begin(url: root.appendingPathComponent("meeting.mov"), configuration: configuration, checksum: "movie")
     let silent = try await video.begin(url: root.appendingPathComponent("silent.mov"), configuration: configuration, checksum: "silent")
     for work in [track, movie, silent] {
@@ -47,10 +46,10 @@ final class TranscriptionResultsTests: XCTestCase {
       configuration: .init(account: .init(), sourceLanguage: .auto), checksum: "test")
     try await video.finish(work.id, transcript: nil)
     let internalTrack = try await video.begin(url: root.appendingPathComponent("system.m4a"),
-      configuration: .init(account: .init(), sourceLanguage: .auto), checksum: "track")
+      configuration: .init(account: .init(), sourceLanguage: .auto), checksum: "track", kind: .audioTrack)
     try await video.finish(internalTrack.id, transcript: .init(text: "track", segments: []))
     let verification = try await video.begin(url: root.appendingPathComponent("verification.mp3"),
-      configuration: .init(account: .init(), sourceLanguage: .auto), checksum: "sample")
+      configuration: .init(account: .init(), sourceLanguage: .auto), checksum: "sample", kind: .verification)
     try await video.finish(verification.id, transcript: .init(text: "sample", segments: []))
     let repository = TranscriptionResultsRepository(audioStore: audio, videoStore: video)
     let results = await repository.summaries()
@@ -150,7 +149,7 @@ final class TranscriptionResultsTests: XCTestCase {
 private nonisolated struct ResultsTestProcessor: AudioLLMProcessing {
   var fails = false
   func process(raw: AudioRawTranscript, template: AudioOrganizationTemplate,
-               language: AudioRecordingLanguage?) async throws -> AudioLLMProcessingResult {
+               language: AudioRecordingLanguage?, existingPolished: AudioPolishedTranscript?) async throws -> AudioLLMProcessingResult {
     if fails { throw AudioLocalLLMError.failed }
     return .init(polished: .init(text: "polished words", sourceSegmentIDs: Array(raw.segmentIDs)),
       structured: .init(template: .generalNotes,

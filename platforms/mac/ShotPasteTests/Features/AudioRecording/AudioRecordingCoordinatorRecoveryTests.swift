@@ -397,7 +397,8 @@ private final class TerminationAudioCapture: AudioAdapterRecordingControlling {
 private struct RecoveryMustNotTranscribe: AudioTranscribing {
   func transcribe(
     sources: [AudioTranscriptionSourceInput], language: AudioRecordingLanguage,
-    processingDirectory: URL?, sessionID: UUID?
+    processingDirectory: URL?, sessionID: UUID?,
+    cloudConfiguration: RecordingTranscriptionConfiguration?
   ) async throws -> AudioRawTranscript {
     XCTFail("Recovery without recorded consent must remain local")
     throw AudioTranscriberError.cancelled
@@ -409,7 +410,7 @@ private final class TerminationAudioOutput: AudioRecordingPostCaptureHandling {
   let historySkipped: Bool
   var urls: [URL] = []
   init(historySkipped: Bool) { self.historySkipped = historySkipped }
-  func handleAudioCapture(url: URL, skipQuickAccess: Bool) async -> AudioCapturePostProcessingResult {
+  func handleAudioCapture(url: URL, skipQuickAccess: Bool, preferredHistoryID: UUID?) async -> AudioCapturePostProcessingResult {
     urls.append(url)
     let validation = await AudioAssetValidator.validate(url: url)
     return AudioCapturePostProcessingResult(
