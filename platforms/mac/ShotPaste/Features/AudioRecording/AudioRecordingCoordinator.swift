@@ -213,7 +213,7 @@ final class AudioRecordingCoordinator: ObservableObject {
   private let onResults: (UUID) -> Void
   private let confirmationHandler: ((String, String, String) -> Bool)?
   // Recovery/state-machine tests inject no presentation; the production
-  // singleton keeps visible capture controls and confirmations enabled.
+  // singleton keeps capture controls, confirmations and feedback sounds enabled.
   private let presentationEnabled: Bool
   private var cancellables = Set<AnyCancellable>()
   private var preparationPanel: AudioRecordingPreparationPanel?
@@ -669,7 +669,7 @@ final class AudioRecordingCoordinator: ObservableObject {
       }
       // Audio semantics begin only after Tiny adapter.start returned from its
       // first-frame handshake.
-      SoundManager.play("Purr")
+      playFeedbackSound("Purr")
       DiagnosticLogger.shared.log(.info, .recording, "Audio recording started")
     } catch is CancellationError {
       try? await adapter.cancel()
@@ -741,7 +741,7 @@ final class AudioRecordingCoordinator: ObservableObject {
     let task = try await persistProcessingReceipt(sessionID: sessionID, sourcePaths: inputBundle.sourcePaths)
     let taskID = task.id
     closeCaptureUI()
-    if playSound { SoundManager.play("Glass") }
+    if playSound { playFeedbackSound("Glass") }
     await showSuccessToast(successToastMessage(for: sessionID, endedEarly: endedEarly))
     state = task.autoTranscribe ? .transcribing : .completed
     if task.autoTranscribe {
@@ -1285,6 +1285,11 @@ final class AudioRecordingCoordinator: ObservableObject {
   }
 
   // MARK: - UI helpers
+
+  private func playFeedbackSound(_ name: String) {
+    guard presentationEnabled else { return }
+    SoundManager.play(name)
+  }
 
   private func showControlBar() {
     guard presentationEnabled else { return }
