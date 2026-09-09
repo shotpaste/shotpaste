@@ -79,7 +79,7 @@ See [the complete feature list](docs/FEATURES.md).
 
 | | macOS | Windows |
 | --- | --- | --- |
-| Requirements | macOS 13+, Apple Silicon | Windows 10 2004+, x64 |
+| Requirements | macOS 13+, Apple Silicon (arm64) / Intel (x86_64) | Windows 10 2004+, x64 |
 | Native stack | SwiftUI, AppKit, ScreenCaptureKit, Vision | WPF, Win32, Windows capture/OCR/media APIs |
 | Source | `platforms/mac` | `platforms/windows` |
 

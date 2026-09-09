@@ -5,6 +5,11 @@
 ShotPaste 是本地优先的桌面捕获应用，macOS 与 Windows 分别采用原生实现。
 两个客户端遵循相同的产品流程，同时使用各自操作系统的 API 与交互规范。
 
+macOS 最低要求为 macOS 13，提供 Apple Silicon（arm64）与 Intel（x86_64）独立安装包，
+共享版本、功能流程、应用身份和数据目录。更新检查只推荐与当前应用架构匹配的发布。
+系统框架功能仍须满足 macOS 版本和硬件能力；Intel 不支持 Apple Intelligence 系统模型。
+下载以 GitHub Release 实际资产为准，官网在对应架构首发前不提供虚构下载。
+
 ## One Shot
 
 - 通过一个全局快捷键或菜单栏/托盘入口开始捕获。

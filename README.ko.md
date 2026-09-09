@@ -77,7 +77,7 @@ ShotPaste은 macOS와 Windows에 서로 독립적인 네이티브 클라이언�
 
 | | macOS | Windows |
 | --- | --- | --- |
-| 요구 사항 | macOS 13+, Apple Silicon | Windows 10 2004+, x64 |
+| 요구 사항 | macOS 13+, Apple Silicon (arm64) / Intel (x86_64) | Windows 10 2004+, x64 |
 | 네이티브 기술 | SwiftUI, AppKit, ScreenCaptureKit, Vision | WPF, Win32, Windows 캡처/OCR/미디어 API |
 | 소스 | `platforms/mac` | `platforms/windows` |
 

@@ -78,7 +78,7 @@ ShotPaste は macOS と Windows に独立したネイティブクライアント
 
 | | macOS | Windows |
 | --- | --- | --- |
-| 要件 | macOS 13+、Apple Silicon | Windows 10 2004+、x64 |
+| 要件 | macOS 13+、Apple Silicon (arm64) / Intel (x86_64) | Windows 10 2004+、x64 |
 | ネイティブ技術 | SwiftUI、AppKit、ScreenCaptureKit、Vision | WPF、Win32、Windows キャプチャ/OCR/メディア API |
 | ソース | `platforms/mac` | `platforms/windows` |
 

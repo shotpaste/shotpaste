@@ -13,6 +13,7 @@ QUIET=1
 MARKETING_VERSION_OVERRIDE="${SHOTPASTE_MARKETING_VERSION:-}"
 BUILD_NUMBER_OVERRIDE="${SHOTPASTE_BUILD_NUMBER:-}"
 RELEASE_ARM64_ONLY="${SHOTPASTE_RELEASE_ARM64_ONLY:-0}"
+BUILD_ARCH="${SHOTPASTE_MACOS_ARCH:-}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/scripts/macos-app-variant.sh"
@@ -58,6 +59,7 @@ ${BOLD}Modes:${NC}
 
 ${BOLD}Options:${NC}
   --configuration C   Build configuration: Debug or Release. Default: Debug
+  --arch ARCH         Build a single architecture: arm64 or x86_64
   --log-level LEVELS  default,info,debug,error,fault,all. Default: default,error,fault
   --clean             Clean before building
   --verbose           Show full xcodebuild output
@@ -67,6 +69,7 @@ ${BOLD}CI release environment:${NC}
   SHOTPASTE_MARKETING_VERSION  Override MARKETING_VERSION with stable SemVer
   SHOTPASTE_BUILD_NUMBER       Override CURRENT_PROJECT_VERSION with an integer
   SHOTPASTE_RELEASE_ARM64_ONLY Build an arm64-only Release app when set to 1
+  SHOTPASTE_MACOS_ARCH         Target architecture: arm64 or x86_64
 
 ${BOLD}Examples:${NC}
   $0
@@ -115,6 +118,11 @@ parse_args() {
       --configuration)
         [[ $# -ge 2 ]] || fail "--configuration requires a value."
         CONFIGURATION="$2"
+        shift 2
+        ;;
+      --arch)
+        [[ $# -ge 2 ]] || fail "--arch requires a value."
+        BUILD_ARCH="$2"
         shift 2
         ;;
       --derived-data|--derived-data-path)
@@ -171,8 +179,14 @@ validate_build_overrides() {
     1)
       [[ "$CONFIGURATION" == "Release" ]] || fail \
         "SHOTPASTE_RELEASE_ARM64_ONLY=1 requires the Release configuration."
+      [[ -z "$BUILD_ARCH" || "$BUILD_ARCH" == "arm64" ]] || fail "Conflicting architecture overrides."
+      BUILD_ARCH=arm64
       ;;
     *) fail "SHOTPASTE_RELEASE_ARM64_ONLY must be 0 or 1." ;;
+  esac
+  case "$BUILD_ARCH" in
+    ""|arm64|x86_64) ;;
+    *) fail "Unsupported architecture '$BUILD_ARCH'; use arm64 or x86_64." ;;
   esac
 }
 
@@ -324,8 +338,8 @@ run_xcodebuild() {
   if [[ -n "$BUILD_NUMBER_OVERRIDE" ]]; then
     args+=("CURRENT_PROJECT_VERSION=$BUILD_NUMBER_OVERRIDE")
   fi
-  if [[ "$RELEASE_ARM64_ONLY" == "1" ]]; then
-    args+=(ARCHS=arm64 ONLY_ACTIVE_ARCH=YES SWIFT_COMPILATION_MODE=incremental)
+  if [[ -n "$BUILD_ARCH" ]]; then
+    args+=("ARCHS=$BUILD_ARCH" ONLY_ACTIVE_ARCH=NO SWIFT_COMPILATION_MODE=incremental)
   fi
 
   # Xcode 26.6 / Swift 6.3.3 can crash in EarlyPerfInliner while compiling this
@@ -363,6 +377,9 @@ build_app() {
 
   [[ -d "$app_bundle" ]] || fail "Build finished but app bundle was not found: $app_bundle"
   [[ -x "$(app_binary_path)" ]] || fail "Built app binary is not executable: $(app_binary_path)"
+  if [[ -n "$BUILD_ARCH" ]]; then
+    [[ "$(/usr/bin/lipo -archs "$(app_binary_path)")" == "$BUILD_ARCH" ]] || fail "Built app architecture does not match $BUILD_ARCH."
+  fi
 
   if /usr/bin/otool -L "$(app_binary_path)" | /usr/bin/grep -q '\.debug\.dylib'; then
     fail "Built app still links an Xcode debug dylib and will fail self-signed runtime library validation."

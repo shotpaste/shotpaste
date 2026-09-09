@@ -27,7 +27,7 @@ README 与使用指南保留多语言，具体范围见[文档导航](README.md)
 环境要求：
 
 - macOS 13 或更高版本
-- Apple Silicon
+- Apple Silicon（arm64）或 Intel（x86_64）；运行系统最低为 macOS 13，构建机还须满足所选 Xcode 的系统要求
 - Xcode 26.2 或兼容的更高版本
 
 <a id="local-signing-identity"></a>
@@ -50,6 +50,26 @@ macOS 构建脚本拒绝 ad-hoc 签名，以便本地重复构建时保持隐私
 ```bash
 ./scripts/build_and_run.sh build
 ```
+
+指定单一架构（两种架构复用同一标准 App 路径，须串行构建）：
+
+```bash
+./scripts/build_and_run.sh build --configuration Debug --arch x86_64
+./scripts/build_and_run.sh build --configuration Release --arch x86_64
+./scripts/dry-run-release.sh --arch x86_64
+```
+
+Apple Silicon 包使用 `--arch arm64`。CI 也可使用 `SHOTPASTE_MACOS_ARCH=arm64|x86_64`；
+旧的 `SHOTPASTE_RELEASE_ARM64_ONLY=1` 保留为兼容入口，冲突参数会被拒绝。
+本地 DMG 分别位于 `build/local-release/ShotPaste-local-macOS-{arm64,x86_64}.dmg`，
+可以同时保留；可运行 App 仍只有标准 Debug/Release 各一份。
+`dry-run-release.sh` 使用已记录的本地 Xcode 编译器规避设置，不代替 CI 优化 Release 验证。
+
+Apple Silicon 主机上的 x86_64 编译和 Rosetta 测试不能代替真实 Intel 桌面验收。
+发布前须在 Intel Mac 验证首次安装/权限、One Shot、截图、滚动、录屏及音频、OCR/QR、
+WebP、历史、快捷键、更新检测，并记录 macOS 版本、CPU/GPU 和显示器条件。
+Intel 包不要求降低 macOS 13 门槛；不支持 Apple Intelligence 的设备不能使用系统本地模型，
+已配置的云端转写和 Agent 模型服务遵循原有可用性及授权边界。
 
 仅用于开发的 ASR 2.0 账户探针（不随任一原生应用分发）：
 
@@ -202,6 +222,18 @@ macOS 与 Windows 各自维护稳定发布流。标签必须指向包含于 `rel
 指向 `release` 的 PR 仍运行两个平台验证，确保稳定源码可在两端构建。
 
 macOS 工作流需要上述两个 Actions Secrets，并在构建前核对导入证书的固定指纹。
+macOS 的 CI 和 Release 使用 `macos-15`（arm64）与 `macos-15-intel`（x86_64）矩阵，
+均使用 Xcode 26.2。两个架构原生测试、构建、架构检查和签名检查全部成功后，
+同一个 `macos-vX.Y.Z` Release 才发布以下两个独立包：
+
+- `ShotPaste-vX.Y.Z-macOS-arm64.dmg`：Apple Silicon，保持已有文件名及更新兼容。
+- `ShotPaste-vX.Y.Z-macOS-x86_64.dmg`：Intel。
+
+`SHA256SUMS.txt` 同时包含两个包，启动指南说明如何选择；不得只发布其中一架构。
+应用内更新检查只接受当前应用架构的安装包。命令行安装器按硬件架构选包，
+Rosetta 下优先安装 arm64；指定的旧版本若没有 Intel 包会明确失败，不下载 ARM 包替代。
+官网分别识别两个资产；首个 Intel 资产公开发布前显示未发布，之后按发布元数据自动启用下载。
+
 标签无效、提交不属于 `release`、缺少凭据、测试/构建失败或产物缺失时，
 在创建 GitHub Release 前停止对应工作流。正式平台标签不可变，仅仓库 Owner 可创建。
 

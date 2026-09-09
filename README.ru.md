@@ -78,7 +78,7 @@ ShotPaste содержит независимые нативные клиент�
 
 | | macOS | Windows |
 | --- | --- | --- |
-| Требования | macOS 13+, Apple Silicon | Windows 10 2004+, x64 |
+| Требования | macOS 13+, Apple Silicon (arm64) / Intel (x86_64) | Windows 10 2004+, x64 |
 | Нативные технологии | SwiftUI, AppKit, ScreenCaptureKit, Vision | WPF, Win32 и API Windows для захвата/OCR/медиа |
 | Исходный код | `platforms/mac` | `platforms/windows` |
 

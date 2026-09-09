@@ -1,4 +1,4 @@
-ShotPaste @VERSION@ - macOS (Apple Silicon)
+ShotPaste @VERSION@ - macOS 13+ (Apple Silicon / Intel)
 ================================================
 
 This DMG is signed with ShotPaste's persistent self-signed certificate.
@@ -8,10 +8,16 @@ Drag "ShotPaste.app" onto "Applications" in the DMG window, then launch the
 installed copy from /Applications. Do not run ShotPaste directly from the DMG;
 macOS privacy permissions are tied to the installed app's identity and path.
 
-1. Download the DMG and SHA256SUMS.txt from the same GitHub Release.
+1. Download the DMG matching About This Mac and SHA256SUMS.txt from the same release:
+   Apple Silicon (Apple M-series chip): macOS-arm64.dmg
+   Intel processor: macOS-x86_64.dmg
 2. Run:
 
      shasum -a 256 ShotPaste-v@VERSION@-macOS-arm64.dmg
+
+   For Intel, use instead:
+
+     shasum -a 256 ShotPaste-v@VERSION@-macOS-x86_64.dmg
 
    Compare the result with the matching DMG line in SHA256SUMS.txt.
 3. Open the DMG and drag "ShotPaste.app" to Applications.
@@ -30,7 +36,8 @@ macOS privacy permissions are tied to the installed app's identity and path.
 /Applications 启动安装后的副本。请勿直接在 DMG 中运行；macOS 隐私权限会
 绑定到应用身份与安装路径。
 
-1. 从同一个 GitHub Release 下载 DMG 与 SHA256SUMS.txt。
+1. 根据“关于本机”从同一个 GitHub Release 下载对应 DMG 与 SHA256SUMS.txt：
+   Apple M 系列芯片选择 macOS-arm64.dmg；Intel 处理器选择 macOS-x86_64.dmg。
 2. 运行上面的 shasum 命令，并与 SHA256SUMS.txt 中对应的 DMG 行核对。
 3. 打开 DMG，将“ShotPaste.app”拖入“应用程序”。
 4. 首次启动若被拦截，请进入“系统设置 > 隐私与安全性”，选择“仍要打开”。

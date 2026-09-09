@@ -85,7 +85,7 @@ Consultez la [liste complète des fonctionnalités](docs/FEATURES.md).
 
 | | macOS | Windows |
 | --- | --- | --- |
-| Prérequis | macOS 13+, Apple Silicon | Windows 10 2004+, x64 |
+| Prérequis | macOS 13+, Apple Silicon (arm64) / Intel (x86_64) | Windows 10 2004+, x64 |
 | Technologies natives | SwiftUI, AppKit, ScreenCaptureKit, Vision | WPF, Win32 et API Windows de capture/OCR/média |
 | Code source | `platforms/mac` | `platforms/windows` |
 

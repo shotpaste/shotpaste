@@ -23,8 +23,16 @@ concurrency:
 
 jobs:
   macos:
-    name: macOS tests and localization
-    runs-on: macos-15
+    name: macOS ${{ matrix.arch }} tests and localization
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+          - arch: x86_64
+            runner: macos-15-intel
     timeout-minutes: 35
     steps:
       - name: Checkout source
@@ -49,6 +57,9 @@ jobs:
       - name: Run macOS tests
         shell: bash
         run: ./scripts/run-tests.sh
+
+      - name: Verify installer architecture selection
+        run: python3 -m unittest discover -s scripts -p test_macos_installer.py -v
 
   windows:
     name: Windows ${{ matrix.configuration }} build and tests

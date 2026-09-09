@@ -72,7 +72,7 @@ ShotPaste 為 macOS 與 Windows 提供彼此獨立的原生客戶端。擷取、
 
 | | macOS | Windows |
 | --- | --- | --- |
-| 系統需求 | macOS 13+，Apple Silicon | Windows 10 2004+，x64 |
+| 系統需求 | macOS 13+，Apple Silicon (arm64) / Intel (x86_64) | Windows 10 2004+，x64 |
 | 原生技術 | SwiftUI、AppKit、ScreenCaptureKit、Vision | WPF、Win32、Windows 擷取/OCR/媒體 API |
 | 原始碼 | `platforms/mac` | `platforms/windows` |
 

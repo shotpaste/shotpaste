@@ -78,7 +78,7 @@ Xem [danh sách tính năng đầy đủ](docs/FEATURES.md).
 
 | | macOS | Windows |
 | --- | --- | --- |
-| Yêu cầu | macOS 13+, Apple Silicon | Windows 10 2004+, x64 |
+| Yêu cầu | macOS 13+, Apple Silicon (arm64) / Intel (x86_64) | Windows 10 2004+, x64 |
 | Công nghệ gốc | SwiftUI, AppKit, ScreenCaptureKit, Vision | WPF, Win32, API chụp/OCR/đa phương tiện Windows |
 | Mã nguồn | `platforms/mac` | `platforms/windows` |
 
