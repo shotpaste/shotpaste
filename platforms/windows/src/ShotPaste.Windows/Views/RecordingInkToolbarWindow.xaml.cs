@@ -121,7 +121,7 @@ public partial class RecordingInkToolbarWindow : Window
         if (hidden) return;
         _initializing = true;
         ClearValueBox.Text = _ink.CurrentClearValue.ToString();
-        ClearValueUnit.Text = policy.ClearMode == RecordingAnnotationClearMode.AfterSeconds ? "秒" : "笔";
+        ClearValueUnit.Text = LocalizationService.TranslatePhrase(policy.ClearMode == RecordingAnnotationClearMode.AfterSeconds ? "秒" : "笔");
         _initializing = false;
     }
 

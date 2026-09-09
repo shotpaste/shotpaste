@@ -33,6 +33,8 @@ LOG_PATH="$BUILD_DIR/ci-test.log"
 TEST_HOST_INFOPLIST_PATH="$BUILD_DIR/TestHost-Info.plist"
 OPEN_RESULT=0
 XCODEBUILD_ARGS=()
+SENSITIVE_ENV_NAMES=()
+XCODEBUILD_ENV_UNSET_ARGS=()
 
 if [ -t 1 ]; then
   BOLD=$'\033[1m'
@@ -111,6 +113,51 @@ append_xcodebuild_arg() {
   XCODEBUILD_ARGS+=("$argument")
 }
 
+sensitive_env_name_matches() {
+  case "$1" in
+    *[Aa][Pp][Ii]_[Kk][Ee][Yy]*|*[Tt][Oo][Kk][Ee][Nn]*|*[Ss][Ee][Cc][Rr][Ee][Tt]*|*[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]*|*[Cc][Rr][Ee][Dd][Ee][Nn][Tt][Ii][Aa][Ll]*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+record_sensitive_env_name() {
+  local candidate="$1"
+  local existing
+
+  [[ -n "$candidate" ]] || return 0
+  for existing in "${SENSITIVE_ENV_NAMES[@]-}"; do
+    [[ "$existing" == "$candidate" ]] && return 0
+  done
+  SENSITIVE_ENV_NAMES+=("$candidate")
+}
+
+collect_sensitive_environment_names() {
+  local env_name
+
+  # compgen emits environment variable names only; values never enter the
+  # shell data stream used to construct the xcodebuild child environment.
+  while IFS= read -r env_name; do
+    if sensitive_env_name_matches "$env_name"; then
+      record_sensitive_env_name "$env_name"
+    fi
+  done < <(compgen -e)
+
+  # Keep these explicit in case a shell/environment implementation does not
+  # expose one of the known names through the matcher above.
+  for env_name in BET_API_KEY DEEPSEEK_API_KEY PATEWAY_GUOCHAN_API_KEY; do
+    record_sensitive_env_name "$env_name"
+  done
+
+  XCODEBUILD_ENV_UNSET_ARGS=()
+  for env_name in "${SENSITIVE_ENV_NAMES[@]-}"; do
+    XCODEBUILD_ENV_UNSET_ARGS+=(-u "$env_name")
+  done
+}
+
 validate_configuration() {
   case "$CONFIGURATION" in
     Debug|Release) ;;
@@ -163,6 +210,7 @@ fi
 require_command xcodebuild
 require_command grep
 require_command tail
+collect_sensitive_environment_names
 
 mkdir_paths=("$BUILD_DIR" "$DERIVED_DATA_PATH" "$MODULE_CACHE_PATH")
 mkdir_paths+=("$PRODUCTS_ROOT")
@@ -194,6 +242,7 @@ rm -rf "$RESULT_BUNDLE_PATH"
 info "Running ${SCHEME} tests"
 info "Log: ${LOG_PATH}"
 info "Result bundle: ${RESULT_BUNDLE_PATH}"
+info "Withheld ${#SENSITIVE_ENV_NAMES[@]} sensitive environment variable(s) from the xcodebuild child."
 
 set +e
 set +u
@@ -222,17 +271,34 @@ XCODEBUILD_CMD=(
   "SHOTPASTE_INFOPLIST_FILE=$TEST_HOST_INFOPLIST_PATH"
 )
 
+if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
+  # Fail a hung test while the job still has time to publish its XCTest
+  # diagnostics. This is an outer watchdog, not a relaxed product deadline.
+  XCODEBUILD_CMD+=(
+    -test-timeouts-enabled YES
+    -default-test-execution-time-allowance 120
+    -maximum-test-execution-time-allowance 180
+  )
+fi
+
 if [[ -n "$SOURCE_PACKAGES_PATH" ]]; then
   XCODEBUILD_CMD+=(-clonedSourcePackagesDirPath "$SOURCE_PACKAGES_PATH")
 fi
 
-CLANG_MODULE_CACHE_PATH="$MODULE_CACHE_PATH" "${XCODEBUILD_CMD[@]}" "${XCODEBUILD_ARGS[@]}" test > "$LOG_PATH" 2>&1
+CLANG_MODULE_CACHE_PATH="$MODULE_CACHE_PATH" /usr/bin/env "${XCODEBUILD_ENV_UNSET_ARGS[@]}" "${XCODEBUILD_CMD[@]}" "${XCODEBUILD_ARGS[@]}" test > "$LOG_PATH" 2>&1
 STATUS=$?
 set -u
 set -e
 
 if [ "$STATUS" -ne 0 ]; then
   error "Tests failed with status ${STATUS}."
+  if [ -d "$RESULT_BUNDLE_PATH" ]; then
+    # The console often reports only the interrupted test name when a test
+    # host crashes. Preserve the assertion/crash explanation from XCTest.
+    warn "XCTest result summary:"
+    xcrun xcresulttool get test-results summary \
+      --path "$RESULT_BUNDLE_PATH" --format json || true
+  fi
   if [ -f "$LOG_PATH" ]; then
     warn "Likely failures:"
     grep -E "Test case '.*' failed|Failing tests:|\\*\\* TEST FAILED \\*\\*|error:" "$LOG_PATH" || true

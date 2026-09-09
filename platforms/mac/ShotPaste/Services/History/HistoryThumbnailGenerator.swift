@@ -69,6 +69,15 @@ final class HistoryThumbnailGenerator {
     for record: CaptureHistoryRecord,
     completion: @escaping (NSImage?) -> Void
   ) {
+    // Audio history cards intentionally render their waveform/microphone icon
+    // in SwiftUI. Never reuse a stale cached video frame for an audio row.
+    if record.captureType == .audio {
+      DispatchQueue.main.async {
+        completion(nil)
+      }
+      return
+    }
+
     let identity = cacheIdentity(for: record)
     let cacheKey = NSString(string: identity.cacheKey)
 
@@ -135,6 +144,7 @@ final class HistoryThumbnailGenerator {
 
   /// Load a thumbnail from disk for a record
   func thumbnailURL(for record: CaptureHistoryRecord) -> URL? {
+    guard record.captureType != .audio else { return nil }
     let identity = cacheIdentity(for: record)
     return existingThumbnailURL(for: record, identity: identity)
   }
@@ -205,7 +215,7 @@ final class HistoryThumbnailGenerator {
       generateImageThumbnail(for: record, identity: identity)
     case .video:
       generateVideoThumbnail(for: record, identity: identity)
-    case .text, .file:
+    case .audio, .text, .file:
       nil
     }
 

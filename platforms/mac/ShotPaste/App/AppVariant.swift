@@ -191,12 +191,41 @@ nonisolated enum AppDataLocations {
       .appendingPathComponent(variant.diagnosticLogDirectoryName, isDirectory: true)
   }
 
+  /// The private working area used by the audio-adapter capture pipeline.
+  ///
+  /// Keeping this path behind the same variant-aware root as the rest of the
+  /// application data is important: a Debug capture must never be picked up
+  /// by a Release recovery pass (or vice versa).
+  static func audioAdapterDirectory(
+    in applicationSupportDirectory: URL,
+    variant: AppVariant
+  ) -> URL {
+    applicationSupportRoot(in: applicationSupportDirectory, variant: variant)
+      .appendingPathComponent("AudioAdapter", isDirectory: true)
+  }
+
+  static func audioAdapterSessionsDirectory(
+    in applicationSupportDirectory: URL,
+    variant: AppVariant
+  ) -> URL {
+    audioAdapterDirectory(in: applicationSupportDirectory, variant: variant)
+      .appendingPathComponent("Sessions", isDirectory: true)
+  }
+
   static var applicationSupportRoot: URL? {
     guard let baseDirectory = FileManager.default.urls(
       for: .applicationSupportDirectory,
       in: .userDomainMask
     ).first else { return nil }
     return applicationSupportRoot(in: baseDirectory, variant: .current)
+  }
+
+  static var audioAdapterSessionsDirectory: URL? {
+    guard let baseDirectory = FileManager.default.urls(
+      for: .applicationSupportDirectory,
+      in: .userDomainMask
+    ).first else { return nil }
+    return audioAdapterSessionsDirectory(in: baseDirectory, variant: .current)
   }
 
   static var fallbackCaptureDirectory: URL {

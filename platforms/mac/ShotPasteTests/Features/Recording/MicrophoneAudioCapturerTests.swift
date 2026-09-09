@@ -84,22 +84,16 @@ final class MicrophoneAudioCapturerTests: XCTestCase {
       "Default audio device is required for real microphone integration."
     )
 
+    let firstSample = expectation(description: "A real microphone sample arrived")
+    let observer = MockMicrophoneAudioCapturerDelegate(onFirstSample: { firstSample.fulfill() })
     let capturer = MicrophoneAudioCapturer()
-
+    capturer.delegate = observer
+    defer { capturer.stop() }
     capturer.start()
-    let expectation = expectation(description: "Real microphone start")
-    DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) {
-      expectation.fulfill()
-    }
-    wait(for: [expectation], timeout: 1.0)
-
+    XCTAssertTrue(capturer.running, "The native capture session must actually start")
+    wait(for: [firstSample], timeout: 5)
+    XCTAssertGreaterThan(observer.sampleCount, 0)
     capturer.stop()
-    let stopExpectation = self.expectation(description: "Real microphone stop")
-    DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) {
-      stopExpectation.fulfill()
-    }
-    wait(for: [stopExpectation], timeout: 1.0)
-
     XCTAssertFalse(capturer.running)
   }
 
@@ -110,26 +104,31 @@ final class MicrophoneAudioCapturerTests: XCTestCase {
     XCTAssertTrue(capturer.delegate === mockDelegate)
   }
 
-  func testMicrophonePermissionStatusCanBeChecked() {
-    // Verify we can query the authorization status without crashing
-    let status = AVCaptureDevice.authorizationStatus(for: .audio)
-    XCTAssertTrue([
-      .notDetermined,
-      .restricted,
-      .denied,
-      .authorized,
-    ].contains(status))
-  }
 }
 
 // MARK: - Mock Delegate
 
 private final nonisolated class MockMicrophoneAudioCapturerDelegate: MicrophoneAudioCapturerDelegate,
   @unchecked Sendable {
-  var receivedSamples: [CMSampleBuffer] = []
+  private let lock = NSLock()
+  private var samples = 0
+  private let onFirstSample: (@Sendable () -> Void)?
+
+  init(onFirstSample: (@Sendable () -> Void)? = nil) { self.onFirstSample = onFirstSample }
+
+  var sampleCount: Int {
+    lock.lock()
+    defer { lock.unlock() }
+    return samples
+  }
 
   func microphoneCapturer(_: MicrophoneAudioCapturer, didOutput sampleBuffer: CMSampleBuffer) {
-    receivedSamples.append(sampleBuffer)
+    guard CMSampleBufferIsValid(sampleBuffer), CMSampleBufferGetNumSamples(sampleBuffer) > 0 else { return }
+    lock.lock()
+    samples += 1
+    let isFirst = samples == 1
+    lock.unlock()
+    if isFirst { onFirstSample?() }
   }
 }
 

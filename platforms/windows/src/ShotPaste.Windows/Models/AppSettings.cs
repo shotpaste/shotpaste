@@ -1,10 +1,11 @@
 using System.Text.Json.Serialization;
+using ShotPaste.Windows.Services;
 
 namespace ShotPaste.Windows.Models;
 
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 16;
+    public const int CurrentSchemaVersion = 17;
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public string Language { get; set; } = "System";
     public bool PlaySounds { get; set; } = true;
@@ -77,6 +78,42 @@ public sealed class AppSettings
     public RecordingOutputMode RecordingOutputMode { get; set; } = RecordingOutputMode.Video;
     public string RecordingVideoFormat { get; set; } = "Mp4";
     public string RecordingVideoCodec { get; set; } = "H264";
+    public string RecordingTranscriptionApiKeyProtected { get; set; } = string.Empty;
+    [JsonIgnore]
+    public string RecordingTranscriptionApiKey
+    {
+        get => RecordingTranscriptionCredentialProtector.Unprotect(RecordingTranscriptionApiKeyProtected);
+        set => RecordingTranscriptionApiKeyProtected = RecordingTranscriptionCredentialProtector.Protect(value);
+    }
+    public bool RecordingTranscriptionEnabled { get; set; }
+    public string RecordingTranscriptionSourceLanguage { get; set; } = "auto";
+    public bool RecordingTranscriptionUseAI { get; set; }
+    public string RecordingTranscriptionAccessKeyProtected { get; set; } = string.Empty;
+    public string RecordingTranscriptionSecretKeyProtected { get; set; } = string.Empty;
+    [JsonIgnore] public string RecordingTranscriptionAccessKey
+    {
+        get => RecordingTranscriptionCredentialProtector.Unprotect(RecordingTranscriptionAccessKeyProtected);
+        set => RecordingTranscriptionAccessKeyProtected = RecordingTranscriptionCredentialProtector.Protect(value);
+    }
+    [JsonIgnore] public string RecordingTranscriptionSecretKey
+    {
+        get => RecordingTranscriptionCredentialProtector.Unprotect(RecordingTranscriptionSecretKeyProtected);
+        set => RecordingTranscriptionSecretKeyProtected = RecordingTranscriptionCredentialProtector.Protect(value);
+    }
+    public string RecordingTranscriptionInstallationId { get; set; } = Guid.NewGuid().ToString("N");
+    public string RecordingTranscriptionBucket { get; set; } = string.Empty;
+    public bool RecordingTranscriptionStorageInitialized { get; set; }
+    public bool RecordingTranscriptionCloudVerified { get; set; }
+    public string RecordingTranscriptionTemplate { get; set; } = "generalNotes";
+    public string AgentApiProtocol { get; set; } = "openAICompatible";
+    public string AgentEndpoint { get; set; } = "https://api.openai.com/v1/chat/completions";
+    public string AgentModel { get; set; } = string.Empty;
+    public string AgentApiKeyProtected { get; set; } = string.Empty;
+    [JsonIgnore] public string AgentApiKey
+    {
+        get => RecordingTranscriptionCredentialProtector.Unprotect(AgentApiKeyProtected);
+        set => AgentApiKeyProtected = RecordingTranscriptionCredentialProtector.Protect(value);
+    }
     public bool ClipboardHistoryEnabled { get; set; } = true;
     public bool LaunchAtStartup { get; set; }
     public bool UrlSchemeEnabled { get; set; } = true;
@@ -135,6 +172,12 @@ public sealed class AppSettings
     public bool ShortcutsEnabled { get; set; } = true;
     public string OneShotHotkey { get; set; } = $"{AppBuildIdentity.Current.DefaultHotkeyModifiers}+1";
     public string HistoryHotkey { get; set; } = $"{AppBuildIdentity.Current.DefaultHotkeyModifiers}+H";
+    public string AudioRecordingHotkey { get; set; } = string.Empty;
+    public bool AudioRecordSystemAudio { get; set; } = true;
+    public bool AudioRecordMicrophone { get; set; } = true;
+    public bool AudioTranscriptionEnabled { get; set; }
+    public bool AudioTranscriptionUseAI { get; set; }
+    public string AudioTranscriptionLanguage { get; set; } = "auto";
     public string RecordingPauseHotkey { get; set; } = $"{AppBuildIdentity.Current.DefaultHotkeyModifiers}+P";
     public string RecordingAnnotationHotkey { get; set; } = $"{AppBuildIdentity.Current.DefaultHotkeyModifiers}+D";
     public string RecordingRestartHotkey { get; set; } = $"{AppBuildIdentity.Current.DefaultHotkeyModifiers}+R";

@@ -49,6 +49,15 @@ done
 # ---------------------------------------------------------------------------
 
 REPO="shotpaste/shotpaste"
+INSTALL_ARCH="$(uname -m)"
+# A shell running under Rosetta should still install the native Apple Silicon app.
+if [[ "$INSTALL_ARCH" == "x86_64" && "$(/usr/sbin/sysctl -in sysctl.proc_translated 2>/dev/null || true)" == "1" ]]; then
+  INSTALL_ARCH=arm64
+fi
+case "$INSTALL_ARCH" in
+  arm64|x86_64) ;;
+  *) fail "Unsupported Mac architecture: $INSTALL_ARCH" ;;
+esac
 
 is_stable_version() {
   [[ "$1" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
@@ -78,11 +87,24 @@ if [[ -z "${VERSION:-}" ]]; then
     fi
   done < <(
     printf '%s' "$releases_json" \
-      | grep -Eo '"tag_name"[[:space:]]*:[[:space:]]*"macos-v[^"]+"' \
-      | sed -E 's/.*"(macos-v[^"]+)"/\1/'
+      | /usr/bin/osascript -l JavaScript -e '
+        ObjC.import("Foundation");
+        function run(args) {
+          const input = $.NSFileHandle.fileHandleWithStandardInput.readDataToEndOfFile;
+          const releases = JSON.parse(ObjC.unwrap($.NSString.alloc.initWithDataEncoding(input, $.NSUTF8StringEncoding)));
+          if (!Array.isArray(releases)) throw new Error("Invalid release list");
+          return releases.filter(function(r) {
+            if (r.draft !== false || r.prerelease !== false || !/^macos-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(r.tag_name)) return false;
+            const name = "ShotPaste-v" + r.tag_name.slice(7) + "-macOS-" + args[0] + ".dmg";
+            return Array.isArray(r.assets) && r.assets.some(function(a) {
+              return a.name === name && a.state === "uploaded" && a.size > 0 &&
+                a.browser_download_url === "https://github.com/shotpaste/shotpaste/releases/download/" + r.tag_name + "/" + name;
+            });
+          }).map(function(r) { return r.tag_name; }).join("\n");
+        }' "$INSTALL_ARCH"
   )
   VERSION="$latest_version"
-  [[ -n "$VERSION" ]] || fail "Could not determine the latest macOS release version."
+  [[ -n "$VERSION" ]] || fail "No published macOS release with a ${INSTALL_ARCH} package was found."
 else
   VERSION="${VERSION#macos-v}"
   VERSION="${VERSION#v}"
@@ -91,7 +113,7 @@ fi
 is_stable_version "$VERSION" || fail "VERSION must use MAJOR.MINOR.PATCH."
 TAG="macos-v${VERSION}"
 
-DMG_NAME="ShotPaste-v${VERSION}-macOS-arm64.dmg"
+DMG_NAME="ShotPaste-v${VERSION}-macOS-${INSTALL_ARCH}.dmg"
 CHECKSUM_NAME="SHA256SUMS.txt"
 DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/${DMG_NAME}"
 CHECKSUM_URL="https://github.com/${REPO}/releases/download/${TAG}/${CHECKSUM_NAME}"
@@ -110,7 +132,7 @@ CHECKSUM_PATH="${TMPDIR_INSTALL}/${CHECKSUM_NAME}"
 
 info "Downloading ${DMG_NAME}…"
 if ! curl -fSL --progress-bar -o "$DMG_PATH" "$DOWNLOAD_URL"; then
-  fail "Download failed. Check the version number and your network connection."
+  fail "Download failed. This release must include a ${INSTALL_ARCH} package; check the release assets and your network connection."
 fi
 ok "Downloaded ${DMG_NAME}"
 

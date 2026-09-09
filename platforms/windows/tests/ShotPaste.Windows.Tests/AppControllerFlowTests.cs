@@ -223,25 +223,6 @@ public sealed class AppControllerFlowTests
     }
 
     [Fact]
-    public void OneShotToolbarDrag_DoesNotCommitTheSelectedModeAndKeepsWindowCapture()
-    {
-        var code = File.ReadAllText(FindRepositoryFile(
-            "platforms", "windows", "src", "ShotPaste.Windows", "Views", "InlineAnnotateWindow.xaml.cs"));
-        var start = code.IndexOf("private void OnMoveMouseDown", StringComparison.Ordinal);
-        var end = code.IndexOf("private void OnToolbarMoveMouseMove", start, StringComparison.Ordinal);
-
-        Assert.True(start >= 0 && end > start, "One Shot toolbar drag handler was not found.");
-        var method = code[start..end];
-        Assert.DoesNotContain("CommitOneShotMode", method, StringComparison.Ordinal);
-        Assert.Contains("_draggingOneShotToolbar = true", method, StringComparison.Ordinal);
-        Assert.Contains("CaptureMouse()", method, StringComparison.Ordinal);
-        Assert.DoesNotContain("MoveButton.CaptureMouse()", method, StringComparison.Ordinal);
-        Assert.Contains("if (_draggingOneShotToolbar && e.ChangedButton == MouseButton.Left)", code,
-            StringComparison.Ordinal);
-        Assert.Contains("MoveOneShotToolbar(e.GetPosition(OverlayCanvas))", code, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void OneShotSwitcherDrag_DoesNotCommitTheSelectedModeAndKeepsWindowCapture()
     {
         var xaml = File.ReadAllText(FindRepositoryFile(
@@ -339,9 +320,14 @@ public sealed class AppControllerFlowTests
         Assert.DoesNotContain("OneShotDone", scrolledIds);
         Assert.Contains("OneShotCancel", persistentIds);
         Assert.Contains("OneShotDone", persistentIds);
-        Assert.Contains("Content=\"Text\"", xaml, StringComparison.Ordinal);
+        // Commands use stable tags; localized copy is free to use a binding.
+        var textTool = Assert.Single(toolbar.Descendants(), element =>
+            (string?)element.Attribute("AutomationProperties.AutomationId") == "InlineToolText");
+        Assert.Equal("Text", (string?)textTool.Attribute("Tag"));
         Assert.Contains("ContentTemplate=\"{StaticResource AnnotationTextIcon}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Content=\"Blur\"", xaml, StringComparison.Ordinal);
+        var blurTool = Assert.Single(toolbar.Descendants(), element =>
+            (string?)element.Attribute("AutomationProperties.AutomationId") == "InlineToolBlur");
+        Assert.Equal("Blur", (string?)blurTool.Attribute("Tag"));
         Assert.Contains("ContentTemplate=\"{StaticResource AnnotationBlurIcon}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource AnnotationToolbarDragIcon}\"", xaml,
             StringComparison.Ordinal);

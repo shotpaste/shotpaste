@@ -284,6 +284,68 @@ final class OneShotSessionStateTests: XCTestCase {
     XCTAssertTrue(state.selectionIsResizable)
   }
 
+  func testRecordingTranscriptionOptionsCommitTheSelectedModeAndAllowCancellation() {
+    let state = makeSelectedState()
+    XCTAssertEqual(state.requestTab(.recording), .switched)
+    var options = recordingOptions
+    options.automaticTranscription = true
+    options.automaticAI = true
+    options.transcriptionLanguage = .ja
+    state.updateRecordingOptions(options, reason: .recordingTranscription)
+
+    XCTAssertEqual(state.phase, .committed)
+    XCTAssertEqual(state.commitReason, .recordingTranscription)
+    XCTAssertEqual(state.recordingOptions, options)
+    XCTAssertEqual(state.requestTab(.screenshot), .rejected)
+    XCTAssertTrue(state.selectionIsResizable)
+    state.beginTerminating(clearSelection: true)
+    XCTAssertTrue(state.performTeardown())
+  }
+
+  func testRecordingTranscriptionDefaultsAreSavedOnlyWhenSubmitted() {
+    let suiteName = "ShotPasteTests.OneShotTranscription.\(UUID())"
+    let defaults = UserDefaults(suiteName: suiteName)!
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+    var options = OneShotRecordingOptions.current(defaults: defaults)
+    XCTAssertFalse(options.automaticTranscription)
+    XCTAssertFalse(options.automaticAI)
+    XCTAssertEqual(options.transcriptionLanguage, .auto)
+    options.automaticTranscription = true
+    options.automaticAI = true
+    options.transcriptionLanguage = .zhHant
+    XCTAssertFalse(OneShotRecordingOptions.current(defaults: defaults).automaticTranscription)
+    options.saveTranscriptionPreferences(defaults: defaults)
+    let reloaded = OneShotRecordingOptions.current(defaults: defaults)
+    XCTAssertTrue(reloaded.shouldTranscribe)
+    XCTAssertTrue(reloaded.shouldProcessTranscriptWithAI)
+    XCTAssertEqual(reloaded.transcriptionLanguage, .zhHant)
+    defaults.set("invalid-language", forKey: PreferencesKeys.recordingTranscriptionSourceLanguage)
+    XCTAssertEqual(OneShotRecordingOptions.current(defaults: defaults).transcriptionLanguage, .auto)
+  }
+
+  func testRecordingTranscriptionRejectsGIFSilentVideoAndAIWithoutTranscription() {
+    var options = recordingOptions
+    options.automaticTranscription = true
+    options.automaticAI = true
+    XCTAssertTrue(options.shouldTranscribe)
+    XCTAssertTrue(options.shouldProcessTranscriptWithAI)
+    let unconfigured = options.resolvingTranscription(isConfigured: false)
+    XCTAssertFalse(unconfigured.automaticTranscription)
+    XCTAssertFalse(unconfigured.automaticAI)
+    XCTAssertFalse(unconfigured.resolvingTranscription(isConfigured: true).shouldTranscribe)
+    XCTAssertTrue(options.resolvingTranscription(isConfigured: true).shouldTranscribe)
+    options.outputMode = .gif
+    XCTAssertFalse(options.shouldTranscribe)
+    XCTAssertFalse(options.shouldProcessTranscriptWithAI)
+    options.outputMode = .video
+    options.capturesSystemAudio = false
+    XCTAssertFalse(options.shouldTranscribe)
+    options.capturesMicrophone = true
+    XCTAssertTrue(options.shouldTranscribe)
+    options.automaticTranscription = false
+    XCTAssertFalse(options.shouldProcessTranscriptWithAI)
+  }
+
   func testOS040AndOS041ClipboardRequestClearsAnySelection() {
     let armed = makeArmedState()
     XCTAssertEqual(armed.requestTab(.clipboard), .openClipboard)

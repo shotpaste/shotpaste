@@ -12,7 +12,7 @@ using ShotPaste.Windows.Views;
 
 namespace ShotPaste.Windows.Services;
 
-public sealed class AppController : IDisposable
+public sealed partial class AppController : IDisposable
 {
     private readonly SettingsStore _settings = new();
     private readonly CaptureHistoryStore _history = new();
@@ -42,8 +42,10 @@ public sealed class AppController : IDisposable
     private KeystrokeOverlayService? _keystrokeOverlay;
     private MouseClickOverlayService? _mouseClickOverlay;
     private System.Windows.Threading.DispatcherTimer? _historyMaintenanceTimer;
+    private System.Windows.Threading.DispatcherTimer? _transcriptionMaintenanceTimer;
     private ShotPasteMcpServer? _mcpServer;
     private readonly Dictionary<Guid, PinnedImageWindow> _activePins = [];
+    private readonly HashSet<RecordingTranscriptWindow> _recordingTranscriptWindows = [];
     private Rectangle? _currentRecordingRectangle;
     private TaskCompletionSource<bool>? _activeRecordingWorkflow;
     private TaskCompletionSource<bool>? _activeScrollingWorkflow;
@@ -86,11 +88,11 @@ public sealed class AppController : IDisposable
     {
         AppPaths.EnsureCreated();
         _settings.Load();
+        RecordingTranscriptionJobs.Shared.ResumePending();
         App.ConfigureDiagnostics(_settings.Current.DiagnosticsEnabled);
         if (_settings.Current.DiagnosticsEnabled)
             DiagnosticsService.RunStartupMaintenance(_settings.Current.DiagnosticsRetentionDays);
         LocalizationService.Apply(_settings.Current);
-        LocalizationService.EnableAutomaticWpfLocalization();
         ThemeService.Apply(_settings.Current.Theme);
         ApplyOperatingSystemIntegrations();
         if (!await EnsureHistoryDatabaseReadyForLaunchAsync()) return;
@@ -98,6 +100,7 @@ public sealed class AppController : IDisposable
         if (recoveryScan.Recording is { } recovered &&
             !_history.Items.Any(item => string.Equals(item.FilePath, recovered.Path, StringComparison.OrdinalIgnoreCase)))
             await _history.AddFileAsync(recovered.Path, CaptureKind.Recording, recovered.Duration);
+        await ScreenRecordingTranscriptionReceipts.ResumeAsync();
         await _history.ClearSessionPinnedStateAsync();
         await _history.PruneAsync(_settings.Current.HistoryRetentionDays, _settings.Current.HistoryMaxCount);
         _selection = new RegionSelectionService(
@@ -111,7 +114,7 @@ public sealed class AppController : IDisposable
             _hotkeys = new GlobalHotkeyService();
             _tray = new TrayIconService(
                 _settings.Current,
-                () => _recording.Elapsed,
+                () => _audioRecording.IsRecording ? _audioRecording.Elapsed : _recording.Elapsed,
                 () => _quickAccess?.HasVisibleItems == true,
                 () => _settingsWindow?.IsVisible == true ? _settingsWindow : null);
         }
@@ -119,6 +122,23 @@ public sealed class AppController : IDisposable
             _clipboard = new ClipboardMonitorService(_history, _settings);
         _quickAccess = new QuickAccessService(this, _settings);
         WireEvents();
+        WireAudioRecordingEvents();
+        foreach (var audio in await AudioRecordingService.RecoverAsync())
+        {
+            if (_settings.Current.ClipboardHistoryEnabled && !_history.Items.Any(item => string.Equals(item.FilePath, audio.Path, StringComparison.OrdinalIgnoreCase)))
+                await _history.AddFileAsync(audio.Path, CaptureKind.Audio, audio.Duration);
+            if (audio.TranscriptionConfiguration is not null)
+            {
+                try
+                {
+                    var sources = AudioRecordingService.GetTranscriptionSources(audio.Path);
+                    RecordingTranscriptionJobs.Shared.Start(audio.Path, audio.TranscriptionConfiguration,
+                        sources.Count > 0 ? sources.Select(source => (source.Path, source.Role)).ToArray() : null);
+                    AudioRecordingService.MarkTranscriptionHandedOff(audio.Path);
+                }
+                catch (Exception) { _tray?.ShowMessage("操作失败", LocalizationService.TranslatePhrase("音频已保存，转写任务等待恢复。")); }
+            }
+        }
         if (!string.IsNullOrWhiteSpace(_settings.LastConfigurationWarning))
             _tray?.ShowMessage("设置已恢复", _settings.LastConfigurationWarning, Forms.ToolTipIcon.Warning);
         _hotkeys?.RegisterConfigured(_settings.Current);
@@ -145,6 +165,9 @@ public sealed class AppController : IDisposable
         _historyMaintenanceTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromHours(24) };
         _historyMaintenanceTimer.Tick += async (_, _) => await _history.PruneAsync(_settings.Current.HistoryRetentionDays, _settings.Current.HistoryMaxCount);
         _historyMaintenanceTimer.Start();
+        _transcriptionMaintenanceTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+        _transcriptionMaintenanceTimer.Tick += (_, _) => RecordingTranscriptionJobs.Shared.ResumePending();
+        _transcriptionMaintenanceTimer.Start();
         if (_hotkeys?.FailedActions.Count > 0)
             _tray?.ShowMessage("部分快捷键不可用", "快捷键已被其他程序占用，可继续使用托盘菜单。", Forms.ToolTipIcon.Warning);
         _ready = true;
@@ -352,6 +375,14 @@ public sealed class AppController : IDisposable
 
     private void ExecuteExternalRecordingAction(string? action)
     {
+        if (_audioRecording.IsRecording)
+        {
+            if (action == "pause" && !_audioRecording.IsPaused || action == "resume" && _audioRecording.IsPaused)
+                _audioRecording.TogglePause();
+            else if (action == "stop") _ = StopAudioRecordingAsync();
+            else _tray?.ShowMessage("操作失败", LocalizationService.TranslatePhrase("当前录制状态不支持此操作。"), Forms.ToolTipIcon.Warning);
+            return;
+        }
         if (!_recording.IsRecording)
         {
             _tray?.ShowMessage("无法控制录屏", "当前没有正在进行的录屏。", Forms.ToolTipIcon.Warning);
@@ -368,8 +399,8 @@ public sealed class AppController : IDisposable
     {
         if (_tray is not null)
         {
-            _tray.RecordingRequested += (_, _) => { if (_recording.IsRecording) _recording.Stop(); };
-            _tray.PauseRecordingRequested += (_, _) => _recording.TogglePause();
+            _tray.RecordingRequested += (_, _) => { if (_audioWorkflow is not null) _ = StopAudioRecordingAsync(); else if (_recording.IsRecording) _recording.Stop(); };
+            _tray.PauseRecordingRequested += (_, _) => { if (_audioRecording.IsRecording) _audioRecording.TogglePause(); else _recording.TogglePause(); };
             _tray.OneShotRequested += (_, _) => StartOneShot();
             _tray.HistoryRequested += (_, _) => ShowHistory();
             _tray.FocusQuickAccessRequested += (_, _) => _quickAccess?.FocusNewest();
@@ -395,18 +426,20 @@ public sealed class AppController : IDisposable
             {
                 case HotkeyAction.OneShot: StartOneShot(); break;
                 case HotkeyAction.History: ShowHistory(); break;
+                case HotkeyAction.AudioRecording: StartAudioRecording(); break;
                 case HotkeyAction.RecordingPause:
-                    if (_recording.IsRecording) _recording.TogglePause();
+                    if (_audioRecording.IsRecording) _audioRecording.TogglePause();
+                    else if (_recording.IsRecording) _recording.TogglePause();
                     break;
                 case HotkeyAction.RecordingAnnotation:
                     if (_recording.IsRecording && _currentRecordingRectangle is { } recordingRectangle)
                         ToggleRecordingInk(recordingRectangle);
                     break;
                 case HotkeyAction.RecordingRestart:
-                    RequestRecordingRestart();
+                    if (_audioWorkflow is not null) RequestAudioRestart(); else RequestRecordingRestart();
                     break;
                 case HotkeyAction.RecordingDelete:
-                    RequestRecordingDiscard();
+                    if (_audioWorkflow is not null) RequestAudioDiscard(); else RequestRecordingDiscard();
                     break;
             }
         });
@@ -573,7 +606,9 @@ public sealed class AppController : IDisposable
             _settings.Current.RecordingOutputMode,
             _settings.Current.IncludeCursorInRecording,
             _settings.Current.RecordSystemAudio,
-            _settings.Current.RecordMicrophone);
+            _settings.Current.RecordMicrophone,
+            _settings.Current.RecordingTranscriptionEnabled, _settings.Current.RecordingTranscriptionUseAI,
+            _settings.Current.RecordingTranscriptionSourceLanguage, _settings.Current.RecordingTranscriptionCloudVerified && RecordingTranscriptionConfiguration.FromSettings(_settings.Current) is not null);
         using var result = await _selection.SelectOneShotAsync(recordingOptions, CommitScreenshotFromOverlayAsync, initialMode);
         if (result is null) return;
 
@@ -674,6 +709,14 @@ public sealed class AppController : IDisposable
     {
         switch (surface.ToLowerInvariant())
         {
+            case "audio-preparation":
+                // This entry is reachable only in the existing isolated --ui-test mode.
+                // It opens preparation; recording still requires the visible Start button.
+                StartAudioRecording();
+                break;
+            case "transcription-results":
+                ShowTranscriptionResults();
+                break;
             case "ocr":
                 new OcrResultWindow(new OcrRecognitionResult(
                     "ShotPaste OCR localization preview\nhttps://shotpaste.local/help",
@@ -846,7 +889,8 @@ public sealed class AppController : IDisposable
             _settings.Current.RecordingMicrophoneDeviceName,
             _settings.Current.RecordingSystemAudioVolume,
             _settings.Current.RecordingMicrophoneVolume,
-            _settings.Current.IncludeShotPasteInRecording);
+            _settings.Current.IncludeShotPasteInRecording,
+            options.TranscriptionEnabled, options.UseAI, options.Language);
         await ExecuteRecordingRequestAsync(request);
     }
 
@@ -855,6 +899,9 @@ public sealed class AppController : IDisposable
         var workflow = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         _activeRecordingWorkflow = workflow;
         var completedSafely = false;
+        string? recordingToTranscribe = null;
+        var capturedTranscription = RecordingTranscriptionConfiguration.FromSettings(_settings.Current);
+        if (capturedTranscription is not null) capturedTranscription = capturedTranscription with { UseAI = request.UseAI, SourceLanguage = request.Language };
         ApplyRecordingRequestSettings(request);
         var target = request.Target;
         var rectangle = target.Bounds;
@@ -882,7 +929,7 @@ public sealed class AppController : IDisposable
                     catch (System.ComponentModel.Win32Exception exception) { ShowError("按键显示不可用", exception); }
                 }
                 PrepareRecordingInk(rectangle);
-                var completion = _recording.StartAsync(target, _settings.Current, request.Gif);
+                var completion = _recording.StartAsync(target, _settings.Current, request.Gif, request.TranscriptionEnabled ? capturedTranscription : null);
                 if (_recording.LastFormatDecision is { UsedFallback: true } formatDecision)
                 {
                     var reason = formatDecision.FallbackReason?.Contains(RecordingFormatCapabilityService.HevcUnavailable, StringComparison.Ordinal) == true
@@ -921,11 +968,15 @@ public sealed class AppController : IDisposable
                 if (_settings.Current.ShowQuickAccess && _settings.Current.ShowQuickAccessForRecordings) ShowQuickAccess(item);
                 if (_settings.Current.ShowCaptureNotifications)
                     _tray?.ShowMessage("录屏已保存", Path.GetFileName(path));
+                if (kind == CaptureKind.Recording && (request.SystemAudio || request.Microphone))
+                    recordingToTranscribe = path;
             }
             while (_restartRecording);
             _currentRecordingRectangle = null;
             _recordingRegionOverlay?.Close(); _recordingRegionOverlay = null;
             RestoreMainWindowIfNeeded();
+            if (recordingToTranscribe is not null)
+                PresentRecordingTranscriptIfConfigured(recordingToTranscribe, request.TranscriptionEnabled, request.UseAI, request.Language, capturedTranscription);
             completedSafely = true;
         }
         catch (Exception exception)
@@ -962,6 +1013,59 @@ public sealed class AppController : IDisposable
         toolbar.Show();
     }
 
+    private void PresentRecordingTranscriptIfConfigured(string recordingPath, bool? enabled = null, bool? useAI = null,
+        string? language = null, RecordingTranscriptionConfiguration? capturedConfiguration = null)
+    {
+        RecordingTranscriptWindow? window = null;
+        try
+        {
+            if (!(enabled ?? _settings.Current.RecordingTranscriptionEnabled)) return;
+            // A capture that began without an account must not pick up newly entered credentials on stop.
+            var configuration = capturedConfiguration ?? (enabled is null ? RecordingTranscriptionConfiguration.FromSettings(_settings.Current) : null);
+            if (configuration is null) return;
+            configuration = configuration with { UseAI = useAI ?? configuration.UseAI, SourceLanguage = language ?? configuration.SourceLanguage };
+            var sources = AudioRecordingService.GetTranscriptionSources(recordingPath);
+            var job = RecordingTranscriptionJobs.Shared.Start(recordingPath, configuration,
+                sources.Count > 0 ? sources.Select(source => (source.Path, source.Role)).ToArray() : null, deferRun: _exitInProgress);
+            AudioRecordingService.MarkTranscriptionHandedOff(recordingPath);
+            ScreenRecordingTranscriptionReceipts.Acknowledge(recordingPath);
+            if (_exitInProgress) return;
+            window = new RecordingTranscriptWindow(job);
+            _recordingTranscriptWindows.Add(window);
+            window.Closed += (_, _) => _recordingTranscriptWindows.Remove(window);
+            window.Show(); window.Activate();
+        }
+        catch (Exception)
+        {
+            if (window is not null)
+            {
+                _recordingTranscriptWindows.Remove(window);
+                try { window.Close(); } catch (InvalidOperationException) { }
+            }
+            _tray?.ShowMessage(LocalizationService.TranslatePhrase("文字稿生成失败"),
+                LocalizationService.TranslatePhrase("转写失败，请检查网络、凭证和服务权限。原始录制文件已保留。"), Forms.ToolTipIcon.Warning);
+        }
+    }
+
+    private TranscriptionResultsWindow? _transcriptionResults;
+    public void ShowTranscriptionResults()
+    {
+        if (_transcriptionResults is null)
+        {
+            _transcriptionResults = new TranscriptionResultsWindow();
+            _transcriptionResults.Closed += (_, _) => _transcriptionResults = null;
+        }
+        _transcriptionResults.Show();
+        _transcriptionResults.WindowState = WindowState.Normal;
+        _transcriptionResults.Activate();
+    }
+
+    public void ShowTranscriptionResults(CaptureHistoryItem item)
+    {
+        ShowTranscriptionResults();
+        if (item.FilePath is not null) _transcriptionResults?.SelectRecording(item.FilePath);
+    }
+
     private void RequestRecordingRestart()
     {
         if (!_recording.IsRecording || _restartRecording || _discardRecording) return;
@@ -973,6 +1077,8 @@ public sealed class AppController : IDisposable
             "继续当前录屏",
             MessageBoxImage.Warning);
         if (decision != MessageBoxResult.Yes) return;
+        try { _recording.CancelTranscription(); }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { ShowError("操作失败", exception); return; }
         _restartRecording = true;
         _recording.Stop();
     }
@@ -988,12 +1094,17 @@ public sealed class AppController : IDisposable
             "继续录屏",
             MessageBoxImage.Warning);
         if (decision != MessageBoxResult.Yes) return;
+        try { _recording.CancelTranscription(); }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { ShowError("操作失败", exception); return; }
         _discardRecording = true;
         _recording.Stop();
     }
 
     private void ApplyRecordingRequestSettings(RecordingRequest request)
     {
+        _settings.Current.RecordingTranscriptionEnabled = request.TranscriptionEnabled;
+        _settings.Current.RecordingTranscriptionUseAI = request.UseAI;
+        _settings.Current.RecordingTranscriptionSourceLanguage = request.Language;
         _settings.Current.RecordSystemAudio = request.SystemAudio;
         _settings.Current.RecordMicrophone = request.Microphone;
         _settings.Current.RecordingQualityPreset = request.Quality;
@@ -1202,8 +1313,6 @@ public sealed class AppController : IDisposable
     {
         ThemeService.Apply(_settings.Current.Theme);
         LocalizationService.Apply(_settings.Current);
-        foreach (Window openWindow in System.Windows.Application.Current.Windows)
-            LocalizationService.LocalizeWindow(openWindow);
         _mainWindow?.RefreshLocalization();
         _mainWindow?.ApplyHistoryPresentation();
         _quickAccess?.RefreshSettings();
@@ -1296,10 +1405,17 @@ public sealed class AppController : IDisposable
             case "shotpaste.control_recording":
             {
                 var action = ShotPasteMcpProtocol.ReadString(arguments, "action");
-                var transitionError = RecordingActionError(action, _recording.IsRecording, _recording.IsPaused);
+                var audioActive = _audioRecording.IsRecording;
+                var transitionError = RecordingActionError(action, audioActive || _recording.IsRecording,
+                    audioActive ? _audioRecording.IsPaused : _recording.IsPaused);
                 if (transitionError is not null)
                     return McpAutomationResult.Failure(transitionError, GetMcpStatus().State);
-                if (action is "pause" or "resume") _recording.TogglePause();
+                if (audioActive)
+                {
+                    if (action is "pause" or "resume") _audioRecording.TogglePause();
+                    else if (action == "stop") _ = StopAudioRecordingAsync();
+                }
+                else if (action is "pause" or "resume") _recording.TogglePause();
                 else if (action == "stop") _recording.Stop();
                 return new McpAutomationResult(true, $"Recording {action} request accepted.", GetMcpStatus().State);
             }
@@ -1317,10 +1433,10 @@ public sealed class AppController : IDisposable
         var state = BuildMcpStatusState(
             oneShot?.CurrentOneShotMode,
             _activeScrollingWorkflow is not null,
-            _recording.IsRecording,
-            _recording.IsPaused,
-            _recording.IsPostProcessing,
-            _recording.Elapsed,
+            _audioRecording.IsRecording || _recording.IsRecording,
+            _audioRecording.IsRecording ? _audioRecording.IsPaused : _recording.IsPaused,
+            _audioCompletionInProgress || _recording.IsPostProcessing,
+            _audioWorkflow is not null ? _audioRecording.Elapsed : _recording.Elapsed,
             _mainWindow?.IsVisible == true);
         return new McpAutomationResult(true, "ShotPaste status read.", state);
     }
@@ -1390,42 +1506,6 @@ public sealed class AppController : IDisposable
         }
 
         dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Send, () => TryShow("initial"));
-        if (item.Kind is CaptureKind.Screenshot or CaptureKind.ScrollingScreenshot or CaptureKind.ClipboardImage or
-            CaptureKind.Recording or CaptureKind.Gif or CaptureKind.ClipboardGif or CaptureKind.ClipboardVideo)
-        {
-            RetryShowQuickAccess(item, 12, TimeSpan.FromMilliseconds(250));
-        }
-    }
-
-    private void RetryShowQuickAccess(CaptureHistoryItem item, int attempts, TimeSpan interval)
-    {
-        if (attempts <= 0)
-        {
-            App.WriteQuickAccessLog($"RetryShowQuickAccess skipped attempts<=0 kind={item.Kind} file={(string.IsNullOrWhiteSpace(item.FilePath) ? "(null)" : item.FilePath)}");
-            return;
-        }
-
-        var timer = new System.Windows.Threading.DispatcherTimer { Interval = interval };
-        var remaining = attempts;
-        timer.Tick += (_, _) =>
-        {
-            if (remaining <= 0)
-            {
-                timer.Stop();
-                return;
-            }
-
-            remaining--;
-            if (System.Windows.Application.Current is null || _quickAccess is null) return;
-            try { _quickAccess.Show(item); }
-            catch (Exception exception)
-            {
-                App.WriteQuickAccessLog($"RetryShowQuickAccess failed: {exception.Message}");
-                try { App.WriteCrashLog(exception); } catch { }
-            }
-            if (remaining == 0) timer.Stop();
-        };
-        timer.Start();
     }
 
     public void RestoreHistoryItem(CaptureHistoryItem item)
@@ -1679,6 +1759,7 @@ public sealed class AppController : IDisposable
     private void ShowError(string title, Exception exception) => _tray?.ShowMessage(title, exception.Message, Forms.ToolTipIcon.Error);
 
     internal bool HasProtectedWork =>
+        _audioWorkflow is not null ||
         _recording.IsRecording ||
         _activeRecordingWorkflow is not null ||
         _activeScrollingWorkflow is not null ||
@@ -1695,6 +1776,7 @@ public sealed class AppController : IDisposable
         _exitInProgress = true;
         try
         {
+            if (_audioWorkflow is not null && !await StopAudioForExitAsync()) return false;
             var editor = System.Windows.Application.Current.Windows.OfType<InlineAnnotateWindow>()
                 .FirstOrDefault(window => window.IsVisible);
             if (editor is not null && !await editor.RequestCloseForExitAsync())
@@ -1743,14 +1825,20 @@ public sealed class AppController : IDisposable
     public void Dispose()
     {
         _historyMaintenanceTimer?.Stop();
+        _transcriptionMaintenanceTimer?.Stop();
         _recordingCaptureExclusion.Dispose();
         _recording.Dispose();
+        _audioControl?.CloseAfterCompletion();
+        _audioRecording.Dispose();
         _keystrokeOverlay?.Dispose();
         _mouseClickOverlay?.Dispose();
         CloseRecordingInk();
         _recordingRegionOverlay?.Close();
         foreach (var pinned in _activePins.Values.ToArray()) pinned.Close();
         _activePins.Clear();
+        RecordingTranscriptionJobs.Shared.Shutdown();
+        foreach (var transcript in _recordingTranscriptWindows.ToArray()) transcript.Close();
+        _recordingTranscriptWindows.Clear();
         _quickAccess?.Dispose();
         _clipboard?.Dispose();
         _hotkeys?.Dispose();

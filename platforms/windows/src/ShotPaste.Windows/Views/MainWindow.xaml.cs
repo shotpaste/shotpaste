@@ -33,7 +33,7 @@ public partial class MainWindow : Window
         _history = history;
         _settings = settings;
         WindowAppearanceService.Attach(this, WindowBackdropKind.Mica);
-        Title = LocalizationService.Text(settings.Current.Language, "history.title");
+        Title = AppBuildIdentity.Current.FormatWindowTitle(LocalizationService.Text(settings.Current.Language, "history.title"));
         Width = settings.Current.HistoryExpandedWidth;
         Height = settings.Current.HistoryExpandedHeight;
         DataContext = settings.Current;
@@ -80,8 +80,7 @@ public partial class MainWindow : Window
 
     public void RefreshLocalization()
     {
-        Title = LocalizationService.Text(LocalizationService.CurrentLanguage, "history.title");
-        LocalizationService.LocalizeWindow(this);
+        Title = AppBuildIdentity.Current.FormatWindowTitle(LocalizationService.Text(LocalizationService.CurrentLanguage, "history.title"));
         HistoryItems.Items.Refresh();
     }
 
@@ -210,7 +209,7 @@ public partial class MainWindow : Window
         {
             "Screenshot" => kind == CaptureKind.Screenshot,
             "ScrollingScreenshot" => kind == CaptureKind.ScrollingScreenshot,
-            "Recording" => kind is CaptureKind.Recording or CaptureKind.Gif,
+            "Recording" => kind is CaptureKind.Recording or CaptureKind.Gif or CaptureKind.Audio,
             // Clipboard History is the aggregate product history. The other
             // three pills narrow that collection to capture-specific subsets.
             "Clipboard" => true,
@@ -316,7 +315,7 @@ public partial class MainWindow : Window
         if (sender is not ListBox list || !ReferenceEquals(list, HistoryItems)) return;
         var count = HistoryItems.SelectedItems.Count;
         SelectionActions.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        SelectionSummary.Text = $"已选择 {count} 项";
+        SelectionSummary.Text = LocalizationService.TranslatePhrase($"已选择 {count} 项");
     }
 
     private void OnCopySelection(object sender, RoutedEventArgs e) =>
@@ -341,6 +340,12 @@ public partial class MainWindow : Window
     {
         if ((sender as FrameworkElement)?.Tag is not CaptureHistoryItem item) return;
         _controller.CopyHistoryItem(item);
+    }
+
+    private void OnTranscriptionResults(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is CaptureHistoryItem item) _controller.ShowTranscriptionResults(item);
+        else _controller.ShowTranscriptionResults();
     }
 
     private void OnRestoreItem(object sender, RoutedEventArgs e)

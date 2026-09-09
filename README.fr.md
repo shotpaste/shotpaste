@@ -2,23 +2,24 @@
 
 Capture et enregistrement d’écran natifs et locaux pour macOS et Windows.
 
-[English](README.md) · [Tiếng Việt](README.vi.md) ·
-[简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) ·
-[Español](README.es.md) · [日本語](README.ja.md) ·
+[简体中文](README.md) · [English](README.en.md) · [Tiếng Việt](README.vi.md) ·
+[繁體中文](README.zh-TW.md) · [Español](README.es.md) · [日本語](README.ja.md) ·
 [한국어](README.ko.md) · [Русский](README.ru.md) · **Français** ·
 [Deutsch](README.de.md)
 
 **Site officiel :** [shotpaste.com](https://www.shotpaste.com/)
 
-ShotPaste propose des clients natifs indépendants pour macOS et Windows. Les
-captures, l’OCR, les enregistrements, l’historique, le presse-papiers et les
-réglages restent sur l’appareil. Le projet ne propose ni compte, ni télémétrie,
-ni envoi vers le cloud, ni stockage distant, ni synchronisation.
+ShotPaste propose des clients natifs indépendants pour macOS et Windows.
+Les captures, l’OCR, les enregistrements, l’historique, le presse-papiers et les
+réglages restent locaux. La traduction, la transcription audio et le traitement
+IA facultatifs envoient uniquement le texte ou l’audio sélectionné aux services
+configurés par l’utilisateur. Le projet n’exploite aucun service de comptes,
+de télémétrie, de relais d’envoi ou de synchronisation.
 
 ## Fonctionnalités
 
 - **One Shot :** sélectionnez une zone une seule fois, puis choisissez Capture,
-  Capture avec défilement, Enregistrement ou Historique du presse-papiers.
+  Capture avec défilement, Enregistrement, Traduction ou Historique du presse-papiers.
 
   [![Sélecteur de mode One Shot](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
 
@@ -27,6 +28,13 @@ ni envoi vers le cloud, ni stockage distant, ni synchronisation.
   du bureau configurables.
 
   [![OCR local depuis une capture](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
+- **Traduction :** traduisez le texte d’une zone One Shot figée avec OCR local,
+  détection automatique de la langue source, langues cibles configurables et
+  Provider configuré par l’utilisateur. Seul le texte reconnu est envoyé pour
+  traduction.
+
+  [![Traduction d’une capture](assets/readme/translate.gif)](assets/readme/translate.gif)
 
 - **Annotation intégrée :** sélection, formes, flèches, texte, surligneur,
   mosaïque, projecteur, compteur, crayon, annuler/rétablir, QR, copie et
@@ -44,6 +52,14 @@ ni envoi vers le cloud, ni stockage distant, ni synchronisation.
   dessin en direct.
 
   [![Enregistrement avec annotation en direct](assets/readme/recording.gif)](assets/readme/recording.gif)
+
+- **Enregistrement audio :** enregistrez le son système, le microphone ou les
+  deux depuis la barre de menus ou la zone de notification, sans sélectionner de
+  région ; sauvegardez un fichier M4A audio seul.
+- **Transcription et notes IA :** activez la transcription avec votre compte
+  Volcengine, puis améliorez et organisez le texte avec le LLM configuré si souhaité.
+  Recherchez, copiez et exportez les résultats enregistrés dans la fenêtre de transcription.
+  Voir [configuration, utilisation et confidentialité](docs/RECORDING_TRANSCRIPTION.en.md).
 
 - **Quick Access et épingles :** cartes configurables, copier/enregistrer/ouvrir,
   glisser, balayer et images toujours visibles.
@@ -69,7 +85,7 @@ Consultez la [liste complète des fonctionnalités](docs/FEATURES.md).
 
 | | macOS | Windows |
 | --- | --- | --- |
-| Prérequis | macOS 13+, Apple Silicon | Windows 10 2004+, x64 |
+| Prérequis | macOS 13+, Apple Silicon (arm64) / Intel (x86_64) | Windows 10 2004+, x64 |
 | Technologies natives | SwiftUI, AppKit, ScreenCaptureKit, Vision | WPF, Win32 et API Windows de capture/OCR/média |
 | Code source | `platforms/mac` | `platforms/windows` |
 
@@ -117,6 +133,6 @@ produit ShotPaste, également éclairée en partie par l’étude de ShareX.
 Les mentions de copyright et textes de licence tiers qui doivent être conservés
 figurent dans [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Consultez [CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.md](SUPPORT.md) et
+Consultez [CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.en.md](SUPPORT.en.md) et
 [SECURITY.md](SECURITY.md) pour contribuer, demander de l’aide ou effectuer un
 signalement responsable.

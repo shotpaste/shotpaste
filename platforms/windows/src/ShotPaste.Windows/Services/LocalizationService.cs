@@ -1,13 +1,9 @@
 using ShotPaste.Windows.Models;
 using ShotPaste.Windows.Interop;
-using System.ComponentModel;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Globalization;
-using System.Windows;
-using System.Windows.Controls;
 
 namespace ShotPaste.Windows.Services;
 
@@ -101,6 +97,8 @@ public static class LocalizationService
         };
     private static readonly Lazy<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>> PhraseCatalog =
         new(BuildPhraseCatalog);
+    private static readonly Lazy<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>> SharedKeyCatalog =
+        new(BuildSharedKeyCatalog);
     private static readonly Lazy<IReadOnlyDictionary<string, string>> WindowsEnglishFallback =
         new(BuildWindowsEnglishFallback);
     private static readonly Lazy<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>> WindowsLocaleOverrides =
@@ -138,23 +136,6 @@ public static class LocalizationService
         };
     private static readonly Lazy<IReadOnlyDictionary<string, IReadOnlyDictionary<char, IReadOnlyList<KeyValuePair<string, string>>>>> CompositeCatalog =
         new(BuildCompositeCatalog);
-    private static readonly ConditionalWeakTable<DependencyObject, ElementLocalizationState> ElementStates = new();
-    private static bool _wpfLocalizationEnabled;
-
-    private sealed class ElementLocalizationState
-    {
-        public HashSet<DependencyProperty> ObservedProperties { get; } = [];
-        public Dictionary<DependencyProperty, LocalizedPropertyState> Properties { get; } = [];
-        public HashSet<DependencyProperty> ApplyingProperties { get; } = [];
-        public bool ItemContainersObserved { get; set; }
-    }
-
-    private sealed class LocalizedPropertyState
-    {
-        public string Source { get; set; } = string.Empty;
-        public string LastTranslated { get; set; } = string.Empty;
-    }
-
     public static string Normalize(string? language)
     {
         if (string.Equals(language, "System", StringComparison.OrdinalIgnoreCase)) return "System";
@@ -184,6 +165,8 @@ public static class LocalizationService
         var normalized = Resolve(language);
         if (Catalog.TryGetValue(normalized, out var localized) && localized.TryGetValue(key, out var value))
             return value;
+        if (SharedKeyCatalog.Value.TryGetValue(normalized, out var shared) && shared.TryGetValue(key, out var sharedValue))
+            return sharedValue;
         if (Catalog["zh-CN"].TryGetValue(key, out var chinese))
             return normalized == "zh-CN" ? chinese : TranslatePhrase(chinese, normalized);
         return fallback ?? key;
@@ -193,12 +176,17 @@ public static class LocalizationService
     {
         settings.Language = Normalize(settings.Language);
         CurrentLanguage = Resolve(settings.Language);
+        LocalizedExtension.LanguageChanged();
     }
 
     public static string TranslatePhrase(string? value, string? language = null)
     {
         if (string.IsNullOrWhiteSpace(value)) return value ?? string.Empty;
         var normalized = Resolve(language ?? CurrentLanguage);
+        // Status decorations are not part of a translation key. Resolve the complete
+        // native phrase before falling back to word-by-word composition.
+        if (value.Length > 2 && value[1] == ' ' && value[0] is '—' or '✓' or '⚠')
+            return value[..2] + TranslatePhrase(value[2..], normalized);
         if (normalized == "zh-CN") return value;
         if (WindowsLocaleOverrides.Value.TryGetValue(normalized, out var windowsOverrides) &&
             windowsOverrides.TryGetValue(value, out var windowsTranslation))
@@ -269,112 +257,25 @@ public static class LocalizationService
         return written > 1 ? buffer.ToString() : value;
     }
 
-    public static void EnableAutomaticWpfLocalization()
+    private static IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> BuildSharedKeyCatalog()
     {
-        if (_wpfLocalizationEnabled) return;
-        _wpfLocalizationEnabled = true;
-        EventManager.RegisterClassHandler(typeof(FrameworkElement), FrameworkElement.LoadedEvent,
-            new RoutedEventHandler((sender, _) =>
-            {
-                if (sender is Window window) LocalizeWindow(window);
-                else if (sender is DependencyObject element) LocalizeElementProperties(element);
-            }), handledEventsToo: true);
-    }
-
-    public static void LocalizeWindow(Window window)
-    {
-        ObserveAndLocalize(window, Window.TitleProperty);
-        var visited = new HashSet<DependencyObject>();
-        LocalizeElement(window, visited);
-    }
-
-    private static void LocalizeElement(DependencyObject element, HashSet<DependencyObject> visited)
-    {
-        if (!visited.Add(element)) return;
-        LocalizeElementProperties(element);
-
-        foreach (var child in LogicalTreeHelper.GetChildren(element).OfType<DependencyObject>())
-            LocalizeElement(child, visited);
-        if (element is not System.Windows.Media.Visual && element is not System.Windows.Media.Media3D.Visual3D) return;
-        for (var index = 0; index < System.Windows.Media.VisualTreeHelper.GetChildrenCount(element); index++)
-            LocalizeElement(System.Windows.Media.VisualTreeHelper.GetChild(element, index), visited);
-    }
-
-    private static void LocalizeElementProperties(DependencyObject element)
-    {
-        if (element is Window) ObserveAndLocalize(element, Window.TitleProperty);
-        if (element is TextBlock) ObserveAndLocalize(element, TextBlock.TextProperty);
-        if (element is ContentControl) ObserveAndLocalize(element, ContentControl.ContentProperty);
-        if (element is HeaderedContentControl) ObserveAndLocalize(element, HeaderedContentControl.HeaderProperty);
-        if (element is HeaderedItemsControl) ObserveAndLocalize(element, HeaderedItemsControl.HeaderProperty);
-        if (element is ItemsControl itemsControl) ObserveItemContainers(itemsControl);
-        if (element is FrameworkElement)
+        var result = SupportedLanguages.ToDictionary(language => language.Code,
+            _ => new Dictionary<string, string>(StringComparer.Ordinal), StringComparer.OrdinalIgnoreCase);
+        var assembly = Assembly.GetExecutingAssembly();
+        foreach (var name in assembly.GetManifestResourceNames().Where(name => name.EndsWith(".xcstrings", StringComparison.OrdinalIgnoreCase)))
         {
-            ObserveAndLocalize(element, FrameworkElement.ToolTipProperty);
-            ObserveAndLocalize(element, System.Windows.Automation.AutomationProperties.NameProperty);
-            ObserveAndLocalize(element, System.Windows.Automation.AutomationProperties.HelpTextProperty);
+            using var stream = assembly.GetManifestResourceStream(name);
+            if (stream is null) continue;
+            using var document = JsonDocument.Parse(stream);
+            if (!document.RootElement.TryGetProperty("strings", out var strings)) continue;
+            foreach (var entry in strings.EnumerateObject())
+                if (entry.Value.TryGetProperty("localizations", out var localizations))
+                    foreach (var (windows, apple) in AppleLocaleByWindowsCode)
+                        if (TryReadLocalization(localizations, apple, out var translated))
+                            result[windows][entry.Name] = translated;
         }
-    }
-
-    private static void ObserveItemContainers(ItemsControl itemsControl)
-    {
-        var state = ElementStates.GetOrCreateValue(itemsControl);
-        if (!state.ItemContainersObserved)
-        {
-            state.ItemContainersObserved = true;
-            itemsControl.ItemContainerGenerator.StatusChanged += (_, _) => ScheduleItemContainerLocalization(itemsControl);
-        }
-        ScheduleItemContainerLocalization(itemsControl);
-    }
-
-    private static void ScheduleItemContainerLocalization(ItemsControl itemsControl)
-    {
-        _ = itemsControl.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
-        {
-            if (!itemsControl.IsLoaded) return;
-            var visited = new HashSet<DependencyObject>();
-            for (var index = 0; index < itemsControl.Items.Count; index++)
-            {
-                if (itemsControl.ItemContainerGenerator.ContainerFromIndex(index) is DependencyObject container)
-                    LocalizeElement(container, visited);
-            }
-        });
-    }
-
-    private static void ObserveAndLocalize(DependencyObject element, DependencyProperty property)
-    {
-        var state = ElementStates.GetOrCreateValue(element);
-        if (state.ObservedProperties.Add(property))
-        {
-            var descriptor = DependencyPropertyDescriptor.FromProperty(property, element.GetType());
-            descriptor?.AddValueChanged(element, (_, _) => LocalizeProperty(element, property));
-        }
-        LocalizeProperty(element, property);
-    }
-
-    private static void LocalizeProperty(DependencyObject element, DependencyProperty property)
-    {
-        var state = ElementStates.GetOrCreateValue(element);
-        if (state.ApplyingProperties.Contains(property) || element.GetValue(property) is not string current) return;
-        if (!state.Properties.TryGetValue(property, out var propertyState))
-        {
-            propertyState = new LocalizedPropertyState { Source = current };
-            state.Properties[property] = propertyState;
-        }
-        else if (!string.Equals(current, propertyState.LastTranslated, StringComparison.Ordinal))
-        {
-            // A binding or code-behind supplied a new source value after the element loaded.
-            propertyState.Source = current;
-        }
-
-        var translated = TranslatePhrase(propertyState.Source);
-        if (element is Window && property == Window.TitleProperty)
-            translated = AppBuildIdentity.Current.FormatWindowTitle(translated);
-        propertyState.LastTranslated = translated;
-        if (string.Equals(current, translated, StringComparison.Ordinal)) return;
-        state.ApplyingProperties.Add(property);
-        try { element.SetCurrentValue(property, translated); }
-        finally { state.ApplyingProperties.Remove(property); }
+        return result.ToDictionary(pair => pair.Key, pair => (IReadOnlyDictionary<string, string>)pair.Value,
+            StringComparer.OrdinalIgnoreCase);
     }
 
     private static IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> BuildPhraseCatalog()

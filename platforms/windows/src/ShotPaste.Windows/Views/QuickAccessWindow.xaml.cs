@@ -1,3 +1,4 @@
+using ShotPaste.Windows.Services;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -47,6 +48,8 @@ public partial class QuickAccessWindow : Window
         _countdownDuration = TimeSpan.FromSeconds(Math.Clamp(settings.Current.QuickAccessAutoDismissSeconds, 3, 30));
         _countdown = new Services.QuickAccessCountdown(_countdownDuration);
         TitleText.Text = item.Title;
+        if (item.Kind == CaptureKind.Audio)
+            TextPreviewContent.Text = "♫  " + Services.LocalizationService.TranslatePhrase("录音");
         var isTemporary = false;
         try
         {
@@ -63,7 +66,7 @@ public partial class QuickAccessWindow : Window
             DurationBadge.Visibility = Visibility.Visible;
             DurationText.Text = duration.ToString(duration.TotalHours >= 1 ? @"hh\:mm\:ss" : @"mm\:ss");
         }
-        SaveAction.Content = isTemporary ? "保存" : "打开";
+        SaveAction.Content = LocalizationService.TranslatePhrase(isTemporary ? "保存" : "打开");
         ConfigureActions(isTemporary);
         var cardScale = Math.Clamp(settings.Current.QuickAccessScale, 0.75, 1.5);
         Card.LayoutTransform = new ScaleTransform(cardScale, cardScale);
@@ -355,7 +358,7 @@ public partial class QuickAccessWindow : Window
     private void ConfigureActions(bool isTemporary)
     {
         var configured = _settings.Current.QuickAccessActions ?? [];
-        SaveAction.Content = isTemporary ? "保存" : "打开";
+        SaveAction.Content = LocalizationService.TranslatePhrase(isTemporary ? "保存" : "打开");
         var actions = new Dictionary<string, WpfButton>(StringComparer.OrdinalIgnoreCase)
         {
             ["Copy"] = CopyAction,

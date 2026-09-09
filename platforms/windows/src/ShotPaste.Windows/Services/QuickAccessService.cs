@@ -14,12 +14,15 @@ public sealed class QuickAccessService(AppController controller, SettingsStore s
     private readonly HashSet<Guid> _openItemIds = [];
     private Drawing.Rectangle _activeWorkingArea = Forms.Screen.PrimaryScreen?.WorkingArea ?? Drawing.Rectangle.Empty;
     private bool _suspended;
+    private bool _disposed;
+    private readonly Dictionary<QuickAccessWindow, CancellationTokenSource> _visibilityRepairs = [];
 
     internal bool IsSuspended => _suspended;
     internal bool HasVisibleItems => _windows.Any(window => window.IsVisible);
 
     public void Show(CaptureHistoryItem item)
     {
+        if (_disposed) return;
         if (System.Windows.Application.Current is null)
         {
             App.WriteQuickAccessLog($"Show skipped no application instance kind={item.Kind} file={(string.IsNullOrWhiteSpace(item.FilePath) ? "(null)" : item.FilePath)}");
@@ -53,6 +56,7 @@ public sealed class QuickAccessService(AppController controller, SettingsStore s
                 existing.Topmost = true;
                 if (IsSuspended || ShouldHide(existing.Item.Id))
                 {
+                    CancelSettle(existing);
                     existing.Suspend();
                     App.WriteQuickAccessLog($"Show reuse deferred while suspended file={existing.Item.FilePath}");
                     return;
@@ -62,8 +66,7 @@ public sealed class QuickAccessService(AppController controller, SettingsStore s
                 EnsureWindowVisible(existing);
                 EnsureWindowStronglyVisible(existing);
                 Reposition();
-                // RetryShowQuickAccess is a visibility repair loop for the same
-                // card. It must not restart that card's lifetime on every retry.
+                // Showing the same card must not restart its countdown.
                 existing.ReconcilePointerCountdown();
                 ScheduleSettle(existing);
                 App.WriteQuickAccessLog($"Show reuse done visible={existing.IsVisible} left={existing.Left:0.###} top={existing.Top:0.###}");
@@ -72,7 +75,7 @@ public sealed class QuickAccessService(AppController controller, SettingsStore s
 
             while (_windows.Count >= MaximumCards) _windows[0].Close();
             var window = new QuickAccessWindow(item, controller, settings);
-            window.Closed += (_, _) => { _windows.Remove(window); Reposition(); };
+            window.Closed += (_, _) => { CancelSettle(window); _windows.Remove(window); Reposition(); };
             window.SizeChanged += (_, _) => Reposition();
             window.SourceInitialized += (_, _) =>
             {
@@ -129,7 +132,11 @@ public sealed class QuickAccessService(AppController controller, SettingsStore s
     public void SuspendAll()
     {
         _suspended = true;
-        foreach (var window in _windows.ToArray()) window.Suspend();
+        foreach (var window in _windows.ToArray())
+        {
+            CancelSettle(window);
+            window.Suspend();
+        }
     }
 
     public void ResumeAll()
@@ -140,6 +147,7 @@ public sealed class QuickAccessService(AppController controller, SettingsStore s
         {
             if (ShouldHide(window.Item.Id)) continue;
             window.Resume();
+            ScheduleSettle(window);
         }
         Reposition();
     }
@@ -152,11 +160,13 @@ public sealed class QuickAccessService(AppController controller, SettingsStore s
         if (window is null) return;
         if (ShouldHide(itemId))
         {
+            CancelSettle(window);
             window.Suspend();
             return;
         }
         if (_suspended) return;
         window.Resume();
+        ScheduleSettle(window);
         Reposition();
     }
 
@@ -165,8 +175,8 @@ public sealed class QuickAccessService(AppController controller, SettingsStore s
         if (_suspended) return;
         foreach (var window in _windows.ToArray())
         {
-            if (ShouldHide(window.Item.Id)) window.Suspend();
-            else window.Resume();
+            if (ShouldHide(window.Item.Id)) { CancelSettle(window); window.Suspend(); }
+            else { window.Resume(); ScheduleSettle(window); }
         }
         Reposition();
     }
@@ -265,54 +275,50 @@ public sealed class QuickAccessService(AppController controller, SettingsStore s
         }
     }
 
-    private static void ScheduleSettle(QuickAccessWindow window)
+    private void CancelSettle(QuickAccessWindow window)
     {
-        if (!window.Dispatcher.CheckAccess())
-        {
-            window.Dispatcher.BeginInvoke(ScheduleSettle, System.Windows.Threading.DispatcherPriority.ContextIdle, window);
-            return;
-        }
-        _ = SettleWindowVisibilityAsync(window);
+        if (_visibilityRepairs.Remove(window, out var pending)) pending.Cancel();
     }
 
-    private static async Task SettleWindowVisibilityAsync(QuickAccessWindow window)
+    private void ScheduleSettle(QuickAccessWindow window)
+    {
+        if (_disposed || _suspended || ShouldHide(window.Item.Id) || !_windows.Contains(window)
+            || _visibilityRepairs.ContainsKey(window)) return;
+        var cancellation = new CancellationTokenSource();
+        _visibilityRepairs.Add(window, cancellation);
+        _ = SettleWindowVisibilityAsync(window, cancellation);
+    }
+
+    private async Task SettleWindowVisibilityAsync(QuickAccessWindow window, CancellationTokenSource cancellation)
     {
         try
         {
-            const int maxAttempts = 6;
-            for (var attempt = 1; attempt <= maxAttempts; attempt++)
+            for (var attempt = 0; attempt < 6; attempt++)
             {
-                if (window.Dispatcher.HasShutdownStarted) return;
-                var file = string.IsNullOrWhiteSpace(window.Item.FilePath) ? "(null)" : window.Item.FilePath;
-                await window.Dispatcher.InvokeAsync(() =>
-                {
-                    try { window.Topmost = true; } catch { }
-                    try { window.Focusable = false; } catch { }
-                    try { window.Show(); } catch { }
-                    try { window.Visibility = Visibility.Visible; } catch { }
-                    try { window.Opacity = 1d; } catch { }
-                    try { EnsureWindowVisible(window); } catch { }
-                    try { EnsureWindowStronglyVisible(window); } catch { }
-                    try { ReinforceNativeWindow(window); } catch { }
-                    try { window.Activate(); } catch { }
-                }, System.Windows.Threading.DispatcherPriority.Send);
-
-                if (IsNativeWindowOnScreen(window))
-                {
-                    App.WriteQuickAccessLog($"SettleWindowVisibility ok attempt={attempt} file={file}");
-                    return;
-                }
-
-                App.WriteQuickAccessLog($"SettleWindowVisibility retry attempt={attempt} file={file}");
-                await Task.Delay(80);
+                cancellation.Token.ThrowIfCancellationRequested();
+                if (_disposed || _suspended || ShouldHide(window.Item.Id) || !_windows.Contains(window)
+                    || window.Dispatcher.HasShutdownStarted) return;
+                if (IsNativeWindowOnScreen(window)) return;
+                window.Topmost = true;
+                window.Focusable = false;
+                window.Show();
+                EnsureWindowVisible(window);
+                EnsureWindowStronglyVisible(window);
+                if (IsNativeWindowOnScreen(window)) return;
+                await Task.Delay(80, cancellation.Token);
             }
-
-            App.WriteQuickAccessLog($"SettleWindowVisibility failed file={(string.IsNullOrWhiteSpace(window.Item.FilePath) ? "(null)" : window.Item.FilePath)}");
+            App.WriteQuickAccessLog("Quick Access visibility repair exhausted.");
         }
+        catch (OperationCanceledException) { }
         catch (Exception exception)
         {
-            App.WriteQuickAccessLog($"SettleWindowVisibility failed: {exception.Message}");
-            try { App.WriteCrashLog(exception); } catch { }
+            App.WriteCrashLog(exception);
+        }
+        finally
+        {
+            if (_visibilityRepairs.TryGetValue(window, out var current) && ReferenceEquals(current, cancellation))
+                _visibilityRepairs.Remove(window);
+            cancellation.Dispose();
         }
     }
 
@@ -600,6 +606,7 @@ public sealed class QuickAccessService(AppController controller, SettingsStore s
 
     public void Dispose()
     {
+        _disposed = true;
         HideAll();
     }
 }

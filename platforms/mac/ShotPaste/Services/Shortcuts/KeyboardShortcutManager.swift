@@ -54,6 +54,12 @@ struct ShortcutConfig: Equatable, Codable {
     modifiers: UInt32(optionKey)
   )
 
+  /// Suggested value only; audio recording ships unbound by default.
+  static let defaultStartAudioRecording = ShortcutConfig(
+    keyCode: UInt32(kVK_ANSI_A),
+    modifiers: defaultVariantModifiers
+  )
+
   /// Cmd + Shift + H in Release; Debug also includes Option.
   static let defaultHistory = ShortcutConfig(
     keyCode: UInt32(kVK_ANSI_H),
@@ -459,6 +465,7 @@ enum GlobalShortcutKind: String, CaseIterable, Codable {
   case oneShot
   case translation
   case agentMode
+  case startAudioRecording
   case pauseResumeRecording
   case togglePenRecording
   case restartRecording
@@ -479,6 +486,8 @@ extension GlobalShortcutKind {
       L10n.OneShot.translationTab
     case .agentMode:
       L10n.Agent.shortcutTitle
+    case .startAudioRecording:
+      L10n.AudioRecording.startMenu
     case .pauseResumeRecording:
       L10n.Actions.pauseResumeRecording
     case .togglePenRecording:
@@ -498,6 +507,7 @@ enum ShortcutAction {
   case startOneShot
   case startTranslation
   case startAgentIntent
+  case startAudioRecording
   case pauseResumeRecording
   case togglePenRecording
   case restartRecording
@@ -520,6 +530,7 @@ final class KeyboardShortcutManager {
   private(set) var oneShotShortcut: ShortcutConfig
   private(set) var translationShortcut: ShortcutConfig
   private(set) var agentModeShortcut: ShortcutConfig
+  private(set) var startAudioRecordingShortcut: ShortcutConfig
   /// Backing value holds the recommended `defaultPauseResumeRecording` combo even while the shortcut
   /// is unbound. The shortcut ships cleared (in `clearedShortcuts`), so always resolve the effective
   /// binding through `shortcut(for: .pauseResumeRecording)` — which returns nil when cleared — never
@@ -538,6 +549,7 @@ final class KeyboardShortcutManager {
   private var oneShotHotkeyRef: EventHotKeyRef?
   private var translationHotkeyRef: EventHotKeyRef?
   private var agentModeHotkeyRef: EventHotKeyRef?
+  private var startAudioRecordingHotkeyRef: EventHotKeyRef?
   private var pauseResumeRecordingHotkeyRef: EventHotKeyRef?
   private var historyHotkeyRef: EventHotKeyRef?
   private var togglePenRecordingHotkeyRef: EventHotKeyRef?
@@ -559,6 +571,8 @@ final class KeyboardShortcutManager {
   private let oneShotHotkeyID = EventHotKeyID(signature: OSType(0x5A53_464C), id: 21) // "ZSFL"
   private let agentModeHotkeyID = EventHotKeyID(signature: OSType(0x5A53_464D), id: 22) // "ZSFM"
   private let translationHotkeyID = EventHotKeyID(signature: OSType(0x5A53_464E), id: 23) // "ZSFN"
+  // Keep audio distinct from Agent Mode (id 22) and Translation (id 23).
+  private let startAudioRecordingHotkeyID = EventHotKeyID(signature: OSType(0x5A53_464F), id: 24) // "ZSFO"
 
   private var eventHandler: EventHandlerRef?
 
@@ -566,6 +580,7 @@ final class KeyboardShortcutManager {
   private let oneShotShortcutKey = PreferencesKeys.oneShotShortcut
   private let translationShortcutKey = PreferencesKeys.translationShortcut
   private let agentModeShortcutKey = PreferencesKeys.agentShortcut
+  private let startAudioRecordingShortcutKey = PreferencesKeys.startAudioRecordingShortcut
   private let pauseResumeRecordingShortcutKey = "pauseResumeRecordingShortcut"
   private let historyShortcutKey = "historyShortcut"
   private let togglePenRecordingShortcutKey = "togglePenRecordingShortcut"
@@ -579,6 +594,7 @@ final class KeyboardShortcutManager {
     oneShotShortcut = .defaultOneShot
     translationShortcut = ShortcutConfig(keyCode: 0, modifiers: 0)
     agentModeShortcut = .defaultAgentMode
+    startAudioRecordingShortcut = .defaultStartAudioRecording
     pauseResumeRecordingShortcut = .defaultPauseResumeRecording
     historyShortcut = .defaultHistory
     togglePenRecordingShortcut = ShortcutConfig(keyCode: 0, modifiers: 0)
@@ -671,6 +687,7 @@ final class KeyboardShortcutManager {
     case .oneShot: return oneShotShortcut
     case .translation: return translationShortcut
     case .agentMode: return agentModeShortcut
+    case .startAudioRecording: return startAudioRecordingShortcut
     case .pauseResumeRecording: return pauseResumeRecordingShortcut
     case .togglePenRecording: return togglePenRecordingShortcut
     case .restartRecording: return restartRecordingShortcut
@@ -721,6 +738,18 @@ final class KeyboardShortcutManager {
     mutateShortcutRegistration {
       setShortcut(config, for: .agentMode) {
         agentModeShortcut = $0
+      }
+      saveShortcuts()
+      saveClearedShortcuts()
+    }
+  }
+
+  /// Update the independent audio-recording shortcut. Nil means "None" and
+  /// is the clean-install default; it never aliases One Shot.
+  func setStartAudioRecordingShortcut(_ config: ShortcutConfig?) {
+    mutateShortcutRegistration {
+      setShortcut(config, for: .startAudioRecording) {
+        startAudioRecordingShortcut = $0
       }
       saveShortcuts()
       saveClearedShortcuts()
@@ -810,6 +839,11 @@ final class KeyboardShortcutManager {
     if let agentModeData = try? encoder.encode(agentModeShortcut) {
       UserDefaults.standard.set(agentModeData, forKey: agentModeShortcutKey)
     }
+    if clearedShortcuts.contains(.startAudioRecording) {
+      UserDefaults.standard.removeObject(forKey: startAudioRecordingShortcutKey)
+    } else if let data = try? encoder.encode(startAudioRecordingShortcut) {
+      UserDefaults.standard.set(data, forKey: startAudioRecordingShortcutKey)
+    }
     if clearedShortcuts.contains(.pauseResumeRecording) {
       UserDefaults.standard.removeObject(forKey: pauseResumeRecordingShortcutKey)
     } else if let pauseResumeRecordingData = try? encoder.encode(pauseResumeRecordingShortcut) {
@@ -848,6 +882,10 @@ final class KeyboardShortcutManager {
     if let agentModeData = UserDefaults.standard.data(forKey: agentModeShortcutKey),
        let config = try? decoder.decode(ShortcutConfig.self, from: agentModeData) {
       agentModeShortcut = config
+    }
+    if let data = UserDefaults.standard.data(forKey: startAudioRecordingShortcutKey),
+       let config = try? decoder.decode(ShortcutConfig.self, from: data) {
+      startAudioRecordingShortcut = config
     }
     if let pauseResumeRecordingData = UserDefaults.standard.data(forKey: pauseResumeRecordingShortcutKey),
        let config = try? decoder.decode(ShortcutConfig.self, from: pauseResumeRecordingData) {
@@ -905,6 +943,11 @@ final class KeyboardShortcutManager {
     if UserDefaults.standard.data(forKey: translationShortcutKey) == nil,
        !clearedShortcuts.contains(.translation) {
       clearedShortcuts.insert(.translation)
+      didMutate = true
+    }
+    if UserDefaults.standard.data(forKey: startAudioRecordingShortcutKey) == nil,
+       !clearedShortcuts.contains(.startAudioRecording) {
+      clearedShortcuts.insert(.startAudioRecording)
       didMutate = true
     }
     if UserDefaults.standard.data(forKey: pauseResumeRecordingShortcutKey) == nil,
@@ -992,6 +1035,9 @@ final class KeyboardShortcutManager {
       guard isAgentModeRegistrationEnabled else { return }
       actionName = "agent-mode"
       action = .startAgentIntent
+    case startAudioRecordingHotkeyID.id:
+      actionName = "start-audio-recording"
+      action = .startAudioRecording
     case pauseResumeRecordingHotkeyID.id:
       actionName = "pause-resume-recording"
       action = .pauseResumeRecording
@@ -1044,6 +1090,12 @@ final class KeyboardShortcutManager {
         ref: &agentModeHotkeyRef
       )
     }
+    registerShortcutIfNeeded(
+      kind: .startAudioRecording,
+      config: shortcut(for: .startAudioRecording),
+      hotkeyID: startAudioRecordingHotkeyID,
+      ref: &startAudioRecordingHotkeyRef
+    )
     registerShortcutIfNeeded(
       kind: .pauseResumeRecording,
       config: shortcut(for: .pauseResumeRecording),
@@ -1178,6 +1230,10 @@ final class KeyboardShortcutManager {
     if let ref = agentModeHotkeyRef {
       UnregisterEventHotKey(ref)
       agentModeHotkeyRef = nil
+    }
+    if let ref = startAudioRecordingHotkeyRef {
+      UnregisterEventHotKey(ref)
+      startAudioRecordingHotkeyRef = nil
     }
     if let ref = pauseResumeRecordingHotkeyRef {
       UnregisterEventHotKey(ref)

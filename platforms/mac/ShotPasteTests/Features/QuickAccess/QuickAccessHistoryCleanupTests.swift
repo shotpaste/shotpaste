@@ -78,7 +78,9 @@ final class QuickAccessHistoryCleanupTests: XCTestCase {
       "Quick Access item should have been added"
     )
 
-    QuickAccessManager.shared.deleteItem(id: item.id, confirmation: .alreadyConfirmed)
+    QuickAccessManager.shared.deleteItem(
+      id: item.id, confirmation: .alreadyConfirmed, playDeletionSound: {}
+    )
 
     let didDelete = await waitUntil {
       !CaptureHistoryStore.shared.hasRecord(forFilePath: fileURL.path)
@@ -152,7 +154,9 @@ final class QuickAccessHistoryCleanupTests: XCTestCase {
       "Quick Access item should have been added"
     )
 
-    QuickAccessManager.shared.deleteItem(id: item.id, confirmation: .alreadyConfirmed)
+    QuickAccessManager.shared.deleteItem(
+      id: item.id, confirmation: .alreadyConfirmed, playDeletionSound: {}
+    )
 
     let didDelete = await waitUntil {
       !CaptureHistoryStore.shared.hasRecord(forFilePath: fileURL.path)

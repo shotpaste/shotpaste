@@ -82,7 +82,6 @@ public partial class InlineAnnotateWindow : Window
     private readonly Action? _saveSettings;
     private readonly Stack<EditAction> _undo = new();
     private readonly Stack<EditAction> _redo = new();
-    private readonly Dictionary<UIElement, string> _elementTools = new();
     private readonly Dictionary<UIElement, AnnotationStyle> _elementStyles = new();
     private readonly Dictionary<string, string> _toolNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -317,6 +316,13 @@ public partial class InlineAnnotateWindow : Window
         OneShotRecordingCursor.IsChecked = _oneShotRecordingOptions.IncludeCursor;
         OneShotSystemAudio.IsChecked = _oneShotRecordingOptions.SystemAudio;
         OneShotMicrophone.IsChecked = _oneShotRecordingOptions.Microphone;
+        OneShotTranscription.IsEnabled = _oneShotRecordingOptions.CloudAvailable;
+        OneShotUseAI.IsEnabled = _oneShotRecordingOptions.CloudAvailable;
+        OneShotTranscription.IsChecked = _oneShotRecordingOptions.TranscriptionEnabled && _oneShotRecordingOptions.CloudAvailable;
+        OneShotUseAI.IsChecked = _oneShotRecordingOptions.UseAI;
+        OneShotLanguage.ItemsSource = VolcengineTranscriptionProtocol.Languages;
+        OneShotLanguage.SelectedItem = VolcengineTranscriptionProtocol.NormalizeLanguage(_oneShotRecordingOptions.Language);
+        OneShotCloudHint.Visibility = _oneShotRecordingOptions.CloudAvailable ? Visibility.Collapsed : Visibility.Visible;
         _oneShotControlsInitializing = false;
         UpdateOneShotModeControls();
         SelectTool("Selection", commitOneShot: false);
@@ -652,9 +658,9 @@ public partial class InlineAnnotateWindow : Window
             button.Foreground = selected ? (Brush)FindResource("Annotation.BlackBrush") : (Brush)FindResource("HudTextBrush");
             button.IsEnabled = !_oneShotCommitted || selected;
             button.Opacity = button.IsEnabled ? 1 : 0.42;
-            button.ToolTip = button.IsEnabled
+            button.ToolTip = LocalizationService.TranslatePhrase(button.IsEnabled
                 ? OneShotModeTitle(button.Tag?.ToString())
-                : "已开始使用当前模式，无法再切换。";
+                : "已开始使用当前模式，无法再切换。");
         }
 
         if (!_annotating)
@@ -810,7 +816,9 @@ public partial class InlineAnnotateWindow : Window
         OneShotGif.IsChecked == true ? RecordingOutputMode.Gif : RecordingOutputMode.Video,
         OneShotRecordingCursor.IsChecked == true,
         OneShotSystemAudio.IsChecked == true,
-        OneShotMicrophone.IsChecked == true);
+        OneShotMicrophone.IsChecked == true,
+        OneShotTranscription.IsChecked == true && _oneShotRecordingOptions.CloudAvailable && OneShotGif.IsChecked != true && (OneShotSystemAudio.IsChecked == true || OneShotMicrophone.IsChecked == true),
+        OneShotUseAI.IsChecked == true, OneShotLanguage.SelectedItem as string ?? "auto", _oneShotRecordingOptions.CloudAvailable);
 
     private void OnOneShotStartRecording(object sender, RoutedEventArgs e)
     {
@@ -1359,7 +1367,7 @@ public partial class InlineAnnotateWindow : Window
 
     private void UpdateAnnotationCursors()
     {
-        foreach (var element in _elementTools.Keys.OfType<FrameworkElement>())
+        foreach (var element in _elementStyles.Keys.OfType<FrameworkElement>())
         {
             if (_tool == "Selection") element.Cursor = Cursors.SizeAll;
             else element.ClearValue(FrameworkElement.CursorProperty);
@@ -1387,7 +1395,6 @@ public partial class InlineAnnotateWindow : Window
     private void ApplyElementStyle(UIElement element, AnnotationStyle style)
     {
         _elementStyles[element] = style.Copy();
-        _elementTools[element] = style.Tool;
         var stroke = new SolidColorBrush(style.StrokeColor);
 
         switch (element)
@@ -1793,12 +1800,12 @@ public partial class InlineAnnotateWindow : Window
             .ToArray();
         var style = selectedStyles.FirstOrDefault() ?? CreateCurrentStyle(_tool);
         var contextTool = selectedStyles.Length == 1 ? style.Tool : _tool;
-        ContextPillText.Text = selectedStyles.Length switch
+        ContextPillText.Text = LocalizationService.TranslatePhrase(selectedStyles.Length switch
         {
             > 1 => $"已选择 {selectedStyles.Length} 个",
             1 => _toolNames.GetValueOrDefault(style.Tool, style.Tool),
             _ => _toolNames.GetValueOrDefault(_tool, _tool)
-        };
+        });
 
         var any = selectedStyles.Length > 0;
         bool Supports(Func<AnnotationStyle, bool> predicate) =>
@@ -1818,8 +1825,8 @@ public partial class InlineAnnotateWindow : Window
         StrokeWidthGroup.Visibility = Supports(SupportsStrokeWidth) ? Visibility.Visible : Visibility.Collapsed;
         FontSizeGroup.Visibility = Supports(candidate => candidate.Tool == "Text") ? Visibility.Visible : Visibility.Collapsed;
         CornerRadiusGroup.Visibility = Supports(SupportsCornerRadius) ? Visibility.Visible : Visibility.Collapsed;
-        StrokeColorLabel.Text = contextTool == "Text" ? "文字" : "颜色";
-        StrokeWidthLabel.Text = contextTool is "Blur" or "Counter" ? "大小" : "描边";
+        StrokeColorLabel.Text = LocalizationService.TranslatePhrase(contextTool == "Text" ? "文字" : "颜色");
+        StrokeWidthLabel.Text = LocalizationService.TranslatePhrase(contextTool is "Blur" or "Counter" ? "大小" : "描边");
 
         _suppressPropertyUpdates = true;
         _color = style.StrokeColor;
@@ -1899,8 +1906,8 @@ public partial class InlineAnnotateWindow : Window
         if (_tool != "Selection" && clickedElement is not null)
         {
             SelectElement(clickedElement);
-            if (_elementTools.TryGetValue(clickedElement, out var clickedTool))
-                SelectTool(clickedTool, commitOneShot: false);
+            if (_elementStyles.TryGetValue(clickedElement, out var clickedStyle))
+                SelectTool(clickedStyle.Tool, commitOneShot: false);
             _draggingElement = true;
             _elementDragStart = _drawStart;
             _elementOriginalTransforms = SnapshotTransforms(_selectedElements);
@@ -2095,7 +2102,7 @@ public partial class InlineAnnotateWindow : Window
                 _selectingElements = false;
                 SelectionMarquee.Visibility = Visibility.Collapsed;
                 var selected = AnnotationCanvas.Children.Cast<UIElement>()
-                    .Where(_elementTools.ContainsKey)
+                    .Where(_elementStyles.ContainsKey)
                     .Where(element => marquee.IntersectsWith(GetElementBounds(element)))
                     .ToArray();
                 SelectElements(selected, (Keyboard.Modifiers & ModifierKeys.Shift) != 0);
@@ -2137,7 +2144,7 @@ public partial class InlineAnnotateWindow : Window
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0), MinWidth = 130, Padding = new Thickness(4),
             AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
-            ToolTip = "双击编辑文字"
+            ToolTip = ShotPaste.Windows.Services.LocalizationService.TranslatePhrase("双击编辑文字")
         };
         var host = new Border
         {
@@ -2147,7 +2154,7 @@ public partial class InlineAnnotateWindow : Window
             BorderThickness = new Thickness(0),
             CornerRadius = new CornerRadius(style.CornerRadius),
             Child = box,
-            ToolTip = "双击编辑文字"
+            ToolTip = ShotPaste.Windows.Services.LocalizationService.TranslatePhrase("双击编辑文字")
         };
         box.LostKeyboardFocus += OnTextBoxLostKeyboardFocus;
         box.MouseDoubleClick += OnTextBoxMouseDoubleClick;
@@ -2305,7 +2312,7 @@ public partial class InlineAnnotateWindow : Window
         if (direct is not null) return direct;
         return AnnotationCanvas.Children.Cast<UIElement>()
             .Reverse()
-            .FirstOrDefault(element => _elementTools.ContainsKey(element) && GetElementBounds(element).Contains(point));
+            .FirstOrDefault(element => _elementStyles.ContainsKey(element) && GetElementBounds(element).Contains(point));
     }
 
     private void SelectElement(UIElement element, bool extend = false)
@@ -2383,7 +2390,7 @@ public partial class InlineAnnotateWindow : Window
             var bottom = polyline.Points.Max(point => point.Y);
             localBounds = new Rect(new WpfPoint(left, top), new WpfPoint(right, bottom));
         }
-        else if (element is WpfPath path && _elementTools.GetValueOrDefault(element) == "Spotlight" &&
+        else if (element is WpfPath path && _elementStyles.GetValueOrDefault(element)?.Tool == "Spotlight" &&
                  path.Data is GeometryGroup { Children.Count: > 1 } group)
         {
             localBounds = group.Children[1].Bounds;
@@ -2456,7 +2463,7 @@ public partial class InlineAnnotateWindow : Window
         ElementSelectionBorder.Visibility = Visibility.Visible;
 
         var supportsResize = _selectedElements.Count == 1 &&
-                             _elementTools.GetValueOrDefault(_selectedElement!) is not ("Pencil" or "Highlighter");
+                             _elementStyles.GetValueOrDefault(_selectedElement!)?.Tool is not ("Pencil" or "Highlighter");
         var selectedStyle = _selectedElement is not null && _elementStyles.TryGetValue(_selectedElement, out var resolvedStyle)
             ? resolvedStyle
             : null;
@@ -2664,7 +2671,6 @@ public partial class InlineAnnotateWindow : Window
         foreach (var element in elements)
         {
             var elementStyle = (style ?? CreateCurrentStyle(_tool)).Copy();
-            _elementTools[element] = elementStyle.Tool;
             _elementStyles[element] = elementStyle;
             ApplyElementStyle(element, elementStyle);
             if (element is FrameworkElement framework && _tool == "Selection") framework.Cursor = Cursors.SizeAll;
@@ -2862,12 +2868,12 @@ public partial class InlineAnnotateWindow : Window
         {
             using var bitmap = RenderSelection();
             ClipboardWriter.SetImage(BitmapSourceFactory.FromBitmap(bitmap));
-            ContextPillText.Text = "已复制到剪贴板";
+            ContextPillText.Text = ShotPaste.Windows.Services.LocalizationService.TranslatePhrase("已复制到剪贴板");
             ShowStatus("已复制到剪贴板");
         }
         catch (System.Runtime.InteropServices.ExternalException)
         {
-            ContextPillText.Text = "剪贴板正忙，请重试";
+            ContextPillText.Text = ShotPaste.Windows.Services.LocalizationService.TranslatePhrase("剪贴板正忙，请重试");
             ShowStatus("剪贴板正忙，请重试");
         }
     }

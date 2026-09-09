@@ -72,21 +72,37 @@ enum AppUpdateCheckError: Error, Equatable {
 }
 
 struct AppUpdateService {
+  enum Architecture: String, Sendable {
+    case arm64
+    case x86_64
+
+    static var current: Self {
+      #if arch(arm64)
+      .arm64
+      #else
+      .x86_64
+      #endif
+    }
+  }
+
   static let releasesAPIURL = URL(
     string: "https://api.github.com/repos/shotpaste/shotpaste/releases?per_page=100"
   )!
   static let platformTagPrefix = "macos-v"
 
   private let session: any URLSessionProtocol
+  private let architecture: Architecture
   private let currentVersionProvider: @Sendable () -> String?
 
   init(
     session: any URLSessionProtocol = URLSession.shared,
+    architecture: Architecture = .current,
     currentVersionProvider: @escaping @Sendable () -> String? = {
       Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
     }
   ) {
     self.session = session
+    self.architecture = architecture
     self.currentVersionProvider = currentVersionProvider
   }
 
@@ -123,7 +139,7 @@ struct AppUpdateService {
       throw AppUpdateCheckError.invalidRelease
     }
 
-    guard let release = payloads.compactMap(Self.macOSRelease).max(by: {
+    guard let release = payloads.compactMap({ Self.macOSRelease(from: $0, architecture: architecture) }).max(by: {
       $0.version < $1.version
     }) else {
       throw AppUpdateCheckError.invalidRelease
@@ -135,14 +151,14 @@ struct AppUpdateService {
     return .upToDate(currentVersion: currentVersion, latestRelease: release)
   }
 
-  private static func macOSRelease(from payload: GitHubReleasePayload) -> AppRelease? {
+  private static func macOSRelease(from payload: GitHubReleasePayload, architecture: Architecture) -> AppRelease? {
     guard
       !payload.draft,
       !payload.prerelease,
       payload.tagName.hasPrefix(platformTagPrefix),
       let version = AppReleaseVersion(String(payload.tagName.dropFirst(platformTagPrefix.count))),
       payload.assets.contains(where: {
-        $0.name == "ShotPaste-v\(version)-macOS-arm64.dmg"
+        $0.name == "ShotPaste-v\(version)-macOS-\(architecture.rawValue).dmg"
       }),
       isTrustedReleasePageURL(payload.htmlURL)
     else {

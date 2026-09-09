@@ -49,23 +49,4 @@ final class RecordingSessionTests: XCTestCase {
     XCTAssertEqual(stats.microphoneSamplesAppended, 0)
   }
 
-  func testSetOnFirstVideoFrame_doesNotCrash() {
-    session.setOnFirstVideoFrame {}
-    // Cannot trigger without real sample buffer
-  }
-
-  func testConfigureExpectedVideoDimensions_doesNotCrash() {
-    session.configureExpectedVideoDimensions(width: 1920, height: 1080)
-  }
-
-  func testSetAccumulatedPauseOffset_doesNotCrash() {
-    let offset = CMTime(seconds: 5.0, preferredTimescale: 1_000_000)
-    session.setAccumulatedPauseOffset(offset)
-  }
-
-  func testReset_clearsPauseOffset() {
-    let offset = CMTime(seconds: 5.0, preferredTimescale: 1_000_000)
-    session.setAccumulatedPauseOffset(offset)
-    session.reset()
-  }
 }

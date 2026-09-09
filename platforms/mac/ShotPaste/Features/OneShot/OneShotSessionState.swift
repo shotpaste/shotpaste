@@ -53,6 +53,7 @@ enum OneShotCommitReason: String, Equatable {
   case recordingCursor
   case recordingSystemAudio
   case recordingMicrophone
+  case recordingTranscription
   case recordingStart
   case recordingToolbarDrag
   case translationStart
@@ -74,14 +75,43 @@ struct OneShotRecordingOptions: Equatable {
   var showsCursor: Bool
   var capturesSystemAudio: Bool
   var capturesMicrophone: Bool
+  var automaticTranscription = false
+  var automaticAI = false
+  var transcriptionLanguage: AudioRecordingLanguage = .auto
+
+  var supportsTranscription: Bool {
+    outputMode == .video && (capturesSystemAudio || capturesMicrophone)
+  }
+
+  var shouldTranscribe: Bool { supportsTranscription && automaticTranscription }
+  var shouldProcessTranscriptWithAI: Bool { shouldTranscribe && automaticAI }
+
+  func resolvingTranscription(isConfigured: Bool) -> Self {
+    var options = self
+    options.automaticTranscription = isConfigured && shouldTranscribe
+    options.automaticAI = options.automaticTranscription && automaticAI
+    return options
+  }
 
   static func current(defaults: UserDefaults = .standard) -> OneShotRecordingOptions {
     OneShotRecordingOptions(
       outputMode: RecordingToolbarPreferences.outputMode(defaults: defaults),
       showsCursor: RecordingToolbarPreferences.showCursor(defaults: defaults),
       capturesSystemAudio: RecordingToolbarPreferences.captureAudio(defaults: defaults),
-      capturesMicrophone: RecordingToolbarPreferences.captureMicrophone(defaults: defaults)
+      capturesMicrophone: RecordingToolbarPreferences.captureMicrophone(defaults: defaults),
+      automaticTranscription: defaults.bool(forKey: PreferencesKeys.recordingTranscriptionEnabled),
+      automaticAI: defaults.bool(forKey: PreferencesKeys.recordingTranscriptionAutomaticAI),
+      transcriptionLanguage: defaults.string(forKey: PreferencesKeys.recordingTranscriptionSourceLanguage)
+        .flatMap(AudioRecordingLanguage.init(rawValue:)) ?? .auto
     )
+  }
+
+  /// Remember the submitted options. Editing or cancelling One Shot does not
+  /// change the next recording's defaults or an already-running recording.
+  func saveTranscriptionPreferences(defaults: UserDefaults = .standard) {
+    defaults.set(shouldTranscribe, forKey: PreferencesKeys.recordingTranscriptionEnabled)
+    defaults.set(shouldProcessTranscriptWithAI, forKey: PreferencesKeys.recordingTranscriptionAutomaticAI)
+    defaults.set(transcriptionLanguage.rawValue, forKey: PreferencesKeys.recordingTranscriptionSourceLanguage)
   }
 }
 

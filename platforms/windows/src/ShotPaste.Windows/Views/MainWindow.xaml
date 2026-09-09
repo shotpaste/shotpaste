@@ -1,8 +1,9 @@
 <Window x:Class="ShotPaste.Windows.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:loc="clr-namespace:ShotPaste.Windows.Services"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:ShotPaste.Windows.Controls"
-        AutomationProperties.AutomationId="HistoryWindow" Title="ShotPaste · 剪贴板历史" Width="980" Height="680" MinWidth="860" MinHeight="520"
+        AutomationProperties.AutomationId="HistoryWindow" Title="{loc:Localized Key='ShotPaste · 剪贴板历史', IsWindowTitle=True}" Width="980" Height="680" MinWidth="860" MinHeight="520"
         WindowStartupLocation="Manual" WindowStyle="None" Closing="OnClosing" KeyDown="OnKeyDown" Deactivated="OnDeactivated">
   <Window.Resources>
     <Style x:Key="HistoryToolbarButton" TargetType="Button">
@@ -173,19 +174,20 @@
     <ContextMenu x:Key="HistoryItemContextMenu" x:Shared="False"
                  DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
                  Opened="OnHistoryMenuOpened" Closed="OnHistoryMenuClosed">
-      <MenuItem Header="恢复" AutomationProperties.Name="恢复历史项目" Tag="{Binding}" Click="OnRestoreItem"/>
-      <MenuItem Header="复制" AutomationProperties.Name="复制历史项目" Tag="{Binding}" Click="OnCopyItem"/>
-      <MenuItem Header="打开" AutomationProperties.AutomationId="HistoryOpenItem" AutomationProperties.Name="打开历史项目" Tag="{Binding}" Click="OnOpenItem"/>
-      <MenuItem Header="在资源管理器中显示" AutomationProperties.AutomationId="HistoryRevealItem" AutomationProperties.Name="在资源管理器中显示历史项目" Tag="{Binding}" Click="OnRevealItem"/>
+      <MenuItem Header="{loc:Localized Key='恢复'}" AutomationProperties.Name="{loc:Localized Key='恢复历史项目'}" Tag="{Binding}" Click="OnRestoreItem"/>
+      <MenuItem Header="{loc:Localized Key='复制'}" AutomationProperties.Name="{loc:Localized Key='复制历史项目'}" Tag="{Binding}" Click="OnCopyItem"/>
+      <MenuItem Header="{loc:Localized Key='打开'}" AutomationProperties.AutomationId="HistoryOpenItem" AutomationProperties.Name="{loc:Localized Key='打开历史项目'}" Tag="{Binding}" Click="OnOpenItem"/>
+      <MenuItem Header="{loc:Localized Key='转写结果'}" Tag="{Binding}" Click="OnTranscriptionResults"><MenuItem.Style><Style TargetType="MenuItem"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Kind}" Value="Recording"><Setter Property="Visibility" Value="Visible"/></DataTrigger><DataTrigger Binding="{Binding Kind}" Value="Audio"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></MenuItem.Style></MenuItem>
+      <MenuItem Header="{loc:Localized Key='在资源管理器中显示'}" AutomationProperties.AutomationId="HistoryRevealItem" AutomationProperties.Name="{loc:Localized Key='在资源管理器中显示历史项目'}" Tag="{Binding}" Click="OnRevealItem"/>
       <Separator/>
-      <MenuItem Header="移入回收站…" AutomationProperties.AutomationId="HistoryDeleteItem" AutomationProperties.Name="删除历史项目" Tag="{Binding}" Click="OnDeleteItem"
+      <MenuItem Header="{loc:Localized Key='移入回收站…'}" AutomationProperties.AutomationId="HistoryDeleteItem" AutomationProperties.Name="{loc:Localized Key='删除历史项目'}" Tag="{Binding}" Click="OnDeleteItem"
                 Foreground="{DynamicResource DangerBrush}"/>
     </ContextMenu>
     <DataTemplate x:Key="ExpandedHistoryCardTemplate">
       <Border x:Name="Card" Width="214" Height="190" CornerRadius="{DynamicResource Radius.Card}" Background="{DynamicResource SurfaceBrush}"
               BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" ClipToBounds="True"
               ContextMenu="{StaticResource HistoryItemContextMenu}"
-              AutomationProperties.HelpText="右键或使用更多按钮可恢复、复制、打开、在资源管理器中显示或移入回收站">
+              AutomationProperties.HelpText="{loc:Localized Key='右键或使用更多按钮可恢复、复制、打开、在资源管理器中显示或移入回收站'}">
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="126"/><RowDefinition Height="*"/></Grid.RowDefinitions>
           <Grid Background="{DynamicResource SurfaceSecondaryBrush}">
@@ -200,10 +202,10 @@
               <TextBlock Text="{Binding Title}" Foreground="{DynamicResource TextBrush}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
               <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
             </StackPanel>
-            <Button Grid.Column="1" Content="⋯" FontSize="18"
+            <Button Grid.Column="1" Content="{loc:Localized Key='⋯'}" FontSize="18"
                     Style="{StaticResource HistoryHeaderIconButton}" Tag="{Binding}" Click="OnShowItemMenu"
                     ContextMenu="{StaticResource HistoryItemContextMenu}" AutomationProperties.AutomationId="HistoryMoreActions"
-                    AutomationProperties.Name="更多历史操作"/>
+                    AutomationProperties.Name="{loc:Localized Key='更多历史操作'}"/>
           </Grid>
         </Grid>
       </Border>
@@ -222,42 +224,42 @@
       <Border x:Name="KindFilterGroup" HorizontalAlignment="Left" Padding="3" CornerRadius="{DynamicResource Radius.Lg}"
               Background="{DynamicResource SurfaceSecondaryBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1">
         <StackPanel Orientation="Horizontal">
-          <Button x:Name="ScreenshotFilter" Tag="Screenshot" Style="{StaticResource HistorySegmentButton}" Click="OnKindPill" AutomationProperties.AutomationId="ScreenshotHistoryFilter" AutomationProperties.Name="屏幕截图"><TextBlock Text="屏幕截图"/></Button>
-          <Button Tag="ScrollingScreenshot" Style="{StaticResource HistorySegmentButton}" Click="OnKindPill" AutomationProperties.Name="滚动截屏"><TextBlock Text="滚动截屏"/></Button>
-          <Button Tag="Recording" Style="{StaticResource HistorySegmentButton}" Click="OnKindPill" AutomationProperties.Name="屏幕录制"><TextBlock Text="屏幕录制"/></Button>
-          <Button x:Name="ClipboardFilter" Tag="Clipboard" Style="{StaticResource HistorySegmentButton}" Click="OnKindPill" AutomationProperties.AutomationId="ClipboardHistoryFilter" AutomationProperties.Name="剪贴板历史"><TextBlock Text="剪贴板历史"/></Button>
+          <Button x:Name="ScreenshotFilter" Tag="Screenshot" Style="{StaticResource HistorySegmentButton}" Click="OnKindPill" AutomationProperties.AutomationId="ScreenshotHistoryFilter" AutomationProperties.Name="{loc:Localized Key='屏幕截图'}"><TextBlock Text="{loc:Localized Key='屏幕截图'}"/></Button>
+          <Button Tag="ScrollingScreenshot" Style="{StaticResource HistorySegmentButton}" Click="OnKindPill" AutomationProperties.Name="{loc:Localized Key='滚动截屏'}"><TextBlock Text="{loc:Localized Key='滚动截屏'}"/></Button>
+          <Button Tag="Recording" Style="{StaticResource HistorySegmentButton}" Click="OnKindPill" AutomationProperties.Name="{loc:Localized Key='视频与音频'}"><TextBlock Text="{loc:Localized Key='视频与音频'}"/></Button>
+          <Button x:Name="ClipboardFilter" Tag="Clipboard" Style="{StaticResource HistorySegmentButton}" Click="OnKindPill" AutomationProperties.AutomationId="ClipboardHistoryFilter" AutomationProperties.Name="{loc:Localized Key='剪贴板历史'}"><TextBlock Text="{loc:Localized Key='剪贴板历史'}"/></Button>
         </StackPanel>
       </Border>
       <Border Grid.Column="1" Width="238" Height="34" HorizontalAlignment="Center" CornerRadius="{DynamicResource Radius.Card}" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="11,0">
         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
           <ContentControl Content="{StaticResource Icon.Search}" ContentTemplate="{StaticResource Icon.Template}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
           <Grid Grid.Column="1">
-            <TextBlock x:Name="SearchPlaceholder" Text="搜索捕获内容" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" IsHitTestVisible="False"/>
-            <TextBox x:Name="SearchBox" AutomationProperties.AutomationId="HistorySearch" AutomationProperties.Name="搜索捕获内容" ToolTip="按文件名或文本搜索" BorderThickness="0" Background="Transparent" Padding="0" MinHeight="0" Height="24" TextChanged="OnSearchTextChanged" VerticalContentAlignment="Center"/>
+            <TextBlock x:Name="SearchPlaceholder" Text="{loc:Localized Key='搜索捕获内容'}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" IsHitTestVisible="False"/>
+            <TextBox x:Name="SearchBox" AutomationProperties.AutomationId="HistorySearch" AutomationProperties.Name="{loc:Localized Key='搜索捕获内容'}" ToolTip="{loc:Localized Key='按文件名或文本搜索'}" BorderThickness="0" Background="Transparent" Padding="0" MinHeight="0" Height="24" TextChanged="OnSearchTextChanged" VerticalContentAlignment="Center"/>
           </Grid>
-          <Button x:Name="ClearSearchButton" Grid.Column="2" Content="{StaticResource Icon.Close}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource HistoryIconButton}" Width="24" Height="24" MinHeight="24" AutomationProperties.Name="清除搜索" Visibility="Collapsed" Click="OnClearSearch"/>
+          <Button x:Name="ClearSearchButton" Grid.Column="2" Content="{StaticResource Icon.Close}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource HistoryIconButton}" Width="24" Height="24" MinHeight="24" AutomationProperties.Name="{loc:Localized Key='清除搜索'}" Visibility="Collapsed" Click="OnClearSearch"/>
         </Grid>
       </Border>
       <Border x:Name="SelectionActions" Grid.Column="1" HorizontalAlignment="Right" Visibility="Collapsed" CornerRadius="{DynamicResource Radius.Card}"
               Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="10,5" Margin="12,0">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
           <TextBlock x:Name="SelectionSummary" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="4,0,10,0"/>
-          <Button Style="{StaticResource HistoryToolbarButton}" AutomationProperties.Name="复制所选" Margin="0,0,3,0" Click="OnCopySelection">
+          <Button Style="{StaticResource HistoryToolbarButton}" AutomationProperties.Name="{loc:Localized Key='复制所选'}" Margin="0,0,3,0" Click="OnCopySelection">
             <StackPanel Orientation="Horizontal">
               <ContentControl Content="{StaticResource Icon.Copy}" ContentTemplate="{StaticResource Icon.Template}"/>
-              <TextBlock Text="复制" Margin="5,0,0,0"/>
+              <TextBlock Text="{loc:Localized Key='复制'}" Margin="5,0,0,0"/>
             </StackPanel>
           </Button>
-          <Button Style="{StaticResource HistoryToolbarButton}" AutomationProperties.Name="清除选择" Margin="0,0,3,0" Click="OnClearSelection">
+          <Button Style="{StaticResource HistoryToolbarButton}" AutomationProperties.Name="{loc:Localized Key='清除选择'}" Margin="0,0,3,0" Click="OnClearSelection">
             <StackPanel Orientation="Horizontal">
               <ContentControl Content="{StaticResource Icon.Close}" ContentTemplate="{StaticResource Icon.Template}"/>
-              <TextBlock Text="清除选择" Margin="5,0,0,0"/>
+              <TextBlock Text="{loc:Localized Key='清除选择'}" Margin="5,0,0,0"/>
             </StackPanel>
           </Button>
-          <Button Style="{StaticResource HistoryDangerButton}" AutomationProperties.Name="删除所选" Click="OnDeleteSelection">
+          <Button Style="{StaticResource HistoryDangerButton}" AutomationProperties.Name="{loc:Localized Key='删除所选'}" Click="OnDeleteSelection">
             <StackPanel Orientation="Horizontal">
               <ContentControl Content="{StaticResource Icon.Delete}" ContentTemplate="{StaticResource Icon.Template}"/>
-              <TextBlock Text="删除" Margin="5,0,0,0"/>
+              <TextBlock Text="{loc:Localized Key='删除'}" Margin="5,0,0,0"/>
             </StackPanel>
           </Button>
         </StackPanel>
@@ -267,16 +269,17 @@
               BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1">
         <StackPanel Orientation="Horizontal">
           <ComboBox x:Name="TimeFilter" Width="104" SelectedIndex="0" SelectionChanged="OnFilterChanged" Padding="8,4" Margin="0,0,3,0">
-            <ComboBoxItem Content="不限时间" Tag="All"/><ComboBoxItem Content="24 小时" Tag="1"/><ComboBoxItem Content="7 天" Tag="7"/><ComboBoxItem Content="30 天" Tag="30"/>
+            <ComboBoxItem Content="{loc:Localized Key='不限时间'}" Tag="All"/><ComboBoxItem Content="{loc:Localized Key='24 小时'}" Tag="1"/><ComboBoxItem Content="{loc:Localized Key='7 天'}" Tag="7"/><ComboBoxItem Content="{loc:Localized Key='30 天'}" Tag="30"/>
           </ComboBox>
+          <Button Style="{StaticResource HistoryHeaderIconButton}" Content="{StaticResource Icon.History}" ContentTemplate="{StaticResource Icon.Template}" ToolTip="{loc:Localized Key='转写结果'}" AutomationProperties.Name="{loc:Localized Key='转写结果'}" Click="OnTranscriptionResults"/>
           <ToggleButton x:Name="KeepOpenCheckBox" Content="{StaticResource Icon.Pin}" ContentTemplate="{StaticResource Icon.Template}"
                         IsChecked="{Binding HistoryKeepOpen}" Style="{StaticResource HistoryHeaderToggleButton}" Margin="3,0"
-                        ToolTip="保持打开" Checked="OnKeepOpenChanged" Unchecked="OnKeepOpenChanged"
-                        AutomationProperties.Name="保持历史窗口打开"/>
-          <Button Style="{StaticResource HistoryHeaderIconButton}" AutomationProperties.Name="清空全部历史"
+                        ToolTip="{loc:Localized Key='保持打开'}" Checked="OnKeepOpenChanged" Unchecked="OnKeepOpenChanged"
+                        AutomationProperties.Name="{loc:Localized Key='保持历史窗口打开'}"/>
+          <Button Style="{StaticResource HistoryHeaderIconButton}" AutomationProperties.Name="{loc:Localized Key='清空全部历史'}"
                   AutomationProperties.AutomationId="HistoryClearAll" Foreground="{DynamicResource DangerBrush}"
                   Content="{StaticResource Icon.Delete}" ContentTemplate="{StaticResource Icon.Template}"
-                  ToolTip="清空全部历史（关联文件移入回收站）" Click="OnClearHistory"/>
+                  ToolTip="{loc:Localized Key='清空全部历史（关联文件移入回收站）'}" Click="OnClearHistory"/>
         </StackPanel>
       </Border>
     </Grid>
@@ -296,8 +299,8 @@
           <ContentControl Content="{StaticResource Icon.Empty}" ContentTemplate="{StaticResource Icon.Template}" Width="28" Height="28"
                           HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
         </Border>
-        <TextBlock Text="还没有符合条件的记录" Foreground="{DynamicResource TextBrush}" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,14,0,0"/>
-        <TextBlock Text="完成截图、录屏或复制内容后会显示在这里" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" Margin="0,5,0,0"/>
+        <TextBlock Text="{loc:Localized Key='还没有符合条件的记录'}" Foreground="{DynamicResource TextBrush}" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+        <TextBlock Text="{loc:Localized Key='完成截图、录屏或复制内容后会显示在这里'}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" Margin="0,5,0,0"/>
       </StackPanel>
     </Grid>
   </Grid>

@@ -2,23 +2,24 @@
 
 Captura y grabación de pantalla nativa y local para macOS y Windows.
 
-[English](README.md) · [Tiếng Việt](README.vi.md) ·
-[简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · **Español** ·
-[日本語](README.ja.md) · [한국어](README.ko.md) ·
-[Русский](README.ru.md) · [Français](README.fr.md) ·
+[简体中文](README.md) · [English](README.en.md) · [Tiếng Việt](README.vi.md) ·
+[繁體中文](README.zh-TW.md) · **Español** · [日本語](README.ja.md) ·
+[한국어](README.ko.md) · [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
 **Sitio web oficial:** [shotpaste.com](https://www.shotpaste.com/)
 
-ShotPaste ofrece clientes nativos independientes para macOS y Windows. Las
-capturas, el OCR, las grabaciones, el historial, el portapapeles y la
-configuración permanecen en el dispositivo. El proyecto no ofrece cuentas,
-telemetría, subida a la nube, almacenamiento remoto ni sincronización.
+ShotPaste ofrece clientes nativos independientes para macOS y Windows.
+Las capturas, el OCR, las grabaciones, el historial, el portapapeles y la
+configuración permanecen en el dispositivo. La traducción, transcripción y
+organización de texto con IA opcionales envían solo el texto o audio seleccionado
+a servicios configurados por el usuario. El proyecto no opera servicios de
+cuentas, telemetría, intermediación de subidas ni sincronización.
 
 ## Funciones
 
 - **One Shot:** selecciona una zona una vez y elige Captura, Captura con
-  desplazamiento, Grabación o Historial del portapapeles.
+  desplazamiento, Grabación, Traducción o Historial del portapapeles.
 
   [![Selector de modos One Shot](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
 
@@ -27,6 +28,13 @@ telemetría, subida a la nube, almacenamiento remoto ni sincronización.
   del escritorio.
 
   [![OCR local desde una captura](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
+- **Traducción:** traduce el texto de una zona One Shot congelada con OCR local,
+  detección automática del idioma de origen, idiomas de destino configurables y
+  un proveedor configurado por el usuario. Solo se envía el texto reconocido
+  para traducirlo.
+
+  [![Traducción de una captura](assets/readme/translate.gif)](assets/readme/translate.gif)
 
 - **Anotación integrada:** selección, formas, flechas, texto, resaltador,
   mosaico, foco, contador, lápiz, deshacer/rehacer, QR, copiar y fijar.
@@ -42,6 +50,13 @@ telemetría, subida a la nube, almacenamiento remoto ni sincronización.
   del ratón, teclas, pausa, reinicio, descarte, instantáneas y tinta en vivo.
 
   [![Grabación con anotación en vivo](assets/readme/recording.gif)](assets/readme/recording.gif)
+
+- **Grabación de audio:** graba el sonido del sistema, el micrófono o ambos
+  desde la barra de menús o la bandeja, sin seleccionar una región; guarda M4A de solo audio.
+- **Transcripción y notas con IA:** activa la transcripción con tu propia cuenta
+  de Volcengine y, opcionalmente, mejora y organiza el texto con tu LLM configurado.
+  Busca, copia y exporta resultados guardados desde la ventana de transcripciones.
+  Consulta [configuración, uso y privacidad](docs/RECORDING_TRANSCRIPTION.en.md).
 
 - **Quick Access y fijados:** tarjetas configurables, copiar/guardar/abrir,
   arrastrar, deslizar e imágenes siempre visibles.
@@ -66,7 +81,7 @@ Consulta la [lista completa de funciones](docs/FEATURES.md).
 
 | | macOS | Windows |
 | --- | --- | --- |
-| Requisitos | macOS 13+, Apple Silicon | Windows 10 2004+, x64 |
+| Requisitos | macOS 13+, Apple Silicon (arm64) / Intel (x86_64) | Windows 10 2004+, x64 |
 | Tecnología nativa | SwiftUI, AppKit, ScreenCaptureKit, Vision | WPF, Win32 y API de captura/OCR/multimedia de Windows |
 | Código | `platforms/mac` | `platforms/windows` |
 
@@ -112,6 +127,6 @@ estudio de ShareX.
 Los textos obligatorios de copyright y licencia de terceros se conservan en
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Consulta [CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.md](SUPPORT.md) y
+Consulta [CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.en.md](SUPPORT.en.md) y
 [SECURITY.md](SECURITY.md) para contribuir, pedir ayuda o informar de forma
 responsable.

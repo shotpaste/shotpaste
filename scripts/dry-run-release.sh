@@ -5,7 +5,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_PATH="$ROOT_DIR/.build/macos/Release/ShotPaste.app"
 OUTPUT_DIR="$ROOT_DIR/build/local-release"
-DMG_PATH="$OUTPUT_DIR/ShotPaste-local-macOS-arm64.dmg"
 
 [[ "$(uname -s)" == "Darwin" ]] || {
   printf "error: This script only supports macOS.\n" >&2
@@ -13,7 +12,15 @@ DMG_PATH="$OUTPUT_DIR/ShotPaste-local-macOS-arm64.dmg"
 }
 
 SHOTPASTE_LOCAL_RELEASE_COMPILER_WORKAROUND=1 \
+  SHOTPASTE_MACOS_ARCH="${SHOTPASTE_MACOS_ARCH:-$(uname -m)}" \
   "$ROOT_DIR/scripts/build_and_run.sh" build --configuration Release "$@"
+
+PACKAGE_ARCH="$(/usr/bin/lipo -archs "$APP_PATH/Contents/MacOS/ShotPaste")"
+case "$PACKAGE_ARCH" in
+  arm64|x86_64) ;;
+  *) printf "error: Select one architecture with --arch arm64 or --arch x86_64.\n" >&2; exit 1 ;;
+esac
+DMG_PATH="$OUTPUT_DIR/ShotPaste-local-macOS-${PACKAGE_ARCH}.dmg"
 
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 DESIGNATED_REQUIREMENT="$(codesign -d -r- "$APP_PATH" 2>&1)"
@@ -23,9 +30,6 @@ DESIGNATED_REQUIREMENT="$(codesign -d -r- "$APP_PATH" 2>&1)"
 }
 
 mkdir -p "$OUTPUT_DIR"
-while IFS= read -r -d '' old_dmg; do
-  rm -f -- "$old_dmg"
-done < <(/usr/bin/find "$OUTPUT_DIR" -maxdepth 1 -type f -name '*.dmg' -print0)
 
 "$ROOT_DIR/scripts/create-macos-dmg.sh" \
   "$APP_PATH" \
@@ -33,11 +37,5 @@ done < <(/usr/bin/find "$OUTPUT_DIR" -maxdepth 1 -type f -name '*.dmg' -print0)
   "ShotPaste Local" \
   "local"
 
-DMG_COUNT="$(/usr/bin/find "$OUTPUT_DIR" -maxdepth 1 -type f -name '*.dmg' | /usr/bin/wc -l | /usr/bin/tr -d ' ')"
-[[ "$DMG_COUNT" == "1" ]] || {
-  printf "error: Expected one local macOS DMG, found %s.\n" "$DMG_COUNT" >&2
-  exit 1
-}
-
 printf "success: Canonical Release app: %s\n" "$APP_PATH"
-printf "success: Single local macOS DMG: %s\n" "$DMG_PATH"
+printf "success: Local %s macOS DMG: %s\n" "$PACKAGE_ARCH" "$DMG_PATH"

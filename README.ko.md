@@ -2,10 +2,9 @@
 
 macOS와 Windows를 위한 네이티브 로컬 우선 화면 캡처 도구입니다.
 
-[English](README.md) · [Tiếng Việt](README.vi.md) ·
-[简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) ·
-[Español](README.es.md) · [日本語](README.ja.md) · **한국어** ·
-[Русский](README.ru.md) · [Français](README.fr.md) ·
+[简体中文](README.md) · [English](README.en.md) · [Tiếng Việt](README.vi.md) ·
+[繁體中文](README.zh-TW.md) · [Español](README.es.md) · [日本語](README.ja.md) ·
+**한국어** · [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
 **공식 웹사이트:** [shotpaste.com](https://www.shotpaste.com/)
@@ -16,7 +15,7 @@ ShotPaste은 macOS와 Windows에 서로 독립적인 네이티브 클라이언�
 
 ## 기능
 
-- **One Shot:** 영역을 한 번 선택한 뒤 스크린샷, 스크롤 캡처, 녹화 또는
+- **One Shot:** 영역을 한 번 선택한 뒤 스크린샷, 스크롤 캡처, 녹화, 번역 또는
   클립보드 기록을 선택합니다.
 
   [![One Shot 모드 선택기](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
@@ -25,6 +24,12 @@ ShotPaste은 macOS와 Windows에 서로 독립적인 네이티브 클라이언�
   파일 이름, 배율, 커서 및 데스크톱 표시 설정.
 
   [![스크린샷의 로컬 OCR](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
+- **번역:** 고정된 One Shot 영역의 텍스트를 로컬 OCR, 원본 언어 자동 감지,
+  설정 가능한 대상 언어 및 사용자가 구성한 Provider로 번역합니다. 인식된
+  텍스트만 전송됩니다.
+
+  [![스크린샷 번역](assets/readme/translate.gif)](assets/readme/translate.gif)
 
 - **인라인 주석:** 선택, 도형, 화살표, 텍스트, 형광펜, 모자이크, 스포트라이트,
   번호, 펜, 실행 취소/다시 실행, QR, 복사 및 고정.
@@ -41,6 +46,12 @@ ShotPaste은 macOS와 Windows에 서로 독립적인 네이티브 클라이언�
 
   [![실시간 주석이 포함된 녹화](assets/readme/recording.gif)](assets/readme/recording.gif)
 
+- **오디오 녹음:** 화면 영역을 선택하지 않고 메뉴 막대나 트레이에서 시스템 소리,
+  마이크 또는 둘 다 녹음하고 오디오 전용 M4A로 저장합니다.
+- **전사 및 AI 노트:** 본인의 Volcengine 계정으로 전사를 켜고, 필요하면 설정한
+  LLM으로 텍스트를 다듬고 정리합니다. 전사 결과 창에서 저장된 결과를 검색, 복사,
+  내보낼 수 있습니다. [설정, 사용 및 개인정보 안내](docs/RECORDING_TRANSCRIPTION.en.md)를 참조하세요.
+
 - **Quick Access 및 고정:** 구성 가능한 캡처 후 카드, 복사/저장/열기, 드래그,
   스와이프 및 항상 위 이미지.
 
@@ -56,15 +67,17 @@ ShotPaste은 macOS와 Windows에 서로 독립적인 네이티브 클라이언�
 - **사용자 설정:** 전역 단축키, 캡처 후 동작, 출력 폴더, 모양, 진단, URL 명령과
   10개 인터페이스 언어.
 
-  [![ShotPaste 설정](assets/readme/settings.gif)](assets/readme/settings.gif)
-
-자세한 내용은 [전체 기능 목록](docs/FEATURES.md)을 참조하세요.
+  [![ShotPaste는 macOS와 Windows에 서로 독립적인 네이티브 클라이언트를 제공합니다.
+캡처, OCR, 녹음·녹화, 기록, 클립보드 처리와 설정은 기기에 보관됩니다.
+선택적 번역, 음성 전사, AI 텍스트 정리는 선택한 텍스트나 오디오만 사용자가 설정한
+서비스로 전송합니다. 프로젝트는 계정, 원격 측정, 업로드 중계 또는 동기화 서비스를
+운영하지 않습니다.
 
 ## 플랫폼
 
 | | macOS | Windows |
 | --- | --- | --- |
-| 요구 사항 | macOS 13+, Apple Silicon | Windows 10 2004+, x64 |
+| 요구 사항 | macOS 13+, Apple Silicon (arm64) / Intel (x86_64) | Windows 10 2004+, x64 |
 | 네이티브 기술 | SwiftUI, AppKit, ScreenCaptureKit, Vision | WPF, Win32, Windows 캡처/OCR/미디어 API |
 | 소스 | `platforms/mac` | `platforms/windows` |
 
@@ -110,4 +123,4 @@ macOS 클라이언트는 BSD 3-Clause License로 공개된 Snapzy 커밋
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)에 수록되어 있습니다.
 
 기여, 지원 및 책임 있는 신고 안내는 [CONTRIBUTING.md](CONTRIBUTING.md),
-[SUPPORT.md](SUPPORT.md), [SECURITY.md](SECURITY.md)를 참조하세요.
+[SUPPORT.en.md](SUPPORT.en.md), [SECURITY.md](SECURITY.md)를 참조하세요.

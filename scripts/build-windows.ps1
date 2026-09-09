@@ -38,27 +38,24 @@ function Test-ShotPasteBuildIdentity {
 
 dotnet restore $solution -p:Platform=x64
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-dotnet test $solution -c $Configuration -p:Platform=x64 --no-restore `
-    --filter "FullyQualifiedName!~ScrollingStitcherTests&FullyQualifiedName!~ClipboardMonitorServiceTests.CaptureFileDropAsync_CreatesOneTypedRecordPerPathAndDeduplicatesReplay&FullyQualifiedName!~CaptureHistoryStoreTests"
+# dotnet test builds test projects and their dependencies, but not the standalone
+# E2E executables. Build the solution explicitly so -SkipBuild desktop gates use
+# artifacts from this exact source revision, including on a fresh checkout.
+dotnet build $solution -c $Configuration -p:Platform=x64 --no-restore
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-# Run native-memory-heavy stitch/database regressions in a fresh test host. Keeping
-# them isolated avoids carrying WPF/OCR/native bitmap state from the broad suite.
-dotnet test $solution -c $Configuration -p:Platform=x64 --no-restore --no-build `
-    --filter "FullyQualifiedName~ScrollingStitcherTests|FullyQualifiedName~ClipboardMonitorServiceTests.CaptureFileDropAsync_CreatesOneTypedRecordPerPathAndDeduplicatesReplay|FullyQualifiedName~CaptureHistoryStoreTests"
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
 $targetDirectory = Get-ShotPasteBuildProperty -Name "TargetDir"
 $assemblyName = Get-ShotPasteBuildProperty -Name "AssemblyName"
 $application = Join-Path $targetDirectory "$assemblyName.exe"
 Test-ShotPasteBuildIdentity -Executable $application
 
-# Compile every E2E project in the solution and execute the stable parity contract
-# subset on ordinary/non-interactive build agents. Real desktop E2E is orchestrated
+# The parity runner owns each test execution and its current-run evidence.
+# Real desktop E2E is orchestrated
 # by test-windows-parity.ps1 -Tier Interactive on the dedicated Windows node.
 & (Join-Path $PSScriptRoot "test-windows-parity.ps1") `
     -Configuration $Configuration `
     -Tier Headless `
+    -FullSuite `
+    -ProductExecutable $application `
     -SkipBuild
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

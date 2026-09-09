@@ -18,7 +18,9 @@ internal static class Program
             try
             {
                 var productExecutable = args.Skip(1).FirstOrDefault();
-                var result = args.Any(argument => argument.Equals("--performance-only", StringComparison.OrdinalIgnoreCase))
+                var result = args.Any(argument => argument.Equals("--audio-only", StringComparison.OrdinalIgnoreCase))
+                    ? await RunAudioChecksAsync(outputRoot, productExecutable)
+                    : args.Any(argument => argument.Equals("--performance-only", StringComparison.OrdinalIgnoreCase))
                     ? await RecordingPerformanceE2E.RunAsync(outputRoot, ParsePerformanceSeconds(args))
                     : args.Any(argument => argument.Equals("--effects-only", StringComparison.OrdinalIgnoreCase))
                         ? await RecordingEffectsE2E.RunAsync(outputRoot)
@@ -58,6 +60,7 @@ internal static class Program
 
     private static async Task<object> RunAsync(string outputRoot, string? productExecutable)
     {
+        var audio = await RunAudioChecksAsync(outputRoot, productExecutable);
         var effects = await RecordingEffectsE2E.RunAsync(outputRoot);
         var formats = await RecordingFormatE2E.RunAsync(outputRoot);
         var settings = string.IsNullOrWhiteSpace(productExecutable)
@@ -66,6 +69,14 @@ internal static class Program
         var lifecycle = string.IsNullOrWhiteSpace(productExecutable)
             ? null
             : await RecordingLifecycleE2E.RunAsync(Path.GetFullPath(productExecutable), outputRoot);
-        return new { Effects = effects, Formats = formats, Settings = settings, Lifecycle = lifecycle };
+        return new { Audio = audio, Effects = effects, Formats = formats, Settings = settings, Lifecycle = lifecycle };
+    }
+
+    private static async Task<object> RunAudioChecksAsync(string outputRoot, string? productExecutable)
+    {
+        var native = await AudioRecordingNativeE2E.RunAsync(outputRoot);
+        var controller = string.IsNullOrWhiteSpace(productExecutable) ? null :
+            await RecordingLifecycleE2E.RunAudioAsync(Path.GetFullPath(productExecutable), outputRoot);
+        return new { Native = native, Controller = controller };
     }
 }

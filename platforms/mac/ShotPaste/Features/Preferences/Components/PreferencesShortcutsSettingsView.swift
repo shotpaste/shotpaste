@@ -12,6 +12,7 @@ import SwiftUI
 struct ShortcutsSettingsView: View {
   @State private var oneShotShortcut: ShortcutConfig?
   @State private var translationShortcut: ShortcutConfig?
+  @State private var startAudioRecordingShortcut: ShortcutConfig?
   @State private var pauseResumeRecordingShortcut: ShortcutConfig?
   @State private var togglePenRecordingShortcut: ShortcutConfig?
   @State private var restartRecordingShortcut: ShortcutConfig?
@@ -33,6 +34,9 @@ struct ShortcutsSettingsView: View {
     _oneShotShortcut = State(initialValue: KeyboardShortcutManager.shared.shortcut(for: .oneShot))
     _translationShortcut = State(
       initialValue: KeyboardShortcutManager.shared.shortcut(for: .translation)
+    )
+    _startAudioRecordingShortcut = State(
+      initialValue: KeyboardShortcutManager.shared.shortcut(for: .startAudioRecording)
     )
     _pauseResumeRecordingShortcut = State(
       initialValue: KeyboardShortcutManager.shared.shortcut(for: .pauseResumeRecording)
@@ -287,6 +291,17 @@ struct ShortcutsSettingsView: View {
             onShortcutChanged: { handleGlobalShortcutChange($0, for: .translation) }
           )
 
+          ShortcutRecorderView(
+            label: L10n.AudioRecording.startMenu,
+            icon: "waveform",
+            description: L10n.AudioRecording.startMenu,
+            shortcut: $startAudioRecordingShortcut,
+            defaultShortcut: nil,
+            isEnabled: globalEnabledBinding(for: .startAudioRecording),
+            validationIssue: globalValidationIssues[.startAudioRecording],
+            onShortcutChanged: { handleGlobalShortcutChange($0, for: .startAudioRecording) }
+          )
+
         } header: {
           HStack {
             Text(L10n.PreferencesShortcuts.captureSection)
@@ -436,8 +451,9 @@ struct ShortcutsSettingsView: View {
   private func resetCaptureSection(refresh: Bool = true) {
     oneShotShortcut = .defaultOneShot
     translationShortcut = nil
+    startAudioRecordingShortcut = nil
 
-    let captureKinds: [GlobalShortcutKind] = [.oneShot, .translation]
+    let captureKinds: [GlobalShortcutKind] = [.oneShot, .translation, .startAudioRecording]
     for kind in captureKinds {
       globalShortcutEnabled[kind] = true
       manager.setShortcutEnabled(true, for: kind)
@@ -446,6 +462,7 @@ struct ShortcutsSettingsView: View {
 
     manager.setOneShotShortcut(.defaultOneShot)
     manager.setTranslationShortcut(nil)
+    manager.setStartAudioRecordingShortcut(nil)
 
     if refresh {
       manager.refreshShortcutRegistration()
@@ -556,6 +573,9 @@ struct ShortcutsSettingsView: View {
         manager.setTranslationShortcut(config)
       case .agentMode:
         manager.setAgentModeShortcut(config)
+      case .startAudioRecording:
+        startAudioRecordingShortcut = config
+        manager.setStartAudioRecordingShortcut(config)
       case .pauseResumeRecording:
         pauseResumeRecordingShortcut = config
         manager.setPauseResumeRecordingShortcut(config)

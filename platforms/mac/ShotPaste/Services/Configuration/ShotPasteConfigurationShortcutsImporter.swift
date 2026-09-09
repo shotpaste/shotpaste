@@ -107,6 +107,7 @@ extension GlobalShortcutKind {
     case .oneShot: "one_shot"
     case .translation: "translation"
     case .agentMode: "agent_mode"
+    case .startAudioRecording: "start_audio_recording"
     case .pauseResumeRecording: "pause_resume_recording"
     case .togglePenRecording: "toggle_pen_recording"
     case .restartRecording: "restart_recording"
@@ -126,6 +127,8 @@ private extension KeyboardShortcutManager {
       setTranslationShortcut(config)
     case .agentMode:
       setAgentModeShortcut(config)
+    case .startAudioRecording:
+      setStartAudioRecordingShortcut(config)
     case .pauseResumeRecording:
       setPauseResumeRecordingShortcut(config)
     case .togglePenRecording:

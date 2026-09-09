@@ -45,7 +45,8 @@ public sealed record RecordingRequest(
     string MicrophoneDeviceName = "",
     double SystemAudioVolume = 0.8d,
     double MicrophoneVolume = 0.8d,
-    bool IncludeShotPaste = false)
+    bool IncludeShotPaste = false,
+    bool TranscriptionEnabled = false, bool UseAI = false, string Language = "auto")
 {
     public bool Gif => OutputMode == RecordingOutputMode.Gif;
 }

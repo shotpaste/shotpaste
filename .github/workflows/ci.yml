@@ -23,9 +23,21 @@ concurrency:
 
 jobs:
   macos:
-    name: macOS tests and localization
-    runs-on: macos-15
-    timeout-minutes: 35
+    name: macOS ${{ matrix.arch }} tests and localization
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+            timeout: 35
+            test_timeout: 30
+          - arch: x86_64
+            runner: macos-15-intel
+            timeout: 45
+            test_timeout: 40
+    timeout-minutes: ${{ matrix.timeout }}
     steps:
       - name: Checkout source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -47,8 +59,35 @@ jobs:
             platforms/mac/Tools/Localization/CatalogTool.swift verify
 
       - name: Run macOS tests
+        timeout-minutes: ${{ matrix.test_timeout }}
         shell: bash
         run: ./scripts/run-tests.sh
+
+      - name: Verify installer architecture selection
+        run: python3 -m unittest discover -s scripts -p test_macos_installer.py -v
+
+      - name: Preserve failed macOS test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: macos-test-failure-${{ matrix.arch }}-${{ github.run_id }}
+          path: build/ci-test.xcresult
+          if-no-files-found: ignore
+          retention-days: 3
+
+  macos-required:
+    # Keep the existing branch-protection check name; both native architectures
+    # must succeed before this aggregate gate can pass.
+    name: macOS tests and localization
+    needs: macos
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require both macOS architectures
+        env:
+          MACOS_RESULT: ${{ needs.macos.result }}
+        run: test "$MACOS_RESULT" = success
 
   windows:
     name: Windows ${{ matrix.configuration }} build and tests
@@ -101,7 +140,9 @@ jobs:
 
       - name: Run interactive Windows parity suite
         shell: pwsh
-        run: ./scripts/test-windows-parity.ps1 -Configuration Debug -Tier Interactive -SkipBuild -RequireDpiScale 1.5
+        run: |
+          $product = (Resolve-Path './platforms/windows/src/ShotPaste.Windows/bin/x64/Debug/net8.0-windows10.0.19041.0/win-x64/ShotPasteDebug.exe').Path
+          ./scripts/test-windows-parity.ps1 -Configuration Debug -Tier Interactive -SkipBuild -ProductExecutable $product -RequireDpiScale 1.5
 
       - name: Upload Windows parity evidence
         if: always()

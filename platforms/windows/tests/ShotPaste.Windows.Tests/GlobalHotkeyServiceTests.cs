@@ -68,10 +68,11 @@ public sealed class GlobalHotkeyServiceTests
 
         Assert.All(gestures, gesture =>
             Assert.True(GlobalHotkeyService.TryParseGesture(gesture, out _, out _), gesture));
+        Assert.Empty(settings.AudioRecordingHotkey);
     }
 
     [Fact]
-    public void RegisteredActionsContainOnlyOneShotHistoryAndActiveRecordingControls()
+    public void RegisteredActionsContainOneShotHistoryAudioAndActiveRecordingControls()
     {
         Assert.Equal(
             [
@@ -80,7 +81,8 @@ public sealed class GlobalHotkeyServiceTests
                 HotkeyAction.RecordingPause,
                 HotkeyAction.RecordingAnnotation,
                 HotkeyAction.RecordingRestart,
-                HotkeyAction.RecordingDelete
+                HotkeyAction.RecordingDelete,
+                HotkeyAction.AudioRecording
             ],
             Enum.GetValues<HotkeyAction>());
     }
@@ -110,7 +112,8 @@ public sealed class GlobalHotkeyServiceTests
                     RecordingPauseHotkey = "C",
                     RecordingAnnotationHotkey = "D",
                     RecordingRestartHotkey = "E",
-                    RecordingDeleteHotkey = "F"
+                    RecordingDeleteHotkey = "F",
+                    AudioRecordingHotkey = "G"
                 };
                 var results = GlobalHotkeyService.ProbeConfigured(settings);
                 Assert.All(results.Values, result => Assert.Equal(HotkeyAvailability.Invalid, result.Availability));

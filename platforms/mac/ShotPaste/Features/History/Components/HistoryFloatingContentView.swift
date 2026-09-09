@@ -79,6 +79,12 @@ struct HistoryFloatingContentView: View {
       .scaleEffect(resolvedPanelScale)
       .frame(width: scaledPanelSize.width, height: scaledPanelSize.height)
       .preferredColorScheme(themeManager.systemAppearance)
+      .task {
+        while !Task.isCancelled {
+          await TranscriptionResultsModel.shared.refresh()
+          do { try await Task.sleep(for: .seconds(2)) } catch { return }
+        }
+      }
       .onAppear {
         syncSelectionIfNeeded()
         syncExpandedGridPresentation()
@@ -246,6 +252,8 @@ struct HistoryFloatingContentView: View {
 
   private var expandedControls: some View {
     HStack(spacing: 6) {
+      controlButton(systemName: "text.bubble", help: L10n.TranscriptionResults.title,
+        size: 34, action: { TranscriptionResultsWindowController.shared.show() })
       controlButton(
         systemName: manager.keepsOpen ? "pin.fill" : "pin",
         help: manager.keepsOpen
@@ -419,7 +427,7 @@ struct HistoryFloatingContentView: View {
     [
       (L10n.PreferencesHistory.defaultFilterScreenshots, .screenshot),
       (L10n.Actions.scrollingCapture, .scrollingScreenshot),
-      (L10n.CaptureKind.recording, .recording),
+      (L10n.AudioRecording.historyCategory, .recording),
       (L10n.OneShot.clipboard, .clipboard),
     ]
   }

@@ -127,6 +127,14 @@ final class MediaClipboardMonitor {
               fileName: sourceURL.lastPathComponent
             )
           }
+          if historyType == .audio || historyType == .video || historyType == .file {
+            let historyID = await MainActor.run {
+              CaptureHistoryStore.shared.record(forFilePath: archivedURL.path)?.id
+            }
+            if let historyID {
+              await TranscriptionResultsRepository.shared.linkHistoryRecord(historyID, sourceURL: sourceURL)
+            }
+          }
         } catch {
           DiagnosticLogger.shared.logError(
             .clipboard,

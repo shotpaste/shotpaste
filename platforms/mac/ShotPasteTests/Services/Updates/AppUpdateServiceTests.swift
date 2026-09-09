@@ -8,6 +8,48 @@ import Foundation
 import XCTest
 
 final class AppUpdateServiceTests: XCTestCase {
+  func testEachArchitectureSelectsOnlyItsOwnPackage() async throws {
+    for architecture in [AppUpdateService.Architecture.arm64, .x86_64] {
+      let session = MockURLSession { request in
+        let releases = [
+          ("2.0.0", "arm64"), ("1.9.0", "x86_64"),
+        ].map { version, arch in
+          """
+          {"tag_name":"macos-v\(version)",
+           "html_url":"https://github.com/shotpaste/shotpaste/releases/tag/macos-v\(version)",
+           "draft":false,"prerelease":false,
+           "assets":[{"name":"ShotPaste-v\(version)-macOS-\(arch).dmg"}]}
+          """
+        }.joined(separator: ",")
+        return MockURLSession.makeResponse(statusCode: 200, data: Data("[\(releases)]".utf8), url: request.url!)
+      }
+      let service = AppUpdateService(session: session, architecture: architecture) { "1.0.0" }
+      guard case .updateAvailable(_, let release) = try await service.checkForUpdates() else {
+        return XCTFail("Expected an architecture-compatible update")
+      }
+      XCTAssertEqual(release.version.description, architecture == .arm64 ? "2.0.0" : "1.9.0")
+    }
+  }
+
+  func testIntelRejectsARMOnlyRelease() async throws {
+    let session = MockURLSession { request in
+      let data = Data("""
+      [{"tag_name":"macos-v2.0.0",
+        "html_url":"https://github.com/shotpaste/shotpaste/releases/tag/macos-v2.0.0",
+        "draft":false,"prerelease":false,
+        "assets":[{"name":"ShotPaste-v2.0.0-macOS-arm64.dmg"}]}]
+      """.utf8)
+      return MockURLSession.makeResponse(statusCode: 200, data: data, url: request.url!)
+    }
+    let service = AppUpdateService(session: session, architecture: .x86_64) { "1.0.0" }
+    do {
+      _ = try await service.checkForUpdates()
+      XCTFail("An ARM-only release must not be offered to Intel")
+    } catch let error as AppUpdateCheckError {
+      XCTAssertEqual(error, .invalidRelease)
+    }
+  }
+
   func testReleaseVersionParsesAndComparesStableSemanticVersions() throws {
     let version = try XCTUnwrap(AppReleaseVersion("v1.12.3"))
     let olderVersion = try XCTUnwrap(AppReleaseVersion("1.11.99"))
@@ -55,7 +97,7 @@ final class AppUpdateServiceTests: XCTestCase {
       )
       return MockURLSession.makeResponse(statusCode: 200, data: data, url: request.url!)
     }
-    let service = AppUpdateService(session: session) { "1.12.2" }
+    let service = AppUpdateService(session: session, architecture: .arm64) { "1.12.2" }
 
     let result = try await service.checkForUpdates()
 
@@ -89,7 +131,7 @@ final class AppUpdateServiceTests: XCTestCase {
       )
       return MockURLSession.makeResponse(statusCode: 200, data: data, url: request.url!)
     }
-    let service = AppUpdateService(session: session) { "1.12.2" }
+    let service = AppUpdateService(session: session, architecture: .arm64) { "1.12.2" }
 
     guard case let .upToDate(currentVersion, latestRelease) = try await service.checkForUpdates() else {
       return XCTFail("Expected the installed version to be current")
@@ -116,7 +158,7 @@ final class AppUpdateServiceTests: XCTestCase {
       )
       return MockURLSession.makeResponse(statusCode: 200, data: data, url: request.url!)
     }
-    let service = AppUpdateService(session: session) { "2.0.0" }
+    let service = AppUpdateService(session: session, architecture: .arm64) { "2.0.0" }
 
     guard case let .upToDate(currentVersion, latestRelease) = try await service.checkForUpdates() else {
       return XCTFail("Expected a newer installed build to remain current")
@@ -140,7 +182,7 @@ final class AppUpdateServiceTests: XCTestCase {
       )
       return MockURLSession.makeResponse(statusCode: 200, data: data, url: request.url!)
     }
-    let service = AppUpdateService(session: session) { "1.12.2" }
+    let service = AppUpdateService(session: session, architecture: .arm64) { "1.12.2" }
 
     do {
       _ = try await service.checkForUpdates()
@@ -165,7 +207,7 @@ final class AppUpdateServiceTests: XCTestCase {
       )
       return MockURLSession.makeResponse(statusCode: 200, data: data, url: request.url!)
     }
-    let service = AppUpdateService(session: session) { "1.12.2" }
+    let service = AppUpdateService(session: session, architecture: .arm64) { "1.12.2" }
 
     do {
       _ = try await service.checkForUpdates()
@@ -179,7 +221,7 @@ final class AppUpdateServiceTests: XCTestCase {
     let session = MockURLSession { request in
       MockURLSession.makeResponse(statusCode: 403, url: request.url!)
     }
-    let service = AppUpdateService(session: session) { "1.12.2" }
+    let service = AppUpdateService(session: session, architecture: .arm64) { "1.12.2" }
 
     do {
       _ = try await service.checkForUpdates()

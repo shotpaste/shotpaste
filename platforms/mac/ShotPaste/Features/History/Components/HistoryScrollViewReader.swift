@@ -13,6 +13,11 @@ import SwiftUI
 final class HistoryScrollController: ObservableObject {
   var scrollView: NSScrollView?
 
+  // No actor-bound teardown is needed. Avoid Swift 6.2's isolated-deinit
+  // back-deployment thunk, which can abort during synchronous SwiftUI release
+  // on macOS 15 (swiftlang/swift#85663).
+  nonisolated deinit {}
+
   @Published var offset: CGFloat = 0
   @Published var contentHeight: CGFloat = 0
   @Published var visibleHeight: CGFloat = 0
@@ -103,7 +108,7 @@ struct HistoryScrollViewReader: NSViewRepresentable {
       parent.controller.contentHeight = documentView.frame.height
     }
 
-    deinit {
+    nonisolated deinit {
       NotificationCenter.default.removeObserver(self)
     }
   }

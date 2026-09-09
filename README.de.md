@@ -2,23 +2,23 @@
 
 Native, lokal arbeitende Bildschirmaufnahme für macOS und Windows.
 
-[English](README.md) · [Tiếng Việt](README.vi.md) ·
-[简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) ·
-[Español](README.es.md) · [日本語](README.ja.md) ·
-[한국어](README.ko.md) · [Русский](README.ru.md) ·
-[Français](README.fr.md) · **Deutsch**
+[简体中文](README.md) · [English](README.en.md) · [Tiếng Việt](README.vi.md) ·
+[繁體中文](README.zh-TW.md) · [Español](README.es.md) · [日本語](README.ja.md) ·
+[한국어](README.ko.md) · [Русский](README.ru.md) · [Français](README.fr.md) ·
+**Deutsch**
 
 **Offizielle Website:** [shotpaste.com](https://www.shotpaste.com/)
 
 ShotPaste bietet unabhängige native Anwendungen für macOS und Windows.
-Aufnahmen, OCR, Bildschirmvideos, Verlauf, Zwischenablage und Einstellungen
-bleiben auf dem Gerät. Das Projekt bietet weder Konten noch Telemetrie,
-Cloud-Uploads, entfernten Speicher oder Synchronisierung.
+Aufnahmen, OCR, Verlauf, Zwischenablage und Einstellungen bleiben lokal.
+Optionale Übersetzung, Audiotranskription und KI-Textverarbeitung senden nur
+ausgewählten Text oder Ton an selbst konfigurierte Dienste. Das Projekt betreibt
+keinen Konto-, Telemetrie-, Upload-Vermittlungs- oder Synchronisierungsdienst.
 
 ## Funktionen
 
 - **One Shot:** Bereich einmal auswählen und danach Screenshot,
-  Scroll-Aufnahme, Aufnahme oder Zwischenablageverlauf wählen.
+  Scroll-Aufnahme, Aufnahme, Übersetzung oder Zwischenablageverlauf wählen.
 
   [![One-Shot-Modusauswahl](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
 
@@ -27,6 +27,13 @@ Cloud-Uploads, entfernten Speicher oder Synchronisierung.
   Mauszeiger und Desktopoptionen.
 
   [![Lokale OCR aus einem Screenshot](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
+- **Übersetzung:** Text aus einem eingefrorenen One-Shot-Bereich mit lokaler OCR,
+  automatischer Erkennung der Ausgangssprache, konfigurierbaren Zielsprachen und
+  einem vom Benutzer eingerichteten Provider übersetzen. Nur der erkannte Text
+  wird zur Übersetzung gesendet.
+
+  [![Screenshot-Übersetzung](assets/readme/translate.gif)](assets/readme/translate.gif)
 
 - **Integrierte Anmerkungen:** Auswahl, Formen, Pfeile, Text, Textmarker,
   Mosaik, Fokus, Zähler, Stift, Rückgängig/Wiederholen, QR, Kopieren und
@@ -44,6 +51,13 @@ Cloud-Uploads, entfernten Speicher oder Synchronisierung.
   Live-Zeichnen.
 
   [![Aufnahme mit Live-Anmerkungen](assets/readme/recording.gif)](assets/readme/recording.gif)
+
+- **Audioaufnahme:** Systemton, Mikrofon oder beides über Menüleiste oder
+  Infobereich aufnehmen, ohne Bildschirmauswahl; als reine M4A-Audiodatei speichern.
+- **Transkription und KI-Notizen:** mit eigenem Volcengine-Konto optional
+  transkribieren und den Text mit dem konfigurierten LLM überarbeiten und gliedern.
+  Gespeicherte Ergebnisse im Transkriptionsfenster suchen, kopieren und exportieren.
+  Siehe [Einrichtung, Verwendung und Datenschutz](docs/RECORDING_TRANSCRIPTION.en.md).
 
 - **Quick Access und Pins:** konfigurierbare Karten, Kopieren/Speichern/Öffnen,
   Zieh- und Wischaktionen sowie stets sichtbare Bild-Pins.
@@ -69,7 +83,7 @@ Siehe [vollständige Funktionsliste](docs/FEATURES.md).
 
 | | macOS | Windows |
 | --- | --- | --- |
-| Voraussetzungen | macOS 13+, Apple Silicon | Windows 10 2004+, x64 |
+| Voraussetzungen | macOS 13+, Apple Silicon (arm64) / Intel (x86_64) | Windows 10 2004+, x64 |
 | Native Technologien | SwiftUI, AppKit, ScreenCaptureKit, Vision | WPF, Win32 und Windows-APIs für Aufnahme/OCR/Medien |
 | Quellcode | `platforms/mac` | `platforms/windows` |
 
@@ -115,5 +129,5 @@ Die erforderlichen Urheberrechts- und Lizenztexte von Drittanbietern sind in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) enthalten.
 
 Hinweise zu Beiträgen, Hilfe und Sicherheitsmeldungen stehen in
-[CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.md](SUPPORT.md) und
+[CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.en.md](SUPPORT.en.md) und
 [SECURITY.md](SECURITY.md).

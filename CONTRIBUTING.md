@@ -1,46 +1,37 @@
-# Contributing to ShotPaste / 参与 ShotPaste 贡献
+# 参与 ShotPaste 贡献
 
-Thank you for helping improve ShotPaste. Contributions may target either
-native client, shared localization, documentation, scripts, or release quality.
+欢迎改进任一原生客户端、共享本地化、文档、脚本或发布质量。
 
-## Before you start
+## 开始之前
 
-- Search existing issues and pull requests.
-- Open an issue before a large feature, dependency, data-format, or architecture
-  change.
-- Keep pull requests focused. Shared product behavior should remain aligned on
-  macOS and Windows unless an operating-system difference requires otherwise.
-- Never include credentials, signing certificates, captured private content, or
-  unsanitized logs and screenshots.
-- You are responsible for reviewing and testing every submitted change,
-  including code, translations, tests, or documentation produced with automated
-  tools.
+- 搜索已有 Issue 和 Pull Request。
+- 大型功能、依赖、数据格式或架构变更前先发起 Issue。
+- 保持 PR 聚焦。除操作系统差异所必需外，macOS 与 Windows 的共享产品行为应保持一致。
+- 不包含凭据、签名证书、捕获的私密内容，以及未脱敏日志或截图。
+- 贡献者负责审查和测试所有提交内容，包括自动化工具生成的代码、翻译、测试和文档。
 
-Security vulnerabilities belong in the private process described in
-[SECURITY.md](SECURITY.md), not in a public issue.
+安全漏洞通过 [SECURITY.md](SECURITY.md) 中的私密流程报告，不发公开 Issue。
 
-## Set up the project
+## 配置开发环境
 
-Follow [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Platform code must be built
-and tested on its native operating system:
+遵循[开发指南](docs/DEVELOPMENT.md)。平台代码必须在对应原生操作系统构建和测试：
 
-- macOS: Swift, SwiftUI, and AppKit under `platforms/mac`
-- Windows: C#, WPF, and Win32 under `platforms/windows`
+- macOS：`platforms/mac` 下的 Swift、SwiftUI 和 AppKit
+- Windows：`platforms/windows` 下的 C#、WPF 和 Win32
 
-The clients use different native stacks but aim to preserve the shared product
-behavior in [docs/FEATURES.md](docs/FEATURES.md).
+两端使用不同原生技术栈，但共同遵循[功能契约](docs/FEATURES.md)。
 
-To enable the optional staged-Swift formatting check:
+启用可选的暂存区 Swift 格式检查：
 
 ```bash
 git config core.hooksPath scripts
 ```
 
-Remove the local setting with `git config --unset core.hooksPath`.
+使用 `git config --unset core.hooksPath` 移除此本地设置。
 
-## Validate a change
+## 验证改动
 
-macOS baseline:
+macOS 基线：
 
 ```bash
 ./scripts/format.sh
@@ -50,52 +41,26 @@ swift -module-cache-path build/swift-module-cache platforms/mac/Tools/Localizati
 ./scripts/build_and_run.sh build --configuration Release
 ```
 
-Windows PowerShell baseline:
+Windows PowerShell 基线：
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1 -Configuration Debug
 ```
 
-This command runs the x64 restore, unit-test passes, build-identity check, and
-headless Windows parity gate. See [the Windows development guide](docs/DEVELOPMENT.md)
-for Release, publish, interactive parity, artifact paths, and `dotnet` PATH
-troubleshooting.
+此命令执行 x64 还原、单元测试分组、构建身份检查与 Headless Windows 一致性门禁。
+Release、发布、交互一致性、产物路径和 `dotnet` PATH 排障见[Windows 开发说明](docs/DEVELOPMENT.md)。
 
-A successful compile is not sufficient for capture, recording, permission,
-shortcut, DPI, or window-management changes. Include the affected OS/hardware
-and concise manual acceptance steps in the pull request.
+编译成功不足以证明捕获、录制、权限、快捷键、DPI 或窗口管理改动正确。
+PR 中须记录受影响系统/硬件和简明人工验收步骤。
 
-## Branch management / 分支管理
+## 文档语言
 
-### English
+维护文档以简体中文为主，不再为开发、架构、评审、安全和协作说明维护平行译本。
+README 与面向用户的使用指南可保留多语言，更新时同步已有译本；
+具体范围与命名见[文档导航](docs/README.md)。
+命令、路径、协议字段、配置键与代码标识符保留原样；许可证和版权声明保留上游原文。
 
-ShotPaste uses `main` for daily development and `release` for pre-release
-acceptance. The repository owner maintains the project directly; pull requests
-remain the contribution path for everyone else.
-
-1. The repository owner may commit and push directly to `main`, or merge any
-   development branch into `main` and push the result. A pull request into
-   `main` is optional for owner-maintained work.
-2. Normal pushes to `main` are allowed. Force-pushing or deleting `main` is
-   prohibited.
-3. External contributors must fork the repository, create a focused branch
-   other than `main` in their fork, and open a pull request from that branch to
-   the upstream `main`. External contributions do not target `release`.
-4. `release` accepts changes only through pull requests. Direct commits and
-   direct pushes to `release`, force-pushing it, and deleting it are prohibited.
-5. To prepare a release, the repository owner opens and merges a pull request
-   directly from `main` to `release`. Do not create a promotion or staging
-   branch, cherry-pick selected changes, or apply a hotfix directly to
-   `release`; complete the change on `main` first and refresh the same direct
-   `main`-to-`release` pull request.
-6. After the pull request is merged, the resulting `release` commit must pass
-   the applicable builds and CI checks for both native platforms. The repository
-   owner must also complete manual acceptance before creating a tag.
-7. Only an accepted commit on `release` may receive an immutable official tag:
-   `macos-vMAJOR.MINOR.PATCH` or `windows-vMAJOR.MINOR.PATCH`. Each tag triggers
-   only its platform's release workflow and GitHub Release.
-
-### 中文
+## 分支管理
 
 ShotPaste 使用 `main` 作为日常迭代分支，使用 `release` 作为发布前验收分支。
 项目由仓库 Owner 直接维护，其他贡献者统一通过 Pull Request 贡献代码。
@@ -108,36 +73,35 @@ ShotPaste 使用 `main` 作为日常迭代分支，使用 `release` 作为发布
    以 `release` 为目标分支。
 4. `release` 只允许通过 Pull Request 合入。禁止直接在 `release` 提交或
    推送，禁止强制推送，也禁止删除。
-5. 需要发版时，由仓库 Owner 直接从 `main` 向 `release` 发起并合并 Pull
-   Request。不创建发版晋级或 staging 中间分支，不通过 cherry-pick 挑选
-   提交，也不直接在 `release` 修复；任何修复都先进入 `main`，再刷新同一个
-   `main` 到 `release` 的 Pull Request。
-6. Pull Request 合并后，`release` 上的候选提交必须通过两个原生平台适用的
-   构建与 CI 检查，并由仓库 Owner 完成人工验收，之后才能创建 tag。
+5. 需要发版时，由仓库 Owner 直接从 `main` 向 `release` 发起并合并 Pull Request。
+   不创建发版晋级或 staging 中间分支，不通过 cherry-pick 挑选提交，
+   也不直接在 `release` 修复；任何修复都先进入 `main`，再刷新同一个 `main → release` PR。
+6. PR 合并后，`release` 上的候选提交必须通过两个原生平台适用的构建与 CI 检查，
+   并由仓库 Owner 完成人工验收，之后才能创建 tag。
 7. 只有 `release` 上已经验收通过的提交可以创建不可变的正式 tag：
-   `macos-vMAJOR.MINOR.PATCH` 或 `windows-vMAJOR.MINOR.PATCH`。每个 tag 只
-   触发对应平台的发布工作流和 GitHub Release。
+   `macos-vMAJOR.MINOR.PATCH` 或 `windows-vMAJOR.MINOR.PATCH`。
+   每个 tag 只触发对应平台的发布工作流和 GitHub Release。
 
-### Release flow / 发版流程示意图
+### 发版流程
 
 ```mermaid
 flowchart LR
-    ownerDirect["Owner direct work / Owner 直接维护"]
-    forkBranch["Fork non-main branch / Fork 非 main 分支"]
+    ownerDirect["Owner 直接维护"]
+    forkBranch["Fork 非 main 分支"]
     mainBranch["main / 日常迭代"]
     releaseBranch["release / 发布前验收"]
-    acceptance["CI, builds, and owner acceptance / CI、构建与 Owner 验收"]
+    acceptance["CI、构建与 Owner 验收"]
     macTag["macos-vX.Y.Z"]
     windowsTag["windows-vX.Y.Z"]
     macRelease["macOS GitHub Release"]
     windowsRelease["Windows GitHub Release"]
 
-    ownerDirect -->|"Normal push / 正常推送"| mainBranch
-    forkBranch -->|"PR / 贡献 PR"| mainBranch
-    mainBranch -->|"Direct owner PR / Owner 直接 PR"| releaseBranch
+    ownerDirect -->|"正常推送"| mainBranch
+    forkBranch -->|"贡献 PR"| mainBranch
+    mainBranch -->|"Owner 直接 PR"| releaseBranch
     releaseBranch --> acceptance
-    acceptance -->|"Owner tag / Owner 打标"| macTag
-    acceptance -->|"Owner tag / Owner 打标"| windowsTag
+    acceptance -->|"Owner 打标"| macTag
+    acceptance -->|"Owner 打标"| windowsTag
     macTag --> macRelease
     windowsTag --> windowsRelease
 
@@ -147,28 +111,20 @@ flowchart LR
     style windowsTag fill:#DCCCFF,stroke:#874FFF
 ```
 
-## Pull requests
+## Pull Request
 
-1. External contributors fork the repository and create a non-`main` branch
-   from the latest `main` for one coherent change.
-2. Open the contribution pull request against the upstream `main`; do not target
-   `release`.
-3. A release pull request is maintained by the repository owner, uses `main` as
-   its source, and targets `release` directly. Do not introduce an intermediate
-   promotion branch. If it needs changes, update `main` and refresh this PR.
-4. Add or update tests and user-facing documentation where relevant.
-5. Validate every changed native platform on that operating system.
-6. Complete the pull request template with exact evidence and known limits.
+1. 外部贡献者 fork 仓库，从最新 `main` 建立非 `main` 分支，每次只处理一项完整改动。
+2. 贡献 PR 指向上游 `main`，不指向 `release`。
+3. 发布 PR 由仓库 Owner 维护，源为 `main`，直接指向 `release`，不引入中间晋级分支。
+   如需改动，更新 `main` 并刷新同一 PR。
+4. 按需增加或更新测试及用户文档。
+5. 每个修改过的原生平台都在其操作系统验证。
+6. 填写 PR 模板，提供准确证据与已知限制。
 
-Pull requests are reviewed for correctness, privacy impact, platform parity,
-accessibility, localization, and maintainability. A passing CI run is necessary
-but does not replace native-platform testing for UI, capture, recording,
-permissions, shortcuts, DPI, or signing behavior.
+评审关注正确性、隐私影响、平台一致性、可访问性、本地化和可维护性。
+CI 通过是必要条件，但不能替代 UI、捕获、录制、权限、快捷键、DPI 或签名行为的原生平台测试。
 
-Maintainers may ask for a smaller change, additional evidence, or a platform
-follow-up before merging. Draft pull requests are welcome when early design
-feedback would prevent wasted work.
-
-Do not mix generated artifacts, unrelated formatting, or personal IDE files
-into the change. By contributing, you agree that your contribution is licensed
-under the repository's [BSD 3-Clause License](LICENSE).
+合并前维护者可能要求缩小改动、补充证据或跟进另一平台。
+若早期设计反馈有助于避免返工，欢迎提交草稿 PR。
+不混入生成产物、无关格式调整或个人 IDE 文件。
+贡献即表示同意按仓库 [BSD 3-Clause License](LICENSE) 许可提交内容。

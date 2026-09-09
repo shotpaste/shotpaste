@@ -18,7 +18,7 @@ final class QuickAccessPinWindowManager {
 
   @discardableResult
   func show(item: QuickAccessItem, onUserClose: @escaping (UUID) -> Void) -> Bool {
-    guard !item.isVideo else { return false }
+    guard item.supportsPinning else { return false }
 
     if let controller = controllers[item.id] {
       controller.update(item: item)

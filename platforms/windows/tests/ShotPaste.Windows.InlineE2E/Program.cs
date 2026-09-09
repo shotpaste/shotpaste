@@ -44,6 +44,7 @@ internal static class Program
                 ("pin", ScenarioAction.Pin, false),
                 ("quick_access", ScenarioAction.QuickAccess, false),
                 ("quick_access_drag", ScenarioAction.QuickAccessDrag, false),
+                ("quick_access_close", ScenarioAction.QuickAccessClose, false),
                 ("quick_access_delete", ScenarioAction.QuickAccessDelete, false),
                 ("editor_removed", ScenarioAction.EditorRemoved, false),
                 ("copy_recovery", ScenarioAction.CopyRecovery, false),
@@ -455,6 +456,23 @@ internal static class Program
                     screenshot = quickVerification.PreviewScreenshot;
                     detail = $"Quick Access rendered the asynchronously decoded screenshot thumbnail, kept fixed action slots, and resumed its saved countdown in {quickVerification.ResumeSeconds:0.00}s.";
                     break;
+                case ScenarioAction.QuickAccessClose:
+                    SendKey(overlay, 0x0D);
+                    WaitForCaptureCount(captureDirectory, 1);
+                    Invoke(WaitForAutomationId(process.Id, "QuickAccessClose"));
+                    WaitUntil(() => FindVisibleByAutomationId(process.Id, "QuickAccessWindow") is null,
+                        "Quick Access did not close.");
+                    var closedClock = Stopwatch.StartNew();
+                    while (closedClock.Elapsed < TimeSpan.FromSeconds(3.5))
+                    {
+                        if (FindVisibleByAutomationId(process.Id, "QuickAccessWindow") is not null)
+                            throw new InvalidOperationException("A visibility retry reopened the dismissed Quick Access card.");
+                        Thread.Sleep(50);
+                    }
+                    screenshot = Path.Combine(root, "quick-access-closed.png");
+                    SaveDesktopScreenshot(screenshot);
+                    detail = "Explicit dismissal remained closed beyond the previous visibility-retry window; saved media was retained.";
+                    break;
                 case ScenarioAction.QuickAccessDrag:
                     SendKey(overlay, 0x0D);
                     WaitForCaptureCount(captureDirectory, 1);
@@ -553,7 +571,7 @@ internal static class Program
                 ? Directory.GetFiles(captureDirectory, "*.png")
                 : [];
             var expectedCount = action is ScenarioAction.DoneWithEnter or ScenarioAction.PanToolbarRecovery or ScenarioAction.DirtySave or ScenarioAction.DirtyExitSave or ScenarioAction.Pin or
-                ScenarioAction.QuickAccess or ScenarioAction.QuickAccessDrag or ScenarioAction.PerformanceBaseline ? 1 : 0;
+                ScenarioAction.QuickAccess or ScenarioAction.QuickAccessClose or ScenarioAction.QuickAccessDrag or ScenarioAction.PerformanceBaseline ? 1 : 0;
             if (captures.Length != expectedCount)
                 throw new InvalidOperationException($"{name}: expected {expectedCount} output file(s), got {captures.Length}.");
             var historyItems = process.HasExited ? PersistedHistoryItemCount(database) : HistoryItemCount(process.Id);
@@ -819,14 +837,17 @@ internal static class Program
     private static QuickVerification ExerciseQuickAccess(int processId, string root)
     {
         var quick = WaitForAutomationId(processId, "QuickAccessWindow");
+        // Pause immediately: UIA enumeration and screenshot encoding can outlast
+        // a short countdown on a fresh Windows desktop.
+        var bounds = quick.Current.BoundingRectangle;
+        var center = new Drawing.Point((int)Math.Round(bounds.Left + bounds.Width / 2), (int)Math.Round(bounds.Top + bounds.Height / 2));
+        Native.SetCursorPos(center.X, center.Y);
         WaitUntil(() => FindVisibleByAutomationId(processId, "QuickAccessTextPreview") is null,
             "Quick Access kept its fallback surface after the screenshot thumbnail finished decoding.");
         Thread.Sleep(180);
         var previewScreenshot = Path.Combine(root, "quick-access-thumbnail.png");
         SaveDesktopScreenshot(previewScreenshot);
-        var bounds = quick.Current.BoundingRectangle;
-        Native.SetCursorPos((int)Math.Round(bounds.Left + bounds.Width / 2), (int)Math.Round(bounds.Top + bounds.Height / 2));
-        Thread.Sleep(2800);
+        Thread.Sleep(6500);
         if (FindVisibleByAutomationId(processId, "QuickAccessWindow") is null)
             throw new InvalidOperationException("Hover did not pause the Quick Access countdown.");
 
@@ -840,11 +861,19 @@ internal static class Program
         var actionsScreenshot = Path.Combine(root, "quick-access-fixed-slots.png");
         SaveDesktopScreenshot(actionsScreenshot);
         var screen = Forms.Screen.FromPoint(Forms.Cursor.Position).WorkingArea;
+        // Consume a controlled portion of the six-second budget, then pause again.
+        // Resuming with a fresh full budget must still fail this check.
+        Native.SetCursorPos(screen.Left + 12, screen.Top + 12);
+        Thread.Sleep(2000);
+        Native.SetCursorPos(center.X, center.Y);
+        Thread.Sleep(500);
+        if (FindVisibleByAutomationId(processId, "QuickAccessWindow") is null)
+            throw new InvalidOperationException("Quick Access expired before its remaining countdown was consumed.");
         Native.SetCursorPos(screen.Left + 12, screen.Top + 12);
         var stopwatch = Stopwatch.StartNew();
         WaitUntil(() => FindVisibleByAutomationId(processId, "QuickAccessWindow") is null,
             "Quick Access did not resume its countdown after hover ended.");
-        if (stopwatch.Elapsed < TimeSpan.FromSeconds(1) || stopwatch.Elapsed > TimeSpan.FromSeconds(2.9))
+        if (stopwatch.Elapsed < TimeSpan.FromSeconds(0.1) || stopwatch.Elapsed > TimeSpan.FromSeconds(4.6))
             throw new InvalidOperationException($"Quick Access resumed with the wrong remaining time: {stopwatch.Elapsed.TotalSeconds:0.00}s.");
         return new QuickVerification(stopwatch.Elapsed.TotalSeconds, previewScreenshot, actionsScreenshot);
     }
@@ -985,8 +1014,10 @@ internal static class Program
             SaveScreenshots = true,
             CopyScreenshots = false,
             CopyAfterCapture = false,
-            ShowQuickAccess = action is ScenarioAction.QuickAccess or ScenarioAction.QuickAccessDrag or ScenarioAction.QuickAccessDelete,
-            QuickAccessAutoDismissSeconds = 3,
+            ShowQuickAccess = action is ScenarioAction.QuickAccessClose or ScenarioAction.QuickAccess or ScenarioAction.QuickAccessDrag or ScenarioAction.QuickAccessDelete,
+            QuickAccessAutoDismissSeconds = 6,
+            // Drag/delete scenarios verify their own actions, not the expiry timer.
+            QuickAccessAutoDismissEnabled = action is not (ScenarioAction.QuickAccessDrag or ScenarioAction.QuickAccessDelete),
             PauseQuickAccessOnHover = true,
             QuickAccessPosition = "BottomRight",
             QuickAccessActions = action switch
@@ -1172,6 +1203,7 @@ internal static class Program
         QuickAccess,
         QuickAccessDrag,
         QuickAccessDelete,
+        QuickAccessClose,
         EditorRemoved,
         CopyRecovery,
         SelectionSizeBadgeDefault,

@@ -9,8 +9,13 @@ import SwiftUI
 
 struct HistoryContextMenu: View {
   let record: CaptureHistoryRecord
+  @ObservedObject private var transcriptionResults = TranscriptionResultsModel.shared
 
   var body: some View {
+    if let id = transcriptionResults.resultID(for: record) {
+      Button(L10n.TranscriptionResults.view) { TranscriptionResultsWindowController.shared.show(id) }
+      Divider()
+    }
     Button(L10n.Common.openInFinder) {
       NSWorkspace.shared.activateFileViewerSelecting([record.fileURL])
     }

@@ -7,12 +7,16 @@
 
 import Foundation
 import GRDB
+import UniformTypeIdentifiers
 
 /// Type of capture stored in history
 enum CaptureHistoryType: String, Codable, Equatable, CaseIterable, Sendable {
+  // These case names are persisted in SQLite and are part of the history
+  // compatibility contract. Do not rename existing cases.
   case screenshot
   case video
   case gif
+  case audio
   case text
   case file
 
@@ -24,10 +28,90 @@ enum CaptureHistoryType: String, Codable, Equatable, CaseIterable, Sendable {
       "film"
     case .gif:
       "photo.stack"
+    case .audio:
+      "waveform"
     case .text:
       "doc.plaintext"
     case .file:
       "doc"
+    }
+  }
+
+  var isRecording: Bool {
+    switch self {
+    case .video, .gif, .audio:
+      true
+    case .screenshot, .text, .file:
+      false
+    }
+  }
+}
+
+/// File-type policy shared by audio post-capture and Quick Access restore.
+///
+/// Audio recording currently emits M4A, but accepting other known audio UTIs
+/// keeps history useful for future audio-only capture providers. Video
+/// extensions are rejected before UTI inspection so an audio-only MOV/MP4 can
+/// never enter the audio path by accident.
+enum CaptureHistoryAudioURLPolicy {
+  private static let videoExtensions: Set<String> = ["mov", "mp4", "m4v"]
+  private static let knownAudioExtensions: Set<String> = [
+    "m4a", "m4b", "aac", "aif", "aiff", "caf", "flac", "mp3", "ogg", "wav",
+  ]
+
+  static func accepts(_ url: URL) -> Bool {
+    guard url.isFileURL else { return false }
+    let extensionName = url.pathExtension.lowercased()
+    guard !videoExtensions.contains(extensionName) else { return false }
+    if knownAudioExtensions.contains(extensionName) {
+      return true
+    }
+    return UTType(filenameExtension: extensionName)?.conforms(to: .audio) == true
+  }
+}
+
+/// UI-facing processing states backed by the metadata-only history/task index.
+/// Existing databases remain unchanged; the index is updated independently.
+enum CaptureHistoryAudioProcessingStatus: String, Codable, Equatable, Sendable {
+  case saving
+  case transcribing
+  case polishing
+  case organizing
+  case waitingForModel
+  case notStarted
+  case inProgress
+  case complete
+  case organizationPending
+  case organized
+  case failed
+  case unavailable
+
+  var displayName: String {
+    switch self {
+    case .saving:
+      L10n.AudioRecording.saving
+    case .transcribing:
+      L10n.AudioRecording.transcribing
+    case .polishing:
+      L10n.AudioRecording.polishing
+    case .organizing:
+      L10n.AudioRecording.organizingInterviewQA
+    case .waitingForModel:
+      L10n.AudioRecording.waiting
+    case .notStarted:
+      L10n.AudioRecording.notStarted
+    case .inProgress:
+      L10n.AudioRecording.inProgress
+    case .complete:
+      L10n.AudioRecording.complete
+    case .organizationPending:
+      L10n.AudioRecording.organizationPending
+    case .organized:
+      L10n.AudioRecording.organized
+    case .failed:
+      L10n.AudioRecording.failed
+    case .unavailable:
+      L10n.AudioRecording.unavailable
     }
   }
 }
@@ -77,6 +161,12 @@ struct CaptureHistoryRecord: Identifiable, Codable, Equatable, FetchableRecord, 
   var origin: CaptureHistoryOrigin = .capture
 
   var category: CaptureHistoryCategory {
+    // Audio is always a recording, even if a malformed/imported row carries a
+    // clipboard origin. This prevents the recording filter from dropping it.
+    if captureType == .audio {
+      return .recording
+    }
+
     switch origin {
     case .scrollingCapture:
       return .scrollingScreenshot
@@ -86,7 +176,7 @@ struct CaptureHistoryRecord: Identifiable, Codable, Equatable, FetchableRecord, 
       switch captureType {
       case .screenshot:
         return .screenshot
-      case .video, .gif:
+      case .video, .gif, .audio:
         return .recording
       case .text, .file:
         // Text and generic files were only ever produced by clipboard import.
@@ -110,9 +200,21 @@ struct CaptureHistoryRecord: Identifiable, Codable, Equatable, FetchableRecord, 
     guard let duration, duration.isFinite, duration >= 0 else {
       return nil
     }
+    return Self.formattedDuration(for: duration)
+  }
+
+  static func formattedDuration(for duration: TimeInterval) -> String {
     let mins = Int(duration) / 60
     let secs = Int(duration) % 60
     return String(format: "%02d:%02ds", mins, secs)
+  }
+
+  /// Future transcription/organization state without changing the history
+  /// schema. A later sidecar or optional metadata field can replace this
+  /// placeholder while old rows continue decoding unchanged.
+  var audioProcessingStatus: CaptureHistoryAudioProcessingStatus? {
+    guard captureType == .audio else { return nil }
+    return AudioHistoryProcessingStatusStore.shared.status(for: id)
   }
 
   /// Local thumbnail URL in App Support, if the thumbnail file exists

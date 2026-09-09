@@ -18,6 +18,7 @@ final class AppStatusBarController: ObservableObject {
   private var statusItem: NSStatusItem?
   private var cancellables = Set<AnyCancellable>()
   private let recorder = ScreenRecordingManager.shared
+  private let audioCoordinator = AudioRecordingCoordinator.shared
   private lazy var idleStatusImage = makeIdleStatusImage()
   private lazy var agentStatusImage = makeAgentStatusImage()
   private lazy var recordingStopImage = makeRecordingStopImage()
@@ -64,7 +65,11 @@ final class AppStatusBarController: ObservableObject {
   }
 
   func stopRecording() {
-    RecordingCoordinator.shared.stopFromStatusItem()
+    if audioCoordinator.isRecording || audioCoordinator.state == .saving {
+      audioCoordinator.stop()
+    } else {
+      RecordingCoordinator.shared.stopFromStatusItem()
+    }
   }
 
   /// Show or hide a processing spinner on the menu bar icon (e.g. during OCR).
@@ -203,7 +208,17 @@ final class AppStatusBarController: ObservableObject {
   /// True while the menu bar item acts as the direct stop control
   /// (recording/paused AND the hover bar is hidden).
   private var isMenuBarActingAsStopControl: Bool {
-    (recorder.state == .recording || recorder.state == .paused) && !isHoverBarVisible
+    (recorder.state == .recording || recorder.state == .paused
+      || audioCoordinator.state == .recording || audioCoordinator.state == .paused)
+      && !isHoverBarVisible
+  }
+
+  private var isAudioRecording: Bool {
+    audioCoordinator.state == .recording || audioCoordinator.state == .paused
+  }
+
+  private var activeElapsedDuration: String {
+    isAudioRecording ? audioCoordinator.formattedElapsed : recorder.formattedDuration
   }
 
   // MARK: - State Observation
@@ -222,6 +237,19 @@ final class AppStatusBarController: ObservableObject {
       .sink { [weak self] _ in
         self?.renderStatusItem()
       }
+      .store(in: &cancellables)
+
+    audioCoordinator.$state
+      .receive(on: RunLoop.main)
+      .sink { [weak self] _ in
+        self?.renderStatusItem()
+        self?.scheduleRenderStatusItem()
+      }
+      .store(in: &cancellables)
+
+    audioCoordinator.$elapsedSeconds
+      .receive(on: RunLoop.main)
+      .sink { [weak self] _ in self?.renderStatusItem() }
       .store(in: &cancellables)
 
     // Re-render when recording UI preferences change (e.g. toggled in Settings mid-recording).
@@ -307,9 +335,16 @@ final class AppStatusBarController: ObservableObject {
   }
 
   private func statusItemAttributedTitle(for state: RecordingState) -> NSAttributedString {
+    let resolvedState: RecordingState = if audioCoordinator.state == .recording {
+      .recording
+    } else if audioCoordinator.state == .paused {
+      .paused
+    } else {
+      state
+    }
     let title = Self.menuBarTitleString(
-      for: state,
-      duration: recorder.formattedDuration,
+      for: resolvedState,
+      duration: activeElapsedDuration,
       showTime: showsRecordingTimeOnMenuBar
     )
 
@@ -335,7 +370,12 @@ final class AppStatusBarController: ObservableObject {
   private func statusItemTooltip(for state: RecordingState) -> String {
     // When the menu bar is the stop control, tell the user a click stops the recording.
     if isMenuBarActingAsStopControl {
-      return L10n.RecordingToolbar.clickToStop(recorder.formattedDuration)
+      return isAudioRecording
+        ? "\(L10n.AudioRecording.stop) (\(activeElapsedDuration))"
+        : L10n.RecordingToolbar.clickToStop(recorder.formattedDuration)
+    }
+    if isAudioRecording {
+      return "\(L10n.AudioRecording.recording) (\(activeElapsedDuration))"
     }
     switch state {
     case .recording:
@@ -399,6 +439,19 @@ final class AppStatusBarController: ObservableObject {
 
   // MARK: - Menu Building
 
+  static func recordingMenuTitles(
+    purpose: RecordingPurpose,
+    paused: Bool,
+    duration: String
+  ) -> (stop: String, pauseResume: String) {
+    switch purpose {
+    case .audioAdapter:
+      (L10n.AudioRecording.stopMenu, paused ? L10n.AudioRecording.resumeMenu : L10n.AudioRecording.pauseMenu)
+    case .screenVideo:
+      (L10n.Menu.stopRecording(duration), paused ? L10n.RecordingToolbar.resumeRecording : L10n.RecordingToolbar.pauseRecording)
+    }
+  }
+
   private func buildMenu() {
     menu = NSMenu()
     menu?.autoenablesItems = false
@@ -410,32 +463,40 @@ final class AppStatusBarController: ObservableObject {
     let shortcutManager = KeyboardShortcutManager.shared
     let agentMode = AgentModeController.shared
 
-    // Recording status indicator (when recording)
     if recorder.state == .recording || recorder.state == .paused {
-      let stopItem = NSMenuItem(
-        title: L10n.Menu.stopRecording(recorder.formattedDuration),
-        action: #selector(stopRecordingAction),
-        keyEquivalent: ""
+      let titles = Self.recordingMenuTitles(
+        purpose: recorder.recordingPurpose,
+        paused: recorder.isPaused,
+        duration: recorder.formattedDuration
       )
+      let stopItem = NSMenuItem(title: titles.stop, action: #selector(stopRecordingAction), keyEquivalent: "")
       stopItem.target = self
       stopItem.image = NSImage(systemSymbolName: "stop.fill", accessibilityDescription: nil)
-      stopItem.isEnabled = true
       menu?.addItem(stopItem)
-
-      let pauseResumeItem = NSMenuItem(
-        title: recorder.isPaused ? L10n.RecordingToolbar.resumeRecording : L10n.RecordingToolbar.pauseRecording,
+      let pauseItem = NSMenuItem(
+        title: titles.pauseResume,
         action: #selector(togglePauseRecordingAction),
         keyEquivalent: ""
       )
-      pauseResumeItem.target = self
-      pauseResumeItem.image = NSImage(
+      pauseItem.target = self
+      pauseItem.image = NSImage(
         systemSymbolName: recorder.isPaused ? "play.fill" : "pause.fill",
         accessibilityDescription: nil
       )
-      pauseResumeItem.isEnabled = recorder.state == .recording || recorder.state == .paused
-      menu?.addItem(pauseResumeItem)
-
+      menu?.addItem(pauseItem)
       menu?.addItem(NSMenuItem.separator())
+    }
+
+    if audioCoordinator.canRetrySave {
+      let saveItem = NSMenuItem(
+        title: L10n.AudioRecording.retrySave,
+        action: #selector(retryAudioSaveAction),
+        keyEquivalent: ""
+      )
+      saveItem.target = self
+      saveItem.image = NSImage(systemSymbolName: "arrow.clockwise", accessibilityDescription: nil)
+      saveItem.isEnabled = true
+      menu?.addItem(saveItem)
     }
 
     if agentMode.isEnabled {
@@ -503,6 +564,8 @@ final class AppStatusBarController: ObservableObject {
 
     // One Shot is the only idle capture entry. Active recording controls stay
     // visible above it while a One Shot recording is running.
+    // One Shot and audio are independent entries, but mutually exclusive at
+    // the menu boundary (shortcuts enforce the same policy in the ViewModel).
     let oneShotItem = NSMenuItem(
       title: L10n.Actions.oneShot,
       action: #selector(oneShotAction),
@@ -516,7 +579,32 @@ final class AppStatusBarController: ObservableObject {
       && !RecordingCoordinator.shared.isActive
       && !ScrollingCaptureCoordinator.shared.isActive
       && !agentMode.isSessionActive
+      && !audioCoordinator.isBlockingOtherCapture
     menu?.addItem(oneShotItem)
+
+    menu?.addItem(NSMenuItem.separator())
+
+    // Audio recording and its results form one independent menu group.
+    let audioItem = NSMenuItem(
+      title: L10n.AudioRecording.startMenu,
+      action: #selector(startAudioRecordingAction),
+      keyEquivalent: ""
+    )
+    applyConfiguredShortcut(audioItem, for: .startAudioRecording, using: shortcutManager)
+    audioItem.target = self
+    audioItem.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: nil)
+    audioItem.isEnabled = viewModel.hasPermission
+      && !recorder.isActive
+      && !RecordingCoordinator.shared.isActive
+      && !ScrollingCaptureCoordinator.shared.isActive
+      && !audioCoordinator.isBlockingOtherCapture
+    menu?.addItem(audioItem)
+
+    let resultsItem = NSMenuItem(title: L10n.TranscriptionResults.title,
+      action: #selector(openTranscriptionResultsAction), keyEquivalent: "")
+    resultsItem.target = self
+    resultsItem.image = NSImage(systemSymbolName: "text.bubble", accessibilityDescription: nil)
+    menu?.addItem(resultsItem)
 
     menu?.addItem(NSMenuItem.separator())
 
@@ -617,7 +705,21 @@ final class AppStatusBarController: ObservableObject {
 
   @objc private func togglePauseRecordingAction() {
     logMenuAction("togglePauseRecording", context: ["state": "\(recorder.state)"])
-    recorder.togglePause()
+    if audioCoordinator.isRecording {
+      audioCoordinator.pauseOrResume()
+    } else {
+      recorder.togglePause()
+    }
+  }
+
+  @objc private func startAudioRecordingAction() {
+    logMenuAction("startAudioRecording")
+    viewModel?.startAudioRecording()
+  }
+
+  @objc private func retryAudioSaveAction() {
+    logMenuAction("retryAudioSave")
+    audioCoordinator.retrySave()
   }
 
   @objc private func oneShotAction() {
@@ -653,6 +755,10 @@ final class AppStatusBarController: ObservableObject {
   @objc private func openHistoryAction() {
     logMenuAction("openHistory")
     HistoryWindowController.shared.showWindow()
+  }
+
+  @objc private func openTranscriptionResultsAction() {
+    TranscriptionResultsWindowController.shared.show()
   }
 
   @objc private func focusQuickAccessAction() {

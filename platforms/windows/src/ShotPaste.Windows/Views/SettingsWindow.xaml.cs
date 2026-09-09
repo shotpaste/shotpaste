@@ -34,6 +34,8 @@ public partial class SettingsWindow : Window
         _settingsApplied = settingsApplied;
         _draft = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(store.Current)) ?? new AppSettings();
         DataContext = _draft;
+        RecordingLanguageBox.ItemsSource = VolcengineTranscriptionProtocol.Languages;
+        RefreshRecordingTranscriptionPassword();
         UpdateStatus.Text = $"{LocalizedDialogService.Text("当前版本")}: {_updateService.CurrentVersionString}";
         SelectInitialTab(initialTab);
         Loaded += async (_, _) =>
@@ -93,7 +95,7 @@ public partial class SettingsWindow : Window
             }
         }, new JsonSerializerOptions { WriteIndented = true });
         System.Windows.Clipboard.SetText(configuration);
-        McpServerStatusText.Text = "连接配置已复制；其中包含私密 Token，请勿公开或提交到仓库。";
+        McpServerStatusText.Text = ShotPaste.Windows.Services.LocalizationService.TranslatePhrase("连接配置已复制；其中包含私密 Token，请勿公开或提交到仓库。");
         ScheduleLiveApply();
     }
 
@@ -112,12 +114,12 @@ public partial class SettingsWindow : Window
             _draft.RecordingVideoCodec,
             support);
         RecordingHevcItem.IsEnabled = support.HevcEncoderAvailable;
-        RecordingHevcItem.ToolTip = support.HevcEncoderAvailable
+        RecordingHevcItem.ToolTip = LocalizationService.TranslatePhrase(support.HevcEncoderAvailable
             ? $"Windows 已检测到 {support.HevcEncoderCount} 个 HEVC 编码器。"
-            : "当前系统没有可用的 HEVC 编码器；选择或导入 HEVC 时会安全回退到 H.264。";
-        RecordingFormatStatus.Text = decision.UsedFallback
+            : "当前系统没有可用的 HEVC 编码器；选择或导入 HEVC 时会安全回退到 H.264。");
+        RecordingFormatStatus.Text = LocalizationService.TranslatePhrase(decision.UsedFallback
             ? $"当前偏好将实际输出 {decision.ActualContainer.ToUpperInvariant()} / {DisplayRecordingCodec(decision.ActualCodec)}。{support.Detail}"
-            : $"可用：{decision.ActualContainer.ToUpperInvariant()} / {DisplayRecordingCodec(decision.ActualCodec)}。{support.Detail}";
+            : $"可用：{decision.ActualContainer.ToUpperInvariant()} / {DisplayRecordingCodec(decision.ActualCodec)}。{support.Detail}");
     }
 
     private static string DisplayRecordingCodec(string codec) => codec.Equals("Hevc", StringComparison.OrdinalIgnoreCase)
@@ -177,6 +179,97 @@ public partial class SettingsWindow : Window
     private void OnLiveSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) => ScheduleLiveApply();
     private void OnLiveRangeChanged(object sender, RoutedPropertyChangedEventArgs<double> e) => ScheduleLiveApply();
     private void OnLiveKeyboardFocusLost(object sender, KeyboardFocusChangedEventArgs e) => ScheduleLiveApply();
+
+    private bool SaveTranscriptionCredentials()
+    {
+        try
+        {
+            var speech = string.IsNullOrWhiteSpace(RecordingTranscriptionApiKeyBox.Password) ? _draft.RecordingTranscriptionApiKey : RecordingTranscriptionApiKeyBox.Password.Trim();
+            var access = string.IsNullOrWhiteSpace(RecordingTranscriptionAccessKeyBox.Password) ? _draft.RecordingTranscriptionAccessKey : RecordingTranscriptionAccessKeyBox.Password.Trim();
+            var secret = string.IsNullOrWhiteSpace(RecordingTranscriptionSecretKeyBox.Password) ? _draft.RecordingTranscriptionSecretKey : RecordingTranscriptionSecretKeyBox.Password.Trim();
+            var agent = string.IsNullOrWhiteSpace(AgentApiKeyBox.Password) ? _draft.AgentApiKey : AgentApiKeyBox.Password.Trim();
+            foreach (var value in new[] { speech, access, secret, agent })
+                if (value.Length != 0 && !VolcengineTosSigner.ValidCredential(value)) throw new ArgumentException("Invalid credential.");
+            // Validate and encrypt every draft before replacing any saved credential.
+            var protectedSpeech = RecordingTranscriptionCredentialProtector.Protect(speech);
+            var protectedAccess = RecordingTranscriptionCredentialProtector.Protect(access);
+            var protectedSecret = RecordingTranscriptionCredentialProtector.Protect(secret);
+            var protectedAgent = RecordingTranscriptionCredentialProtector.Protect(agent);
+            var changedAccount = access != _draft.RecordingTranscriptionAccessKey || secret != _draft.RecordingTranscriptionSecretKey;
+            var changedSpeech = speech != _draft.RecordingTranscriptionApiKey;
+            _draft.RecordingTranscriptionApiKeyProtected = protectedSpeech;
+            _draft.RecordingTranscriptionAccessKeyProtected = protectedAccess;
+            _draft.RecordingTranscriptionSecretKeyProtected = protectedSecret;
+            _draft.AgentApiKeyProtected = protectedAgent;
+            if (changedAccount || string.IsNullOrEmpty(_draft.RecordingTranscriptionBucket))
+            {
+                _draft.RecordingTranscriptionBucket = "shotpaste-tmp-" + Guid.NewGuid().ToString("N") + (AppBuildIdentity.Current.IsDebug ? "-debug" : "-release");
+                _draft.RecordingTranscriptionStorageInitialized = false;
+            }
+            if (changedAccount || changedSpeech) _draft.RecordingTranscriptionCloudVerified = false;
+            if (!TryApplyDraft(showErrors: true)) return false;
+            RecordingTranscriptionCredentialStatus.Text = LocalizationService.TranslatePhrase(_draft.RecordingTranscriptionCloudVerified ? "云端验证通过，可以在开始录音或录屏时选择转写。" : "凭证已保存，云端尚未测试。");
+            return true;
+        }
+        catch (Exception exception) when (exception is ArgumentException or System.Security.Cryptography.CryptographicException)
+        {
+            RecordingTranscriptionCredentialStatus.Text = LocalizationService.TranslatePhrase("无法安全保存 API Key，请检查凭证后重试。");
+            return false;
+        }
+    }
+    private void OnSaveTranscriptionCredentials(object sender, RoutedEventArgs e) => SaveTranscriptionCredentials();
+    private void OnShowTranscriptionResults(object sender, RoutedEventArgs e) => new TranscriptionResultsWindow().Show();
+    private async void OnTestTranscription(object sender, RoutedEventArgs e)
+    {
+        if (!SaveTranscriptionCredentials()) return;
+        var config = RecordingTranscriptionConfiguration.FromSettings(_draft, requireInitialized: false);
+        if (config is null)
+        {
+            RecordingTranscriptionCredentialStatus.Text = LocalizationService.TranslatePhrase("请填写豆包语音 API Key 和 TOS AK/SK。");
+            return;
+        }
+        _draft.RecordingTranscriptionCloudVerified = false;
+        if (!TryApplyDraft(showErrors: true)) return;
+        TestTranscriptionButton.IsEnabled = false;
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        string? sample = null;
+        RecordingTranscriptionJob? verificationJob = null;
+        try
+        {
+            RecordingTranscriptionCredentialStatus.Text = LocalizationService.TranslatePhrase("正在初始化私有临时存储…");
+            var service = new VolcengineRecordingTranscriptionService();
+            await service.InitializeStorageAsync(config, timeout.Token);
+            _draft.RecordingTranscriptionStorageInitialized = true;
+            if (!TryApplyDraft(showErrors: true)) return;
+            RecordingTranscriptionCredentialStatus.Text = LocalizationService.TranslatePhrase("正在转写公开测试音频…");
+            var (bytes, response) = await VolcengineRecordingTranscriptionService.SendAsync(new HttpRequestMessage(HttpMethod.Get,
+                "https://lf3-static.bytednsdoc.com/obj/eden-cn/lm_hz_ihsph/ljhwZthlaukjlkulzlp/console/bigtts/zh_female_cancan_mars_bigtts.mp3"), timeout.Token, 2_000_000);
+            using (response) VolcengineRecordingTranscriptionService.EnsureSuccess(response);
+            sample = Path.Combine(AppPaths.Temp, "transcription-test-" + Guid.NewGuid().ToString("N") + ".mp3");
+            await File.WriteAllBytesAsync(sample, bytes, timeout.Token);
+            var job = RecordingTranscriptionJobs.Shared.Start(sample, config with { UseAI = false, SourceLanguage = "auto" });
+            verificationJob = job;
+            while (job.State is not ("completed" or "failed" or "cancelled")) await Task.Delay(500, timeout.Token);
+            if (job.State != "completed" || !job.HasTranscript || job.CleanupPending)
+                throw new RecordingTranscriptionException(RecordingTranscriptionFailure.Service);
+            // Do not validate a different account if the user changed credentials during the request.
+            if (_draft.RecordingTranscriptionBucket != config.Bucket || _draft.RecordingTranscriptionApiKey != config.ApiKey)
+                return;
+            _draft.RecordingTranscriptionCloudVerified = true;
+            TryApplyDraft(showErrors: true);
+            RecordingTranscriptionCredentialStatus.Text = LocalizationService.TranslatePhrase("云端验证通过，可以在开始录音或录屏时选择转写。");
+        }
+        catch (Exception)
+        {
+            RecordingTranscriptionCredentialStatus.Text = LocalizationService.TranslatePhrase("测试未通过，请检查网络、凭证、TOS 权限及语音服务开通状态。已保存的配置会保留。");
+        }
+        finally
+        {
+            TestTranscriptionButton.IsEnabled = true;
+            if (verificationJob is not null && verificationJob.State is not ("completed" or "failed" or "cancelled")) RecordingTranscriptionJobs.Shared.Cancel(verificationJob);
+            if (sample is not null) { try { File.Delete(sample); } catch (IOException) { } }
+        }
+    }
 
     private void ScheduleLiveApply()
     {
@@ -294,9 +387,9 @@ public partial class SettingsWindow : Window
             _settingsApplied?.Invoke();
             RefreshHotkeyStatuses();
             if (McpServerStatusText is not null)
-                McpServerStatusText.Text = _draft.McpServerEnabled
+                McpServerStatusText.Text = LocalizationService.TranslatePhrase(_draft.McpServerEnabled
                     ? $"监听地址：http://127.0.0.1:{_draft.McpServerPort}/mcp"
-                    : "MCP Server 已关闭；仅启用时监听本机回环地址。";
+                    : "MCP Server 已关闭；仅启用时监听本机回环地址。");
             return true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
@@ -397,8 +490,8 @@ public partial class SettingsWindow : Window
     private async Task RefreshHistoryStorageAsync()
     {
         if (CaptureStorageUsageText is null || ClipboardStorageUsageText is null) return;
-        CaptureStorageUsageText.Text = "正在计算截图与录屏目录占用…";
-        ClipboardStorageUsageText.Text = "正在计算媒体剪贴板目录占用…";
+        CaptureStorageUsageText.Text = ShotPaste.Windows.Services.LocalizationService.TranslatePhrase("正在计算截图与录屏目录占用…");
+        ClipboardStorageUsageText.Text = ShotPaste.Windows.Services.LocalizationService.TranslatePhrase("正在计算媒体剪贴板目录占用…");
         try
         {
             var sizes = await Task.Run(() => (
@@ -411,8 +504,8 @@ public partial class SettingsWindow : Window
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            CaptureStorageUsageText.Text = $"无法读取存储占用：{exception.Message}";
-            ClipboardStorageUsageText.Text = $"无法读取存储占用：{exception.Message}";
+            CaptureStorageUsageText.Text = LocalizationService.TranslatePhrase($"无法读取存储占用：{exception.Message}");
+            ClipboardStorageUsageText.Text = LocalizationService.TranslatePhrase($"无法读取存储占用：{exception.Message}");
         }
     }
 
@@ -502,9 +595,26 @@ public partial class SettingsWindow : Window
         {
             DataContext = null;
             DataContext = _draft;
+            RefreshRecordingTranscriptionPassword();
         }
         finally { _refreshingBindings = false; }
         ScheduleLiveApply();
+    }
+
+    private void RefreshRecordingTranscriptionPassword()
+    {
+        if (RecordingTranscriptionApiKeyBox is null) return;
+        var wasRefreshing = _refreshingBindings;
+        _refreshingBindings = true;
+        try
+        {
+            RecordingTranscriptionApiKeyBox.Password = _draft.RecordingTranscriptionApiKey;
+            RecordingTranscriptionAccessKeyBox.Password = _draft.RecordingTranscriptionAccessKey;
+            RecordingTranscriptionSecretKeyBox.Password = _draft.RecordingTranscriptionSecretKey;
+            AgentApiKeyBox.Password = _draft.AgentApiKey;
+            RecordingTranscriptionCredentialStatus.Text = LocalizationService.TranslatePhrase(_draft.RecordingTranscriptionCloudVerified ? "云端验证通过，可以在开始录音或录屏时选择转写。" : "凭证已保存，云端尚未测试。");
+        }
+        finally { _refreshingBindings = wasRefreshing; }
     }
 
     private void EnsureQuickActionSlots()
@@ -627,6 +737,7 @@ public partial class SettingsWindow : Window
     [
         ("One Shot", _draft.OneShotHotkey),
         ("剪贴板历史", _draft.HistoryHotkey),
+        ("开始录音", _draft.AudioRecordingHotkey),
         ("录屏暂停/继续", _draft.RecordingPauseHotkey),
         ("录屏标注", _draft.RecordingAnnotationHotkey), ("重新录制", _draft.RecordingRestartHotkey),
         ("删除当前录屏", _draft.RecordingDeleteHotkey)
@@ -654,6 +765,7 @@ public partial class SettingsWindow : Window
     {
         _draft.OneShotHotkey = source.OneShotHotkey;
         _draft.HistoryHotkey = source.HistoryHotkey;
+        _draft.AudioRecordingHotkey = source.AudioRecordingHotkey;
         _draft.RecordingPauseHotkey = source.RecordingPauseHotkey;
         _draft.RecordingAnnotationHotkey = source.RecordingAnnotationHotkey;
         _draft.RecordingRestartHotkey = source.RecordingRestartHotkey; _draft.RecordingDeleteHotkey = source.RecordingDeleteHotkey;
@@ -677,6 +789,7 @@ public partial class SettingsWindow : Window
         {
             [HotkeyAction.OneShot] = OneShotHotkeyStatus,
             [HotkeyAction.History] = HistoryHotkeyStatus,
+            [HotkeyAction.AudioRecording] = AudioRecordingHotkeyStatus,
             [HotkeyAction.RecordingPause] = RecordingPauseHotkeyStatus,
             [HotkeyAction.RecordingAnnotation] = RecordingAnnotationHotkeyStatus,
             [HotkeyAction.RecordingRestart] = RecordingRestartHotkeyStatus,
@@ -685,6 +798,7 @@ public partial class SettingsWindow : Window
         foreach (var pair in targets)
         {
             var result = results[pair.Key];
+            pair.Value.TextWrapping = TextWrapping.Wrap;
             pair.Value.Text = result.Availability switch
             {
                 HotkeyAvailability.Available => "✓ " + result.Message,

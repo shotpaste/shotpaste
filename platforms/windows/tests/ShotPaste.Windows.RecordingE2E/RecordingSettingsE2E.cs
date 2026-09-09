@@ -49,10 +49,17 @@ internal static class RecordingSettingsE2E
                 toggle.Current.ToggleState != ToggleState.On)
                 toggle.Toggle();
 
+            // Give the cross-process UIA observer time to see the transient windows.
+            // Restore the requested values before saving; effect durations themselves
+            // are exercised by RecordingEffectsE2E.
+            SetValue(await WaitForAsync(product.Id, "RecordingClickDuration"), "3000");
+            SetValue(await WaitForAsync(product.Id, "RecordingKeystrokeDuration"), "10000");
             Invoke(await WaitForAsync(product.Id, "PreviewRecordingEffects"));
             await WaitForAsync(product.Id, "MouseClickEffectPreview");
             await WaitForAsync(product.Id, "KeystrokeEffectPreview");
             SaveDesktopScreenshot(screenshot);
+            SetValue(await WaitForAsync(product.Id, "RecordingClickDuration"), "750");
+            SetValue(await WaitForAsync(product.Id, "RecordingKeystrokeDuration"), "850");
             await Task.Delay(1150);
             Invoke(await WaitForAsync(product.Id, "SettingsSave"));
             await WaitUntilAsync(() => Find(product.Id, "SettingsWindow") is null,

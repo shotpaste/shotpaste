@@ -61,13 +61,53 @@ final class HistoryWindowController {
   }
 
   func copyToClipboard(_ records: [CaptureHistoryRecord]) {
+    if records.contains(where: { $0.captureType == .audio }) {
+      // History rows can predate the shared validation gate or outlive their
+      // source files. Validate every audio row before touching the pasteboard;
+      // non-audio history keeps its existing synchronous path.
+      Task { @MainActor [weak self] in
+        guard let self else { return }
+        var validatedRecords: [CaptureHistoryRecord] = []
+        for record in records {
+          guard record.captureType == .audio else {
+            validatedRecords.append(record)
+            continue
+          }
+
+          let validation = await AudioAssetValidator.validate(url: record.fileURL)
+          guard validation.isValid else {
+            DiagnosticLogger.shared.log(
+              .warning,
+              .clipboard,
+              "History audio clipboard copy skipped; asset validation failed",
+              context: [
+                "fileName": record.fileName,
+                "reason": validation.rejection?.rawValue ?? "invalidDuration",
+              ]
+            )
+            continue
+          }
+          validatedRecords.append(record)
+        }
+        self.copyValidatedRecordsToClipboard(validatedRecords, requestedCount: records.count)
+      }
+      return
+    }
+
+    copyValidatedRecordsToClipboard(records, requestedCount: records.count)
+  }
+
+  private func copyValidatedRecordsToClipboard(
+    _ records: [CaptureHistoryRecord],
+    requestedCount: Int
+  ) {
     let existingRecords = records.filter(\.fileExists)
     guard !existingRecords.isEmpty else {
       DiagnosticLogger.shared.log(
         .warning,
         .clipboard,
         "History clipboard copy skipped; no existing files",
-        context: ["requestedCount": "\(records.count)"]
+        context: ["requestedCount": "\(requestedCount)"]
       )
       return
     }
@@ -76,7 +116,7 @@ final class HistoryWindowController {
       switch record.captureType {
       case .screenshot, .gif:
         ClipboardHelper.copyImage(from: record.fileURL)
-      case .video:
+      case .video, .audio:
         ClipboardHelper.copyMediaFile(from: record.fileURL)
       case .text:
         ClipboardHelper.copyText(record.textContent ?? "")
@@ -98,7 +138,7 @@ final class HistoryWindowController {
       .clipboard,
       "History copied selection to clipboard",
       context: [
-        "requestedCount": "\(records.count)",
+        "requestedCount": "\(requestedCount)",
         "copiedCount": "\(existingRecords.count)",
         "multiItem": existingRecords.count > 1 ? "true" : "false",
       ]
@@ -139,7 +179,7 @@ final class HistoryWindowController {
           context: ["fileName": record.fileName, "itemId": item.id.uuidString]
         )
         NSWorkspace.shared.open(record.fileURL)
-      case .video, .gif:
+      case .video, .gif, .audio:
         DiagnosticLogger.shared.log(
           .info,
           .history,

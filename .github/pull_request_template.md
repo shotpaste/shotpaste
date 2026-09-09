@@ -1,35 +1,34 @@
-## Summary
+## 改动摘要
 
-Describe the user-visible outcome and why the change is needed.
+说明用户可见结果，以及为什么需要此改动。
 
-## Scope
+## 范围
 
-- Platforms changed: <!-- macOS / Windows / website / shared / docs -->
-- Source branch: <!-- A non-main branch in your fork, or main for an owner release PR -->
-- Target branch: <!-- main for contributions; release for the owner's direct main-to-release PR -->
-- Release candidate: <!-- None / macOS / Windows / both -->
-- Related issue: <!-- Fixes #123, if applicable -->
-- Intentional platform differences: <!-- None, or explain the OS constraint -->
+- 受影响平台：<!-- macOS / Windows / 网站 / 共享资源 / 文档 -->
+- 源分支：<!-- Fork 中的非 main 分支；Owner 发布 PR 使用 main -->
+- 目标分支：<!-- 贡献使用 main；Owner 直接 main → release 的 PR 使用 release -->
+- 发布候选：<!-- 无 / macOS / Windows / 两者 -->
+- 关联 Issue：<!-- 如适用，填写 Fixes #123 -->
+- 有意保留的平台差异：<!-- 无，或说明操作系统限制 -->
 
-## Validation
+## 验证
 
-List exact commands and manual scenarios you ran, including the operating
-system, architecture, and produced app/package path when platform code changed.
+列出实际执行的命令和人工场景。平台代码改动须包含操作系统、架构及应用/安装包产物路径。
 
-## Checklist
+## 检查清单
 
-- [ ] The change is focused and contains no unrelated generated artifacts.
-- [ ] Tests cover the behavior where practical and all relevant checks pass.
-- [ ] Changed native code was built on its native operating system.
-- [ ] macOS and Windows behavior remains aligned, or the OS-specific difference is documented.
-- [ ] User-facing text is localized in every supported locale and checked with long labels.
-- [ ] Accessibility names, keyboard use, and narrow-window layouts were considered.
-- [ ] Documentation and release notes were updated when user behavior changed.
-- [ ] If this targets `release`, its source is `main` directly; no intermediate promotion branch was introduced, and the resulting release commit will not be tagged until CI, builds, and owner acceptance pass.
-- [ ] Logs, screenshots, fixtures, and commits contain no private data or credentials.
-- [ ] I reviewed and tested any content produced with automated tools.
+- [ ] 改动聚焦，不包含无关生成产物。
+- [ ] 在可行范围内以测试覆盖行为，所有相关检查通过。
+- [ ] 修改的原生代码已在对应原生操作系统构建。
+- [ ] macOS 与 Windows 行为保持一致，或已记录操作系统差异。
+- [ ] 用户可见文案已覆盖所有支持语言，并检查长文案布局。
+- [ ] 已考虑可访问性名称、键盘操作及窄窗口布局。
+- [ ] 用户行为变化时已更新文档与发布说明。
+- [ ] 维护文档使用中文；README 与使用指南的已有译本已按影响同步。
+- [ ] 若目标为 `release`，源分支直接为 `main`，未引入中间晋级分支；CI、构建与 Owner 验收通过前不打标签。
+- [ ] 日志、截图、测试数据与提交不含私有数据或凭据。
+- [ ] 已审查并测试自动化工具生成的内容。
 
-## Evidence and known limits
+## 证据与已知限制
 
-Add screenshots or recordings only when they are sanitized. State anything you
-could not verify so reviewers can reproduce the remaining checks.
+仅附加已脱敏截图或录屏。明确尚未验证的内容，便于评审者复现剩余检查。

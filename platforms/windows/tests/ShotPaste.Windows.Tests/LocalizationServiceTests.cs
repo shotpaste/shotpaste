@@ -5,6 +5,15 @@ namespace ShotPaste.Windows.Tests;
 
 public sealed class LocalizationServiceTests
 {
+    [Theory]
+    [InlineData("ja-JP", "— グローバルショートカットが無効になっています")]
+    [InlineData("ko-KR", "— 전역 단축키가 비활성화되었습니다.")]
+    [InlineData("de-DE", "— Globale Verknüpfungen sind deaktiviert")]
+    public void DecoratedStatusUsesTheCompleteNativeTranslation(string language, string expected)
+    {
+        Assert.Equal(expected, LocalizationService.TranslatePhrase("— 全局快捷键已停用", language));
+    }
+
     [Fact]
     public void SupportedLanguages_MatchesMacOSLocaleSet()
     {
@@ -118,7 +127,7 @@ public sealed class LocalizationServiceTests
         var values = Directory.EnumerateFiles(views, "*.xaml")
             .SelectMany(path => System.Text.RegularExpressions.Regex.Matches(
                     File.ReadAllText(path), @"(?:Text|Content|Header|ToolTip|Title|AutomationProperties\.Name)=""([^""]+)""")
-                .Select(match => match.Groups[1].Value))
+                .Select(match => ProductCopy(match.Groups[1].Value)))
             .Where(ContainsCjk)
             .Distinct(StringComparer.Ordinal)
             .ToArray();
@@ -139,7 +148,7 @@ public sealed class LocalizationServiceTests
             .Where(path => !path.EndsWith("LocalizationService.cs", StringComparison.OrdinalIgnoreCase))
             .SelectMany(path => System.Text.RegularExpressions.Regex.Matches(
                     File.ReadAllText(path), "\\$?\\\"((?:\\\\.|[^\\\"\\\\])*)\\\"")
-                .Select(match => match.Groups[1].Value))
+                .Select(match => ProductCopy(match.Groups[1].Value)))
             .Where(ContainsCjk)
             .Distinct(StringComparer.Ordinal)
             .ToArray();
@@ -160,13 +169,13 @@ public sealed class LocalizationServiceTests
             .Where(path => !path.EndsWith("LocalizationService.cs", StringComparison.OrdinalIgnoreCase))
             .SelectMany(path => System.Text.RegularExpressions.Regex.Matches(
                     File.ReadAllText(path), "\\$?\\\"((?:\\\\.|[^\\\"\\\\])*)\\\"")
-                .Select(match => match.Groups[1].Value))
+                .Select(match => ProductCopy(match.Groups[1].Value)))
             .Where(ContainsCjk);
         var viewRoot = Path.Combine(sourceRoot, "Views");
         var xamlEntries = Directory.EnumerateFiles(viewRoot, "*.xaml")
             .SelectMany(path => System.Text.RegularExpressions.Regex.Matches(
                     File.ReadAllText(path), @"(?:Text|Content|Header|ToolTip|Title|AutomationProperties\.Name)=""([^""]+)""")
-                .Select(match => match.Groups[1].Value))
+                .Select(match => ProductCopy(match.Groups[1].Value)))
             .Where(ContainsCjk);
         var entries = codeEntries.Concat(xamlEntries).Distinct(StringComparer.Ordinal).ToArray();
 
@@ -239,34 +248,29 @@ public sealed class LocalizationServiceTests
     }
 
     [Fact]
-    public void AutomaticWpfLocalization_TracksDynamicPropertyChangesAndLanguageSwitches()
+    public void ExplicitProductCopyChangesLanguageWithoutRewritingUserData()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
         {
             try
             {
-                LocalizationService.EnableAutomaticWpfLocalization();
                 LocalizationService.Apply(new AppSettings { Language = "en-US" });
-                var text = new System.Windows.Controls.TextBlock { Text = "剪贴板文本" };
-                var button = new System.Windows.Controls.Button { Content = "复制" };
-                var window = new System.Windows.Window { Content = text, Title = "ShotPaste · 欢迎" };
-                text.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.FrameworkElement.LoadedEvent));
-                button.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.FrameworkElement.LoadedEvent));
-                LocalizationService.LocalizeWindow(window);
-
-                Assert.Equal("Clipboard Text", text.Text);
+                var userText = new System.Windows.Controls.TextBlock();
+                var item = new CaptureHistoryItem { Kind = CaptureKind.ClipboardText, Text = "设置" };
+                userText.SetBinding(System.Windows.Controls.TextBlock.TextProperty,
+                    new System.Windows.Data.Binding(nameof(CaptureHistoryItem.PreviewText)) { Source = item });
+                var button = new System.Windows.Controls.Button();
+                button.SetBinding(System.Windows.Controls.ContentControl.ContentProperty,
+                    LocalizedExtension.CreateBinding("复制"));
                 Assert.Equal("Copy", button.Content);
-                Assert.Equal($"{AppBuildIdentity.Current.DisplayName} · Welcome", window.Title);
-                text.Text = "已复制到剪贴板";
-                Assert.Equal("Copied to clipboard", text.Text);
-                window.Title = "ShotPaste · 设置";
-                Assert.Equal($"{AppBuildIdentity.Current.DisplayName} · Preferences", window.Title);
-
+                Assert.Equal("设置", userText.Text);
                 LocalizationService.Apply(new AppSettings { Language = "zh-CN" });
-                LocalizationService.LocalizeWindow(window);
-                Assert.Equal("已复制到剪贴板", text.Text);
-                Assert.Equal($"{AppBuildIdentity.Current.DisplayName} · 设置", window.Title);
+                Assert.Equal("复制", button.Content);
+                Assert.Equal("设置", userText.Text);
+                Assert.Equal("设置", item.Text);
+                Assert.True(System.Windows.Data.BindingOperations.IsDataBound(userText,
+                    System.Windows.Controls.TextBlock.TextProperty));
             }
             catch (Exception exception) { failure = exception; }
             finally { LocalizationService.Apply(new AppSettings { Language = "zh-CN" }); }
@@ -275,6 +279,13 @@ public sealed class LocalizationServiceTests
         thread.Start();
         Assert.True(thread.Join(TimeSpan.FromSeconds(10)), "Localization STA test timed out.");
         if (failure is not null) throw failure;
+    }
+
+    private static string ProductCopy(string value)
+    {
+        if (!value.StartsWith("{loc:Localized Key='", StringComparison.Ordinal)) return value;
+        var end = value.LastIndexOf("'", StringComparison.Ordinal);
+        return value["{loc:Localized Key='".Length..end].Replace("\\'", "'", StringComparison.Ordinal);
     }
 
     private static string FindRepositoryRoot()

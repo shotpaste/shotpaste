@@ -217,8 +217,19 @@ nonisolated struct ShotPasteAutomationResult {
 final class ShotPasteAutomationController {
   private let screenCaptureViewModel: ScreenCaptureViewModel
 
-  init(screenCaptureViewModel: ScreenCaptureViewModel) {
+  private let recordingPurpose: @MainActor () -> RecordingPurpose
+  private let audioControl: @MainActor (ShotPasteAutomationRecordingAction) -> Bool
+
+  init(
+    screenCaptureViewModel: ScreenCaptureViewModel,
+    recordingPurpose: @escaping @MainActor () -> RecordingPurpose = { ScreenRecordingManager.shared.recordingPurpose },
+    audioControl: @escaping @MainActor (ShotPasteAutomationRecordingAction) -> Bool = {
+      AudioRecordingCoordinator.shared.control($0)
+    }
+  ) {
     self.screenCaptureViewModel = screenCaptureViewModel
+    self.recordingPurpose = recordingPurpose
+    self.audioControl = audioControl
   }
 
   func execute(_ command: ShotPasteAutomationCommand, source: String) -> ShotPasteAutomationResult {
@@ -311,6 +322,12 @@ final class ShotPasteAutomationController {
     _ action: ShotPasteAutomationRecordingAction
   ) -> ShotPasteAutomationResult {
     let recorder = ScreenRecordingManager.shared
+    if recordingPurpose() == .audioAdapter {
+      let accepted = audioControl(action)
+      return accepted
+        ? .success("Audio recording \(action.rawValue) request accepted.", state: statusState())
+        : .failure("The audio recording cannot perform this action in its current state.", state: statusState())
+    }
     switch action {
     case .pause:
       guard recorder.state == .recording else {

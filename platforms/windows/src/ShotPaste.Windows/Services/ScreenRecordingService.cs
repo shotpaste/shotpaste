@@ -22,6 +22,7 @@ internal sealed record RecordingFrameDiagnostics(
 public sealed class ScreenRecordingService : IDisposable
 {
     private Recorder? _recorder;
+    private string? _transcriptionPath;
     private Stopwatch? _stopwatch;
     private TaskCompletionSource<string>? _completion;
     private readonly GifEncodingService _gifEncoder = new();
@@ -56,7 +57,8 @@ public sealed class ScreenRecordingService : IDisposable
     public Task<string> StartAsync(
         RecordingTarget target,
         AppSettings settings,
-        bool recordAsGif = false)
+        bool recordAsGif = false,
+        RecordingTranscriptionConfiguration? transcription = null)
     {
         if (IsRecording) throw new InvalidOperationException("录屏已在进行中。");
         var plan = CreateRecordingSource(target);
@@ -146,7 +148,13 @@ public sealed class ScreenRecordingService : IDisposable
                 : args.Error.Trim();
             Fail(new InvalidOperationException(message));
         };
-        _recorder.Record(path);
+        try
+        {
+            ScreenRecordingTranscriptionReceipts.Begin(path, recordAsGif ? null : transcription);
+            _transcriptionPath = path;
+            _recorder.Record(path);
+        }
+        catch { _recorder.Dispose(); _recorder = null; throw; }
         if (_recoveryEnabled) RecordingRecoveryService.Begin(path, _gifDestination, CurrentRegion);
         _stopwatch = Stopwatch.StartNew();
         IsRecording = true;
@@ -182,6 +190,11 @@ public sealed class ScreenRecordingService : IDisposable
         else { _recorder.Pause(); _stopwatch?.Stop(); }
         IsPaused = !IsPaused;
         StateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void CancelTranscription()
+    {
+        if (_transcriptionPath is not null) ScreenRecordingTranscriptionReceipts.Cancel(_transcriptionPath);
     }
 
     public void Stop()

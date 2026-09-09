@@ -1,43 +1,42 @@
-# Support
+<a id="support"></a>
 
-ShotPaste is a community-maintained open-source project.
+# 使用支持
 
-## Before opening an issue
+**简体中文** · [English](SUPPORT.en.md)
 
-1. Read the [README](README.md), [feature list](docs/FEATURES.md), and
-   [development guide](docs/DEVELOPMENT.md).
-2. Search existing issues and try the latest release when practical.
-3. Collect the ShotPaste version, operating-system version, installation
-   method, exact steps, and sanitized diagnostics.
+ShotPaste 是由社区维护的开源项目。
 
-Use the repository issue forms for reproducible bugs, feature requests, and
-usage questions. The forms explain the evidence needed for each request and
-help route platform-specific reports. Before uploading anything, remove
-captures, clipboard content, credentials, signing material, personal file
-paths, and other private data from screenshots, recordings, and logs.
+<a id="before-opening-an-issue"></a>
 
-Report suspected vulnerabilities privately according to
-[SECURITY.md](SECURITY.md).
+## 提交 Issue 前
 
-## macOS diagnostics
+1. 阅读 [README](README.md)、[功能契约](docs/FEATURES.md)和[开发指南](docs/DEVELOPMENT.md)。
+2. 搜索已有 Issue，并在可行时尝试最新发布版。
+3. 收集 ShotPaste 版本、操作系统版本、安装方式、准确步骤和已脱敏诊断信息。
 
-Collect recent crash reports and sanitized error logs with:
+可复现缺陷、功能请求和使用问题请使用仓库 Issue 表单。
+表单说明所需证据，并帮助区分平台问题。
+上传前从截图、录屏和日志中移除捕获内容、剪贴板数据、凭据、签名材料、个人文件路径及其它私有数据。
+疑似漏洞请按[安全政策](SECURITY.md)私密报告。
+
+<a id="macos-diagnostics"></a>
+
+## macOS 诊断
+
+收集近期崩溃报告与脱敏错误日志：
 
 ```bash
 ./scripts/collect-crash-logs.sh
 ```
 
-If privacy permissions become inconsistent, read the signing guidance in
-[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) before using the interactive reset
-helper:
+若隐私权限状态异常，先阅读[开发指南](docs/DEVELOPMENT.md)中的签名说明，再运行交互式重置工具：
 
 ```bash
 ./scripts/reset-permissions.sh
 ```
 
-The uninstall helper can remove the installed app and optionally its local
-data. Read its prompts carefully because capture and clipboard history may be
-deleted:
+卸载工具可移除应用，并按选择删除本地数据。
+请仔细阅读提示，捕获与剪贴板历史可能被删除：
 
 ```bash
 ./scripts/uninstall.sh

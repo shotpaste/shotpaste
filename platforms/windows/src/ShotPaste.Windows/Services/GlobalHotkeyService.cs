@@ -13,7 +13,8 @@ public enum HotkeyAction
     RecordingPause,
     RecordingAnnotation,
     RecordingRestart,
-    RecordingDelete
+    RecordingDelete,
+    AudioRecording
 }
 
 public enum HotkeyAvailability
@@ -57,6 +58,7 @@ public sealed class GlobalHotkeyService : IDisposable
         }
         Register(HotkeyAction.OneShot, settings.OneShotHotkey, failed);
         Register(HotkeyAction.History, settings.HistoryHotkey, failed);
+        Register(HotkeyAction.AudioRecording, settings.AudioRecordingHotkey, failed);
         Register(HotkeyAction.RecordingPause, settings.RecordingPauseHotkey, failed);
         Register(HotkeyAction.RecordingAnnotation, settings.RecordingAnnotationHotkey, failed);
         Register(HotkeyAction.RecordingRestart, settings.RecordingRestartHotkey, failed);
@@ -111,6 +113,7 @@ public sealed class GlobalHotkeyService : IDisposable
         {
             (HotkeyAction.OneShot, settings.OneShotHotkey),
             (HotkeyAction.History, settings.HistoryHotkey),
+            (HotkeyAction.AudioRecording, settings.AudioRecordingHotkey),
             (HotkeyAction.RecordingPause, settings.RecordingPauseHotkey),
             (HotkeyAction.RecordingAnnotation, settings.RecordingAnnotationHotkey),
             (HotkeyAction.RecordingRestart, settings.RecordingRestartHotkey),

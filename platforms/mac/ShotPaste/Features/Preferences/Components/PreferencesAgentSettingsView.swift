@@ -113,6 +113,8 @@ struct AgentSettingsView: View {
           }
         }
 
+        RecordingTranscriptionSettingsSection()
+
         Section(L10n.Agent.translationSection) {
           SettingRow(
             icon: "text.bubble",
@@ -200,7 +202,7 @@ struct AgentSettingsView: View {
             .fill(highlightsTranslation ? Color.accentColor.opacity(0.12) : .clear)
         )
 
-        Section(L10n.Agent.settingsSection) {
+        Section(L10n.Agent.modeTitle) {
           if agentMode.isEnabled {
             ShortcutRecorderView(
               label: L10n.Agent.shortcutTitle,
@@ -527,7 +529,10 @@ private struct InlineEditableSettingField: View {
   var body: some View {
     HStack(spacing: 0) {
       LeftAlignedAppKitField(
-        text: $draft,
+        text: Binding(
+          get: { isEditing ? draft : value },
+          set: { draft = $0 }
+        ),
         isSecure: isSecure,
         isEditing: isEditing,
         onSubmit: save
@@ -611,7 +616,7 @@ private struct InlineEditableSettingField: View {
   }
 }
 
-private struct LeftAlignedAppKitField: NSViewRepresentable {
+struct LeftAlignedAppKitField: NSViewRepresentable {
   @Binding var text: String
   let isSecure: Bool
   let isEditing: Bool
@@ -638,6 +643,15 @@ private struct LeftAlignedAppKitField: NSViewRepresentable {
 
   func updateNSView(_ textField: NSTextField, context: Context) {
     context.coordinator.parent = self
+    Self.update(textField, text: text, isEditing: isEditing)
+  }
+
+  static func update(_ textField: NSTextField, text: String, isEditing: Bool) {
+    // End the shared field editor before replacing its value. Otherwise AppKit
+    // can restore the previous editor contents when the field loses focus.
+    if !isEditing, textField.currentEditor() != nil {
+      textField.window?.makeFirstResponder(nil)
+    }
     if textField.stringValue != text {
       textField.stringValue = text
     }
@@ -647,6 +661,7 @@ private struct LeftAlignedAppKitField: NSViewRepresentable {
 
     if isEditing, textField.window?.firstResponder !== textField.currentEditor() {
       DispatchQueue.main.async {
+        guard textField.isEditable else { return }
         textField.window?.makeFirstResponder(textField)
       }
     }

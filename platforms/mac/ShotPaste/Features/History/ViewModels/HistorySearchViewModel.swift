@@ -18,6 +18,10 @@ final class HistorySearchViewModel: ObservableObject {
   private let store = CaptureHistoryStore.shared
   private var cancellables = Set<AnyCancellable>()
 
+  // ARC/Combine cancellation needs no actor-bound cleanup. Match the history
+  // scroll model and avoid the Swift 6.2 isolated-deinit back-deployment thunk.
+  nonisolated deinit {}
+
   init(
     searchTextPublisher: AnyPublisher<String, Never>? = nil,
     selectedFilterPublisher: AnyPublisher<CaptureHistoryCategory?, Never>? = nil,

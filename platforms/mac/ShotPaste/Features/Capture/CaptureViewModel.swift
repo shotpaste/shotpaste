@@ -231,6 +231,8 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
       startOneShot(initialTab: .translation)
     case .startAgentIntent:
       AgentModeController.shared.startIntentCapture()
+    case .startAudioRecording:
+      startAudioRecording()
     case .pauseResumeRecording:
       togglePauseFromShortcut()
     case .togglePenRecording:
@@ -247,6 +249,16 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
   func updatePermissionState() async {
     await captureManager.checkPermission()
     hasPermission = captureManager.hasPermission
+  }
+
+  /// Audio uses the same screen-recording permission boundary but has its own
+  /// preparation/lifecycle coordinator and never enters One Shot selection.
+  func startAudioRecording() {
+    guard hasPermission else {
+      requestPermission()
+      return
+    }
+    AudioRecordingCoordinator.shared.showPreparation()
   }
 
   func requestPermission(showRecoveryIfDenied: Bool = true) {
@@ -294,6 +306,14 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
 
   @discardableResult
   func startOneShot(initialTab: OneShotTab = .screenshot) -> Bool {
+    guard !AudioRecordingCoordinator.shared.isBlockingOtherCapture else {
+      DiagnosticLogger.shared.log(
+        .debug,
+        .capture,
+        "One Shot ignored while audio recording is active"
+      )
+      return false
+    }
     guard hasPermission else {
       requestPermission()
       return false
@@ -510,6 +530,10 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
   /// Pause/resume entry from global shortcut. No-op when no active recording.
   /// Reuses existing `ScreenRecordingManager.togglePause()` (already used by the menu bar).
   func togglePauseFromShortcut() {
+    if AudioRecordingCoordinator.shared.isRecording {
+      AudioRecordingCoordinator.shared.pauseOrResume()
+      return
+    }
     let state = ScreenRecordingManager.shared.state
     guard state.isPauseResumeEligible else {
       DiagnosticLogger.shared.log(.debug, .recording, "Pause shortcut ignored: no active recording", context: [
@@ -531,12 +555,20 @@ final class ScreenCaptureViewModel: ObservableObject, KeyboardShortcutDelegate {
 
   /// Restart/Re-record from global shortcut.
   func restartRecordingFromShortcut() {
+    if AudioRecordingCoordinator.shared.isRecording {
+      AudioRecordingCoordinator.shared.restart()
+      return
+    }
     guard RecordingCoordinator.shared.isActive else { return }
     RecordingCoordinator.shared.restartFromShortcut()
   }
 
   /// Cancel/Delete current recording from global shortcut.
   func deleteRecordingFromShortcut() {
+    if AudioRecordingCoordinator.shared.isRecording {
+      AudioRecordingCoordinator.shared.delete()
+      return
+    }
     guard RecordingCoordinator.shared.isActive else { return }
     RecordingCoordinator.shared.deleteFromShortcut()
   }

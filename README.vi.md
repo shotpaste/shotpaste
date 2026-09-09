@@ -2,23 +2,23 @@
 
 Công cụ chụp và ghi màn hình gốc, ưu tiên dữ liệu cục bộ cho macOS và Windows.
 
-[English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) ·
-[繁體中文](README.zh-TW.md) · [Español](README.es.md) ·
-[日本語](README.ja.md) · [한국어](README.ko.md) ·
-[Русский](README.ru.md) · [Français](README.fr.md) ·
+[简体中文](README.md) · [English](README.en.md) · **Tiếng Việt** ·
+[繁體中文](README.zh-TW.md) · [Español](README.es.md) · [日本語](README.ja.md) ·
+[한국어](README.ko.md) · [Русский](README.ru.md) · [Français](README.fr.md) ·
 [Deutsch](README.de.md)
 
 **Trang web chính thức:** [shotpaste.com](https://www.shotpaste.com/)
 
 ShotPaste cung cấp hai ứng dụng gốc độc lập cho macOS và Windows. Ảnh chụp,
-OCR, bản ghi, lịch sử, dữ liệu bảng tạm và cấu hình đều nằm trên thiết bị. Dự án
-không cung cấp tài khoản, đo lường từ xa, tải lên đám mây, lưu trữ từ xa hay
-đồng bộ.
+OCR, bản ghi, lịch sử, dữ liệu bảng tạm và cấu hình được giữ trên thiết bị.
+Các tính năng dịch, chuyển âm thanh thành văn bản và xử lý văn bản bằng AI là
+tùy chọn, chỉ gửi văn bản hoặc âm thanh đã chọn tới dịch vụ do người dùng cấu hình.
+Dự án không vận hành dịch vụ tài khoản, đo lường từ xa, trung chuyển tải lên hay đồng bộ.
 
 ## Tính năng
 
-- **One Shot:** chọn vùng một lần rồi dùng Ảnh chụp, Chụp cuộn, Ghi màn hình
-  hoặc Lịch sử bảng tạm.
+- **One Shot:** chọn vùng một lần rồi dùng Ảnh chụp, Chụp cuộn, Ghi màn hình,
+  Dịch hoặc Lịch sử bảng tạm.
 
   [![Bộ chọn chế độ One Shot](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
 
@@ -26,6 +26,12 @@ không cung cấp tài khoản, đo lường từ xa, tải lên đám mây, lư
   định dạng, tên tệp, tỉ lệ, con trỏ và tùy chọn màn hình nền.
 
   [![OCR cục bộ từ ảnh chụp](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+
+- **Dịch:** dịch văn bản trong vùng One Shot đã đóng băng bằng OCR cục bộ, tự động
+  phát hiện ngôn ngữ nguồn, chọn ngôn ngữ đích và Provider do người dùng cấu hình.
+  Chỉ văn bản đã nhận diện được gửi đi.
+
+  [![Dịch văn bản trong ảnh chụp](assets/readme/translate.gif)](assets/readme/translate.gif)
 
 - **Chú thích trực tiếp:** vùng chọn, hình, mũi tên, chữ, tô sáng, mosaic, đèn rọi,
   số thứ tự, bút, hoàn tác/làm lại, QR, sao chép và ghim.
@@ -41,6 +47,13 @@ không cung cấp tài khoản, đo lường từ xa, tải lên đám mây, lư
   hiển thị phím, tạm dừng, ghi lại, hủy, ảnh nhanh và vẽ trực tiếp.
 
   [![Ghi màn hình với chú thích trực tiếp](assets/readme/recording.gif)](assets/readme/recording.gif)
+
+- **Ghi âm:** ghi âm thanh hệ thống, micrô hoặc cả hai từ thanh menu hay khay
+  hệ thống mà không cần chọn vùng màn hình; lưu thành M4A chỉ chứa âm thanh.
+- **Chuyển âm thanh thành văn bản và ghi chú AI:** tùy chọn bật nhận dạng bằng
+  tài khoản Volcengine riêng, rồi chỉnh sửa và sắp xếp văn bản bằng LLM đã cấu hình.
+  Tìm kiếm, sao chép và xuất kết quả đã lưu trong cửa sổ kết quả chuyển văn bản.
+  Xem [thiết lập, cách dùng và quyền riêng tư](docs/RECORDING_TRANSCRIPTION.en.md).
 
 - **Quick Access và ghim:** thẻ sau khi chụp có thể cấu hình, sao chép/lưu/mở,
   kéo thả, vuốt và ảnh luôn nổi.
@@ -65,7 +78,7 @@ Xem [danh sách tính năng đầy đủ](docs/FEATURES.md).
 
 | | macOS | Windows |
 | --- | --- | --- |
-| Yêu cầu | macOS 13+, Apple Silicon | Windows 10 2004+, x64 |
+| Yêu cầu | macOS 13+, Apple Silicon (arm64) / Intel (x86_64) | Windows 10 2004+, x64 |
 | Công nghệ gốc | SwiftUI, AppKit, ScreenCaptureKit, Vision | WPF, Win32, API chụp/OCR/đa phương tiện Windows |
 | Mã nguồn | `platforms/mac` | `platforms/windows` |
 
@@ -110,5 +123,5 @@ sản phẩm ShotPaste, đồng thời có tham khảo một phần từ việc 
 Các thông báo bản quyền và văn bản giấy phép bắt buộc của bên thứ ba được lưu
 trong [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Xem [CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.md](SUPPORT.md) và
+Xem [CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.en.md](SUPPORT.en.md) và
 [SECURITY.md](SECURITY.md) để đóng góp, nhận trợ giúp hoặc báo cáo có trách nhiệm.

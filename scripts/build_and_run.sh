@@ -13,6 +13,7 @@ QUIET=1
 MARKETING_VERSION_OVERRIDE="${SHOTPASTE_MARKETING_VERSION:-}"
 BUILD_NUMBER_OVERRIDE="${SHOTPASTE_BUILD_NUMBER:-}"
 RELEASE_ARM64_ONLY="${SHOTPASTE_RELEASE_ARM64_ONLY:-0}"
+BUILD_ARCH="${SHOTPASTE_MACOS_ARCH:-}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/scripts/macos-app-variant.sh"
@@ -20,6 +21,8 @@ PRODUCTS_ROOT="$ROOT_DIR/.build/macos"
 DERIVED_DATA_PATH="$PRODUCTS_ROOT/DerivedData"
 APP_BUNDLE_NAME=""
 APP_PROCESS_NAME=""
+SENSITIVE_ENV_NAMES=()
+XCODEBUILD_ENV_UNSET_ARGS=()
 
 if [[ -t 1 ]]; then
   BLUE=$'\033[0;34m'
@@ -56,6 +59,7 @@ ${BOLD}Modes:${NC}
 
 ${BOLD}Options:${NC}
   --configuration C   Build configuration: Debug or Release. Default: Debug
+  --arch ARCH         Build a single architecture: arm64 or x86_64
   --log-level LEVELS  default,info,debug,error,fault,all. Default: default,error,fault
   --clean             Clean before building
   --verbose           Show full xcodebuild output
@@ -65,6 +69,7 @@ ${BOLD}CI release environment:${NC}
   SHOTPASTE_MARKETING_VERSION  Override MARKETING_VERSION with stable SemVer
   SHOTPASTE_BUILD_NUMBER       Override CURRENT_PROJECT_VERSION with an integer
   SHOTPASTE_RELEASE_ARM64_ONLY Build an arm64-only Release app when set to 1
+  SHOTPASTE_MACOS_ARCH         Target architecture: arm64 or x86_64
 
 ${BOLD}Examples:${NC}
   $0
@@ -113,6 +118,11 @@ parse_args() {
       --configuration)
         [[ $# -ge 2 ]] || fail "--configuration requires a value."
         CONFIGURATION="$2"
+        shift 2
+        ;;
+      --arch)
+        [[ $# -ge 2 ]] || fail "--arch requires a value."
+        BUILD_ARCH="$2"
         shift 2
         ;;
       --derived-data|--derived-data-path)
@@ -169,8 +179,14 @@ validate_build_overrides() {
     1)
       [[ "$CONFIGURATION" == "Release" ]] || fail \
         "SHOTPASTE_RELEASE_ARM64_ONLY=1 requires the Release configuration."
+      [[ -z "$BUILD_ARCH" || "$BUILD_ARCH" == "arm64" ]] || fail "Conflicting architecture overrides."
+      BUILD_ARCH=arm64
       ;;
     *) fail "SHOTPASTE_RELEASE_ARM64_ONLY must be 0 or 1." ;;
+  esac
+  case "$BUILD_ARCH" in
+    ""|arm64|x86_64) ;;
+    *) fail "Unsupported architecture '$BUILD_ARCH'; use arm64 or x86_64." ;;
   esac
 }
 
@@ -233,6 +249,51 @@ app_binary_path() {
   printf "%s/Contents/MacOS/%s" "$(app_bundle_path)" "$(app_process_name)"
 }
 
+sensitive_env_name_matches() {
+  case "$1" in
+    *[Aa][Pp][Ii]_[Kk][Ee][Yy]*|*[Tt][Oo][Kk][Ee][Nn]*|*[Ss][Ee][Cc][Rr][Ee][Tt]*|*[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]*|*[Cc][Rr][Ee][Dd][Ee][Nn][Tt][Ii][Aa][Ll]*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+record_sensitive_env_name() {
+  local candidate="$1"
+  local existing
+
+  [[ -n "$candidate" ]] || return 0
+  for existing in "${SENSITIVE_ENV_NAMES[@]-}"; do
+    [[ "$existing" == "$candidate" ]] && return 0
+  done
+  SENSITIVE_ENV_NAMES+=("$candidate")
+}
+
+collect_sensitive_environment_names() {
+  local env_name
+
+  # compgen emits environment variable names only; values never enter the
+  # shell data stream used to construct the xcodebuild child environment.
+  while IFS= read -r env_name; do
+    if sensitive_env_name_matches "$env_name"; then
+      record_sensitive_env_name "$env_name"
+    fi
+  done < <(compgen -e)
+
+  # Keep these explicit in case a shell/environment implementation does not
+  # expose one of the known names through the matcher above.
+  for env_name in BET_API_KEY DEEPSEEK_API_KEY PATEWAY_GUOCHAN_API_KEY; do
+    record_sensitive_env_name "$env_name"
+  done
+
+  XCODEBUILD_ENV_UNSET_ARGS=()
+  for env_name in "${SENSITIVE_ENV_NAMES[@]-}"; do
+    XCODEBUILD_ENV_UNSET_ARGS+=(-u "$env_name")
+  done
+}
+
 stop_app() {
   local process_name
   process_name="$(app_process_name)"
@@ -277,8 +338,8 @@ run_xcodebuild() {
   if [[ -n "$BUILD_NUMBER_OVERRIDE" ]]; then
     args+=("CURRENT_PROJECT_VERSION=$BUILD_NUMBER_OVERRIDE")
   fi
-  if [[ "$RELEASE_ARM64_ONLY" == "1" ]]; then
-    args+=(ARCHS=arm64 ONLY_ACTIVE_ARCH=YES SWIFT_COMPILATION_MODE=incremental)
+  if [[ -n "$BUILD_ARCH" ]]; then
+    args+=("ARCHS=$BUILD_ARCH" ONLY_ACTIVE_ARCH=NO SWIFT_COMPILATION_MODE=incremental)
   fi
 
   # Xcode 26.6 / Swift 6.3.3 can crash in EarlyPerfInliner while compiling this
@@ -292,7 +353,7 @@ run_xcodebuild() {
   fi
 
   args+=("$action")
-  "${args[@]}"
+  /usr/bin/env "${XCODEBUILD_ENV_UNSET_ARGS[@]}" "${args[@]}"
 }
 
 build_app() {
@@ -316,6 +377,9 @@ build_app() {
 
   [[ -d "$app_bundle" ]] || fail "Build finished but app bundle was not found: $app_bundle"
   [[ -x "$(app_binary_path)" ]] || fail "Built app binary is not executable: $(app_binary_path)"
+  if [[ -n "$BUILD_ARCH" ]]; then
+    [[ "$(/usr/bin/lipo -archs "$(app_binary_path)")" == "$BUILD_ARCH" ]] || fail "Built app architecture does not match $BUILD_ARCH."
+  fi
 
   if /usr/bin/otool -L "$(app_binary_path)" | /usr/bin/grep -q '\.debug\.dylib'; then
     fail "Built app still links an Xcode debug dylib and will fail self-signed runtime library validation."
@@ -380,6 +444,8 @@ main() {
   require_command security
   require_command pgrep
   require_command pkill
+  collect_sensitive_environment_names
+  info "Withheld ${#SENSITIVE_ENV_NAMES[@]} sensitive environment variable(s) from the xcodebuild child."
 
   case "$CONFIGURATION" in
     Debug|Release) ;;
