@@ -212,6 +212,9 @@ final class AudioRecordingCoordinator: ObservableObject {
   private let recorder: ScreenRecordingManager
   private let onResults: (UUID) -> Void
   private let confirmationHandler: ((String, String, String) -> Bool)?
+  // Recovery/state-machine tests inject no presentation; the production
+  // singleton keeps visible capture controls and confirmations enabled.
+  private let presentationEnabled: Bool
   private var cancellables = Set<AnyCancellable>()
   private var preparationPanel: AudioRecordingPreparationPanel?
   private var controlBar: AudioRecordingControlBarWindow?
@@ -247,10 +250,12 @@ final class AudioRecordingCoordinator: ObservableObject {
     llmProcessor: LocalAudioLLMProcessor = LocalAudioLLMProcessor(),
     recorder: ScreenRecordingManager = .shared,
     onResults: @escaping (UUID) -> Void = { _ in },
-    confirmationHandler: ((String, String, String) -> Bool)? = nil
+    confirmationHandler: ((String, String, String) -> Bool)? = nil,
+    presentationEnabled: Bool = true
   ) {
     self.onResults = onResults
     self.confirmationHandler = confirmationHandler
+    self.presentationEnabled = presentationEnabled
     self.sessionStore = sessionStore
     let resolvedPipeline = extractionPipeline
       ?? AudioExtractionPipeline(store: sessionStore)
@@ -301,7 +306,8 @@ final class AudioRecordingCoordinator: ObservableObject {
     )
   }
 
-  deinit {
+  nonisolated deinit {
+    // NotificationCenter removal is thread-safe and requires no UI teardown.
     NotificationCenter.default.removeObserver(self)
   }
 
@@ -380,6 +386,7 @@ final class AudioRecordingCoordinator: ObservableObject {
 
     configuration = AudioRecordingPreferences.configuration()
     state = .presenting
+    guard presentationEnabled else { return }
     let panel = preparationPanel ?? AudioRecordingPreparationPanel(configuration: configuration)
     preparationPanel = panel
     panel.onStart = { [weak self] configuration in
@@ -1280,6 +1287,7 @@ final class AudioRecordingCoordinator: ObservableObject {
   // MARK: - UI helpers
 
   private func showControlBar() {
+    guard presentationEnabled else { return }
     let bar = controlBar ?? AudioRecordingControlBarWindow(coordinator: self)
     controlBar = bar
     bar.onPauseResume = { [weak self] in self?.pauseOrResume() }
@@ -1296,6 +1304,7 @@ final class AudioRecordingCoordinator: ObservableObject {
 
   private func confirm(title: String, message: String, action: String) -> Bool {
     if let confirmationHandler { return confirmationHandler(title, message, action) }
+    guard presentationEnabled else { return false }
     let alert = NSAlert()
     alert.messageText = title
     alert.informativeText = message
@@ -1315,6 +1324,7 @@ final class AudioRecordingCoordinator: ObservableObject {
   }
 
   private func showSuccessToast(_ message: String) async {
+    guard presentationEnabled else { return }
     await MainActor.run {
       AppToastManager.shared.show(message: message, style: .success, position: .bottomCenter)
     }
@@ -1344,6 +1354,7 @@ final class AudioRecordingCoordinator: ObservableObject {
   }
 
   private func showFailureToast(_ message: String) async {
+    guard presentationEnabled else { return }
     await MainActor.run {
       AppToastManager.shared.show(message: message, style: .warning, position: .bottomCenter)
     }

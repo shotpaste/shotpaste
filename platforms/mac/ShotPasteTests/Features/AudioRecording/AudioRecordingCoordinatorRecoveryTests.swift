@@ -9,6 +9,26 @@ import XCTest
 
 final class AudioRecordingCoordinatorRecoveryTests: XCTestCase {
   @MainActor
+  func testDisabledPresentationDoesNotApproveDeletionWithoutConfirmation() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = AudioAdapterSessionStore(sessionsDirectory: root)
+    let capture = TerminationAudioCapture()
+    let adapter = TinyRegionRecordingAdapter(store: store, recordingController: capture)
+    let coordinator = AudioRecordingCoordinator(
+      adapter: adapter, sessionStore: store,
+      postCapture: TerminationAudioOutput(historySkipped: true), presentationEnabled: false
+    )
+    coordinator.begin(configuration: .init(capturesSystemAudio: true, capturesMicrophone: false))
+    try await waitForState(.recording, coordinator: coordinator)
+    coordinator.delete()
+    XCTAssertEqual(coordinator.state, .recording)
+    XCTAssertTrue(coordinator.requiresTerminationHandling)
+    let saved = await coordinator.finishForApplicationTermination()
+    XCTAssertTrue(saved)
+  }
+
+  @MainActor
   func testStopStillReleasesNativeWriterWhenManifestCannotBeWritten() async throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: root) }
@@ -39,7 +59,8 @@ final class AudioRecordingCoordinatorRecoveryTests: XCTestCase {
         adapter: adapter,
         sessionStore: store,
         postCapture: TerminationAudioOutput(historySkipped: true),
-        confirmationHandler: { _, _, _ in true }
+        confirmationHandler: { _, _, _ in true },
+        presentationEnabled: false
       )
       let configuration = AudioRecordingConfiguration(
         capturesSystemAudio: true, capturesMicrophone: false, automaticTranscription: false
@@ -66,7 +87,7 @@ final class AudioRecordingCoordinatorRecoveryTests: XCTestCase {
     let capture = TerminationAudioCapture()
     capture.prepareDelay = .milliseconds(200)
     let adapter = TinyRegionRecordingAdapter(store: store, recordingController: capture)
-    let coordinator = AudioRecordingCoordinator(adapter: adapter, sessionStore: store)
+    let coordinator = AudioRecordingCoordinator(adapter: adapter, sessionStore: store, presentationEnabled: false)
     coordinator.begin(configuration: .init(capturesSystemAudio: true, capturesMicrophone: false))
     while !capture.prepareStarted { try await Task.sleep(for: .milliseconds(10)) }
     coordinator.cancelPreparation()
@@ -93,7 +114,8 @@ final class AudioRecordingCoordinatorRecoveryTests: XCTestCase {
       adapter: adapter, sessionStore: store, processingStore: processingStore,
       processingPipeline: AudioRecordingProcessingPipeline(
         taskStore: processingStore, transcriber: RecoveryMustNotTranscribe(), adapterStore: store
-      )
+      ),
+      presentationEnabled: false
     )
     await coordinator.recoverOnLaunch()
     let task = try processingStore.loadTask(sessionID: created.sessionID)
@@ -133,7 +155,9 @@ final class AudioRecordingCoordinatorRecoveryTests: XCTestCase {
     let capture = TerminationAudioCapture()
     let adapter = TinyRegionRecordingAdapter(store: store, recordingController: capture)
     let output = TerminationAudioOutput(historySkipped: historySkipped)
-    let coordinator = AudioRecordingCoordinator(adapter: adapter, sessionStore: store, postCapture: output)
+    let coordinator = AudioRecordingCoordinator(
+      adapter: adapter, sessionStore: store, postCapture: output, presentationEnabled: false
+    )
     coordinator.begin(configuration: AudioRecordingConfiguration(
       capturesSystemAudio: true, capturesMicrophone: false, automaticTranscription: false
     ))

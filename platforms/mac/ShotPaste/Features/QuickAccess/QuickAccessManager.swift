@@ -1143,7 +1143,8 @@ final class QuickAccessManager: ObservableObject {
   /// Delete item from disk and remove from stack
   func deleteItem(
     id: UUID,
-    confirmation: QuickAccessDeleteConfirmation = .promptUser
+    confirmation: QuickAccessDeleteConfirmation = .promptUser,
+    playDeletionSound: @escaping @MainActor () -> Void = { SoundManager.play("Funk") }
   ) {
     guard let item = items.first(where: { $0.id == id }) else {
       DiagnosticLogger.shared.log(
@@ -1193,7 +1194,7 @@ final class QuickAccessManager: ObservableObject {
           try? RecordingMetadataStore.delete(for: url)
         }
         dismissCard(id: id)
-        SoundManager.play("Funk")
+        playDeletionSound()
         DiagnosticLogger.shared.log(
           .info,
           .fileAccess,

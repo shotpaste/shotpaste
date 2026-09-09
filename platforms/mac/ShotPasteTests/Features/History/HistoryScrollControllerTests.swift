@@ -30,4 +30,15 @@ final class HistoryScrollControllerTests: XCTestCase {
     }
     XCTAssertNil(released)
   }
+
+  func testSearchModelCanBeReleasedSynchronously() {
+    weak var released: HistorySearchViewModel?
+    autoreleasepool {
+      var model: HistorySearchViewModel? = HistorySearchViewModel()
+      released = model
+      XCTAssertNotNil(released)
+      model = nil
+    }
+    XCTAssertNil(released)
+  }
 }

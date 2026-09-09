@@ -10,6 +10,8 @@
 
 首次启动前请阅读 macOS `START-HERE` 文件。本安装包使用 ShotPaste 固定自签名证书。
 
+Intel 验证范围为原生构建与自动测试，不包含真实 Intel 桌面、GPU 和音频设备交互验收。
+
 ---
 
 ## ShotPaste for macOS @VERSION@
@@ -25,3 +27,6 @@ own version and publication schedule.
 
 Read the macOS `START-HERE` file before first launch. The package uses
 ShotPaste's persistent self-signed certificate.
+
+Intel validation covers native builds and automated tests, not interactive
+acceptance on physical Intel Macs, GPUs, or audio devices.
