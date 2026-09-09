@@ -61,6 +61,20 @@ jobs:
       - name: Verify installer architecture selection
         run: python3 -m unittest discover -s scripts -p test_macos_installer.py -v
 
+  macos-required:
+    # Keep the existing branch-protection check name; both native architectures
+    # must succeed before this aggregate gate can pass.
+    name: macOS tests and localization
+    needs: macos
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require both macOS architectures
+        env:
+          MACOS_RESULT: ${{ needs.macos.result }}
+        run: test "$MACOS_RESULT" = success
+
   windows:
     name: Windows ${{ matrix.configuration }} build and tests
     runs-on: windows-latest

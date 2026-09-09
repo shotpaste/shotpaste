@@ -224,6 +224,8 @@ macOS 与 Windows 各自维护稳定发布流。标签必须指向包含于 `rel
 macOS 工作流需要上述两个 Actions Secrets，并在构建前核对导入证书的固定指纹。
 macOS 的 CI 和 Release 使用 `macos-15`（arm64）与 `macos-15-intel`（x86_64）矩阵，
 均使用 Xcode 26.2。两个架构原生测试、构建、架构检查和签名检查全部成功后，
+CI 以原有 `macOS tests and localization` 名称汇总两个架构的结果，保持分支保护门禁；
+任一架构失败、取消或跳过都不能通过汇总检查。
 同一个 `macos-vX.Y.Z` Release 才发布以下两个独立包：
 
 - `ShotPaste-vX.Y.Z-macOS-arm64.dmg`：Apple Silicon，保持已有文件名及更新兼容。
