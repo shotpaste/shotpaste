@@ -77,9 +77,11 @@ jobs:
         include:
           - arch: arm64
             runner: macos-15
+            timeout: 40
           - arch: x86_64
             runner: macos-15-intel
-    timeout-minutes: 40
+            timeout: 60
+    timeout-minutes: ${{ matrix.timeout }}
     steps:
       - name: Checkout tagged source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

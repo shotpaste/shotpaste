@@ -226,6 +226,9 @@ macOS 的 CI 和 Release 使用 `macos-15`（arm64）与 `macos-15-intel`（x86_
 均使用 Xcode 26.2。两个架构原生测试、构建、架构检查和签名检查全部成功后，
 CI 以原有 `macOS tests and localization` 名称汇总两个架构的结果，保持分支保护门禁；
 任一架构失败、取消或跳过都不能通过汇总检查。
+CI 对单个 XCTest 启用 120 秒默认、180 秒最大执行时限，超时仍判失败；
+测试步骤在作业结束前超时，以便保存失败结果包。Intel 的验证/发布作业分别保留 45/60 分钟
+窗口供原生编译使用，不缩减测试集合。失败结果包仅在 GitHub 保留三天，用于诊断测试宿主崩溃。
 同一个 `macos-vX.Y.Z` Release 才发布以下两个独立包：
 
 - `ShotPaste-vX.Y.Z-macOS-arm64.dmg`：Apple Silicon，保持已有文件名及更新兼容。

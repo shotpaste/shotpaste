@@ -271,6 +271,16 @@ XCODEBUILD_CMD=(
   "SHOTPASTE_INFOPLIST_FILE=$TEST_HOST_INFOPLIST_PATH"
 )
 
+if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
+  # Fail a hung test while the job still has time to publish its XCTest
+  # diagnostics. This is an outer watchdog, not a relaxed product deadline.
+  XCODEBUILD_CMD+=(
+    -test-timeouts-enabled YES
+    -default-test-execution-time-allowance 120
+    -maximum-test-execution-time-allowance 180
+  )
+fi
+
 if [[ -n "$SOURCE_PACKAGES_PATH" ]]; then
   XCODEBUILD_CMD+=(-clonedSourcePackagesDirPath "$SOURCE_PACKAGES_PATH")
 fi
