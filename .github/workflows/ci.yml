@@ -61,6 +61,15 @@ jobs:
       - name: Verify installer architecture selection
         run: python3 -m unittest discover -s scripts -p test_macos_installer.py -v
 
+      - name: Preserve failed macOS test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: macos-test-failure-${{ matrix.arch }}-${{ github.run_id }}
+          path: build/ci-test.xcresult
+          if-no-files-found: ignore
+          retention-days: 3
+
   macos-required:
     # Keep the existing branch-protection check name; both native architectures
     # must succeed before this aggregate gate can pass.
