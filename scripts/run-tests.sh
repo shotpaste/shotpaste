@@ -282,6 +282,13 @@ set -e
 
 if [ "$STATUS" -ne 0 ]; then
   error "Tests failed with status ${STATUS}."
+  if [ -d "$RESULT_BUNDLE_PATH" ]; then
+    # The console often reports only the interrupted test name when a test
+    # host crashes. Preserve the assertion/crash explanation from XCTest.
+    warn "XCTest result summary:"
+    xcrun xcresulttool get test-results summary \
+      --path "$RESULT_BUNDLE_PATH" --format json || true
+  fi
   if [ -f "$LOG_PATH" ]; then
     warn "Likely failures:"
     grep -E "Test case '.*' failed|Failing tests:|\\*\\* TEST FAILED \\*\\*|error:" "$LOG_PATH" || true
