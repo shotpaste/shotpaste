@@ -51,6 +51,19 @@ public sealed class OcrService
         return result.Text;
     }
 
+    public async Task<string> RecognizeTranslationTextAsync(Drawing.Bitmap bitmap)
+    {
+        var scale = Math.Min(1d, (double)OcrEngine.MaxImageDimension / Math.Max(bitmap.Width, bitmap.Height));
+        if (scale >= 1d) return (await RecognizeTextPassAsync(bitmap))?.Text ?? string.Empty;
+        using var resized = new Drawing.Bitmap(Math.Max(1, (int)(bitmap.Width * scale)), Math.Max(1, (int)(bitmap.Height * scale)));
+        using (var graphics = Drawing.Graphics.FromImage(resized))
+        {
+            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            graphics.DrawImage(bitmap, 0, 0, resized.Width, resized.Height);
+        }
+        return (await RecognizeTextPassAsync(resized))?.Text ?? string.Empty;
+    }
+
     public async Task<OcrRecognitionResult> RecognizeDetailedAsync(Drawing.Bitmap bitmap)
     {
         using var qrBitmap = (Drawing.Bitmap)bitmap.Clone();

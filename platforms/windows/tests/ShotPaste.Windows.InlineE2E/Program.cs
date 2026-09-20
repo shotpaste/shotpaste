@@ -37,6 +37,7 @@ internal static class Program
                 ("done_enter", ScenarioAction.DoneWithEnter, true),
                 ("pan_toolbar_recovery", ScenarioAction.PanToolbarRecovery, false),
                 ("cancel_escape", ScenarioAction.CancelWithEscape, false),
+                ("translation_settings", ScenarioAction.TranslationSettings, false),
                 ("dirty_return_discard", ScenarioAction.DirtyReturnAndDiscard, true),
                 ("dirty_save", ScenarioAction.DirtySave, true),
                 ("dirty_exit_return_discard", ScenarioAction.DirtyExitReturnAndDiscard, true),
@@ -145,6 +146,14 @@ internal static class Program
                     }, "One Shot mode switcher did not move.");
             }
             var screen = Forms.Screen.FromPoint(Forms.Cursor.Position).WorkingArea;
+            if (action == ScenarioAction.TranslationSettings)
+            {
+                Invoke(WaitForAutomationId(process.Id, "OneShotTranslation"));
+                WaitForAutomationId(process.Id, "TranslationFullScreen");
+                if (WaitForAutomationId(process.Id, "TranslationSelection").Current.IsEnabled)
+                    throw new InvalidOperationException("Selection translation must require a selection.");
+                Invoke(WaitForAutomationId(process.Id, "OneShotScreenshot"));
+            }
             var defaultBadgeScenario = action == ScenarioAction.SelectionSizeBadgeDefault;
             var edgeBadgeScenario = action == ScenarioAction.SelectionSizeBadgeEdge;
             var selectionStart = new Drawing.Point(
@@ -388,6 +397,26 @@ internal static class Program
                     WaitUntil(() => FindByAutomationId(process.Id, "OneShotCancel") is null,
                         "Inline overlay did not close after Escape.");
                     detail = "Escape cancelled without output.";
+                    break;
+                case ScenarioAction.TranslationSettings:
+                    Invoke(WaitForAutomationId(process.Id, "OneShotTranslation"));
+                    WaitForAutomationId(process.Id, "TranslationSourceLanguage");
+                    Invoke(WaitForAutomationId(process.Id, "TranslationSelection"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "TranslationStatus")?.Current.Name.Contains("LLM", StringComparison.Ordinal) == true,
+                        "Missing provider did not produce a recoverable configuration message.");
+                    Invoke(WaitForAutomationId(process.Id, "OneShotScreenshot"));
+                    WaitForAutomationId(process.Id, "OneShotDone");
+                    Invoke(WaitForAutomationId(process.Id, "OneShotTranslation"));
+                    SaveDesktopScreenshot(Path.Combine(root, "translation-controls.png"));
+                    Invoke(WaitForAutomationId(process.Id, "TranslationSettings"));
+                    var aiTab = WaitForAutomationId(process.Id, "SettingsAiTab");
+                    if (!((SelectionItemPattern)aiTab.GetCurrentPattern(SelectionItemPattern.Pattern)).Current.IsSelected)
+                        throw new InvalidOperationException("Translation settings did not navigate to AI features.");
+                    WaitForAutomationId(process.Id, "LlmEndpoint");
+                    if (FindByAutomationId(process.Id, "InlineAnnotateWindow") is not null)
+                        throw new InvalidOperationException("Translation settings left the frozen overlay open.");
+                    SaveDesktopScreenshot(Path.Combine(root, "ai-settings.png"));
+                    detail = "Translation retained selection, recovered from missing provider, switched back to screenshot and opened AI settings without capture output.";
                     break;
                 case ScenarioAction.DirtyReturnAndDiscard:
                     SendKey(overlay, 0x1B);
@@ -1195,6 +1224,7 @@ internal static class Program
         DoneWithEnter,
         PanToolbarRecovery,
         CancelWithEscape,
+        TranslationSettings,
         DirtyReturnAndDiscard,
         DirtySave,
         DirtyExitReturnAndDiscard,

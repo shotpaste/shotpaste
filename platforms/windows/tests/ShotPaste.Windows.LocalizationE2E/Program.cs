@@ -132,6 +132,7 @@ internal static class Program
                 (Name: "capture-recording", Top: "SettingsCaptureRecordingTab", Inner: "SettingsCaptureRecordingSubtab"),
                 (Name: "quick-access", Top: "SettingsQuickAccessTab", Inner: (string?)null),
                 (Name: "history", Top: "SettingsHistoryTab", Inner: (string?)null),
+                (Name: "ai", Top: "SettingsAiTab", Inner: (string?)null),
                 (Name: "shortcuts", Top: "SettingsShortcutsTab", Inner: (string?)null),
                 (Name: "advanced", Top: "SettingsAdvancedTab", Inner: (string?)null)
             };

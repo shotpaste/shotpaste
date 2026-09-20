@@ -610,6 +610,7 @@ public sealed partial class AppController : IDisposable
             _settings.Current.RecordingTranscriptionEnabled, _settings.Current.RecordingTranscriptionUseAI,
             _settings.Current.RecordingTranscriptionSourceLanguage, _settings.Current.RecordingTranscriptionCloudVerified && RecordingTranscriptionConfiguration.FromSettings(_settings.Current) is not null);
         using var result = await _selection.SelectOneShotAsync(recordingOptions, CommitScreenshotFromOverlayAsync, initialMode);
+        if (_selection.TranslationSettingsRequested) ShowSettings("ai");
         if (result is null) return;
 
         switch (result.Mode)
