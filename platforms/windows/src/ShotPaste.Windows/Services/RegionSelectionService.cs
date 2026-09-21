@@ -14,11 +14,13 @@ public sealed class RegionSelectionService(
     Func<AppSettings>? settingsProvider = null,
     Action? saveSettings = null)
 {
+    public bool TranslationSettingsRequested { get; private set; }
     public async Task<OneShotResult?> SelectOneShotAsync(
         OneShotRecordingOptions recordingOptions,
         Func<Window, Drawing.Bitmap, bool, Task<bool>>? screenshotCommit = null,
         OneShotMode initialMode = OneShotMode.Screenshot)
     {
+        TranslationSettingsRequested = false;
         var options = optionsProvider?.Invoke();
         var excludeOwnApplication = options?.ExcludeOwnApplication == true;
         using var trace = SelectionPerformanceTrace.Start("OneShot", screenCapture.VirtualBounds);
@@ -51,6 +53,7 @@ public sealed class RegionSelectionService(
         overlay.ContentRendered += (_, _) => trace.MarkFirstFrame();
         if (overlay.ShowDialog() != true || overlay.OneShotAction is not { } action)
         {
+            TranslationSettingsRequested = overlay.TranslationSettingsRequested;
             trace.Complete("Cancelled");
             return null;
         }

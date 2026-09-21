@@ -108,6 +108,12 @@ public sealed class AppSettings
     public string AgentApiProtocol { get; set; } = "openAICompatible";
     public string AgentEndpoint { get; set; } = "https://api.openai.com/v1/chat/completions";
     public string AgentModel { get; set; } = string.Empty;
+    public bool TranslationSendsRecognizedText { get; set; } = true;
+    public int TranslationTimeoutSeconds { get; set; } = 15;
+    public string TranslationPromptMode { get; set; } = "builtin";
+    public string TranslationPrompt { get; set; } = string.Empty;
+    public string TranslationSourceLanguage { get; set; } = "auto";
+    public string TranslationTargetLanguage { get; set; } = "current";
     public string AgentApiKeyProtected { get; set; } = string.Empty;
     [JsonIgnore] public string AgentApiKey
     {

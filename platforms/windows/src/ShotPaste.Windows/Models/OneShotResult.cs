@@ -8,7 +8,8 @@ public enum OneShotMode
     Scrolling,
     Recording,
     Ocr,
-    Clipboard
+    Clipboard,
+    Translation
 }
 
 public sealed record OneShotRecordingOptions(

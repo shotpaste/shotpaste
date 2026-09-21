@@ -34,7 +34,9 @@ public partial class SettingsWindow : Window
         _settingsApplied = settingsApplied;
         _draft = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(store.Current)) ?? new AppSettings();
         DataContext = _draft;
-        RecordingLanguageBox.ItemsSource = VolcengineTranscriptionProtocol.Languages;
+        ProviderEndpointBox.Text = _draft.AgentEndpoint;
+        ProviderModelBox.Text = _draft.AgentModel;
+        UpdateTranslationPrompt();
         RefreshRecordingTranscriptionPassword();
         UpdateStatus.Text = $"{LocalizedDialogService.Text("当前版本")}: {_updateService.CurrentVersionString}";
         SelectInitialTab(initialTab);
@@ -135,6 +137,7 @@ public partial class SettingsWindow : Window
 
     private void SelectInitialTab(string? tab)
     {
+        if (tab == "ai") { AiTab.IsSelected = true; return; }
         var item = UrlSchemeService.NormalizeSettingsTab(tab) switch
         {
             "general" => GeneralTab,
@@ -187,20 +190,17 @@ public partial class SettingsWindow : Window
             var speech = string.IsNullOrWhiteSpace(RecordingTranscriptionApiKeyBox.Password) ? _draft.RecordingTranscriptionApiKey : RecordingTranscriptionApiKeyBox.Password.Trim();
             var access = string.IsNullOrWhiteSpace(RecordingTranscriptionAccessKeyBox.Password) ? _draft.RecordingTranscriptionAccessKey : RecordingTranscriptionAccessKeyBox.Password.Trim();
             var secret = string.IsNullOrWhiteSpace(RecordingTranscriptionSecretKeyBox.Password) ? _draft.RecordingTranscriptionSecretKey : RecordingTranscriptionSecretKeyBox.Password.Trim();
-            var agent = string.IsNullOrWhiteSpace(AgentApiKeyBox.Password) ? _draft.AgentApiKey : AgentApiKeyBox.Password.Trim();
-            foreach (var value in new[] { speech, access, secret, agent })
+            foreach (var value in new[] { speech, access, secret })
                 if (value.Length != 0 && !VolcengineTosSigner.ValidCredential(value)) throw new ArgumentException("Invalid credential.");
             // Validate and encrypt every draft before replacing any saved credential.
             var protectedSpeech = RecordingTranscriptionCredentialProtector.Protect(speech);
             var protectedAccess = RecordingTranscriptionCredentialProtector.Protect(access);
             var protectedSecret = RecordingTranscriptionCredentialProtector.Protect(secret);
-            var protectedAgent = RecordingTranscriptionCredentialProtector.Protect(agent);
             var changedAccount = access != _draft.RecordingTranscriptionAccessKey || secret != _draft.RecordingTranscriptionSecretKey;
             var changedSpeech = speech != _draft.RecordingTranscriptionApiKey;
             _draft.RecordingTranscriptionApiKeyProtected = protectedSpeech;
             _draft.RecordingTranscriptionAccessKeyProtected = protectedAccess;
             _draft.RecordingTranscriptionSecretKeyProtected = protectedSecret;
-            _draft.AgentApiKeyProtected = protectedAgent;
             if (changedAccount || string.IsNullOrEmpty(_draft.RecordingTranscriptionBucket))
             {
                 _draft.RecordingTranscriptionBucket = "shotpaste-tmp-" + Guid.NewGuid().ToString("N") + (AppBuildIdentity.Current.IsDebug ? "-debug" : "-release");
@@ -208,6 +208,9 @@ public partial class SettingsWindow : Window
             }
             if (changedAccount || changedSpeech) _draft.RecordingTranscriptionCloudVerified = false;
             if (!TryApplyDraft(showErrors: true)) return false;
+            RecordingTranscriptionApiKeyBox.Clear();
+            RecordingTranscriptionAccessKeyBox.Clear();
+            RecordingTranscriptionSecretKeyBox.Clear();
             RecordingTranscriptionCredentialStatus.Text = LocalizationService.TranslatePhrase(_draft.RecordingTranscriptionCloudVerified ? "云端验证通过，可以在开始录音或录屏时选择转写。" : "凭证已保存，云端尚未测试。");
             return true;
         }
@@ -595,6 +598,9 @@ public partial class SettingsWindow : Window
         {
             DataContext = null;
             DataContext = _draft;
+            ProviderEndpointBox.Text = _draft.AgentEndpoint;
+            ProviderModelBox.Text = _draft.AgentModel;
+            UpdateTranslationPrompt();
             RefreshRecordingTranscriptionPassword();
         }
         finally { _refreshingBindings = false; }
@@ -608,11 +614,12 @@ public partial class SettingsWindow : Window
         _refreshingBindings = true;
         try
         {
-            RecordingTranscriptionApiKeyBox.Password = _draft.RecordingTranscriptionApiKey;
-            RecordingTranscriptionAccessKeyBox.Password = _draft.RecordingTranscriptionAccessKey;
-            RecordingTranscriptionSecretKeyBox.Password = _draft.RecordingTranscriptionSecretKey;
-            AgentApiKeyBox.Password = _draft.AgentApiKey;
-            RecordingTranscriptionCredentialStatus.Text = LocalizationService.TranslatePhrase(_draft.RecordingTranscriptionCloudVerified ? "云端验证通过，可以在开始录音或录屏时选择转写。" : "凭证已保存，云端尚未测试。");
+            RecordingTranscriptionApiKeyBox.Clear();
+            RecordingTranscriptionAccessKeyBox.Clear();
+            RecordingTranscriptionSecretKeyBox.Clear();
+            AgentApiKeyBox.Clear();
+            ProviderStatus.Text = LocalizationService.TranslatePhrase(string.IsNullOrEmpty(_draft.AgentApiKeyProtected) ? "尚未保存 API Key。" : "API Key 已保存；留空保留原值。");
+            RecordingTranscriptionCredentialStatus.Text = LocalizationService.TranslatePhrase(_draft.RecordingTranscriptionCloudVerified ? "云端验证通过，可以在开始录音或录屏时选择转写。" : "空凭据字段保留已保存值。保存仅保存在本地，保存并测试会联网验证。");
         }
         finally { _refreshingBindings = wasRefreshing; }
     }

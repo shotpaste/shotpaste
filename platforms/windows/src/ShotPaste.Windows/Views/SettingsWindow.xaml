@@ -432,55 +432,7 @@
             </Border>
                 </StackPanel>
               </TabItem>
-            <TabItem Header="{loc:Localized Key='Agent'}" Tag="{StaticResource Icon.Settings}" Style="{StaticResource SettingsTabItem}">
-        <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="22,0,22,20">
-                <TextBlock Text="{loc:Localized Key='AI 转写'}" Style="{StaticResource SectionTitle}" Margin="0,14,0,8"/>
-                <Border Padding="12" CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource SurfaceSecondaryBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
-                  <StackPanel>
-                    <CheckBox Content="{loc:Localized Key='录屏完成后转写'}" IsChecked="{Binding RecordingTranscriptionEnabled}"/>
-                    <CheckBox Content="{loc:Localized Key='转写后使用 AI 整理'}" IsChecked="{Binding RecordingTranscriptionUseAI}"/>
-                    <TextBlock Text="{loc:Localized Key='豆包语音 API Key'}" Style="{StaticResource SettingRowTitle}" Margin="0,12,0,4"/>
-                    <PasswordBox x:Name="RecordingTranscriptionApiKeyBox" AutomationProperties.AutomationId="RecordingTranscriptionApiKey"/>
-                    <TextBlock Text="{loc:Localized Key='TOS Access Key ID'}" Style="{StaticResource SettingRowTitle}" Margin="0,10,0,4"/>
-                    <PasswordBox x:Name="RecordingTranscriptionAccessKeyBox" AutomationProperties.AutomationId="RecordingTranscriptionAccessKey"/>
-                    <TextBlock Text="{loc:Localized Key='TOS Secret Access Key'}" Style="{StaticResource SettingRowTitle}" Margin="0,10,0,4"/>
-                    <PasswordBox x:Name="RecordingTranscriptionSecretKeyBox" AutomationProperties.AutomationId="RecordingTranscriptionSecretKey"/>
-                    <TextBlock Text="{loc:Localized Key='录屏语音语言'}" Style="{StaticResource SettingRowTitle}" Margin="0,10,0,4"/>
-                    <ComboBox x:Name="RecordingLanguageBox" SelectedItem="{Binding RecordingTranscriptionSourceLanguage}" AutomationProperties.AutomationId="RecordingTranscriptionSourceLanguage"/>
-                    <TextBlock Text="{loc:Localized Key='使用豆包录音文件识别 2.0 与你账户中的北京区域私有临时存储。音频上传后按用量计费，完成后清理；视频画面不会上传。'}" Style="{StaticResource SettingHint}" Margin="0,10,0,0" TextWrapping="Wrap"/>
-                    <TextBlock Text="{loc:Localized Key='点击保存并测试会创建应用专用私有存储并转写一段公开测试音频，可能产生少量费用。请先在火山控制台开通服务。'}" Style="{StaticResource SettingHint}" Margin="0,8,0,0" TextWrapping="Wrap"/>
-                    <WrapPanel Margin="0,12,0,0">
-                      <Button Content="{loc:Localized Key='保存凭证'}" Click="OnSaveTranscriptionCredentials" Margin="0,0,8,0"/>
-                      <Button x:Name="TestTranscriptionButton" Content="{loc:Localized Key='保存并测试'}" Click="OnTestTranscription" Margin="0,0,8,0"/>
-                      <Button Content="{loc:Localized Key='转写结果'}" Click="OnShowTranscriptionResults"/>
-                    </WrapPanel>
-                    <TextBlock x:Name="RecordingTranscriptionCredentialStatus" Style="{StaticResource SettingHint}" Margin="0,8,0,0" TextWrapping="Wrap"/>
-                  </StackPanel>
-                </Border>
-                <TextBlock Text="{loc:Localized Key='Agent 文本模型'}" Style="{StaticResource SectionTitle}" Margin="0,18,0,8"/>
-                <Border Padding="12" CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource SurfaceSecondaryBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
-                  <StackPanel>
-                    <TextBlock Text="{loc:Localized Key='API 协议'}" Style="{StaticResource SettingRowTitle}"/>
-                    <ComboBox SelectedValue="{Binding AgentApiProtocol}" SelectedValuePath="Tag" Margin="0,5,0,8">
-                      <ComboBoxItem Content="{loc:Localized Key='OpenAI Compatible'}" Tag="openAICompatible"/>
-                      <ComboBoxItem Content="{loc:Localized Key='Anthropic Messages'}" Tag="anthropicMessages"/>
-                      <ComboBoxItem Content="{loc:Localized Key='OpenAI Responses'}" Tag="responses"/>
-                    </ComboBox>
-                    <TextBlock Text="{loc:Localized Key='整理模板'}" Style="{StaticResource SettingRowTitle}"/>
-                    <ComboBox SelectedValue="{Binding RecordingTranscriptionTemplate}" SelectedValuePath="Tag" Margin="0,5,0,8">
-                      <ComboBoxItem Content="{loc:Localized Key='通用笔记'}" Tag="generalNotes"/><ComboBoxItem Content="{loc:Localized Key='采访问答'}" Tag="interviewQA"/>
-                    </ComboBox>
-                    <TextBlock Text="{loc:Localized Key='API 地址'}" Style="{StaticResource SettingRowTitle}"/>
-                    <TextBox Text="{Binding AgentEndpoint, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,8"/>
-                    <TextBlock Text="{loc:Localized Key='模型 ID'}" Style="{StaticResource SettingRowTitle}"/>
-                    <TextBox Text="{Binding AgentModel, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,8"/>
-                    <TextBlock Text="{loc:Localized Key='API Key'}" Style="{StaticResource SettingRowTitle}"/>
-                    <PasswordBox x:Name="AgentApiKeyBox" Margin="0,5,0,8"/>
-                    <TextBlock Text="{loc:Localized Key='AI 整理只向你配置的文本模型发送文字稿。原始文字稿会保留，密钥仅在点击保存凭证后安全存储。'}" Style="{StaticResource SettingHint}" TextWrapping="Wrap"/>
-                  </StackPanel>
-                </Border>
-        </StackPanel></ScrollViewer>
-      </TabItem>
+
       </TabControl>
           </StackPanel>
         </ScrollViewer>
@@ -633,6 +585,70 @@
         </ScrollViewer>
       </TabItem>
 
+            <TabItem x:Name="AiTab" AutomationProperties.AutomationId="SettingsAiTab" Header="{loc:Localized Key='AI 功能'}" Tag="{StaticResource Icon.Settings}" Style="{StaticResource SettingsTabItem}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="22,0,22,20">
+                <TextBlock Text="{loc:Localized Key='LLM 供应商'}" Style="{StaticResource SectionTitle}" Margin="0,18,0,8"/>
+                <Border Padding="12" CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource SurfaceSecondaryBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                  <StackPanel>
+                    <TextBlock Text="{loc:Localized Key='API 协议'}" Style="{StaticResource SettingRowTitle}"/>
+                    <ComboBox SelectedValue="{Binding AgentApiProtocol}" SelectedValuePath="Tag" Margin="0,5,0,8">
+                      <ComboBoxItem Content="{loc:Localized Key='OpenAI Compatible'}" Tag="openAICompatible"/>
+                      <ComboBoxItem Content="{loc:Localized Key='Anthropic Messages'}" Tag="anthropicMessages"/>
+                      <ComboBoxItem Content="{loc:Localized Key='OpenAI Responses'}" Tag="responses"/>
+                    </ComboBox>
+
+                    <TextBlock Text="{loc:Localized Key='API 地址'}" Style="{StaticResource SettingRowTitle}"/>
+                    <DockPanel Margin="0,5,0,8"><Button DockPanel.Dock="Right" Content="{loc:Localized Key='保存'}" Tag="Endpoint" Click="OnSaveProviderField"/><TextBox x:Name="ProviderEndpointBox" AutomationProperties.AutomationId="LlmEndpoint"/></DockPanel>
+                    <TextBlock Text="{loc:Localized Key='模型 ID'}" Style="{StaticResource SettingRowTitle}"/>
+                    <DockPanel Margin="0,5,0,8"><Button DockPanel.Dock="Right" Content="{loc:Localized Key='保存'}" Tag="Model" Click="OnSaveProviderField"/><TextBox x:Name="ProviderModelBox" AutomationProperties.AutomationId="LlmModel"/></DockPanel>
+                    <TextBlock Text="{loc:Localized Key='API Key'}" Style="{StaticResource SettingRowTitle}"/>
+                    <DockPanel Margin="0,5,0,8"><Button DockPanel.Dock="Right" Content="{loc:Localized Key='保存'}" Tag="Key" Click="OnSaveProviderField"/><PasswordBox x:Name="AgentApiKeyBox" AutomationProperties.AutomationId="LlmApiKey"/></DockPanel><TextBlock x:Name="ProviderStatus" Style="{StaticResource SettingHint}" TextWrapping="Wrap"/>
+                    <TextBlock Text="{loc:Localized Key='翻译与 AI 整理共用此供应商。API 地址支持基础地址或完整接口地址，密钥只在点击保存后更新。'}" Style="{StaticResource SettingHint}" TextWrapping="Wrap"/>
+                  </StackPanel>
+                </Border>
+                <TextBlock Text="{loc:Localized Key='AI 转写'}" Style="{StaticResource SectionTitle}" Margin="0,14,0,8"/>
+                <Border Padding="12" CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource SurfaceSecondaryBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                  <StackPanel>
+                    <TextBlock Text="{loc:Localized Key='整理模板'}" Style="{StaticResource SettingRowTitle}"/>
+                    <ComboBox SelectedValue="{Binding RecordingTranscriptionTemplate}" SelectedValuePath="Tag" Margin="0,5,0,8">
+                      <ComboBoxItem Content="{loc:Localized Key='通用笔记'}" Tag="generalNotes"/><ComboBoxItem Content="{loc:Localized Key='采访问答'}" Tag="interviewQA"/>
+                    </ComboBox>
+                    <TextBlock Text="{loc:Localized Key='豆包语音 API Key'}" Style="{StaticResource SettingRowTitle}" Margin="0,12,0,4"/>
+                    <PasswordBox x:Name="RecordingTranscriptionApiKeyBox" AutomationProperties.AutomationId="RecordingTranscriptionApiKey"/>
+                    <TextBlock Text="{loc:Localized Key='TOS Access Key ID'}" Style="{StaticResource SettingRowTitle}" Margin="0,10,0,4"/>
+                    <PasswordBox x:Name="RecordingTranscriptionAccessKeyBox" AutomationProperties.AutomationId="RecordingTranscriptionAccessKey"/>
+                    <TextBlock Text="{loc:Localized Key='TOS Secret Access Key'}" Style="{StaticResource SettingRowTitle}" Margin="0,10,0,4"/>
+                    <PasswordBox x:Name="RecordingTranscriptionSecretKeyBox" AutomationProperties.AutomationId="RecordingTranscriptionSecretKey"/>
+                    <TextBlock Text="{loc:Localized Key='使用豆包录音文件识别 2.0 与你账户中的北京区域私有临时存储。音频上传后按用量计费，完成后清理；视频画面不会上传。'}" Style="{StaticResource SettingHint}" Margin="0,10,0,0" TextWrapping="Wrap"/>
+                    <TextBlock Text="{loc:Localized Key='点击保存并测试会创建应用专用私有存储并转写一段公开测试音频，可能产生少量费用。请先在火山控制台开通服务。'}" Style="{StaticResource SettingHint}" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                    <WrapPanel Margin="0,12,0,0">
+                      <Button Content="{loc:Localized Key='保存凭证'}" Click="OnSaveTranscriptionCredentials" Margin="0,0,8,0"/>
+                      <Button x:Name="TestTranscriptionButton" Content="{loc:Localized Key='保存并测试'}" Click="OnTestTranscription" Margin="0,0,8,0"/>
+
+                    </WrapPanel>
+                    <TextBlock x:Name="RecordingTranscriptionCredentialStatus" Style="{StaticResource SettingHint}" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                  </StackPanel>
+                </Border>
+                <TextBlock Text="{loc:Localized Key='AI 翻译'}" Style="{StaticResource SectionTitle}" Margin="0,18,0,8"/>
+                <Border Padding="12" CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource SurfaceSecondaryBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                  <StackPanel>
+                    <TextBlock Text="{loc:Localized Key='提示词模式'}" Style="{StaticResource SettingRowTitle}"/>
+                    <ComboBox SelectedValue="{Binding TranslationPromptMode}" SelectedValuePath="Tag" SelectionChanged="OnTranslationPromptModeChanged" Margin="0,5,0,8">
+                      <ComboBoxItem Content="{loc:Localized Key='内置'}" Tag="builtin"/><ComboBoxItem Content="{loc:Localized Key='自定义'}" Tag="custom"/>
+                    </ComboBox>
+                    <TextBox x:Name="TranslationPromptBox" Text="{Binding TranslationPrompt, UpdateSourceTrigger=PropertyChanged}" MaxLength="2000" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="96" VerticalScrollBarVisibility="Auto" AutomationProperties.AutomationId="TranslationPrompt"/>
+                    <TextBlock x:Name="BuiltinTranslationPrompt" TextWrapping="Wrap" Style="{StaticResource SettingHint}"/>
+                    <TextBlock Text="{loc:Localized Key='支持变量：源语言与目标语言。'}" Style="{StaticResource SettingHint}"/>
+                    <Button Content="{loc:Localized Key='恢复内置提示词'}" Click="OnRestoreTranslationPrompt" HorizontalAlignment="Left" Margin="0,8"/>
+                    <TextBlock Text="{loc:Localized Key='翻译超时（秒，5–120）'}" Style="{StaticResource SettingRowTitle}"/>
+                    <TextBox Text="{Binding TranslationTimeoutSeconds}" Margin="0,5,0,8"/>
+                    <CheckBox Content="{loc:Localized Key='允许发送识别文字'}" IsChecked="{Binding TranslationSendsRecognizedText}"/>
+                    <TextBlock Text="{loc:Localized Key='仅发送本地识别的文字，不发送截图。'}" Style="{StaticResource SettingHint}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                    <TextBlock Text="{loc:Localized Key='OCR 语言支持取决于 Windows 已安装的语言包。'}" Style="{StaticResource SettingHint}" TextWrapping="Wrap"/>
+                  </StackPanel>
+                </Border>
+        </StackPanel></ScrollViewer>
+      </TabItem>
       <TabItem x:Name="ShortcutsTab" Header="{loc:Localized Key='快捷键'}" Tag="{StaticResource Icon.Keyboard}" Style="{StaticResource SettingsTabItem}" AutomationProperties.AutomationId="SettingsShortcutsTab">
         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,16,0,0">
           <StackPanel Margin="2,0,8,12">

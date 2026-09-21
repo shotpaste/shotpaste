@@ -21,7 +21,16 @@ public static class RecordingTranscriptAiProcessor
 {
     public static bool ValidEndpoint(string? value) => Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
         string.IsNullOrEmpty(uri.UserInfo) && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment) &&
-        (uri.Scheme == "https" || (uri.Scheme == "http" && uri.IsLoopback));
+        (uri.Scheme == "https" || (uri.Scheme == "http" && (uri.IsLoopback || IsPrivateIPv4(uri.Host))));
+
+    private static bool IsPrivateIPv4(string host)
+    {
+        if (!System.Net.IPAddress.TryParse(host, out var address) ||
+            address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) return false;
+        var bytes = address.GetAddressBytes();
+        return bytes[0] == 10 || (bytes[0] == 172 && bytes[1] is >= 16 and <= 31) ||
+               (bytes[0] == 192 && bytes[1] == 168);
+    }
     public static string SegmentId(RecordingTranscriptionPart part, int index) => part.RequestId.ToString("N") + ":" + index;
     public static IReadOnlyList<RecordingAiInputSegment[]> MakeBatches(RecordingTranscriptionJob job)
     {
@@ -104,7 +113,7 @@ public static class RecordingTranscriptAiProcessor
             (!new Uri(config.AgentEndpoint).IsLoopback && !VolcengineTosSigner.ValidCredential(config.AgentApiKey)) ||
             (!string.IsNullOrEmpty(config.AgentApiKey) && !VolcengineTosSigner.ValidCredential(config.AgentApiKey)))
             throw new RecordingTranscriptionException(RecordingTranscriptionFailure.InvalidConfiguration);
-        var request = new HttpRequestMessage(HttpMethod.Post, config.AgentEndpoint);
+        var request = new HttpRequestMessage(HttpMethod.Post, TextTranslationService.ResolveEndpoint(config.AgentEndpoint, config.AgentApiProtocol));
         object body;
         switch (config.AgentApiProtocol)
         {

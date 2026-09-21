@@ -155,10 +155,12 @@ public sealed class AppControllerFlowTests
     [InlineData(OneShotMode.Screenshot, false, true)]
     [InlineData(OneShotMode.Scrolling, false, true)]
     [InlineData(OneShotMode.Recording, false, true)]
+    [InlineData(OneShotMode.Translation, false, true)]
     [InlineData(OneShotMode.Clipboard, false, false)]
     [InlineData(OneShotMode.Screenshot, true, false)]
     [InlineData(OneShotMode.Scrolling, true, false)]
     [InlineData(OneShotMode.Recording, true, false)]
+    [InlineData(OneShotMode.Translation, true, false)]
     public void OneShotSelection_DragsInEveryCaptureModeOnlyBeforeCommit(
         OneShotMode mode,
         bool isCommitted,

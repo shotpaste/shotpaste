@@ -364,7 +364,7 @@
         <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="22" ShadowDepth="7" Opacity="0.45"/></Border.Effect>
         <Grid>
           <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="34"/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/>
+            <ColumnDefinition Width="34"/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/>
           </Grid.ColumnDefinitions>
           <Button x:Name="OneShotDragHandle" AutomationProperties.AutomationId="OneShotSwitcherDragHandle" Width="34" Height="44" Style="{StaticResource HudIconButton}"
                   Cursor="SizeWE" ToolTip="{loc:Localized Key='水平拖动以移动 One Shot'}"
@@ -392,7 +392,10 @@
               <TextBlock Text="{loc:Localized Key='录屏'}" VerticalAlignment="Center"/>
             </StackPanel>
           </Button>
-          <Button x:Name="OneShotClipboardButton" Grid.Column="4" Tag="Clipboard" Click="OnOneShotMode"
+          <Button x:Name="OneShotTranslationButton" Grid.Column="4" Tag="Translation" Click="OnOneShotMode"
+                  Style="{StaticResource OneShotTabButton}" AutomationProperties.AutomationId="OneShotTranslation" Margin="2"
+                  Content="{loc:Localized Key='翻译'}"/>
+          <Button x:Name="OneShotClipboardButton" Grid.Column="5" Tag="Clipboard" Click="OnOneShotMode"
                   Style="{StaticResource OneShotTabButton}" AutomationProperties.AutomationId="OneShotClipboard" Margin="2">
             <StackPanel Orientation="Horizontal" IsHitTestVisible="False">
               <ContentControl Content="{loc:Localized Key='Clipboard'}" ContentTemplate="{StaticResource OneShotClipboardIcon}" Margin="0,0,6,0"/>
@@ -406,6 +409,25 @@
               Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1" Padding="12">
         <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="20" ShadowDepth="7" Opacity="0.42"/></Border.Effect>
         <Grid>
+          <StackPanel x:Name="OneShotTranslationPanel" Visibility="Collapsed" Width="440">
+            <WrapPanel x:Name="TranslationActions">
+              <Button Content="{loc:Localized Key='翻译全屏'}" Click="OnTranslateFullScreen" Style="{StaticResource AccentButton}" Margin="0,0,8,8" AutomationProperties.AutomationId="TranslationFullScreen"/>
+              <Button x:Name="TranslateSelectionButton" Content="{loc:Localized Key='翻译选区'}" Click="OnTranslateSelection" Margin="0,0,8,8" AutomationProperties.AutomationId="TranslationSelection"/>
+              <Button Content="{loc:Localized Key='AI 功能设置'}" Click="OnTranslationSettings" Margin="0,0,0,8" AutomationProperties.AutomationId="TranslationSettings"/>
+            </WrapPanel>
+            <Grid x:Name="TranslationLanguages" Margin="0,0,0,8">
+              <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="30"/><ColumnDefinition/></Grid.ColumnDefinitions>
+              <ComboBox x:Name="TranslationSource" SelectionChanged="OnTranslationLanguageChanged" DisplayMemberPath="NativeName" SelectedValuePath="Code" AutomationProperties.AutomationId="TranslationSourceLanguage" AutomationProperties.Name="{loc:Localized Key='源语言'}"/>
+              <TextBlock Grid.Column="1" Text="→" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource HudTextBrush}"/>
+              <ComboBox x:Name="TranslationTarget" SelectionChanged="OnTranslationLanguageChanged" Grid.Column="2" DisplayMemberPath="NativeName" SelectedValuePath="Code" AutomationProperties.AutomationId="TranslationTargetLanguage" AutomationProperties.Name="{loc:Localized Key='目标语言'}"/>
+            </Grid>
+            <TextBlock x:Name="TranslationStatus" Text="{loc:Localized Key='仅发送本地识别的文字，不发送截图。'}" TextWrapping="Wrap" Foreground="{DynamicResource HudSecondaryTextBrush}" AutomationProperties.LiveSetting="Polite" AutomationProperties.AutomationId="TranslationStatus"/>
+            <TextBox x:Name="TranslationResult" Visibility="Collapsed" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" MaxHeight="220" Margin="0,8,0,0" AutomationProperties.AutomationId="TranslationResult"/>
+            <WrapPanel Margin="0,8,0,0">
+              <Button x:Name="TranslationCopyButton" Content="{loc:Localized Key='复制译文'}" Click="OnCopyTranslation" Visibility="Collapsed" Margin="0,0,8,0"/>
+              <Button x:Name="TranslationCancelButton" Content="{loc:Localized Key='取消翻译'}" Click="OnCancelTranslation" Visibility="Collapsed"/>
+            </WrapPanel>
+          </StackPanel>
           <StackPanel x:Name="OneShotScrollingPanel" Visibility="Collapsed">
             <TextBlock x:Name="OneShotScrollingHelpText" Visibility="Collapsed" Width="330" TextWrapping="Wrap"
                        Foreground="{DynamicResource HudTextBrush}" Margin="3,0,3,10"

@@ -191,6 +191,7 @@ public partial class InlineAnnotateWindow : Window
         _screenshotCommit = screenshotCommit;
         _settings = settings;
         _saveSettings = saveSettings;
+        InitializeTranslation();
         _startWithOcr = initialMode == OneShotMode.Ocr;
         _oneShotMode = initialMode is OneShotMode.Screenshot or OneShotMode.Scrolling or OneShotMode.Recording
             ? initialMode
@@ -205,6 +206,7 @@ public partial class InlineAnnotateWindow : Window
         Loaded += OnLoaded;
         Closed += (_, _) =>
         {
+            CancelTranslation();
             ReleaseTransientInputCapture();
             _statusTimer.Stop();
             PersistAnnotationSettings();
@@ -347,6 +349,7 @@ public partial class InlineAnnotateWindow : Window
         }
         if (_annotating || e.ChangedButton != MouseButton.Left ||
             IsWithin(OneShotSwitcher, e.OriginalSource) || IsWithin(OneShotModePanel, e.OriginalSource)) return;
+        ResetTranslationResult();
         _pointerStart = ClampPoint(e.GetPosition(Root));
         _selectionRect = new Rect(_pointerStart, _pointerStart);
         _interaction = OverlayInteraction.Selecting;
@@ -620,7 +623,7 @@ public partial class InlineAnnotateWindow : Window
     {
         if (OneShotSwitcher.Visibility != Visibility.Visible) return;
         OneShotSwitcher.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        var width = Math.Min(520, Math.Max(320, ActualWidth - 24));
+        var width = Math.Min(620, Math.Max(320, ActualWidth - 24));
         OneShotSwitcher.Width = width;
         var currentLeft = Canvas.GetLeft(OneShotSwitcher);
         if (double.IsNaN(currentLeft)) currentLeft = (ActualWidth - width) / 2;
@@ -630,7 +633,15 @@ public partial class InlineAnnotateWindow : Window
 
     private void PositionOneShotModePanel()
     {
-        if (OneShotModePanel.Visibility != Visibility.Visible || _selectionRect.IsEmpty) return;
+        if (OneShotModePanel.Visibility != Visibility.Visible) return;
+        if (_oneShotMode == OneShotMode.Translation)
+        {
+            OneShotModePanel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            Canvas.SetLeft(OneShotModePanel, Math.Max(12, (ActualWidth - OneShotModePanel.DesiredSize.Width) / 2));
+            Canvas.SetTop(OneShotModePanel, Math.Max(76, ActualHeight - OneShotModePanel.DesiredSize.Height - 24));
+            return;
+        }
+        if (_selectionRect.IsEmpty) return;
         OneShotModePanel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         var width = OneShotModePanel.DesiredSize.Width;
         var height = OneShotModePanel.DesiredSize.Height;
@@ -650,7 +661,7 @@ public partial class InlineAnnotateWindow : Window
         foreach (var button in new[]
                  {
                      OneShotScreenshotButton, OneShotScrollingButton,
-                     OneShotRecordingButton, OneShotClipboardButton
+                     OneShotRecordingButton, OneShotTranslationButton, OneShotClipboardButton
                  })
         {
             var selected = string.Equals(button.Tag?.ToString(), _oneShotMode.ToString(), StringComparison.Ordinal);
@@ -663,7 +674,7 @@ public partial class InlineAnnotateWindow : Window
                 : "已开始使用当前模式，无法再切换。");
         }
 
-        if (!_annotating)
+        if (!_annotating && _oneShotMode != OneShotMode.Translation)
         {
             OneShotModePanel.Visibility = Visibility.Collapsed;
             return;
@@ -676,6 +687,8 @@ public partial class InlineAnnotateWindow : Window
         OneShotModePanel.Visibility = screenshot ? Visibility.Collapsed : Visibility.Visible;
         OneShotScrollingPanel.Visibility = _oneShotMode == OneShotMode.Scrolling ? Visibility.Visible : Visibility.Collapsed;
         OneShotRecordingPanel.Visibility = _oneShotMode == OneShotMode.Recording ? Visibility.Visible : Visibility.Collapsed;
+        OneShotTranslationPanel.Visibility = _oneShotMode == OneShotMode.Translation ? Visibility.Visible : Visibility.Collapsed;
+        TranslateSelectionButton.IsEnabled = _annotating;
         if (_oneShotMode == OneShotMode.Recording)
         {
             OneShotModePanel.Width = 410;
@@ -696,6 +709,7 @@ public partial class InlineAnnotateWindow : Window
         nameof(OneShotMode.Screenshot) => "截图",
         nameof(OneShotMode.Scrolling) => "滚动截屏",
         nameof(OneShotMode.Recording) => "录屏",
+        nameof(OneShotMode.Translation) => "翻译",
         nameof(OneShotMode.Clipboard) => "剪贴板历史",
         _ => "One Shot"
     };
@@ -715,6 +729,7 @@ public partial class InlineAnnotateWindow : Window
             DialogResult = true;
             return;
         }
+        CancelTranslation();
         _oneShotMode = requested;
         UpdateOneShotModeControls();
         UpdateOverlayLayout();
@@ -761,7 +776,7 @@ public partial class InlineAnnotateWindow : Window
         !isCommitted && !isDrawingSelection;
 
     internal static bool ShouldMoveSelectionOnCanvasDrag(OneShotMode mode, bool isCommitted) =>
-        !isCommitted && mode is OneShotMode.Screenshot or OneShotMode.Scrolling or OneShotMode.Recording;
+        !isCommitted && mode is OneShotMode.Screenshot or OneShotMode.Scrolling or OneShotMode.Recording or OneShotMode.Translation;
 
     private void UpdateOneShotSwitcherVisibility()
     {
@@ -965,6 +980,7 @@ public partial class InlineAnnotateWindow : Window
 
     private void OnResizeMouseDown(object sender, MouseButtonEventArgs e)
     {
+        ResetTranslationResult();
         if (sender is not FrameworkElement element) return;
         _resizeHandle = element.Tag?.ToString() ?? string.Empty;
         _interaction = OverlayInteraction.ResizingSelection;
@@ -1035,6 +1051,7 @@ public partial class InlineAnnotateWindow : Window
 
     private void BeginMoveSelection(WpfPoint point)
     {
+        ResetTranslationResult();
         _interaction = OverlayInteraction.MovingSelection;
         _interactionStartRect = _selectionRect;
         _selectionEditStartPixels = SelectionPixelRect();
@@ -2957,6 +2974,14 @@ public partial class InlineAnnotateWindow : Window
 
     private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
+        if (_oneShotMode == OneShotMode.Translation)
+        {
+            if (e.Key == Key.Escape) { CancelTranslation(); RequestCancel(); e.Handled = true; }
+            else if (e.Key == Key.Enter && e.OriginalSource is not System.Windows.Controls.ComboBox)
+            { if (_annotating) OnTranslateSelection(this, new RoutedEventArgs()); e.Handled = true; }
+            else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.S) e.Handled = true;
+            return;
+        }
         if (e.Key is Key.LeftShift or Key.RightShift && !_annotating && Magnifier.Visibility == Visibility.Visible)
         {
             _hexMagnifier = !_hexMagnifier;
