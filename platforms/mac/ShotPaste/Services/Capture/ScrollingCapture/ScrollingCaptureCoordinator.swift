@@ -435,7 +435,6 @@ final class ScrollingCaptureCoordinator {
       }
       if let mergedImage {
         latestImage = mergedImage
-        sessionModel.previewImage = mergedImage
       }
 
       guard let latestImage, let saveDirectory else {
@@ -1324,8 +1323,21 @@ final class ScrollingCaptureCoordinator {
   ) async -> (ScrollingCaptureStitchUpdate?, ScrollingCaptureStitcher?, CGImage?) {
     let currentStitcher = stitcher
     let maxOutputHeight = maxOutputHeight
-    let previewMaxWidth = ScrollingCapturePreviewLayout.renderPixelWidth
-    let previewMaxHeight = ScrollingCapturePreviewLayout.renderPixelHeight
+    let previewBounds: (width: Int, height: Int) = if let selectedRect,
+                                                      let screen = NSScreen.screens
+                                                      .first(where: { $0.frame.intersects(selectedRect) }) ?? NSScreen
+                                                      .main {
+      ScrollingCapturePreviewLayout.renderPixelBounds(
+        imagePixelWidth: capturedImage.width,
+        anchorRect: selectedRect,
+        visibleFrame: screen.visibleFrame
+      )
+    } else {
+      (
+        ScrollingCapturePreviewLayout.renderPixelWidth,
+        ScrollingCapturePreviewLayout.renderPixelHeight
+      )
+    }
 
     return await withCheckedContinuation { continuation in
       processingQueue.async {
@@ -1340,8 +1352,8 @@ final class ScrollingCaptureCoordinator {
             // The preview thumbnail is maintained incrementally by the canvas,
             // so producing it here stays cheap and queue-confined.
             let previewImage = currentStitcher.previewImage(
-              maxPixelWidth: previewMaxWidth,
-              maxPixelHeight: previewMaxHeight
+              maxPixelWidth: previewBounds.width,
+              maxPixelHeight: previewBounds.height
             )
             continuation.resume(returning: (update, currentStitcher, previewImage))
           } else {
@@ -1351,8 +1363,8 @@ final class ScrollingCaptureCoordinator {
               maxOutputHeight: maxOutputHeight
             )
             let previewImage = newStitcher.previewImage(
-              maxPixelWidth: previewMaxWidth,
-              maxPixelHeight: previewMaxHeight
+              maxPixelWidth: previewBounds.width,
+              maxPixelHeight: previewBounds.height
             )
             continuation.resume(returning: (update, newStitcher, previewImage))
           }

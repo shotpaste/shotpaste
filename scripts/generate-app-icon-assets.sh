@@ -4,6 +4,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GENERATOR="$ROOT_DIR/scripts/generate-icon-composer-appiconset.sh"
 
+if [[ $# -eq 0 ]]; then
+  exec swift -module-cache-path "$ROOT_DIR/build/swift-module-cache" "$ROOT_DIR/scripts/generate-macos-app-icons.swift"
+fi
+
 HAS_INPUT=0
 HAS_APPICONSET=0
 HAS_PREFIX=0

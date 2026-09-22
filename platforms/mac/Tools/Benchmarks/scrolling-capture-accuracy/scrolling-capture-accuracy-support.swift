@@ -93,16 +93,43 @@ enum ScrollAccuracyFixture {
   }
 
   static func expectedImage(for benchmark: ScrollAccuracyBenchmarkCase) -> CGImage? {
-    let expectedHeight = benchmark.movingViewportHeight + (benchmark.offsets.last ?? 0)
-    guard expectedHeight <= benchmark.contentHeight else { return nil }
+    let firstContentRow = benchmark.offsets.min() ?? 0
+    let lastContentRow = benchmark.movingViewportHeight + (benchmark.offsets.max() ?? 0)
+    guard firstContentRow >= 0, lastContentRow <= benchmark.contentHeight else { return nil }
+    let movingHeight = lastContentRow - firstContentRow
+    let expectedHeight = benchmark.headerHeight + movingHeight + benchmark.footerHeight
     return makeImage(width: benchmark.width, height: expectedHeight) { x, y in
-      contentPixel(x: x, logicalY: y)
+      if y < benchmark.headerHeight {
+        return staticPixel(x: x, y: y, salt: 17)
+      }
+      if y >= expectedHeight - benchmark.footerHeight {
+        let footerRow = benchmark.viewportHeight - benchmark.footerHeight
+          + y - (expectedHeight - benchmark.footerHeight)
+        return staticPixel(x: x, y: footerRow, salt: 91)
+      }
+      return contentPixel(x: x, logicalY: firstContentRow + y - benchmark.headerHeight)
     }
   }
 
   static func seamRows(for benchmark: ScrollAccuracyBenchmarkCase) -> [Int] {
-    guard benchmark.offsets.count > 1 else { return [] }
-    return benchmark.offsets.dropLast().map { benchmark.movingViewportHeight + $0 }
+    guard let initialOffset = benchmark.offsets.first else { return [] }
+    let firstContentRow = benchmark.offsets.min() ?? initialOffset
+    var minimumOffset = initialOffset
+    var maximumOffset = initialOffset
+    var rows: [Int] = benchmark.headerHeight > 0 ? [benchmark.headerHeight] : []
+    for offset in benchmark.offsets.dropFirst() {
+      if offset > maximumOffset {
+        rows.append(benchmark.headerHeight + maximumOffset + benchmark.movingViewportHeight - firstContentRow)
+        maximumOffset = offset
+      } else if offset < minimumOffset {
+        rows.append(benchmark.headerHeight + minimumOffset - firstContentRow)
+        minimumOffset = offset
+      }
+    }
+    if benchmark.footerHeight > 0 {
+      rows.append(benchmark.headerHeight + maximumOffset + benchmark.movingViewportHeight - firstContentRow)
+    }
+    return rows
   }
 
   private static func makeImage(
