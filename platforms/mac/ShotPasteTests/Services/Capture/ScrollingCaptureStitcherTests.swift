@@ -242,6 +242,151 @@ final class ScrollingCaptureStitcherTests: XCTestCase {
     XCTAssertEqual(stitcher.outputHeight, 216)
   }
 
+  func testAppend_firstMovementPreservesSelectedStaticEdgesExactlyOnce() throws {
+    let width = 240
+    let height = 400
+    let headerHeight = 40
+    let footerHeight = 32
+    // The native regression first locked its direction after only two pixels
+    // of movement, while the selected title was still in the initial frame.
+    let delta = 2
+    let first = try frameWithStaticEdges(
+      width: width, height: height, logicalYOffset: 0, headerHeight: headerHeight, footerHeight: footerHeight
+    )
+    let second = try frameWithStaticEdges(
+      width: width, height: height, logicalYOffset: delta, headerHeight: headerHeight, footerHeight: footerHeight
+    )
+    let stitcher = ScrollingCaptureStitcher()
+    _ = stitcher.start(with: first)
+
+    let update = try XCTUnwrap(stitcher.append(second, maxOutputHeight: 10_000, expectedSignedDeltaPixels: delta))
+    guard case .appended(let appendedRows) = update.outcome else {
+      return XCTFail("Expected first movement to append, got \(update.outcome)")
+    }
+    XCTAssertEqual(appendedRows, delta)
+    XCTAssertEqual(
+      update.outputHeight,
+      height + delta,
+      "Detecting fixed edges must not delete the selected first frame"
+    )
+
+    let mergedImage = try XCTUnwrap(stitcher.mergedImage())
+    let merged = try XCTUnwrap(ScrollingCaptureRaster(cgImage: mergedImage))
+    let firstRaster = try XCTUnwrap(ScrollingCaptureRaster(cgImage: first))
+    let secondRaster = try XCTUnwrap(ScrollingCaptureRaster(cgImage: second))
+    XCTAssertTrue(
+      merged.pixels.prefix(headerHeight * merged.bytesPerRow)
+        .elementsEqual(firstRaster.pixels.prefix(headerHeight * firstRaster.bytesPerRow)),
+      "The selected title/header must remain at the top"
+    )
+    XCTAssertTrue(
+      merged.pixels.suffix(footerHeight * merged.bytesPerRow)
+        .elementsEqual(secondRaster.pixels.suffix(footerHeight * secondRaster.bytesPerRow)),
+      "The selected footer must remain at the bottom"
+    )
+    // The body should be a single continuous content range, without another
+    // copy of either fixed edge inserted between the two captured frames.
+    let expectedContentImage = try XCTUnwrap(
+      TestImageFactory.scrollingFrame(width: width, height: height + delta, logicalYOffset: 0)
+    )
+    let expectedContent = try XCTUnwrap(ScrollingCaptureRaster(cgImage: expectedContentImage))
+    let bodyStart = headerHeight * merged.bytesPerRow
+    let bodyEnd = (merged.height - footerHeight) * merged.bytesPerRow
+    XCTAssertTrue(merged.pixels[bodyStart ..< bodyEnd].elementsEqual(expectedContent.pixels[bodyStart ..< bodyEnd]))
+  }
+
+  func testAppend_staticEdgesRemainSingleDuringBidirectionalGrowthAndRetraversal() throws {
+    let stitcher = ScrollingCaptureStitcher()
+    let offsets = [100, 124, 148, 124, 100, 76, 100, 148]
+    let first = try frameWithStaticEdges(
+      width: 240, height: 400, logicalYOffset: offsets[0], headerHeight: 40, footerHeight: 32
+    )
+    _ = stitcher.start(with: first)
+    var minimumOffset = offsets[0]
+    var maximumOffset = offsets[0]
+    for index in 1 ..< offsets.count {
+      let offset = offsets[index]
+      let frame = try frameWithStaticEdges(
+        width: 240, height: 400, logicalYOffset: offset, headerHeight: 40, footerHeight: 32
+      )
+      let previousHeight = stitcher.outputHeight
+      let exposesNewContent = offset < minimumOffset || offset > maximumOffset
+      let update = try XCTUnwrap(stitcher.append(
+        frame, maxOutputHeight: 10_000, expectedSignedDeltaPixels: offset - offsets[index - 1]
+      ))
+      minimumOffset = min(minimumOffset, offset)
+      maximumOffset = max(maximumOffset, offset)
+      XCTAssertEqual(update.outputHeight, 400 + maximumOffset - minimumOffset)
+      if exposesNewContent {
+        guard case .appended = update.outcome else {
+          return XCTFail("Expected growth at offset \(offset), got \(update.outcome)")
+        }
+      } else {
+        guard case .ignoredNoMovement = update.outcome else {
+          return XCTFail("Already captured content must not be duplicated, got \(update.outcome)")
+        }
+        XCTAssertEqual(update.outputHeight, previousHeight)
+      }
+    }
+    let expected = try frameWithStaticEdges(
+      width: 240, height: 400 + maximumOffset - minimumOffset,
+      logicalYOffset: minimumOffset, headerHeight: 40, footerHeight: 32
+    )
+    let merged = try XCTUnwrap(ScrollingCaptureRaster(cgImage: XCTUnwrap(stitcher.mergedImage())))
+    let expectedRaster = try XCTUnwrap(ScrollingCaptureRaster(cgImage: expected))
+    XCTAssertEqual(merged.width, expectedRaster.width)
+    XCTAssertEqual(merged.height, expectedRaster.height)
+    XCTAssertTrue(merged.pixels.elementsEqual(expectedRaster.pixels), "Fixed edges appear only at the two outer ends")
+  }
+
+  func testAppend_heightLimitIncludesPreservedHeaderAndFooter() throws {
+    let stitcher = ScrollingCaptureStitcher()
+    let maximumHeight = 424
+    let first = try frameWithStaticEdges(
+      width: 240, height: 400, logicalYOffset: 0, headerHeight: 40, footerHeight: 32
+    )
+    let second = try frameWithStaticEdges(
+      width: 240, height: 400, logicalYOffset: 24, headerHeight: 40, footerHeight: 32
+    )
+    _ = stitcher.start(with: first, maxOutputHeight: maximumHeight)
+    let update = try XCTUnwrap(stitcher.append(
+      second, maxOutputHeight: maximumHeight, expectedSignedDeltaPixels: 24
+    ))
+    guard case .reachedHeightLimit = update.outcome else {
+      return XCTFail("The output budget must include both fixed edges, got \(update.outcome)")
+    }
+    let merged = try XCTUnwrap(ScrollingCaptureRaster(cgImage: XCTUnwrap(stitcher.mergedImage())))
+    let expected = try frameWithStaticEdges(
+      width: 240, height: maximumHeight, logicalYOffset: 0, headerHeight: 40, footerHeight: 32
+    )
+    let expectedRaster = try XCTUnwrap(ScrollingCaptureRaster(cgImage: expected))
+    XCTAssertEqual(update.outputHeight, maximumHeight)
+    XCTAssertEqual(merged.height, maximumHeight)
+    XCTAssertTrue(merged.pixels.elementsEqual(expectedRaster.pixels))
+  }
+
+  private func frameWithStaticEdges(
+    width: Int,
+    height: Int,
+    logicalYOffset: Int,
+    headerHeight: Int,
+    footerHeight: Int
+  ) throws -> CGImage {
+    let content = try XCTUnwrap(TestImageFactory.scrollingFrame(
+      width: width, height: height, logicalYOffset: logicalYOffset
+    ))
+    let raster = try XCTUnwrap(ScrollingCaptureRaster(cgImage: content))
+    var pixels = raster.pixels
+    for row in 0 ..< height where row < headerHeight || row >= height - footerHeight {
+      let color: [UInt8] = row < headerHeight ? [231, 29, 43, 255] : [37, 227, 59, 255]
+      for x in 0 ..< width {
+        let offset = row * raster.bytesPerRow + x * 4
+        pixels.replaceSubrange(offset ..< offset + 4, with: color)
+      }
+    }
+    return try XCTUnwrap(ScrollingCaptureRaster(width: width, height: height, pixels: pixels).makeCGImage())
+  }
+
   // MARK: - maxOutputHeight enforcement
 
   func testAppend_atMaxOutputHeight_returnsReachedHeightLimit() {

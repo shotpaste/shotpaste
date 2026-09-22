@@ -127,7 +127,12 @@ final nonisolated class ScrollingCaptureCanvas: @unchecked Sendable {
   private var downExtent = 0.0
   private var upExtent = 0.0
   private var horizontalOffsetPixels = 0
+  private var pendingClippedGrowthRows = 0
   private var lastGrowthDirection: ScrollingCaptureMergeDirection = .appendFromBottom
+  private var headerPixels: [UInt8] = []
+  private var footerPixels: [UInt8] = []
+  private var headerThumbnailPixels: [UInt8] = []
+  private var footerThumbnailPixels: [UInt8] = []
 
   private let thumbnailWidth: Int
   private let thumbnailScale: Double
@@ -144,11 +149,35 @@ final nonisolated class ScrollingCaptureCanvas: @unchecked Sendable {
   }
 
   var usedHeight: Int {
-    bottomRow - topRow
+    headerHeight + contentHeight + footerHeight
   }
 
   var thumbnailUsedHeight: Int {
+    headerThumbnailHeight + thumbnailContentHeight + footerThumbnailHeight
+  }
+
+  private var contentHeight: Int {
+    bottomRow - topRow
+  }
+
+  private var headerHeight: Int {
+    headerPixels.count / bytesPerRow
+  }
+
+  private var footerHeight: Int {
+    footerPixels.count / bytesPerRow
+  }
+
+  private var thumbnailContentHeight: Int {
     thumbnailBottomRow - thumbnailTopRow
+  }
+
+  private var headerThumbnailHeight: Int {
+    headerThumbnailPixels.count / thumbnailBytesPerRow
+  }
+
+  private var footerThumbnailHeight: Int {
+    footerThumbnailPixels.count / thumbnailBytesPerRow
   }
 
   init(width: Int, frameHeight: Int, maxHeight: Int, thumbnailWidth: Int) {
@@ -175,10 +204,16 @@ final nonisolated class ScrollingCaptureCanvas: @unchecked Sendable {
   }
 
   /// Places (or replaces) the base content block and resets the scroll cursor.
-  /// `contentTop`/`contentBottom` exclude sticky header/footer rows so they are
-  /// captured once instead of repeating in every strip. Replacement is only
-  /// valid before the first strip has been appended.
-  func placeBase(_ raster: ScrollingCaptureRaster, contentTop: Int, contentBottom: Int) {
+  /// `contentTop`/`contentBottom` bound the moving content. When preserving
+  /// edges, excluded rows stay in separate end caps so each appears once in
+  /// the output without becoming part of an interior scrolling seam.
+  /// Replacement is only valid before the first strip has been appended.
+  func placeBase(
+    _ raster: ScrollingCaptureRaster,
+    contentTop: Int,
+    contentBottom: Int,
+    preservingEdges: Bool = false
+  ) {
     let contentHeight = max(1, min(contentBottom, raster.height) - max(0, contentTop))
     let safeContentTop = max(0, min(contentTop, raster.height - contentHeight))
     baseContentHeight = contentHeight
@@ -189,7 +224,22 @@ final nonisolated class ScrollingCaptureCanvas: @unchecked Sendable {
     downExtent = 0
     upExtent = 0
     horizontalOffsetPixels = 0
+    pendingClippedGrowthRows = 0
     lastGrowthDirection = .appendFromBottom
+    if preservingEdges {
+      (headerPixels, headerThumbnailPixels) = makeEdge(
+        from: raster, sourceStartRow: 0, rowCount: safeContentTop
+      )
+      let footerStart = safeContentTop + contentHeight
+      (footerPixels, footerThumbnailPixels) = makeEdge(
+        from: raster, sourceStartRow: footerStart, rowCount: raster.height - footerStart
+      )
+    } else {
+      headerPixels = []
+      footerPixels = []
+      headerThumbnailPixels = []
+      footerThumbnailPixels = []
+    }
 
     raster.pixels.withUnsafeBufferPointer { sourceBuffer in
       guard let sourceBase = sourceBuffer.baseAddress else { return }
@@ -219,12 +269,15 @@ final nonisolated class ScrollingCaptureCanvas: @unchecked Sendable {
   @discardableResult
   func advanceCursor(measuredDelta: Double, heightBudget: Int) -> Int {
     cursor += measuredDelta
+    pendingClippedGrowthRows = 0
 
     if measuredDelta >= 0 {
       let plannedRows = Int(cursor.rounded()) - Int(downExtent.rounded())
       let acceptedRows = max(0, min(plannedRows, max(0, heightBudget)))
       if acceptedRows > 0 {
-        downExtent = cursor
+        pendingClippedGrowthRows = plannedRows - acceptedRows
+        downExtent = acceptedRows == plannedRows
+          ? cursor : Double(Int(downExtent.rounded()) + acceptedRows)
       }
       return acceptedRows
     }
@@ -232,7 +285,9 @@ final nonisolated class ScrollingCaptureCanvas: @unchecked Sendable {
     let plannedRows = Int(upExtent.rounded()) - Int(cursor.rounded())
     let acceptedRows = max(0, min(plannedRows, max(0, heightBudget)))
     if acceptedRows > 0 {
-      upExtent = cursor
+      pendingClippedGrowthRows = plannedRows - acceptedRows
+      upExtent = acceptedRows == plannedRows
+        ? cursor : Double(Int(upExtent.rounded()) - acceptedRows)
     }
     return acceptedRows
   }
@@ -260,11 +315,15 @@ final nonisolated class ScrollingCaptureCanvas: @unchecked Sendable {
 
     let safeContentTop = max(0, min(contentTop, raster.height - 1))
     let safeContentBottom = max(safeContentTop + 1, min(contentBottom, raster.height))
+    // At the height limit, retain the portion adjacent to already captured
+    // content rather than skipping forward to the far end of the new frame.
+    let clippedGrowthRows = pendingClippedGrowthRows
+    pendingClippedGrowthRows = 0
 
     switch direction {
     case .appendFromBottom:
       ensureSpace(for: rowCount, growingDown: true)
-      let stripSourceStart = max(safeContentTop, safeContentBottom - rowCount)
+      let stripSourceStart = max(safeContentTop, safeContentBottom - rowCount - clippedGrowthRows)
       blendSeam(
         raster: raster,
         canvasStartRow: bottomRow - Self.seamBlendRowCount,
@@ -285,13 +344,19 @@ final nonisolated class ScrollingCaptureCanvas: @unchecked Sendable {
         sourceRowCount: rowCount,
         growingDown: true
       )
+      if footerHeight > 0 {
+        (footerPixels, footerThumbnailPixels) = makeEdge(
+          from: raster, sourceStartRow: raster.height - footerHeight, rowCount: footerHeight
+        )
+      }
     case .appendFromTop:
       ensureSpace(for: rowCount, growingDown: false)
-      let stripSourceEnd = min(safeContentBottom, safeContentTop + rowCount)
+      let stripSourceStart = min(safeContentBottom - rowCount, safeContentTop + clippedGrowthRows)
+      let stripSourceEnd = stripSourceStart + rowCount
       for localRow in 0 ..< rowCount {
         copyRowWithOffset(
           raster: raster,
-          sourceRow: safeContentTop + localRow,
+          sourceRow: stripSourceStart + localRow,
           destinationRow: topRow - rowCount + localRow
         )
       }
@@ -304,10 +369,15 @@ final nonisolated class ScrollingCaptureCanvas: @unchecked Sendable {
       topRow -= rowCount
       appendThumbnailStrip(
         raster: raster,
-        sourceStartRow: safeContentTop,
+        sourceStartRow: stripSourceStart,
         sourceRowCount: rowCount,
         growingDown: false
       )
+      if headerHeight > 0 {
+        (headerPixels, headerThumbnailPixels) = makeEdge(
+          from: raster, sourceStartRow: 0, rowCount: headerHeight
+        )
+      }
     case .unresolved:
       break
     }
@@ -322,7 +392,21 @@ final nonisolated class ScrollingCaptureCanvas: @unchecked Sendable {
     var pixels = [UInt8](repeating: 0, count: height * bytesPerRow)
     pixels.withUnsafeMutableBytes { destination in
       guard let baseAddress = destination.baseAddress else { return }
-      memcpy(baseAddress, storage + topRow * bytesPerRow, height * bytesPerRow)
+      headerPixels.withUnsafeBytes { source in
+        if let sourceBase = source.baseAddress, !source.isEmpty {
+          memcpy(baseAddress, sourceBase, source.count)
+        }
+      }
+      memcpy(
+        baseAddress + headerPixels.count,
+        storage + topRow * bytesPerRow,
+        contentHeight * bytesPerRow
+      )
+      footerPixels.withUnsafeBytes { source in
+        if let sourceBase = source.baseAddress, !source.isEmpty {
+          memcpy(baseAddress + headerPixels.count + contentHeight * bytesPerRow, sourceBase, source.count)
+        }
+      }
     }
 
     return ScrollingCaptureRaster.makeCGImage(
@@ -345,11 +429,11 @@ final nonisolated class ScrollingCaptureCanvas: @unchecked Sendable {
     let sourceHeightLimit = max(1, Int((Double(max(1, maxPixelHeight)) / scale).rounded(.down)))
     let sourceHeight = min(usedThumbnailHeight, sourceHeightLimit)
     let sourceStartRow: Int = if usedThumbnailHeight <= sourceHeight {
-      thumbnailTopRow
+      0
     } else if lastGrowthDirection == .appendFromTop {
-      thumbnailTopRow
+      0
     } else {
-      thumbnailBottomRow - sourceHeight
+      usedThumbnailHeight - sourceHeight
     }
     let outputWidth = max(1, Int((Double(thumbnailWidth) * scale).rounded()))
     let outputHeight = min(
@@ -357,42 +441,44 @@ final nonisolated class ScrollingCaptureCanvas: @unchecked Sendable {
       max(1, Int((Double(sourceHeight) * scale).rounded()))
     )
 
+    // Copy only the visible viewport across the separate header/body/footer
+    // segments. Never compose the entire accumulated thumbnail per frame.
+    var sourcePixels = [UInt8](repeating: 0, count: sourceHeight * thumbnailBytesPerRow)
+    sourcePixels.withUnsafeMutableBytes { destination in
+      guard let baseAddress = destination.baseAddress else { return }
+      copyThumbnailViewport(to: baseAddress, startRow: sourceStartRow, rowCount: sourceHeight)
+    }
+
     if outputWidth == thumbnailWidth, outputHeight == sourceHeight {
-      var pixels = [UInt8](repeating: 0, count: sourceHeight * thumbnailBytesPerRow)
-      pixels.withUnsafeMutableBytes { destination in
-        guard let baseAddress = destination.baseAddress else { return }
-        memcpy(
-          baseAddress,
-          thumbnailStorage + sourceStartRow * thumbnailBytesPerRow,
-          sourceHeight * thumbnailBytesPerRow
-        )
-      }
       return ScrollingCaptureRaster.makeCGImage(
         width: thumbnailWidth,
         height: sourceHeight,
         bytesPerRow: thumbnailBytesPerRow,
-        pixels: pixels
+        pixels: sourcePixels
       )
     }
 
     var pixels = [UInt8](repeating: 0, count: outputHeight * outputWidth * 4)
 
-    let scaled = pixels.withUnsafeMutableBytes { destination -> Bool in
-      guard let destinationBase = destination.baseAddress else { return false }
-      var source = vImage_Buffer(
-        data: thumbnailStorage + sourceStartRow * thumbnailBytesPerRow,
-        height: vImagePixelCount(sourceHeight),
-        width: vImagePixelCount(thumbnailWidth),
-        rowBytes: thumbnailBytesPerRow
-      )
-      var target = vImage_Buffer(
-        data: destinationBase,
-        height: vImagePixelCount(outputHeight),
-        width: vImagePixelCount(outputWidth),
-        rowBytes: outputWidth * 4
-      )
-      return vImageScale_ARGB8888(&source, &target, nil, vImage_Flags(kvImageHighQualityResampling))
-        == kvImageNoError
+    let scaled = sourcePixels.withUnsafeBytes { sourceBuffer in
+      pixels.withUnsafeMutableBytes { destination -> Bool in
+        guard let sourceBase = sourceBuffer.baseAddress,
+              let destinationBase = destination.baseAddress else { return false }
+        var source = vImage_Buffer(
+          data: UnsafeMutableRawPointer(mutating: sourceBase),
+          height: vImagePixelCount(sourceHeight),
+          width: vImagePixelCount(thumbnailWidth),
+          rowBytes: thumbnailBytesPerRow
+        )
+        var target = vImage_Buffer(
+          data: destinationBase,
+          height: vImagePixelCount(outputHeight),
+          width: vImagePixelCount(outputWidth),
+          rowBytes: outputWidth * 4
+        )
+        return vImageScale_ARGB8888(&source, &target, nil, vImage_Flags(kvImageHighQualityResampling))
+          == kvImageNoError
+      }
     }
     guard scaled else { return nil }
 
@@ -406,6 +492,74 @@ final nonisolated class ScrollingCaptureCanvas: @unchecked Sendable {
 
   // MARK: - Private
 
+  private func makeEdge(
+    from raster: ScrollingCaptureRaster,
+    sourceStartRow: Int,
+    rowCount: Int
+  ) -> (pixels: [UInt8], thumbnailPixels: [UInt8]) {
+    guard rowCount > 0 else { return ([], []) }
+    let start = sourceStartRow * raster.bytesPerRow
+    let pixels = Array(raster.pixels[start ..< start + rowCount * raster.bytesPerRow])
+    let thumbnailHeight = max(1, Int((Double(rowCount) * thumbnailScale).rounded()))
+    if thumbnailWidth == width, thumbnailHeight == rowCount {
+      return (pixels, pixels)
+    }
+    var thumbnailPixels = [UInt8](repeating: 0, count: thumbnailHeight * thumbnailBytesPerRow)
+    pixels.withUnsafeBytes { sourceBuffer in
+      thumbnailPixels.withUnsafeMutableBytes { destinationBuffer in
+        guard let sourceBase = sourceBuffer.baseAddress,
+              let destinationBase = destinationBuffer.baseAddress else { return }
+        var source = vImage_Buffer(
+          data: UnsafeMutableRawPointer(mutating: sourceBase),
+          height: vImagePixelCount(rowCount),
+          width: vImagePixelCount(width),
+          rowBytes: bytesPerRow
+        )
+        var destination = vImage_Buffer(
+          data: destinationBase,
+          height: vImagePixelCount(thumbnailHeight),
+          width: vImagePixelCount(thumbnailWidth),
+          rowBytes: thumbnailBytesPerRow
+        )
+        vImageScale_ARGB8888(&source, &destination, nil, vImage_Flags(kvImageHighQualityResampling))
+      }
+    }
+    return (pixels, thumbnailPixels)
+  }
+
+  private func copyThumbnailViewport(to destination: UnsafeMutableRawPointer, startRow: Int, rowCount: Int) {
+    func copySegment(from source: UnsafeRawPointer, segmentStart: Int, segmentHeight: Int) {
+      let firstRow = max(startRow, segmentStart)
+      let lastRow = min(startRow + rowCount, segmentStart + segmentHeight)
+      guard firstRow < lastRow else { return }
+      memcpy(
+        destination + (firstRow - startRow) * thumbnailBytesPerRow,
+        source + (firstRow - segmentStart) * thumbnailBytesPerRow,
+        (lastRow - firstRow) * thumbnailBytesPerRow
+      )
+    }
+
+    headerThumbnailPixels.withUnsafeBytes { source in
+      if let sourceBase = source.baseAddress, !source.isEmpty {
+        copySegment(from: sourceBase, segmentStart: 0, segmentHeight: headerThumbnailHeight)
+      }
+    }
+    copySegment(
+      from: thumbnailStorage + thumbnailTopRow * thumbnailBytesPerRow,
+      segmentStart: headerThumbnailHeight,
+      segmentHeight: thumbnailContentHeight
+    )
+    footerThumbnailPixels.withUnsafeBytes { source in
+      if let sourceBase = source.baseAddress, !source.isEmpty {
+        copySegment(
+          from: sourceBase,
+          segmentStart: headerThumbnailHeight + thumbnailContentHeight,
+          segmentHeight: footerThumbnailHeight
+        )
+      }
+    }
+  }
+
   /// Recenters the used range when one side of the buffer runs out of room.
   /// With a mid-buffer origin this happens at most once or twice per session.
   private func ensureSpace(for rowCount: Int, growingDown: Bool) {
@@ -416,7 +570,7 @@ final nonisolated class ScrollingCaptureCanvas: @unchecked Sendable {
       return
     }
 
-    let used = usedHeight
+    let used = contentHeight
     guard used + rowCount <= storageRowCount else { return }
 
     let centeredTop = (storageRowCount - used) / 2
@@ -445,7 +599,7 @@ final nonisolated class ScrollingCaptureCanvas: @unchecked Sendable {
       return
     }
 
-    let used = thumbnailUsedHeight
+    let used = thumbnailContentHeight
     guard used + rowCount <= thumbnailRowCount else { return }
 
     let centeredTop = (thumbnailRowCount - used) / 2

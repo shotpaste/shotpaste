@@ -168,6 +168,11 @@ macOS 两种配置是可同时运行的独立应用。Release 保留已有身份
 内部剪贴板标记与 Quick Access 拖拽类型也按构建身份隔离；
 Quick Access 载荷仅在来源进程内暴露。每个应用只接受自身注册的 URL Scheme。
 应用及菜单栏图标使用相同品牌几何图形，Debug 增加可见 `D`。
+macOS 应用图标以 `assets/shotpaste-macos-icon.png` 为源，使用浅色底、透明外沿与预先绘制的圆角，
+不依赖系统为不透明方图补圆角。运行 `./scripts/generate-app-icon-assets.sh`，
+由原生 Swift 工具同步生成并校验 Release / Debug 的全部尺寸，Debug 保留右下角 `D`。
+此入口仅更新 macOS 图标；Windows 的共享品牌图与 ICO 保持独立管理。
+显式传入 PNG、Icon Composer 或输出参数时，保留原有 ImageMagick 导出方式。
 Debug 默认全局快捷键额外使用 Option，避免与 Release 默认值争用。
 不自动迁移旧数据；用户在两应用中显式选择同一目录时，有意共享该目录。
 

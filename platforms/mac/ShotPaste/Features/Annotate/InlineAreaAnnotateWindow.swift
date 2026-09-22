@@ -294,6 +294,7 @@ private struct InlineAreaAnnotateRootView: View {
   @State private var oneShotMagnifierSample: OneShotMagnifierSample?
   @State private var isOneShotReselecting = false
   @State private var oneShotToolbarDragStart: CGPoint?
+  @State private var oneShotScrollingControlsSize = CGSize(width: 350, height: 60)
   @State private var magnificationStartZoom: CGFloat?
   @State private var canvasPanLastTranslation: CGSize = .zero
   @AppStorage(PreferencesKeys.screenshotMagnifierEnabled) private var screenshotMagnifierEnabled = true
@@ -838,14 +839,21 @@ private struct InlineAreaAnnotateRootView: View {
     case .scrolling:
       OneShotScrollingControls(
         state: state,
-        onStart: { session.startOneShotScrollingCapture() }
+        onStart: { session.startOneShotScrollingCapture() },
+        onContentSizeChange: { size in
+          let measuredSize = CGSize(width: ceil(size.width), height: ceil(size.height))
+          guard measuredSize != oneShotScrollingControlsSize else { return }
+          oneShotScrollingControlsSize = measuredSize
+        }
       )
       .fixedSize()
       .position(
-        oneShotBelowSelectionCenter(
-          rect: rect,
-          size: CGSize(width: 350, height: state.showsScrollingHelp ? 132 : 60),
-          containerSize: containerSize
+        OneShotLayout.scrollingControlsCenter(
+          selection: rect,
+          controlsSize: oneShotScrollingControlsSize,
+          containerSize: containerSize,
+          controlInsets: display.controlInsets,
+          switcherRect: oneShotSwitcherRect(in: containerSize)
         )
       )
 

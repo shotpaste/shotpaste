@@ -63,6 +63,16 @@ private enum ScrollingCaptureAccuracyBenchmark {
         offsets: [0, 24, 48, 72, 96, 120, 144, 168, 192],
         minimumOverallAccuracy: 0.999
       ),
+      ScrollAccuracyBenchmarkCase(
+        name: "sticky-edges-bidirectional-retrace",
+        width: 340,
+        viewportHeight: 430,
+        contentHeight: 1_080,
+        headerHeight: 48,
+        footerHeight: 36,
+        offsets: [64, 128, 192, 128, 64, 32, 64, 0, 96],
+        minimumOverallAccuracy: 0.995
+      ),
     ]
   }
 
@@ -94,6 +104,13 @@ private enum ScrollingCaptureAccuracyBenchmark {
 
       if case .appended = update.outcome {
         appendedCount += 1
+        lastAcceptedOffset = benchmark.offsets[index]
+      }
+      if case .ignoredNoMovement = update.outcome,
+         update.alignmentDebug?.path == .noMovement,
+         !update.likelyReachedBoundary {
+        // A confident retrace updates the matcher's reference without adding
+        // rows; subsequent hints must follow that accepted content position.
         lastAcceptedOffset = benchmark.offsets[index]
       }
       if case .ignoredAlignmentFailed = update.outcome {

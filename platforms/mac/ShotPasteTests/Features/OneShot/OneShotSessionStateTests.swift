@@ -268,6 +268,92 @@ final class OneShotSessionStateTests: XCTestCase {
     XCTAssertEqual(state.phase, .executing)
   }
 
+  func testScrollingStartControlsRemainVisibleForNearlyFullScreenSelection() {
+    let container = CGSize(width: 1_440, height: 900)
+    let insets = InlineAreaControlInsets(top: 28, bottom: 70)
+    let switcher = CGRect(x: 395, y: 40, width: 650, height: 56)
+    let selection = CGRect(x: 8, y: 4, width: 1_424, height: 888)
+
+    // Include expanded, wrapped help text instead of relying on the old
+    // hard-coded control dimensions.
+    for size in [CGSize(width: 350, height: 60), CGSize(width: 370, height: 188)] {
+      let frame = scrollingControlsFrame(
+        selection: selection,
+        size: size,
+        container: container,
+        insets: insets,
+        switcher: switcher
+      )
+
+      XCTAssertTrue(CGRect(x: 12, y: 40, width: 1_416, height: 778).contains(frame))
+      XCTAssertFalse(frame.intersects(switcher))
+      XCTAssertGreaterThan(frame.minY, switcher.maxY)
+    }
+  }
+
+  func testScrollingStartControlsAvoidSwitcherWhenAboveSelectionWouldFit() {
+    let selection = CGRect(x: 100, y: 140, width: 1_240, height: 710)
+    let switcher = CGRect(x: 395, y: 40, width: 650, height: 56)
+    let frame = scrollingControlsFrame(
+      selection: selection,
+      size: CGSize(width: 350, height: 60),
+      container: CGSize(width: 1_440, height: 900),
+      insets: InlineAreaControlInsets(top: 28),
+      switcher: switcher
+    )
+
+    XCTAssertFalse(frame.intersects(switcher))
+    XCTAssertGreaterThan(frame.minY, selection.minY)
+    XCTAssertLessThan(frame.maxY, selection.maxY)
+  }
+
+  func testScrollingStartControlsPreferOutsideSelectionWhenSpaceIsAvailable() {
+    let size = CGSize(width: 350, height: 60)
+    let container = CGSize(width: 1_440, height: 900)
+    let middleSelection = CGRect(x: 100, y: 200, width: 800, height: 400)
+    let lowerSelection = CGRect(x: 100, y: 500, width: 800, height: 380)
+
+    let below = scrollingControlsFrame(selection: middleSelection, size: size, container: container)
+    let above = scrollingControlsFrame(selection: lowerSelection, size: size, container: container)
+
+    XCTAssertEqual(below.minY, middleSelection.maxY + OneShotLayout.modeToolbarGap)
+    XCTAssertEqual(above.maxY, lowerSelection.minY - OneShotLayout.modeToolbarGap)
+  }
+
+  func testScrollingStartControlsStayOnControlDisplayForSpanningSelection() {
+    let container = CGSize(width: 1_280, height: 800)
+    let frame = scrollingControlsFrame(
+      selection: CGRect(x: -900, y: -300, width: 2_000, height: 1_300),
+      size: CGSize(width: 350, height: 140),
+      container: container,
+      insets: InlineAreaControlInsets(top: 28, leading: 60)
+    )
+
+    XCTAssertTrue(CGRect(x: 72, y: 40, width: 1_196, height: 748).contains(frame))
+  }
+
+  private func scrollingControlsFrame(
+    selection: CGRect,
+    size: CGSize,
+    container: CGSize,
+    insets: InlineAreaControlInsets = .zero,
+    switcher: CGRect = .null
+  ) -> CGRect {
+    let center = OneShotLayout.scrollingControlsCenter(
+      selection: selection,
+      controlsSize: size,
+      containerSize: container,
+      controlInsets: insets,
+      switcherRect: switcher
+    )
+    return CGRect(
+      x: center.x - size.width / 2,
+      y: center.y - size.height / 2,
+      width: size.width,
+      height: size.height
+    )
+  }
+
   func testOS024RecordingTabDoesNotCommitUntilAnOptionChanges() {
     let state = makeSelectedState()
     XCTAssertEqual(state.requestTab(.recording), .switched)

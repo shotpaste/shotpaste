@@ -17,6 +17,48 @@ enum OneShotLayout {
   static let modeToolbarGap: CGFloat = 12
   static let recordingPanelSize = CGSize(width: 410, height: 372)
   static let magnifierSize = CGSize(width: 188, height: 184)
+
+  static func scrollingControlsCenter(
+    selection: CGRect,
+    controlsSize: CGSize,
+    containerSize: CGSize,
+    controlInsets: InlineAreaControlInsets,
+    switcherRect: CGRect = .null
+  ) -> CGPoint {
+    let minX = controlInsets.leading + modeToolbarGap + controlsSize.width / 2
+    let maxX = containerSize.width - controlInsets.trailing - modeToolbarGap - controlsSize.width / 2
+    let minY = controlInsets.top + modeToolbarGap + controlsSize.height / 2
+    let maxY = containerSize.height - controlInsets.bottom - modeToolbarGap - controlsSize.height / 2
+    let x = minX <= maxX ? min(max(selection.midX, minX), maxX) : containerSize.width / 2
+
+    func isAvailable(_ y: CGFloat) -> Bool {
+      guard y >= minY, y <= maxY else { return false }
+      let frame = CGRect(
+        x: x - controlsSize.width / 2,
+        y: y - controlsSize.height / 2,
+        width: controlsSize.width,
+        height: controlsSize.height
+      )
+      return switcherRect.isNull
+        || !frame.intersects(switcherRect.insetBy(dx: -modeToolbarGap, dy: -modeToolbarGap))
+    }
+
+    let belowY = selection.maxY + modeToolbarGap + controlsSize.height / 2
+    let aboveY = selection.minY - modeToolbarGap - controlsSize.height / 2
+    for y in [belowY, aboveY] where isAvailable(y) {
+      return CGPoint(x: x, y: y)
+    }
+
+    // A large selection leaves no room outside it. Keep the start action near
+    // its lower edge instead of placing it underneath the top mode switcher.
+    let insideY = selection.maxY - modeToolbarGap - controlsSize.height / 2
+    let fallbackY = minY <= maxY ? min(max(insideY, minY), maxY) : containerSize.height / 2
+    if isAvailable(fallbackY) || switcherRect.isNull {
+      return CGPoint(x: x, y: fallbackY)
+    }
+    let belowSwitcherY = switcherRect.maxY + modeToolbarGap + controlsSize.height / 2
+    return CGPoint(x: x, y: isAvailable(belowSwitcherY) ? belowSwitcherY : fallbackY)
+  }
 }
 
 struct OneShotTopSwitcher: View {
@@ -105,6 +147,7 @@ struct OneShotTopSwitcher: View {
 struct OneShotScrollingControls: View {
   @ObservedObject var state: OneShotSessionState
   let onStart: () -> Void
+  let onContentSizeChange: (CGSize) -> Void
 
   var body: some View {
     VStack(spacing: 8) {
@@ -145,6 +188,13 @@ struct OneShotScrollingControls: View {
       .padding(8)
       .background(OneShotLightPanelBackground(cornerRadius: 13))
       .shadow(color: .black.opacity(0.22), radius: 8, y: 3)
+    }
+    .background {
+      GeometryReader { geometry in
+        Color.clear
+          .onAppear { onContentSizeChange(geometry.size) }
+          .onChange(of: geometry.size) { onContentSizeChange($0) }
+      }
     }
   }
 }

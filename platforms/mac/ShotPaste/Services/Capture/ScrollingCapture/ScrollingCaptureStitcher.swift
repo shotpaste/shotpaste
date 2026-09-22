@@ -79,8 +79,8 @@ final nonisolated class ScrollingCaptureStitcher: @unchecked Sendable {
 
   private let tracker = ScrollingCaptureMotionTracker()
   private var canvas: ScrollingCaptureCanvas?
-  /// Retained until the direction lock so the base can be re-trimmed around
-  /// sticky header/footer bands before the first strip lands.
+  /// Retained until the direction lock so static edges can be separated from
+  /// scrolling content without discarding any pixels of the selected frame.
   private var baseRaster: ScrollingCaptureRaster?
   private var lastGrayFrame: ScrollingCaptureGrayFrame?
   private var frameWidth = 0
@@ -263,7 +263,7 @@ final nonisolated class ScrollingCaptureStitcher: @unchecked Sendable {
       : .appendFromTop
     if tracker.lockedDirection == .unresolved {
       tracker.lockDirection(direction)
-      trimBaseAroundStaticBands(fullResScale: grayFrame.fullResScale)
+      configureBaseStaticBands(fullResScale: grayFrame.fullResScale)
     }
 
     let staticBands = tracker.staticBandsInPixels(fullResScale: grayFrame.fullResScale)
@@ -370,9 +370,10 @@ final nonisolated class ScrollingCaptureStitcher: @unchecked Sendable {
 
   // MARK: - Private
 
-  /// Re-places the base block without its sticky header/footer so those bands
-  /// are captured once instead of repeating in every strip.
-  private func trimBaseAroundStaticBands(fullResScale: Double) {
+  /// Keep inferred static edges once around the scrolling content. Inference
+  /// can also include sparse moving text after a very small scroll, so it must
+  /// never delete selected pixels or reduce the existing output height.
+  private func configureBaseStaticBands(fullResScale: Double) {
     guard let canvas, let baseRaster else { return }
     let staticBands = tracker.staticBandsInPixels(fullResScale: fullResScale)
     let contentTop = min(staticBands.header, baseRaster.height / 3)
@@ -382,7 +383,13 @@ final nonisolated class ScrollingCaptureStitcher: @unchecked Sendable {
       return
     }
 
-    canvas.placeBase(baseRaster, contentTop: contentTop, contentBottom: contentBottom)
+    canvas.placeBase(
+      baseRaster,
+      contentTop: contentTop,
+      contentBottom: contentBottom,
+      preservingEdges: true
+    )
+    cachedMergedImage = nil
     cachedPreviewImage = nil
     cachedPreviewBounds = nil
     self.baseRaster = nil
