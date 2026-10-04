@@ -21,37 +21,37 @@ de télémétrie, de relais d’envoi ou de synchronisation.
 - **One Shot :** sélectionnez une zone une seule fois, puis choisissez Capture,
   Capture avec défilement, Enregistrement, Traduction ou Historique du presse-papiers.
 
-  [![Sélecteur de mode One Shot](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+  [![Sélecteur de mode One Shot](assets/readme/oneshot-v2.webp)](assets/readme/oneshot-v2.mp4)
 
 - **Captures et OCR :** sélection sur image figée, ciblage des fenêtres,
   reconnaissance locale du texte, format, nommage, échelle, curseur et options
   du bureau configurables.
 
-  [![OCR local depuis une capture](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+  [![OCR local depuis une capture](assets/readme/OCR-v2.webp)](assets/readme/OCR-v2.mp4)
 
 - **Traduction :** traduisez le texte d’une zone One Shot figée avec OCR local,
   détection automatique de la langue source, langues cibles configurables et
   Provider configuré par l’utilisateur. Seul le texte reconnu est envoyé pour
   traduction.
 
-  [![Traduction d’une capture](assets/readme/translate.gif)](assets/readme/translate.gif)
+  [![Traduction d’une capture](assets/readme/translate-v2.webp)](assets/readme/translate-v2.mp4)
 
 - **Annotation intégrée :** sélection, formes, flèches, texte, surligneur,
   mosaïque, projecteur, compteur, crayon, annuler/rétablir, QR, copie et
   épinglage.
 
-  [![Outils d’annotation intégrée](assets/readme/inline.gif)](assets/readme/inline.gif)
+  [![Outils d’annotation intégrée](assets/readme/inline-v2.webp)](assets/readme/inline-v2.mp4)
 
 - **Capture avec défilement :** défilement manuel ou automatique, aperçu en
   direct, contrôle des doublons et du sens, assemblage en image longue.
 
-  [![Capture avec défilement](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+  [![Capture avec défilement](assets/readme/scroll-v2.webp)](assets/readme/scroll-v2.mp4)
 
 - **Enregistrement :** vidéo de zone ou GIF, son système, microphone, effets du
   pointeur, affichage des touches, pause, reprise, suppression, instantanés et
   dessin en direct.
 
-  [![Enregistrement avec annotation en direct](assets/readme/recording.gif)](assets/readme/recording.gif)
+  [![Enregistrement avec annotation en direct](assets/readme/recording-v2.webp)](assets/readme/recording-v2.mp4)
 
 - **Enregistrement audio :** enregistrez le son système, le microphone ou les
   deux depuis la barre de menus ou la zone de notification, sans sélectionner de
@@ -64,20 +64,20 @@ de télémétrie, de relais d’envoi ou de synchronisation.
 - **Quick Access et épingles :** cartes configurables, copier/enregistrer/ouvrir,
   glisser, balayer et images toujours visibles.
 
-  [![Image épinglée depuis Quick Access](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+  [![Image épinglée depuis Quick Access](assets/readme/quickaccess-pin-v2.webp)](assets/readme/quickaccess-pin-v2.mp4)
 
-  [![Plusieurs images toujours visibles](assets/readme/pin.gif)](assets/readme/pin.gif)
+  [![Plusieurs images toujours visibles](assets/readme/pin-v2.webp)](assets/readme/pin-v2.mp4)
 
 - **Historique du presse-papiers :** stockage SQLite local des captures,
   enregistrements, textes, images et fichiers, avec recherche, filtres,
   conservation et nettoyage.
 
-  [![Historique consultable des captures et du presse-papiers](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+  [![Historique consultable des captures et du presse-papiers](assets/readme/clipboard-history-v2.webp)](assets/readme/clipboard-history-v2.mp4)
 
 - **Personnalisation :** raccourcis globaux, actions après capture, dossier de
   sortie, apparence, diagnostics, commandes URL et dix langues d’interface.
 
-  [![Réglages de ShotPaste](assets/readme/settings.gif)](assets/readme/settings.gif)
+  [![Réglages de ShotPaste](assets/readme/settings-v2.webp)](assets/readme/settings-v2.mp4)
 
 Consultez la [liste complète des fonctionnalités](docs/FEATURES.md).
 

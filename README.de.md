@@ -20,37 +20,37 @@ keinen Konto-, Telemetrie-, Upload-Vermittlungs- oder Synchronisierungsdienst.
 - **One Shot:** Bereich einmal auswählen und danach Screenshot,
   Scroll-Aufnahme, Aufnahme, Übersetzung oder Zwischenablageverlauf wählen.
 
-  [![One-Shot-Modusauswahl](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+  [![One-Shot-Modusauswahl](assets/readme/oneshot-v2.webp)](assets/readme/oneshot-v2.mp4)
 
 - **Screenshots und OCR:** Auswahl im eingefrorenen Bild, Fenstererkennung,
   lokale Texterkennung sowie konfigurierbares Format, Benennung, Skalierung,
   Mauszeiger und Desktopoptionen.
 
-  [![Lokale OCR aus einem Screenshot](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+  [![Lokale OCR aus einem Screenshot](assets/readme/OCR-v2.webp)](assets/readme/OCR-v2.mp4)
 
 - **Übersetzung:** Text aus einem eingefrorenen One-Shot-Bereich mit lokaler OCR,
   automatischer Erkennung der Ausgangssprache, konfigurierbaren Zielsprachen und
   einem vom Benutzer eingerichteten Provider übersetzen. Nur der erkannte Text
   wird zur Übersetzung gesendet.
 
-  [![Screenshot-Übersetzung](assets/readme/translate.gif)](assets/readme/translate.gif)
+  [![Screenshot-Übersetzung](assets/readme/translate-v2.webp)](assets/readme/translate-v2.mp4)
 
 - **Integrierte Anmerkungen:** Auswahl, Formen, Pfeile, Text, Textmarker,
   Mosaik, Fokus, Zähler, Stift, Rückgängig/Wiederholen, QR, Kopieren und
   Anheften.
 
-  [![Werkzeuge für integrierte Anmerkungen](assets/readme/inline.gif)](assets/readme/inline.gif)
+  [![Werkzeuge für integrierte Anmerkungen](assets/readme/inline-v2.webp)](assets/readme/inline-v2.mp4)
 
 - **Scroll-Aufnahme:** manuelles oder automatisches Scrollen, Live-Vorschau,
   Schutz vor Duplikaten und falscher Richtung sowie Zusammensetzen langer Bilder.
 
-  [![Scroll-Aufnahme](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+  [![Scroll-Aufnahme](assets/readme/scroll-v2.webp)](assets/readme/scroll-v2.mp4)
 
 - **Aufnahme:** Bereichsvideo oder GIF, Systemaudio, Mikrofon, Maus- und
   Klickeffekte, Tastenanzeige, Pause, Neustart, Verwerfen, Einzelbilder und
   Live-Zeichnen.
 
-  [![Aufnahme mit Live-Anmerkungen](assets/readme/recording.gif)](assets/readme/recording.gif)
+  [![Aufnahme mit Live-Anmerkungen](assets/readme/recording-v2.webp)](assets/readme/recording-v2.mp4)
 
 - **Audioaufnahme:** Systemton, Mikrofon oder beides über Menüleiste oder
   Infobereich aufnehmen, ohne Bildschirmauswahl; als reine M4A-Audiodatei speichern.
@@ -62,20 +62,20 @@ keinen Konto-, Telemetrie-, Upload-Vermittlungs- oder Synchronisierungsdienst.
 - **Quick Access und Pins:** konfigurierbare Karten, Kopieren/Speichern/Öffnen,
   Zieh- und Wischaktionen sowie stets sichtbare Bild-Pins.
 
-  [![Quick-Access-Bild-Pin](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+  [![Quick-Access-Bild-Pin](assets/readme/quickaccess-pin-v2.webp)](assets/readme/quickaccess-pin-v2.mp4)
 
-  [![Mehrere stets sichtbare Bild-Pins](assets/readme/pin.gif)](assets/readme/pin.gif)
+  [![Mehrere stets sichtbare Bild-Pins](assets/readme/pin-v2.webp)](assets/readme/pin-v2.mp4)
 
 - **Zwischenablageverlauf:** lokaler SQLite-Verlauf für Screenshots,
   Aufnahmen, Text, Bilder und Dateien mit Suche, Filtern, Aufbewahrung und
   Bereinigung.
 
-  [![Durchsuchbarer Aufnahme- und Zwischenablageverlauf](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+  [![Durchsuchbarer Aufnahme- und Zwischenablageverlauf](assets/readme/clipboard-history-v2.webp)](assets/readme/clipboard-history-v2.mp4)
 
 - **Anpassung:** globale Tastenkürzel, Aktionen nach der Aufnahme,
   Ausgabeordner, Darstellung, Diagnose, URL-Befehle und zehn Sprachen.
 
-  [![ShotPaste-Einstellungen](assets/readme/settings.gif)](assets/readme/settings.gif)
+  [![ShotPaste-Einstellungen](assets/readme/settings-v2.webp)](assets/readme/settings-v2.mp4)
 
 Siehe [vollständige Funktionsliste](docs/FEATURES.md).
 

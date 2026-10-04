@@ -18,33 +18,33 @@ ShotPaste은 macOS와 Windows에 서로 독립적인 네이티브 클라이언�
 - **One Shot:** 영역을 한 번 선택한 뒤 스크린샷, 스크롤 캡처, 녹화, 번역 또는
   클립보드 기록을 선택합니다.
 
-  [![One Shot 모드 선택기](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+  [![One Shot 모드 선택기](assets/readme/oneshot-v2.webp)](assets/readme/oneshot-v2.mp4)
 
 - **스크린샷 및 OCR:** 고정된 선택 화면, 창 인식, 로컬 텍스트 인식, 형식,
   파일 이름, 배율, 커서 및 데스크톱 표시 설정.
 
-  [![스크린샷의 로컬 OCR](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+  [![스크린샷의 로컬 OCR](assets/readme/OCR-v2.webp)](assets/readme/OCR-v2.mp4)
 
 - **번역:** 고정된 One Shot 영역의 텍스트를 로컬 OCR, 원본 언어 자동 감지,
   설정 가능한 대상 언어 및 사용자가 구성한 Provider로 번역합니다. 인식된
   텍스트만 전송됩니다.
 
-  [![스크린샷 번역](assets/readme/translate.gif)](assets/readme/translate.gif)
+  [![스크린샷 번역](assets/readme/translate-v2.webp)](assets/readme/translate-v2.mp4)
 
 - **인라인 주석:** 선택, 도형, 화살표, 텍스트, 형광펜, 모자이크, 스포트라이트,
   번호, 펜, 실행 취소/다시 실행, QR, 복사 및 고정.
 
-  [![인라인 주석 도구](assets/readme/inline.gif)](assets/readme/inline.gif)
+  [![인라인 주석 도구](assets/readme/inline-v2.webp)](assets/readme/inline-v2.mp4)
 
 - **스크롤 캡처:** 수동/자동 스크롤, 실시간 미리보기, 방향 및 중복 프레임 보호,
   긴 이미지 결합.
 
-  [![스크롤 캡처](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+  [![스크롤 캡처](assets/readme/scroll-v2.webp)](assets/readme/scroll-v2.mp4)
 
 - **녹화:** 영역 비디오 또는 GIF, 시스템 오디오, 마이크, 마우스 효과, 키 표시,
   일시 중지, 다시 녹화, 폐기, 스냅샷 및 실시간 잉크.
 
-  [![실시간 주석이 포함된 녹화](assets/readme/recording.gif)](assets/readme/recording.gif)
+  [![실시간 주석이 포함된 녹화](assets/readme/recording-v2.webp)](assets/readme/recording-v2.mp4)
 
 - **오디오 녹음:** 화면 영역을 선택하지 않고 메뉴 막대나 트레이에서 시스템 소리,
   마이크 또는 둘 다 녹음하고 오디오 전용 M4A로 저장합니다.
@@ -55,23 +55,21 @@ ShotPaste은 macOS와 Windows에 서로 독립적인 네이티브 클라이언�
 - **Quick Access 및 고정:** 구성 가능한 캡처 후 카드, 복사/저장/열기, 드래그,
   스와이프 및 항상 위 이미지.
 
-  [![Quick Access 이미지 고정](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+  [![Quick Access 이미지 고정](assets/readme/quickaccess-pin-v2.webp)](assets/readme/quickaccess-pin-v2.mp4)
 
-  [![여러 개의 항상 위 이미지](assets/readme/pin.gif)](assets/readme/pin.gif)
+  [![여러 개의 항상 위 이미지](assets/readme/pin-v2.webp)](assets/readme/pin-v2.mp4)
 
 - **클립보드 기록:** 캡처, 녹화, 텍스트, 이미지와 복사된 파일을 로컬 SQLite에
   저장하고 검색, 필터, 보존 및 정리를 지원합니다.
 
-  [![검색 가능한 캡처 및 클립보드 기록](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+  [![검색 가능한 캡처 및 클립보드 기록](assets/readme/clipboard-history-v2.webp)](assets/readme/clipboard-history-v2.mp4)
 
 - **사용자 설정:** 전역 단축키, 캡처 후 동작, 출력 폴더, 모양, 진단, URL 명령과
   10개 인터페이스 언어.
 
-  [![ShotPaste는 macOS와 Windows에 서로 독립적인 네이티브 클라이언트를 제공합니다.
-캡처, OCR, 녹음·녹화, 기록, 클립보드 처리와 설정은 기기에 보관됩니다.
-선택적 번역, 음성 전사, AI 텍스트 정리는 선택한 텍스트나 오디오만 사용자가 설정한
-서비스로 전송합니다. 프로젝트는 계정, 원격 측정, 업로드 중계 또는 동기화 서비스를
-운영하지 않습니다.
+  [![ShotPaste 설정](assets/readme/settings-v2.webp)](assets/readme/settings-v2.mp4)
+
+전체 기능은 [기능 목록](docs/FEATURES.md)을 참조하세요.
 
 ## 플랫폼
 

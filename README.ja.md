@@ -20,33 +20,33 @@ ShotPaste は macOS と Windows に独立したネイティブクライアント
 - **One Shot：** 一度範囲を選び、スクリーンショット、スクロールキャプチャ、
   録画、翻訳、クリップボード履歴を切り替えます。
 
-  [![One Shot モード選択](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+  [![One Shot モード選択](assets/readme/oneshot-v2.webp)](assets/readme/oneshot-v2.mp4)
 
 - **スクリーンショットと OCR：** 固定された選択画面、ウィンドウ認識、
   ローカル文字認識、形式、命名、スケール、カーソル、デスクトップ表示の設定。
 
-  [![スクリーンショットのローカル OCR](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+  [![スクリーンショットのローカル OCR](assets/readme/OCR-v2.webp)](assets/readme/OCR-v2.mp4)
 
 - **翻訳：** 固定した One Shot 範囲のテキストを、ローカル OCR、入力言語の自動
   検出、設定可能な翻訳先言語、ユーザーが設定した Provider で翻訳します。
   送信されるのは認識したテキストだけです。
 
-  [![スクリーンショットの翻訳](assets/readme/translate.gif)](assets/readme/translate.gif)
+  [![スクリーンショットの翻訳](assets/readme/translate-v2.webp)](assets/readme/translate-v2.mp4)
 
 - **インライン注釈：** 選択、図形、矢印、テキスト、蛍光ペン、モザイク、
   スポットライト、番号、ペン、元に戻す/やり直し、QR、コピー、ピン留め。
 
-  [![インライン注釈ツール](assets/readme/inline.gif)](assets/readme/inline.gif)
+  [![インライン注釈ツール](assets/readme/inline-v2.webp)](assets/readme/inline-v2.mp4)
 
 - **スクロールキャプチャ：** 手動/自動スクロール、ライブプレビュー、方向・重複
   保護、長い画像の結合。
 
-  [![スクロールキャプチャ](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+  [![スクロールキャプチャ](assets/readme/scroll-v2.webp)](assets/readme/scroll-v2.mp4)
 
 - **録画：** 範囲動画または GIF、システム音声、マイク、マウス効果、キー表示、
   一時停止、再録画、破棄、スナップショット、ライブ描画。
 
-  [![ライブ注釈付き録画](assets/readme/recording.gif)](assets/readme/recording.gif)
+  [![ライブ注釈付き録画](assets/readme/recording-v2.webp)](assets/readme/recording-v2.mp4)
 
 - **録音：** メニューバーまたはトレイからシステム音声、マイク、または両方を
   録音し、音声のみの M4A として保存します。画面範囲の選択は不要です。
@@ -58,19 +58,19 @@ ShotPaste は macOS と Windows に独立したネイティブクライアント
 - **Quick Access とピン：** 設定可能なカード、コピー/保存/開く、ドラッグ、
   スワイプ、常に手前に表示する画像。
 
-  [![Quick Access からの画像ピン留め](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+  [![Quick Access からの画像ピン留め](assets/readme/quickaccess-pin-v2.webp)](assets/readme/quickaccess-pin-v2.mp4)
 
-  [![複数の常時手前表示画像](assets/readme/pin.gif)](assets/readme/pin.gif)
+  [![複数の常時手前表示画像](assets/readme/pin-v2.webp)](assets/readme/pin-v2.mp4)
 
 - **クリップボード履歴：** キャプチャ、録画、テキスト、画像、コピーしたファイルを
   ローカル SQLite に保存し、検索、絞り込み、保持期間、削除を提供します。
 
-  [![検索可能なキャプチャとクリップボード履歴](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+  [![検索可能なキャプチャとクリップボード履歴](assets/readme/clipboard-history-v2.webp)](assets/readme/clipboard-history-v2.mp4)
 
 - **カスタマイズ：** グローバルショートカット、キャプチャ後の処理、保存先、外観、
   診断、URL コマンド、10 言語。
 
-  [![ShotPaste の設定](assets/readme/settings.gif)](assets/readme/settings.gif)
+  [![ShotPaste の設定](assets/readme/settings-v2.webp)](assets/readme/settings-v2.mp4)
 
 詳細は[機能一覧](docs/FEATURES.md)を参照してください。
 

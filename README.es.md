@@ -21,35 +21,35 @@ cuentas, telemetría, intermediación de subidas ni sincronización.
 - **One Shot:** selecciona una zona una vez y elige Captura, Captura con
   desplazamiento, Grabación, Traducción o Historial del portapapeles.
 
-  [![Selector de modos One Shot](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+  [![Selector de modos One Shot](assets/readme/oneshot-v2.webp)](assets/readme/oneshot-v2.mp4)
 
 - **Capturas y OCR:** selección congelada, detección de ventanas,
   reconocimiento de texto local, formato, nombres, escala, cursor y opciones
   del escritorio.
 
-  [![OCR local desde una captura](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+  [![OCR local desde una captura](assets/readme/OCR-v2.webp)](assets/readme/OCR-v2.mp4)
 
 - **Traducción:** traduce el texto de una zona One Shot congelada con OCR local,
   detección automática del idioma de origen, idiomas de destino configurables y
   un proveedor configurado por el usuario. Solo se envía el texto reconocido
   para traducirlo.
 
-  [![Traducción de una captura](assets/readme/translate.gif)](assets/readme/translate.gif)
+  [![Traducción de una captura](assets/readme/translate-v2.webp)](assets/readme/translate-v2.mp4)
 
 - **Anotación integrada:** selección, formas, flechas, texto, resaltador,
   mosaico, foco, contador, lápiz, deshacer/rehacer, QR, copiar y fijar.
 
-  [![Herramientas de anotación integrada](assets/readme/inline.gif)](assets/readme/inline.gif)
+  [![Herramientas de anotación integrada](assets/readme/inline-v2.webp)](assets/readme/inline-v2.mp4)
 
 - **Captura con desplazamiento:** desplazamiento manual/automático, vista
   previa, protección de dirección y duplicados, y unión de imágenes largas.
 
-  [![Captura con desplazamiento](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+  [![Captura con desplazamiento](assets/readme/scroll-v2.webp)](assets/readme/scroll-v2.mp4)
 
 - **Grabación:** vídeo de región o GIF, audio del sistema, micrófono, efectos
   del ratón, teclas, pausa, reinicio, descarte, instantáneas y tinta en vivo.
 
-  [![Grabación con anotación en vivo](assets/readme/recording.gif)](assets/readme/recording.gif)
+  [![Grabación con anotación en vivo](assets/readme/recording-v2.webp)](assets/readme/recording-v2.mp4)
 
 - **Grabación de audio:** graba el sonido del sistema, el micrófono o ambos
   desde la barra de menús o la bandeja, sin seleccionar una región; guarda M4A de solo audio.
@@ -61,19 +61,19 @@ cuentas, telemetría, intermediación de subidas ni sincronización.
 - **Quick Access y fijados:** tarjetas configurables, copiar/guardar/abrir,
   arrastrar, deslizar e imágenes siempre visibles.
 
-  [![Imagen fijada desde Quick Access](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+  [![Imagen fijada desde Quick Access](assets/readme/quickaccess-pin-v2.webp)](assets/readme/quickaccess-pin-v2.mp4)
 
-  [![Varias imágenes siempre visibles](assets/readme/pin.gif)](assets/readme/pin.gif)
+  [![Varias imágenes siempre visibles](assets/readme/pin-v2.webp)](assets/readme/pin-v2.mp4)
 
 - **Historial del portapapeles:** SQLite local para capturas, grabaciones,
   texto, imágenes y archivos, con búsqueda, filtros, retención y limpieza.
 
-  [![Historial de capturas y portapapeles con búsqueda](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+  [![Historial de capturas y portapapeles con búsqueda](assets/readme/clipboard-history-v2.webp)](assets/readme/clipboard-history-v2.mp4)
 
 - **Personalización:** atajos globales, acciones posteriores, carpeta de salida,
   apariencia, diagnóstico, comandos URL y diez idiomas.
 
-  [![Ajustes de ShotPaste](assets/readme/settings.gif)](assets/readme/settings.gif)
+  [![Ajustes de ShotPaste](assets/readme/settings-v2.webp)](assets/readme/settings-v2.mp4)
 
 Consulta la [lista completa de funciones](docs/FEATURES.md).
 

@@ -20,33 +20,33 @@ ShotPaste содержит независимые нативные клиент�
 - **One Shot:** один раз выберите область, затем используйте снимок, прокрутку,
   запись, перевод или историю буфера обмена.
 
-  [![Выбор режима One Shot](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+  [![Выбор режима One Shot](assets/readme/oneshot-v2.webp)](assets/readme/oneshot-v2.mp4)
 
 - **Снимки и OCR:** замороженная область выбора, распознавание окон и текста
   на устройстве, формат, имена, масштаб, курсор и параметры рабочего стола.
 
-  [![Локальное OCR снимка](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+  [![Локальное OCR снимка](assets/readme/OCR-v2.webp)](assets/readme/OCR-v2.mp4)
 
 - **Перевод:** перевод текста из замороженной области One Shot с локальным OCR,
   автоматическим определением исходного языка, настраиваемыми языками перевода
   и провайдером, настроенным пользователем. Передаётся только распознанный текст.
 
-  [![Перевод текста на снимке](assets/readme/translate.gif)](assets/readme/translate.gif)
+  [![Перевод текста на снимке](assets/readme/translate-v2.webp)](assets/readme/translate-v2.mp4)
 
 - **Встроенные аннотации:** выбор, фигуры, стрелки, текст, маркер, мозаика,
   прожектор, счётчик, карандаш, отмена/повтор, QR, копирование и закрепление.
 
-  [![Инструменты встроенных аннотаций](assets/readme/inline.gif)](assets/readme/inline.gif)
+  [![Инструменты встроенных аннотаций](assets/readme/inline-v2.webp)](assets/readme/inline-v2.mp4)
 
 - **Захват прокрутки:** ручная/автоматическая прокрутка, предпросмотр, защита от
   смены направления и дубликатов, склейка длинных изображений.
 
-  [![Захват прокрутки](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+  [![Захват прокрутки](assets/readme/scroll-v2.webp)](assets/readme/scroll-v2.mp4)
 
 - **Запись:** видео области или GIF, системный звук, микрофон, эффекты мыши,
   показ клавиш, пауза, перезапуск, удаление, снимки и рисование в реальном времени.
 
-  [![Запись с аннотациями в реальном времени](assets/readme/recording.gif)](assets/readme/recording.gif)
+  [![Запись с аннотациями в реальном времени](assets/readme/recording-v2.webp)](assets/readme/recording-v2.mp4)
 
 - **Запись аудио:** записывайте системный звук, микрофон или оба источника из
   строки меню или трея без выбора области экрана; сохраняйте аудио в M4A.
@@ -58,19 +58,19 @@ ShotPaste содержит независимые нативные клиент�
 - **Quick Access и закрепления:** настраиваемые карточки, копирование/сохранение/
   открытие, перетаскивание, жесты и изображения поверх окон.
 
-  [![Закрепление изображения из Quick Access](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+  [![Закрепление изображения из Quick Access](assets/readme/quickaccess-pin-v2.webp)](assets/readme/quickaccess-pin-v2.mp4)
 
-  [![Несколько изображений поверх окон](assets/readme/pin.gif)](assets/readme/pin.gif)
+  [![Несколько изображений поверх окон](assets/readme/pin-v2.webp)](assets/readme/pin-v2.mp4)
 
 - **История буфера обмена:** локальная SQLite для снимков, записей, текста,
   изображений и файлов с поиском, фильтрами, сроком хранения и очисткой.
 
-  [![История снимков и буфера обмена с поиском](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+  [![История снимков и буфера обмена с поиском](assets/readme/clipboard-history-v2.webp)](assets/readme/clipboard-history-v2.mp4)
 
 - **Настройка:** глобальные сочетания клавиш, действия после захвата, папка
   вывода, оформление, диагностика, URL-команды и десять языков.
 
-  [![Настройки ShotPaste](assets/readme/settings.gif)](assets/readme/settings.gif)
+  [![Настройки ShotPaste](assets/readme/settings-v2.webp)](assets/readme/settings-v2.mp4)
 
 См. [полный список функций](docs/FEATURES.md).
 

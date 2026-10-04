@@ -17,31 +17,31 @@ ShotPaste 為 macOS 與 Windows 提供彼此獨立的原生客戶端。擷取、
 
 - **One Shot：** 只選取一次區域，即可切換截圖、捲動擷取、錄影、翻譯或剪貼簿歷史。
 
-  [![One Shot 模式選擇器](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+  [![One Shot 模式選擇器](assets/readme/oneshot-v2.webp)](assets/readme/oneshot-v2.mp4)
 
 - **截圖與 OCR：** 凍結選區、視窗辨識、輸出格式、命名、縮放、游標與桌面顯示
   設定，以及本機文字辨識。
 
-  [![截圖本機 OCR](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+  [![截圖本機 OCR](assets/readme/OCR-v2.webp)](assets/readme/OCR-v2.mp4)
 
 - **翻譯：** 使用本機 OCR 辨識凍結的 One Shot 選取範圍，自動偵測來源語言並選擇
   目標語言，透過使用者設定的 Provider 翻譯；僅傳送辨識出的文字。
 
-  [![截圖翻譯](assets/readme/translate.gif)](assets/readme/translate.gif)
+  [![截圖翻譯](assets/readme/translate-v2.webp)](assets/readme/translate-v2.mp4)
 
 - **內嵌標註：** 選取、形狀、箭頭、文字、螢光筆、馬賽克、聚光燈、編號、畫筆、
   復原/重做、QR Code、複製與釘選。
 
-  [![內嵌標註工具](assets/readme/inline.gif)](assets/readme/inline.gif)
+  [![內嵌標註工具](assets/readme/inline-v2.webp)](assets/readme/inline-v2.mp4)
 
 - **捲動擷取：** 手動/自動捲動、即時預覽、方向與重複畫面保護、長圖拼接。
 
-  [![捲動擷取](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+  [![捲動擷取](assets/readme/scroll-v2.webp)](assets/readme/scroll-v2.mp4)
 
 - **錄影：** 區域影片或 GIF、系統聲音、麥克風、滑鼠效果、按鍵顯示、暫停、
   重新錄製、捨棄、快照與即時畫筆。
 
-  [![錄影與即時畫筆](assets/readme/recording.gif)](assets/readme/recording.gif)
+  [![錄影與即時畫筆](assets/readme/recording-v2.webp)](assets/readme/recording-v2.mp4)
 
 - **錄音：** 從選單列或系統匣錄製系統聲音、麥克風或兩者，無需選取螢幕區域，
   儲存為純音訊 M4A。
@@ -52,19 +52,19 @@ ShotPaste 為 macOS 與 Windows 提供彼此獨立的原生客戶端。擷取、
 - **Quick Access 與釘選：** 可設定的擷取後卡片、複製/儲存/開啟、拖放、滑動、
   置頂圖片。
 
-  [![Quick Access 釘選圖片](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+  [![Quick Access 釘選圖片](assets/readme/quickaccess-pin-v2.webp)](assets/readme/quickaccess-pin-v2.mp4)
 
-  [![多張置頂圖片](assets/readme/pin.gif)](assets/readme/pin.gif)
+  [![多張置頂圖片](assets/readme/pin-v2.webp)](assets/readme/pin-v2.mp4)
 
 - **剪貼簿歷史：** 以本機 SQLite 保存截圖、錄影、文字、圖片與複製的檔案，
   支援搜尋、篩選、保留規則與清理。
 
-  [![可搜尋的擷取與剪貼簿歷史](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+  [![可搜尋的擷取與剪貼簿歷史](assets/readme/clipboard-history-v2.webp)](assets/readme/clipboard-history-v2.mp4)
 
 - **自訂：** 全域快速鍵、擷取後動作、輸出資料夾、外觀、診斷、URL 指令與
   10 種介面語言。
 
-  [![ShotPaste 設定](assets/readme/settings.gif)](assets/readme/settings.gif)
+  [![ShotPaste 設定](assets/readme/settings-v2.webp)](assets/readme/settings-v2.mp4)
 
 完整內容請參閱[功能列表](docs/FEATURES.md)。
 
