@@ -199,13 +199,6 @@ struct OneShotScrollingControls: View {
           .onChange(of: geometry.size) { onContentSizeChange($0) }
       }
     }
-    .background {
-      GeometryReader { geometry in
-        Color.clear
-          .onAppear { onContentSizeChange(geometry.size) }
-          .onChange(of: geometry.size) { onContentSizeChange($0) }
-      }
-    }
   }
 }
 
