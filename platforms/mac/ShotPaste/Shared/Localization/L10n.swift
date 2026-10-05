@@ -425,6 +425,11 @@ nonisolated enum L10n {
       defaultValue: "OpenAI Completions",
       comment: "Agent provider protocol option"
     )
+    static let protocolOpenAIResponses = string(
+      "agent.protocol-openai-responses",
+      defaultValue: "OpenAI Responses",
+      comment: "Agent provider protocol option"
+    )
     static let protocolAnthropicMessages = string(
       "agent.protocol-anthropic-messages",
       defaultValue: "Anthropic Messages",
@@ -432,6 +437,53 @@ nonisolated enum L10n {
     )
     static let modelTitle = string(
       "agent.model-title", defaultValue: "Model", comment: "Agent provider model title"
+    )
+    static let testConnection = string(
+      "agent.test-connection", defaultValue: "Test connection", comment: "LLM provider connection test action"
+    )
+    static let testingConnection = string(
+      "agent.testing-connection", defaultValue: "Testing connection…", comment: "LLM provider connection test progress"
+    )
+    static let connectionTestSuccess = string(
+      "agent.connection-test-success", defaultValue: "Connected. The model returned text.",
+      comment: "LLM provider connection test success"
+    )
+    static let connectionTestInvalidConfiguration = string(
+      "agent.connection-test-invalid-configuration", defaultValue: "Check the API endpoint and model settings.",
+      comment: "LLM provider connection test invalid configuration"
+    )
+    static let connectionTestMissingKey = string(
+      "agent.connection-test-missing-key", defaultValue: "Save an LLM API key first.",
+      comment: "LLM provider connection test missing API key"
+    )
+    static let connectionTestAuthenticationFailed = string(
+      "agent.connection-test-authentication-failed", defaultValue: "Authentication failed. Check the API key.",
+      comment: "LLM provider connection test authentication failure"
+    )
+    static let connectionTestRateLimited = string(
+      "agent.connection-test-rate-limited", defaultValue: "The request was rate limited. Try again later.",
+      comment: "LLM provider connection test rate limit"
+    )
+    static let connectionTestTimeout = string(
+      "agent.connection-test-timeout", defaultValue: "The connection test timed out. Try again later.",
+      comment: "LLM provider connection test timeout"
+    )
+    static let connectionTestNetworkFailed = string(
+      "agent.connection-test-network-failed", defaultValue: "Could not connect to the provider. Check the network and API endpoint.",
+      comment: "LLM provider connection test network failure"
+    )
+    static let connectionTestInvalidResponse = string(
+      "agent.connection-test-invalid-response", defaultValue: "The provider returned no valid text. Check the protocol and model.",
+      comment: "LLM provider connection test invalid response"
+    )
+    static let connectionTestProviderFailed = string(
+      "agent.connection-test-provider-failed", defaultValue: "The provider could not complete the request. Try again later.",
+      comment: "LLM provider connection test provider failure"
+    )
+    static let connectionTestHint = string(
+      "agent.connection-test-hint",
+      defaultValue: "The test sends only fixed short text, never screenshots, recordings, or transcripts. The provider may charge for it.",
+      comment: "LLM provider connection test privacy and cost hint"
     )
     static func endpointExample(_ example: String) -> String {
       format(

@@ -38,6 +38,13 @@ struct AgentSettingsView: View {
   @State private var shortcutIssue: ShortcutValidationIssue?
   @State private var accessibilityGranted = AXIsProcessTrusted()
   @State private var highlightsTranslation = false
+  @State private var connectionTestTask: Task<Void, Never>?
+  @State private var connectionTestID: UUID?
+  @State private var connectionTestMessage: String?
+  @State private var connectionTestSucceeded = false
+  @State private var endpointEditing = false
+  @State private var modelEditing = false
+  @State private var keyEditing = false
 
   private let credentialStore = AgentCredentialStore.shared
   private let shortcutManager = KeyboardShortcutManager.shared
@@ -55,10 +62,13 @@ struct AgentSettingsView: View {
             Picker("", selection: protocolBinding) {
               Text(L10n.Agent.protocolOpenAICompatible)
                 .tag(AgentProviderAPIProtocol.openAICompatible)
+              Text(L10n.Agent.protocolOpenAIResponses)
+                .tag(AgentProviderAPIProtocol.openAIResponses)
               Text(L10n.Agent.protocolAnthropicMessages)
                 .tag(AgentProviderAPIProtocol.anthropicMessages)
             }
             .labelsHidden()
+            .accessibilityIdentifier("agent-provider-protocol")
             .fixedSize()
             .frame(width: 300, alignment: .trailing)
           }
@@ -72,7 +82,8 @@ struct AgentSettingsView: View {
               value: endpoint,
               draft: $endpointDraft,
               accessibilityLabel: L10n.Agent.endpointTitle,
-              onSave: { endpoint = $0 }
+              onSave: { endpoint = $0 },
+              onEditingChanged: { endpointEditing = $0 }
             )
           }
 
@@ -85,7 +96,8 @@ struct AgentSettingsView: View {
               value: model,
               draft: $modelDraft,
               accessibilityLabel: L10n.Agent.modelTitle,
-              onSave: { model = $0 }
+              onSave: { model = $0 },
+              onEditingChanged: { modelEditing = $0 }
             )
           }
 
@@ -99,8 +111,37 @@ struct AgentSettingsView: View {
               draft: $apiKey,
               accessibilityLabel: L10n.Agent.apiKeyTitle,
               isSecure: true,
-              onSave: saveAPIKey
+              onSave: saveAPIKey,
+              onEditingChanged: { keyEditing = $0 }
             )
+          }
+
+          SettingRow(
+            icon: "network",
+            title: L10n.Agent.testConnection,
+            description: L10n.Agent.connectionTestHint
+          ) {
+            VStack(alignment: .trailing, spacing: 6) {
+              HStack(spacing: 8) {
+                if connectionTestID != nil {
+                  ProgressView().controlSize(.small)
+                }
+                Button(connectionTestID == nil ? L10n.Agent.testConnection : L10n.Agent.testingConnection,
+                       action: testConnection)
+                  .disabled(connectionTestID != nil || endpointEditing || modelEditing || keyEditing)
+                  .accessibilityIdentifier("agent-test-connection")
+              }
+              if let connectionTestMessage {
+                Text(connectionTestMessage)
+                  .font(.caption)
+                  .foregroundStyle(connectionTestSucceeded ? Color.green : Color.red)
+                  .multilineTextAlignment(.trailing)
+                  .accessibilityLabel(connectionTestMessage)
+                  .accessibilityIdentifier("agent-connection-test-result")
+              }
+            }
+            .frame(width: 300, alignment: .trailing)
+            .accessibilityElement(children: .contain)
           }
 
           SettingRow(
@@ -301,6 +342,13 @@ struct AgentSettingsView: View {
       .onChange(of: navigationState.agentAnchor) { _ in
         revealTranslationIfRequested(using: proxy)
       }
+      .onChange(of: endpoint) { _ in resetConnectionTest() }
+      .onChange(of: model) { _ in resetConnectionTest() }
+      .onChange(of: apiProtocolRaw) { _ in resetConnectionTest() }
+      .onChange(of: endpointDraft) { _ in resetConnectionTest() }
+      .onChange(of: modelDraft) { _ in resetConnectionTest() }
+      .onChange(of: apiKey) { _ in resetConnectionTest() }
+      .onDisappear { resetConnectionTest() }
       .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
         refreshState()
       }
@@ -434,7 +482,7 @@ struct AgentSettingsView: View {
 
   private var endpointDomainExample: String {
     switch selectedProtocol {
-    case .openAICompatible: "https://api.openai.com/v1"
+    case .openAICompatible, .openAIResponses: "https://api.openai.com/v1"
     case .anthropicMessages: "https://api.anthropic.com"
     }
   }
@@ -461,11 +509,60 @@ struct AgentSettingsView: View {
   private func saveAPIKey(_ value: String) {
     do {
       try credentialStore.saveAPIKey(value)
+      resetConnectionTest()
       apiKey = ""
       maskedStoredKey = credentialStore.maskedStoredAPIKey()
       keyOperationMessage = L10n.Agent.keyStored
     } catch {
       keyOperationMessage = error.localizedDescription
+    }
+  }
+
+  private func resetConnectionTest() {
+    connectionTestTask?.cancel()
+    connectionTestTask = nil
+    connectionTestID = nil
+    connectionTestMessage = nil
+    connectionTestSucceeded = false
+  }
+
+  private func testConnection() {
+    resetConnectionTest()
+    let id = UUID()
+    let configuration = endpointConfiguration
+    connectionTestID = id
+    connectionTestTask = Task { @MainActor in
+      defer {
+        if connectionTestID == id {
+          connectionTestID = nil
+          connectionTestTask = nil
+        }
+      }
+      do {
+        try await LLMConnectionTester().test(configuration: configuration,
+                                             apiKey: credentialStore.resolvedAPIKey())
+        guard !Task.isCancelled, connectionTestID == id else { return }
+        connectionTestSucceeded = true
+        connectionTestMessage = L10n.Agent.connectionTestSuccess
+      } catch is CancellationError {
+        return
+      } catch {
+        guard !Task.isCancelled, connectionTestID == id else { return }
+        connectionTestMessage = connectionTestErrorMessage(error)
+      }
+    }
+  }
+
+  private func connectionTestErrorMessage(_ error: Error) -> String {
+    switch error as? LLMConnectionTestError {
+    case .invalidConfiguration: L10n.Agent.connectionTestInvalidConfiguration
+    case .missingKey: L10n.Agent.connectionTestMissingKey
+    case .authenticationFailed: L10n.Agent.connectionTestAuthenticationFailed
+    case .rateLimited: L10n.Agent.connectionTestRateLimited
+    case .timedOut: L10n.Agent.connectionTestTimeout
+    case .networkFailed: L10n.Agent.connectionTestNetworkFailed
+    case .invalidResponse: L10n.Agent.connectionTestInvalidResponse
+    case .providerFailed, nil: L10n.Agent.connectionTestProviderFailed
     }
   }
 
@@ -490,7 +587,7 @@ struct AgentSettingsView: View {
       model = AgentProviderConfiguration.defaultModel(for: selectedProtocol)
     }
 
-    if selectedProtocol == .openAICompatible,
+    if selectedProtocol != .anthropicMessages,
        AgentProviderConfiguration.legacyOpenAIEndpoints.contains(
          endpoint.trimmingCharacters(in: .whitespacesAndNewlines)
        ),
@@ -499,13 +596,14 @@ struct AgentSettingsView: View {
       endpoint = AgentProviderConfiguration.defaultEndpoint
     }
 
-    let otherProtocol: AgentProviderAPIProtocol = selectedProtocol == .openAICompatible
-      ? .anthropicMessages : .openAICompatible
     if endpointWasStored, modelWasStored,
-       endpoint.trimmingCharacters(in: .whitespacesAndNewlines)
-       == AgentProviderConfiguration.defaultEndpoint(for: otherProtocol),
-       model.trimmingCharacters(in: .whitespacesAndNewlines)
-       == AgentProviderConfiguration.defaultModel(for: otherProtocol) {
+       AgentProviderAPIProtocol.allCases.contains(where: { otherProtocol in
+         otherProtocol != selectedProtocol
+           && endpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+           == AgentProviderConfiguration.defaultEndpoint(for: otherProtocol)
+           && model.trimmingCharacters(in: .whitespacesAndNewlines)
+           == AgentProviderConfiguration.defaultModel(for: otherProtocol)
+       }) {
       endpoint = AgentProviderConfiguration.defaultEndpoint(for: selectedProtocol)
       model = AgentProviderConfiguration.defaultModel(for: selectedProtocol)
     }
@@ -523,6 +621,7 @@ private struct InlineEditableSettingField: View {
   let accessibilityLabel: String
   var isSecure = false
   let onSave: (String) -> Void
+  var onEditingChanged: (Bool) -> Void = { _ in }
 
   @State private var isEditing = false
 
@@ -580,6 +679,8 @@ private struct InlineEditableSettingField: View {
       guard !isEditing else { return }
       synchronizeDisplayValue()
     }
+    .onChange(of: isEditing) { onEditingChanged($0) }
+    .onDisappear { onEditingChanged(false) }
     .accessibilityLabel(accessibilityLabel)
   }
 

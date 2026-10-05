@@ -59,6 +59,16 @@ nonisolated struct AgentAudioLanguageModelProvider: LocalAudioLanguageModelProvi
       if let apiKey {
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
       }
+    case .openAIResponses:
+      body.removeValue(forKey: "max_tokens")
+      body["max_output_tokens"] = 8192
+      body["instructions"] = instruction
+      body["input"] = [["role": "user", "content": [["type": "input_text", "text": payload]]]]
+      body["store"] = false
+      if configuration.thinkingEnabled { body["reasoning"] = ["effort": "high"] }
+      if let key = AgentCredentialStore.normalizedKey(apiKey) {
+        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+      }
     }
     request.httpBody = try JSONSerialization.data(withJSONObject: body)
     do {
@@ -79,6 +89,11 @@ nonisolated struct AgentAudioLanguageModelProvider: LocalAudioLanguageModelProvi
         guard object["stop_reason"] as? String == "end_turn" else { throw AudioLocalLLMError.invalidOutput }
         text = (object["content"] as? [[String: Any]])?
           .filter { $0["type"] as? String == "text" }.compactMap { $0["text"] as? String }.joined(separator: "\n")
+      case .openAIResponses:
+        guard let response = try? OpenAIResponsesResponse(object: object), response.functionCalls.isEmpty else {
+          throw AudioLocalLLMError.invalidOutput
+        }
+        text = response.text
       }
       guard let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
         throw AudioLocalLLMError.invalidOutput

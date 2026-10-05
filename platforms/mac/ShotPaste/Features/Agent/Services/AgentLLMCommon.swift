@@ -20,7 +20,7 @@ struct AgentToolSpec {
 }
 
 /// Agent Mode 暴露给模型的本机工具目录。
-/// 新增或修改工具时，OpenAI 与 Anthropic 两种协议会同步获得该定义。
+/// 新增或修改工具时，Chat Completions、Responses 与 Messages 同步获得该定义。
 enum AgentLLMToolCatalog {
   static let tools: [AgentToolSpec] = [
     AgentToolSpec(
@@ -128,6 +128,24 @@ enum AgentLLMToolCatalog {
             "required": spec.required,
             "additionalProperties": false,
           ],
+        ],
+      ]
+    }
+  }
+
+  /// Responses 工具采用平铺结构。显式保留非 strict 模式，避免可选字段变成必填字段。
+  static func responsesToolDefinitions() -> [[String: Any]] {
+    tools.map { spec in
+      [
+        "type": "function",
+        "name": spec.name,
+        "description": spec.description,
+        "strict": false,
+        "parameters": [
+          "type": "object",
+          "properties": spec.properties,
+          "required": spec.required,
+          "additionalProperties": false,
         ],
       ]
     }
@@ -571,7 +589,7 @@ enum AgentProviderImageEncoder {
   }
 }
 
-/// 按当前配置在 OpenAI 兼容与 Anthropic Messages 两种协议之间分发。
+/// 按当前配置在 Chat Completions、Responses 与 Messages 之间分发。
 /// AgentSessionCoordinator 在构造时固定持有本类型，协议切换无需重建会话协调器。
 struct AgentConfigurableLLMProvider: LLMProvider, Sendable {
   let capabilities = AgentProviderCapabilities(
@@ -580,13 +598,16 @@ struct AgentConfigurableLLMProvider: LLMProvider, Sendable {
   )
 
   private let openAIProvider: OpenAICompatibleLLMProvider
+  private let responsesProvider: OpenAIResponsesLLMProvider
   private let anthropicProvider: AnthropicMessagesLLMProvider
 
   init(
     openAIProvider: OpenAICompatibleLLMProvider = OpenAICompatibleLLMProvider(),
-    anthropicProvider: AnthropicMessagesLLMProvider = AnthropicMessagesLLMProvider()
+    anthropicProvider: AnthropicMessagesLLMProvider = AnthropicMessagesLLMProvider(),
+    responsesProvider: OpenAIResponsesLLMProvider = OpenAIResponsesLLMProvider()
   ) {
     self.openAIProvider = openAIProvider
+    self.responsesProvider = responsesProvider
     self.anthropicProvider = anthropicProvider
   }
 
@@ -604,6 +625,12 @@ struct AgentConfigurableLLMProvider: LLMProvider, Sendable {
       )
     case .anthropicMessages:
       try await anthropicProvider.nextAction(
+        request: request,
+        configuration: configuration,
+        apiKey: apiKey
+      )
+    case .openAIResponses:
+      try await responsesProvider.nextAction(
         request: request,
         configuration: configuration,
         apiKey: apiKey

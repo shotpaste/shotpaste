@@ -25,6 +25,7 @@ public partial class SettingsWindow : Window
     };
     private bool _readyForLiveApply;
     private bool _refreshingBindings;
+    private CancellationTokenSource? _llmConnectionTest;
 
     public SettingsWindow(SettingsStore store, string? initialTab = null, Action? settingsApplied = null)
     {
@@ -64,6 +65,7 @@ public partial class SettingsWindow : Window
         Closed += (_, _) =>
         {
             _liveApplyTimer.Stop();
+            CancelLlmConnectionTest();
             if (_readyForLiveApply) _ = TryApplyDraft(showErrors: false);
         };
     }
@@ -219,6 +221,7 @@ public partial class SettingsWindow : Window
     private void OnSaveTranscriptionCredentials(object sender, RoutedEventArgs e) => SaveTranscriptionCredentials();
     private void OnSaveLlmCredentials(object sender, RoutedEventArgs e)
     {
+        CancelLlmConnectionTest();
         try
         {
             var key = string.IsNullOrWhiteSpace(AgentApiKeyBox.Password) ? _draft.AgentApiKey : AgentApiKeyBox.Password.Trim();
@@ -228,6 +231,51 @@ public partial class SettingsWindow : Window
         }
         catch (Exception exception) when (exception is ArgumentException or System.Security.Cryptography.CryptographicException)
         { LlmCredentialStatus.Text = LocalizationService.TranslatePhrase("无法安全保存 API Key，请检查凭证后重试。"); }
+    }
+
+    private void OnLlmSettingsChanged(object sender, RoutedEventArgs e)
+    {
+        if (_refreshingBindings || LlmConnectionStatus is null) return;
+        CancelLlmConnectionTest();
+    }
+
+    private void CancelLlmConnectionTest()
+    {
+        var previous = _llmConnectionTest;
+        _llmConnectionTest = null;
+        previous?.Cancel();
+        if (LlmConnectionStatus is not null) LlmConnectionStatus.Text = "";
+        if (TestLlmConnectionButton is not null) TestLlmConnectionButton.IsEnabled = true;
+    }
+
+    private async void OnTestLlmConnection(object sender, RoutedEventArgs e)
+    {
+        if (_llmConnectionTest is not null) return;
+        // Capture only this provider draft. Testing does not persist the entered credential or send user content.
+        var key = string.IsNullOrWhiteSpace(AgentApiKeyBox.Password) ? _draft.AgentApiKey : AgentApiKeyBox.Password.Trim();
+        var configuration = new RecordingTranscriptionConfiguration("", "", "", "", "", "auto",
+            AgentEndpoint: LlmEndpointBox.Text.Trim(), AgentModel: LlmModelBox.Text.Trim(), AgentApiKey: key,
+            AgentApiProtocol: LlmProtocolBox.SelectedValue as string ?? "");
+        using var cancellation = new CancellationTokenSource();
+        _llmConnectionTest = cancellation;
+        TestLlmConnectionButton.IsEnabled = false;
+        LlmConnectionStatus.Text = LocalizationService.Text(LocalizationService.CurrentLanguage, "agent.testing-connection");
+        try
+        {
+            var result = await new LlmConnectionTestService().TestAsync(configuration, cancellation.Token);
+            // Edits and window closure cancel the request and prevent stale results from appearing.
+            if (ReferenceEquals(_llmConnectionTest, cancellation))
+                LlmConnectionStatus.Text = LocalizationService.Text(LocalizationService.CurrentLanguage, result);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
+        finally
+        {
+            if (ReferenceEquals(_llmConnectionTest, cancellation))
+            {
+                _llmConnectionTest = null;
+                TestLlmConnectionButton.IsEnabled = true;
+            }
+        }
     }
     private void OnShowTranscriptionResults(object sender, RoutedEventArgs e) => new TranscriptionResultsWindow().Show();
     private async void OnTestTranscription(object sender, RoutedEventArgs e)
@@ -615,6 +663,7 @@ public partial class SettingsWindow : Window
     private void RefreshRecordingTranscriptionPassword()
     {
         if (RecordingTranscriptionApiKeyBox is null) return;
+        if (AgentApiKeyBox.Password != _draft.AgentApiKey) CancelLlmConnectionTest();
         var wasRefreshing = _refreshingBindings;
         _refreshingBindings = true;
         try
@@ -834,6 +883,7 @@ public partial class SettingsWindow : Window
         if (LocalizedDialogService.Show(this, "恢复全部默认设置？全局快捷键也会恢复默认值。", "ShotPaste",
                 MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK) return;
 
+        CancelLlmConnectionTest();
         _draft = new AppSettings();
         RefreshBindings();
     }

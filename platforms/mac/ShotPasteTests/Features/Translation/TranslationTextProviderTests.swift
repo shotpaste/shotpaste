@@ -8,6 +8,89 @@ import Foundation
 import XCTest
 
 final class TranslationTextProviderTests: XCTestCase {
+  func testResponsesRouterUsesTextOnlyForcedFunctionAndValidatedIDs() async throws {
+    let session = MockURLSession { request in
+      XCTAssertEqual(request.url?.absoluteString, "https://example.com/v1/responses")
+      XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer secret")
+      let body = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(request.httpBody)) as? [String: Any])
+      assertNoImageOrGeometryFields(in: body)
+      XCTAssertNil(body["messages"])
+      XCTAssertNil(body["temperature"])
+      XCTAssertEqual(body["store"] as? Bool, false)
+      XCTAssertEqual(body["stream"] as? Bool, false)
+      XCTAssertEqual(body["parallel_tool_calls"] as? Bool, false)
+      let tool = try XCTUnwrap((body["tools"] as? [[String: Any]])?.first)
+      XCTAssertEqual(tool["name"] as? String, TranslationTextPrompt.toolName)
+      XCTAssertEqual(tool["strict"] as? Bool, false)
+      XCTAssertNil(tool["function"])
+      XCTAssertEqual((body["tool_choice"] as? [String: Any])?["name"] as? String, TranslationTextPrompt.toolName)
+      let input = try XCTUnwrap((body["input"] as? [[String: Any]])?.first?["content"] as? [[String: Any]])
+      XCTAssertEqual(input.count, 1)
+      XCTAssertEqual(input.first?["type"] as? String, "input_text")
+      let payload = try XCTUnwrap(input.first?["text"] as? String)
+      let data = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(payload.utf8)) as? [String: Any])
+      XCTAssertEqual(data["generation_id"] as? String, "generation-1")
+      XCTAssertEqual((data["blocks"] as? [[String: Any]])?.first?["text"] as? String, "Welcome")
+      let arguments = try jsonString([
+        "generation_id": "generation-1", "translations": [["id": "block-0001", "translated_text": "欢迎"]],
+      ])
+      return MockURLSession.makeResponse(statusCode: 200, data: try JSONSerialization.data(withJSONObject: [
+        "status": "completed", "output": [["type": "function_call", "call_id": "call_1",
+                                            "name": TranslationTextPrompt.toolName, "arguments": arguments]],
+      ]), url: try XCTUnwrap(request.url))
+    }
+    let result = try await TranslationConfigurableTextProvider(openAIProvider: OpenAITextTranslationProvider(session: session))
+      .translate(request: request(), configuration: configuration(.openAIResponses), apiKey: "secret",
+                 deadline: Date().addingTimeInterval(5))
+    XCTAssertEqual(result.translations, [TranslationTextResultBlock(id: "block-0001", translatedText: "欢迎")])
+  }
+
+  func testResponsesTranslationRejectsPartialRefusalUnknownIDsAndToolCompanionText() async throws {
+    let arguments = try jsonString([
+      "generation_id": "generation-1", "translations": [["id": "block-0001", "translated_text": "欢迎"]],
+    ])
+    let invalidIDArguments = try jsonString([
+      "generation_id": "generation-1", "translations": [["id": "unknown", "translated_text": "欢迎"]],
+    ])
+    let call: [String: Any] = ["type": "function_call", "call_id": "call_1", "name": TranslationTextPrompt.toolName, "arguments": arguments]
+    let message: [String: Any] = ["type": "message", "content": [["type": "output_text", "text": "Extra prose"]]]
+    let cases: [[String: Any]] = [
+      ["status": "incomplete", "output": [call]],
+      ["status": "completed", "output": [["type": "message", "content": [["type": "refusal", "refusal": "No"]]]]],
+      ["status": "completed", "output": [call, message]],
+      ["status": "completed", "output": [["type": "function_call", "call_id": "call_1",
+                                          "name": TranslationTextPrompt.toolName, "arguments": invalidIDArguments]]],
+    ]
+    for object in cases {
+      let data = try JSONSerialization.data(withJSONObject: object)
+      let session = MockURLSession { request in
+        MockURLSession.makeResponse(statusCode: 200, data: data, url: try XCTUnwrap(request.url))
+      }
+      do {
+        _ = try await OpenAITextTranslationProvider(session: session).translate(
+          request: request(), configuration: configuration(.openAIResponses), apiKey: "secret", deadline: Date().addingTimeInterval(5)
+        )
+        XCTFail("Invalid Responses translation must fail")
+      } catch { XCTAssertNotNil(error as? TranslationTextProviderError) }
+    }
+  }
+
+  func testResponsesStrictJSONFallbackReadsOutputItems() async throws {
+    let arguments = try jsonString([
+      "generation_id": "generation-1", "translations": [["id": "block-0001", "translated_text": "欢迎"]],
+    ])
+    let session = MockURLSession { request in
+      MockURLSession.makeResponse(statusCode: 200, data: try JSONSerialization.data(withJSONObject: [
+        "status": "completed", "output": [["type": "reasoning", "summary": []],
+          ["type": "message", "content": [["type": "output_text", "text": arguments]]]],
+      ]), url: try XCTUnwrap(request.url))
+    }
+    let result = try await OpenAITextTranslationProvider(session: session).translate(
+      request: request(), configuration: configuration(.openAIResponses), apiKey: "secret", deadline: Date().addingTimeInterval(5)
+    )
+    XCTAssertEqual(result.translations.first?.translatedText, "欢迎")
+  }
+
   func testOpenAIForcedToolRequestIsTextOnlyAndUsesIDs() async throws {
     let session = MockURLSession { request in
       XCTAssertEqual(request.url?.absoluteString, "https://example.com/v1/chat/completions")
