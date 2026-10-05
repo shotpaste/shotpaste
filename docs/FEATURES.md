@@ -102,6 +102,11 @@ macOS 最低要求为 macOS 13，提供 Apple Silicon（arm64）与 Intel（x86_
 - 包含通用、捕获、Quick Access、历史、快捷键、权限和高级设置。
 - 两个平台的 AI 功能分组包含 LLM 供应商、AI 转写和 AI 翻译；Agent Mode 仅在 macOS 提供。
   设置仅承载配置；转写内容与任务进度在独立的“转写结果”窗口显示。
+- LLM 供应商支持 OpenAI 兼容 Chat Completions、OpenAI Responses 和 Anthropic Messages 协议。
+  macOS Agent Mode、AI 翻译和转写整理复用所选协议、端点、模型和已保存凭据。
+  连接测试只发送固定短文本，单次请求、15 秒超时；仅收到有效非空文本时显示成功。
+  自定义端点允许 HTTPS；HTTP 仅限本机与显式配置的私有 IPv4 地址，两个平台保持一致。
+  测试不发送截图、录音或文字稿，并提示供应商可能计费；失败仅显示分类提示，不展示原始回包。
 - 截图与录屏分别配置捕获后操作：保存、复制和显示 Quick Access。
 - 可配置 One Shot、剪贴板历史和录制中的快捷键。
 - `shotpaste://` 支持捕获模式、筛选历史、设置和录制控制。
@@ -136,7 +141,7 @@ macOS 最低要求为 macOS 13，提供 Apple Silicon（arm64）与 Intel（x86_
   “保存”仅本地保存凭据；“保存并测试”还会配置私有存储并验证付费公开样本。
   Auto 自动识别语音语言，也可选择十种界面语言之一。
   仅发送选定音频，不发送画面；该流程不需要 Apple Speech 权限或本地语音模型。
-- 可选智能整理向已配置的 Agent LLM API（OpenAI 兼容或 Anthropic Messages）
+- 可选智能整理向已配置的 LLM API（OpenAI 兼容 Chat Completions、OpenAI Responses 或 Anthropic Messages）
   发送分句 ID 与转写文字，不包含音频、媒体路径或视频帧。
   本地验证引用；AI 失败时保留原文供重试。
 

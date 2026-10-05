@@ -100,7 +100,7 @@ final class OpenAICompatibleLLMProviderTests: XCTestCase {
     XCTAssertEqual(tools.count, 9)
   }
 
-  func testEndpointValidationAllowsHTTPSAndLocalHTTPOnly() {
+  func testEndpointValidationAllowsHTTPSAndPrivateHTTPOnly() {
     XCTAssertTrue(configuration(endpoint: "https://example.com/v1/chat/completions").isValid)
     XCTAssertTrue(configuration(endpoint: "http://localhost:11434/v1").isValid)
     XCTAssertTrue(configuration(endpoint: "http://192.168.31.67:8317/v1").isValid)
@@ -109,7 +109,7 @@ final class OpenAICompatibleLLMProviderTests: XCTestCase {
       "http://localhost:11434/v1/chat/completions"
     )
     XCTAssertFalse(configuration(endpoint: "http://example.com/v1").isValid)
-    XCTAssertFalse(configuration(endpoint: "http://192.168.31.68:8317/v1").isValid)
+    XCTAssertTrue(configuration(endpoint: "http://192.168.31.68:8317/v1").isValid)
     XCTAssertFalse(configuration(endpoint: "https://user:secret@example.com/v1").isValid)
     XCTAssertFalse(configuration(endpoint: "file:///tmp/provider").isValid)
   }

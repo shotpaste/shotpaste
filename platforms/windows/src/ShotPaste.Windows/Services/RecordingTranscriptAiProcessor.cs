@@ -96,10 +96,11 @@ public static class RecordingTranscriptAiProcessor
             .Concat(job.AiArtifact.Notes.Select(item => $"{item.Text}\n[{string.Join(", ", item.SegmentIds)}]")));
         checkpoint();
     }
-    internal static HttpRequestMessage Request(string payload, RecordingTranscriptionConfiguration config, string instruction)
+    internal static HttpRequestMessage Request(string payload, RecordingTranscriptionConfiguration config, string instruction, int? maximumOutputTokens = 8192)
     {
         var endpoint = LlmEndpointResolver.Resolve(config.AgentEndpoint, config.AgentApiProtocol);
-        if (string.IsNullOrWhiteSpace(config.AgentModel) || config.AgentModel.Length > 512 ||
+        if (string.IsNullOrWhiteSpace(config.AgentModel) || config.AgentModel.Length > 512 || config.AgentModel.Any(char.IsControl) ||
+            maximumOutputTokens is < 1 or > 8192 ||
             (!new Uri(endpoint).IsLoopback && !VolcengineTosSigner.ValidCredential(config.AgentApiKey)) ||
             (!string.IsNullOrEmpty(config.AgentApiKey) && !VolcengineTosSigner.ValidCredential(config.AgentApiKey)))
             throw new RecordingTranscriptionException(RecordingTranscriptionFailure.InvalidConfiguration);
@@ -108,21 +109,21 @@ public static class RecordingTranscriptAiProcessor
         switch (config.AgentApiProtocol)
         {
             case "openAICompatible":
-                body = new { model = config.AgentModel, max_tokens = 8192, stream = false, messages = new[] { new { role = "system", content = instruction }, new { role = "user", content = payload } } };
+                body = new { model = config.AgentModel, max_tokens = maximumOutputTokens, stream = false, messages = new[] { new { role = "system", content = instruction }, new { role = "user", content = payload } } };
                 if (!string.IsNullOrEmpty(config.AgentApiKey)) request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + config.AgentApiKey);
                 break;
             case "anthropicMessages":
-                body = new { model = config.AgentModel, max_tokens = 8192, stream = false, system = instruction, messages = new[] { new { role = "user", content = payload } } };
+                body = new { model = config.AgentModel, max_tokens = maximumOutputTokens ?? 8192, stream = false, system = instruction, messages = new[] { new { role = "user", content = payload } } };
                 request.Headers.Add("anthropic-version", "2023-06-01");
                 if (!string.IsNullOrEmpty(config.AgentApiKey)) request.Headers.TryAddWithoutValidation("x-api-key", config.AgentApiKey);
                 break;
             case "responses":
-                body = new { model = config.AgentModel, max_output_tokens = 8192, store = false, stream = false, instructions = instruction, input = payload };
+                body = new { model = config.AgentModel, max_output_tokens = maximumOutputTokens ?? 8192, store = false, stream = false, instructions = instruction, input = payload };
                 if (!string.IsNullOrEmpty(config.AgentApiKey)) request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + config.AgentApiKey);
                 break;
             default: request.Dispose(); throw new RecordingTranscriptionException(RecordingTranscriptionFailure.InvalidConfiguration);
         }
-        request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+        request.Content = new StringContent(JsonSerializer.Serialize(body, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull }), Encoding.UTF8, "application/json");
         return request;
     }
     internal static async Task<string> CompleteAsync(string payload, RecordingTranscriptionConfiguration config, string instruction, CancellationToken token)
@@ -141,7 +142,10 @@ public static class RecordingTranscriptAiProcessor
                 case "openAICompatible":
                     var choice = root.GetProperty("choices")[0];
                     if (choice.GetProperty("finish_reason").GetString() != "stop") throw new JsonException();
-                    result = choice.GetProperty("message").GetProperty("content").GetString() ?? "";
+                    var message = choice.GetProperty("message");
+                    if (message.TryGetProperty("refusal", out var refusal) && refusal.ValueKind != JsonValueKind.Null &&
+                        !string.IsNullOrEmpty(refusal.GetString())) throw new JsonException();
+                    result = message.GetProperty("content").GetString() ?? "";
                     break;
                 case "anthropicMessages":
                     if (root.GetProperty("stop_reason").GetString() != "end_turn") throw new JsonException();
@@ -149,8 +153,11 @@ public static class RecordingTranscriptAiProcessor
                     break;
                 case "responses":
                     if (root.GetProperty("status").GetString() != "completed") throw new JsonException();
-                    result = string.Join("\n", root.GetProperty("output").EnumerateArray().Where(item => item.GetProperty("type").GetString() == "message")
-                        .SelectMany(item => item.GetProperty("content").EnumerateArray()).Where(block => block.GetProperty("type").GetString() == "output_text").Select(block => block.GetProperty("text").GetString()));
+                    var messages = root.GetProperty("output").EnumerateArray().Where(item => item.GetProperty("type").GetString() == "message").ToArray();
+                    if (messages.Any(item => item.TryGetProperty("status", out var status) && status.GetString() != "completed")) throw new JsonException();
+                    var content = messages.SelectMany(item => item.GetProperty("content").EnumerateArray()).ToArray();
+                    if (content.Any(block => block.GetProperty("type").GetString() == "refusal")) throw new JsonException();
+                    result = string.Join("\n", content.Where(block => block.GetProperty("type").GetString() == "output_text").Select(block => block.GetProperty("text").GetString()));
                     break;
                 default: throw new JsonException();
             }

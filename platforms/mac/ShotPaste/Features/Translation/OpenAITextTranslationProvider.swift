@@ -18,14 +18,12 @@ typealias TranslationTextResponseParser = @Sendable (
 /// creates an image content part and never accepts provider geometry.
 nonisolated struct OpenAITextTranslationProvider: TranslationTextProvider, Sendable {
   private let httpClient: TranslationTextHTTPClient
-  private let responseParser: TranslationTextResponseParser
+  private let responseParser: TranslationTextResponseParser?
 
   init(
     session: any URLSessionProtocol = URLSession.shared,
     retryDelayNanoseconds: UInt64 = 250_000_000,
-    responseParser: @escaping TranslationTextResponseParser = { data, request in
-      try OpenAITextTranslationProvider.parseResponse(data, request: request)
-    }
+    responseParser: TranslationTextResponseParser? = nil
   ) {
     httpClient = TranslationTextHTTPClient(
       session: session,
@@ -40,7 +38,7 @@ nonisolated struct OpenAITextTranslationProvider: TranslationTextProvider, Senda
     apiKey: String?,
     deadline: Date
   ) async throws -> TranslationTextResponse {
-    guard configuration.apiProtocol == .openAICompatible else {
+    guard configuration.apiProtocol == .openAICompatible || configuration.apiProtocol == .openAIResponses else {
       throw TranslationTextProviderError.invalidConfiguration
     }
     try TranslationTextProviderConfiguration.validate(
@@ -73,14 +71,19 @@ nonisolated struct OpenAITextTranslationProvider: TranslationTextProvider, Senda
       urlRequest.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
     }
     urlRequest.httpBody = try JSONSerialization.data(
-      withJSONObject: requestBody(for: request, model: configuration.model),
+      withJSONObject: requestBody(for: request, configuration: configuration),
       options: [.sortedKeys]
     )
 
     let data = try await httpClient.responseData(for: urlRequest, deadline: deadline)
     do {
       let response = try await TranslationTextResponseParserRunner.parse(
-        responseParser,
+        responseParser ?? { data, request in
+          if configuration.apiProtocol == .openAIResponses {
+            return try Self.parseResponsesResponse(data, request: request)
+          }
+          return try Self.parseResponse(data, request: request)
+        },
         data: data,
         request: request,
         deadline: deadline
@@ -99,11 +102,29 @@ nonisolated struct OpenAITextTranslationProvider: TranslationTextProvider, Senda
 
   private func requestBody(
     for request: TranslationTextRequest,
-    model: String
+    configuration: AgentProviderConfiguration
   ) throws -> [String: Any] {
     let dataJSONString = try TranslationTextRequestEncoding.dataJSONString(for: request)
+    if configuration.apiProtocol == .openAIResponses {
+      var function = Self.toolDefinition["function"] as? [String: Any] ?? [:]
+      function["type"] = "function"
+      function["strict"] = false
+      var body: [String: Any] = [
+        "model": configuration.model,
+        "instructions": TranslationTextPrompt.systemConstraints,
+        "input": [["role": "user", "content": [["type": "input_text", "text": dataJSONString]]]],
+        "tools": [function],
+        "tool_choice": ["type": "function", "name": TranslationTextPrompt.toolName],
+        "parallel_tool_calls": false,
+        "max_output_tokens": configuration.thinkingEnabled ? 8_192 : 4_096,
+        "store": false,
+        "stream": false,
+      ]
+      if configuration.thinkingEnabled { body["reasoning"] = ["effort": "high"] }
+      return body
+    }
     return [
-      "model": model,
+      "model": configuration.model,
       "messages": [
         [
           "role": "system",
@@ -122,6 +143,25 @@ nonisolated struct OpenAITextTranslationProvider: TranslationTextProvider, Senda
       "max_tokens": 4_096,
       "stream": false,
     ]
+  }
+
+  private static func parseResponsesResponse(
+    _ data: Data,
+    request: TranslationTextRequest
+  ) throws -> TranslationTextResponse {
+    guard data.count <= TranslationTextLimits.maximumResponseBytes,
+          let response = try? OpenAIResponsesResponse(data: data) else {
+      throw TranslationTextProviderError.invalidResponse
+    }
+    if !response.functionCalls.isEmpty {
+      guard response.functionCalls.count == 1, let call = response.functionCalls.first,
+            call.name == TranslationTextPrompt.toolName,
+            response.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        throw TranslationTextProviderError.invalidResponse
+      }
+      return try TranslationTextResponseValidator.decodeToolArguments(call.arguments, against: request)
+    }
+    return try TranslationTextResponseValidator.decodeStrictJSON(response.text, against: request)
   }
 
   private static func parseResponse(

@@ -28,7 +28,7 @@ nonisolated struct TranslationConfigurableTextProvider: TranslationTextProvider,
     deadline: Date
   ) async throws -> TranslationTextResponse {
     switch configuration.apiProtocol {
-    case .openAICompatible:
+    case .openAICompatible, .openAIResponses:
       try await openAIProvider.translate(
         request: request,
         configuration: configuration,

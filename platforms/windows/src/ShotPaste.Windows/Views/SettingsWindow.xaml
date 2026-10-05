@@ -444,19 +444,29 @@
                 <Border Padding="12" CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource SurfaceSecondaryBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                   <StackPanel>
                     <TextBlock Text="{loc:Localized Key='API 协议'}" Style="{StaticResource SettingRowTitle}"/>
-                    <ComboBox SelectedValue="{Binding AgentApiProtocol}" SelectedValuePath="Tag" Margin="0,5,0,8">
+                    <ComboBox x:Name="LlmProtocolBox" SelectedValue="{Binding AgentApiProtocol}" SelectedValuePath="Tag" Margin="0,5,0,8"
+                              SelectionChanged="OnLlmSettingsChanged" AutomationProperties.AutomationId="LlmProtocol">
                       <ComboBoxItem Content="{loc:Localized Key='OpenAI Compatible'}" Tag="openAICompatible"/>
                       <ComboBoxItem Content="{loc:Localized Key='Anthropic Messages'}" Tag="anthropicMessages"/>
                       <ComboBoxItem Content="{loc:Localized Key='OpenAI Responses'}" Tag="responses"/>
                     </ComboBox>
                     <TextBlock Text="{loc:Localized Key='API 地址'}" Style="{StaticResource SettingRowTitle}"/>
-                    <TextBox Text="{Binding AgentEndpoint, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,8" AutomationProperties.AutomationId="LlmEndpoint"/>
+                    <TextBox x:Name="LlmEndpointBox" Text="{Binding AgentEndpoint, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,8"
+                             TextChanged="OnLlmSettingsChanged" AutomationProperties.AutomationId="LlmEndpoint"/>
                     <TextBlock Text="{loc:Localized Key='模型 ID'}" Style="{StaticResource SettingRowTitle}"/>
-                    <TextBox Text="{Binding AgentModel, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,8"/>
+                    <TextBox x:Name="LlmModelBox" Text="{Binding AgentModel, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,8"
+                             TextChanged="OnLlmSettingsChanged" AutomationProperties.AutomationId="LlmModel"/>
                     <TextBlock Text="{loc:Localized Key='API Key'}" Style="{StaticResource SettingRowTitle}"/>
-                    <PasswordBox x:Name="AgentApiKeyBox" Margin="0,5,0,8"/>
-                    <Button Content="{loc:Localized Key='保存凭证'}" Click="OnSaveLlmCredentials" HorizontalAlignment="Left" Margin="0,8,0,0" AutomationProperties.AutomationId="SaveLlmCredentials"/>
+                    <PasswordBox x:Name="AgentApiKeyBox" Margin="0,5,0,8" PasswordChanged="OnLlmSettingsChanged" AutomationProperties.AutomationId="LlmApiKey"/>
+                    <WrapPanel Margin="0,8,0,0">
+                      <Button Content="{loc:Localized Key='保存凭证'}" Click="OnSaveLlmCredentials" Margin="0,0,8,0" AutomationProperties.AutomationId="SaveLlmCredentials"/>
+                      <Button x:Name="TestLlmConnectionButton" Content="{loc:Localized Key='测试连接'}" Click="OnTestLlmConnection"
+                              AutomationProperties.AutomationId="TestLlmConnection"/>
+                    </WrapPanel>
                     <TextBlock x:Name="LlmCredentialStatus" Style="{StaticResource SettingHint}" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="LlmConnectionStatus" Style="{StaticResource SettingHint}" TextWrapping="Wrap"
+                               AutomationProperties.AutomationId="LlmConnectionStatus" AutomationProperties.LiveSetting="Polite"/>
+                    <TextBlock Text="{loc:Localized Key='测试只发送固定短文本，不会发送截图、录音或文字稿；供应商可能计费。'}" Style="{StaticResource SettingHint}" TextWrapping="Wrap"/>
 
                     <TextBlock Text="{loc:Localized Key='AI 整理只向你配置的文本模型发送文字稿。原始文字稿会保留，密钥仅在点击保存凭证后安全存储。'}" Style="{StaticResource SettingHint}" TextWrapping="Wrap"/>
                   </StackPanel>

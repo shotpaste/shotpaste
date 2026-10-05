@@ -241,6 +241,8 @@ nonisolated struct AgentProviderCapabilities: Equatable, Sendable {
 nonisolated enum AgentProviderAPIProtocol: String, Codable, CaseIterable, Sendable {
   /// OpenAI 兼容的 Chat Completions 协议。
   case openAICompatible = "openai"
+  /// OpenAI Responses 协议（POST /v1/responses）。
+  case openAIResponses = "responses"
   /// Anthropic Messages 协议（POST /v1/messages）。
   case anthropicMessages = "anthropic"
 }
@@ -287,14 +289,14 @@ nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
       ?? Self.defaultEndpoint(for: apiProtocol)
     let storedModel = defaults.string(forKey: PreferencesKeys.agentProviderModel)
       ?? Self.defaultModel(for: apiProtocol)
-    let otherProtocol: AgentProviderAPIProtocol = apiProtocol == .openAICompatible
-      ? .anthropicMessages : .openAICompatible
     let normalizedStoredEndpoint = storedEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
     let normalizedStoredModel = storedModel.trimmingCharacters(in: .whitespacesAndNewlines)
-    let hasStaleDefaultPair = normalizedStoredEndpoint
-      == Self.defaultEndpoint(for: otherProtocol)
-      && normalizedStoredModel == Self.defaultModel(for: otherProtocol)
-    let hasLegacyOpenAIDefaultPair = apiProtocol == .openAICompatible
+    let hasStaleDefaultPair = AgentProviderAPIProtocol.allCases.contains { otherProtocol in
+      otherProtocol != apiProtocol
+        && normalizedStoredEndpoint == Self.defaultEndpoint(for: otherProtocol)
+        && normalizedStoredModel == Self.defaultModel(for: otherProtocol)
+    }
+    let hasLegacyOpenAIDefaultPair = apiProtocol != .anthropicMessages
       && Self.legacyOpenAIEndpoints.contains(normalizedStoredEndpoint)
       && normalizedStoredModel == Self.defaultModel
     let endpoint = hasStaleDefaultPair || hasLegacyOpenAIDefaultPair
@@ -317,14 +319,14 @@ nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
   /// 各协议未填写路径时的默认端点（用于设置界面的占位提示）。
   static func defaultEndpoint(for apiProtocol: AgentProviderAPIProtocol) -> String {
     switch apiProtocol {
-    case .openAICompatible: defaultEndpoint
+    case .openAICompatible, .openAIResponses: defaultEndpoint
     case .anthropicMessages: defaultAnthropicEndpoint
     }
   }
 
   static func defaultModel(for apiProtocol: AgentProviderAPIProtocol) -> String {
     switch apiProtocol {
-    case .openAICompatible: defaultModel
+    case .openAICompatible, .openAIResponses: defaultModel
     case .anthropicMessages: defaultAnthropicModel
     }
   }
@@ -354,7 +356,7 @@ nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
           let host = components.host?.lowercased(),
           components.user == nil,
           components.password == nil,
-          scheme == "https" || (scheme == "http" && Self.trustedHTTPHosts.contains(host))
+          scheme == "https" || (scheme == "http" && Self.isTrustedHTTPHost(host))
     else { return nil }
 
     let normalizedPath = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
@@ -364,16 +366,24 @@ nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
         components.path = "/" + Self.defaultRequestPath(for: .openAICompatible)
       } else if normalizedPath.lowercased() == "v1" {
         components.path = "/v1/" + Self.defaultRequestPath(for: .openAICompatible)
+      } else if normalizedPath.split(separator: "/").last?.lowercased() == "responses" {
+        var segments = normalizedPath.split(separator: "/").map(String.init)
+        segments.removeLast()
+        if segments.isEmpty { segments.append("v1") }
+        segments.append(contentsOf: ["chat", "completions"])
+        components.path = "/" + segments.joined(separator: "/")
       }
     case .anthropicMessages:
       components.path = "/" + Self.normalizedAnthropicPath(normalizedPath)
+    case .openAIResponses:
+      components.path = "/" + Self.normalizedResponsesPath(normalizedPath)
     }
     return components.url
   }
 
   var isLocalEndpoint: Bool {
     guard let host = endpointURL?.host?.lowercased() else { return false }
-    return Self.trustedHTTPHosts.contains(host)
+    return Self.isTrustedHTTPHost(host)
   }
 
   var isValid: Bool {
@@ -384,8 +394,26 @@ nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
   private static func defaultRequestPath(for apiProtocol: AgentProviderAPIProtocol) -> String {
     switch apiProtocol {
     case .openAICompatible: "chat/completions"
+    case .openAIResponses: "v1/responses"
     case .anthropicMessages: "v1/messages"
     }
+  }
+
+  /// Responses 基地址、版本段与完整路径均可使用；切换 Chat 或 Messages 后缀时保留网关前缀。
+  static func normalizedResponsesPath(_ path: String) -> String {
+    var segments = path.split(separator: "/").map(String.init)
+    guard !segments.isEmpty else { return defaultRequestPath(for: .openAIResponses) }
+    if segments.last?.lowercased() == "responses" { return segments.joined(separator: "/") }
+    if segments.count >= 2,
+       segments[segments.count - 2].lowercased() == "chat",
+       segments.last?.lowercased() == "completions" {
+      segments.removeLast(2)
+    } else if segments.last?.lowercased() == "messages" {
+      segments.removeLast()
+    }
+    if segments.isEmpty { segments.append("v1") }
+    segments.append("responses")
+    return segments.joined(separator: "/")
   }
 
   /// Messages 端点路径规范化：空路径与任意网关前缀均补 /v1/messages；
@@ -402,6 +430,8 @@ nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
        segments[segments.count - 2].lowercased() == "chat",
        segments.last?.lowercased() == "completions" {
       segments.removeLast(2)
+    } else if segments.last?.lowercased() == "responses" {
+      segments.removeLast()
     }
     if segments.last?.lowercased() == "v1" {
       segments.append("messages")
@@ -417,6 +447,22 @@ nonisolated struct AgentProviderConfiguration: Equatable, Sendable {
     "::1",
     "192.168.31.67",
   ]
+
+  /// Explicitly configured private IPv4 endpoints follow the same local-provider boundary as Windows.
+  private static func isTrustedHTTPHost(_ host: String) -> Bool {
+    if trustedHTTPHosts.contains(host) { return true }
+    let components = host.split(separator: ".", omittingEmptySubsequences: false)
+    guard components.count == 4 else { return false }
+    let octets = components.compactMap { component -> Int? in
+      guard !component.isEmpty, component.allSatisfy({ $0 >= "0" && $0 <= "9" }),
+            let octet = Int(component), (0...255).contains(octet),
+            String(octet) == String(component) else { return nil }
+      return octet
+    }
+    guard octets.count == 4 else { return false }
+    return octets[0] == 10 || (octets[0] == 172 && (16...31).contains(octets[1]))
+      || (octets[0] == 192 && octets[1] == 168)
+  }
 }
 
 nonisolated struct AgentProviderRequest {
