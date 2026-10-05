@@ -12,16 +12,16 @@ struct ScrollingCaptureHUDView: View {
   let onStart: () -> Void
   let onDone: () -> Void
   let onCancel: () -> Void
+  @ObservedObject private var themeManager = ThemeManager.shared
 
   var body: some View {
     actionButtons
       .fixedSize(horizontal: true, vertical: false)
       .padding(8)
-      .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-      .overlay(
-        RoundedRectangle(cornerRadius: 10, style: .continuous)
-          .strokeBorder(Color.white.opacity(0.2))
-      )
+      .foregroundStyle(ShotPastePalette.text)
+      .tint(ShotPastePalette.action)
+      .background(ShotPastePanelBackground())
+      .preferredColorScheme(themeManager.systemAppearance)
   }
 
   private var actionButtons: some View {
@@ -29,6 +29,7 @@ struct ScrollingCaptureHUDView: View {
       if model.phase == .ready {
         Button(L10n.ScrollingCapture.startCapture, action: onStart)
           .buttonStyle(.borderedProminent)
+          .tint(ShotPastePalette.action)
           .controlSize(.small)
           .disabled(!model.canStartCapture)
 
@@ -38,7 +39,7 @@ struct ScrollingCaptureHUDView: View {
           .disabled(!model.canCancelSession)
 
         iconButton(systemImage: "checkmark", help: L10n.Common.done, action: onDone)
-          .tint(.green)
+          .tint(ShotPastePalette.action)
           .disabled(!model.canFinishCapture)
       }
     }
@@ -63,6 +64,7 @@ struct ScrollingCaptureHUDView: View {
 struct ScrollingCaptureAutoScrollView: View {
   @ObservedObject var model: ScrollingCaptureSessionModel
   let onToggleAutoScroll: () -> Void
+  @ObservedObject private var themeManager = ThemeManager.shared
 
   var body: some View {
     Button(action: onToggleAutoScroll) {
@@ -70,18 +72,16 @@ struct ScrollingCaptureAutoScrollView: View {
         model.isAutoScrolling ? L10n.ScrollingCapture.stopAutoScroll : L10n.ScrollingCapture.autoScroll,
         systemImage: model.isAutoScrolling ? "stop.circle.fill" : "play.circle.fill"
       )
-      .font(.system(size: 11, weight: .medium))
+      .font(ShotPasteTypography.caption)
       .lineLimit(1)
       .fixedSize(horizontal: true, vertical: false)
     }
     .buttonStyle(.plain)
     .padding(.horizontal, 10)
     .padding(.vertical, 7)
-    .background(.regularMaterial, in: Capsule(style: .continuous))
-    .overlay(
-      Capsule(style: .continuous)
-        .strokeBorder(Color.white.opacity(0.24))
-    )
+    .foregroundStyle(model.isAutoScrolling ? ShotPastePalette.accent : ShotPastePalette.text)
+    .background(ShotPastePanelBackground(cornerRadius: Size.radiusMd))
+    .preferredColorScheme(themeManager.systemAppearance)
     .opacity(model.canToggleAutoScroll ? 1 : 0.65)
     .disabled(!model.canToggleAutoScroll)
     .help(model.isAutoScrolling ? L10n.ScrollingCapture.stopAutoScroll : L10n.ScrollingCapture.autoScroll)

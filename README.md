@@ -17,31 +17,31 @@ ShotPaste 为 macOS 和 Windows 提供彼此独立的原生客户端。截屏、
 
 - **One Shot：** 只选择一次区域，即可切换截图、滚动截屏、录屏、翻译或剪贴板历史。
 
-  [![One Shot 模式选择器](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+  [![One Shot 模式选择器](assets/readme/oneshot-v2.webp)](assets/readme/oneshot-v2.mp4)
 
 - **截图与 OCR：** 冻结选区、窗口识别、输出格式、命名、缩放、光标和桌面显示
   设置，以及本地文字识别。
 
-  [![截图本地 OCR](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+  [![截图本地 OCR](assets/readme/OCR-v2.webp)](assets/readme/OCR-v2.mp4)
 
 - **翻译：** 使用本地 OCR 识别冻结的 One Shot 选区，自动检测源语言并选择目标
   语言，通过用户配置的 Provider 翻译；仅发送识别出的文字。
 
-  [![截图翻译](assets/readme/translate.gif)](assets/readme/translate.gif)
+  [![截图翻译](assets/readme/translate-v2.webp)](assets/readme/translate-v2.mp4)
 
 - **内联标注：** 选择、形状、箭头、文字、高亮、马赛克、聚光灯、序号、画笔、
   撤销/重做、二维码、复制和贴图。
 
-  [![内联标注工具](assets/readme/inline.gif)](assets/readme/inline.gif)
+  [![内联标注工具](assets/readme/inline-v2.webp)](assets/readme/inline-v2.mp4)
 
 - **滚动截屏：** 手动/自动滚动、实时预览、方向和重复帧保护、长图拼接。
 
-  [![滚动截屏](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+  [![滚动截屏](assets/readme/scroll-v2.webp)](assets/readme/scroll-v2.mp4)
 
 - **录屏：** 区域视频或 GIF、系统声音、麦克风、鼠标效果、按键显示、暂停、
   重录、丢弃、快照和实时画笔。
 
-  [![录屏与实时画笔](assets/readme/recording.gif)](assets/readme/recording.gif)
+  [![录屏与实时画笔](assets/readme/recording-v2.webp)](assets/readme/recording-v2.mp4)
 
 - **录音：** 从菜单栏或托盘录制系统声音、麦克风或两者，无需选择屏幕区域，
   保存为纯音频 M4A。
@@ -52,19 +52,19 @@ ShotPaste 为 macOS 和 Windows 提供彼此独立的原生客户端。截屏、
 - **Quick Access 与贴图：** 可配置的捕获后卡片、复制/保存/打开、拖拽、滑动、
   置顶图片。
 
-  [![Quick Access 贴图](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+  [![Quick Access 贴图](assets/readme/quickaccess-pin-v2.webp)](assets/readme/quickaccess-pin-v2.mp4)
 
-  [![多张置顶贴图](assets/readme/pin.gif)](assets/readme/pin.gif)
+  [![多张置顶贴图](assets/readme/pin-v2.webp)](assets/readme/pin-v2.mp4)
 
 - **剪贴板历史：** 本地 SQLite 保存截图、录屏、文本、图片和复制的文件，支持
   搜索、筛选、保留策略和清理。
 
-  [![可搜索的捕获与剪贴板历史](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+  [![可搜索的捕获与剪贴板历史](assets/readme/clipboard-history-v2.webp)](assets/readme/clipboard-history-v2.mp4)
 
 - **自定义：** 全局快捷键、捕获后动作、输出目录、外观、诊断、URL 命令和
   10 种界面语言。
 
-  [![ShotPaste 设置](assets/readme/settings.gif)](assets/readme/settings.gif)
+  [![ShotPaste 设置](assets/readme/settings-v2.webp)](assets/readme/settings-v2.mp4)
 
 完整说明见[功能列表](docs/FEATURES.md)。
 

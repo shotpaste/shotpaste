@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
@@ -99,24 +100,12 @@ public sealed class UiDesignSystemTests
         }
     }
 
-    [Fact]
-    public void OcrResultCard_UsesReadableHudTextSurface()
+    [Theory]
+    [InlineData("Colors.Light.xaml")]
+    [InlineData("Colors.Dark.xaml")]
+    public void OcrResultCard_UsesReadableHudTextSurface(string themeFile)
     {
-        var resourcePath = FindRepositoryFile(
-            "platforms", "windows", "src", "ShotPaste.Windows", "Resources", "DesignTokens.xaml");
-        var document = XDocument.Load(resourcePath);
-        var requiredBrushes = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "HudBrush", "HudInputBrush", "HudTextBrush"
-        };
-        var brushes = document.Root!.Elements()
-            .Where(element => element.Name.LocalName == "SolidColorBrush")
-            .Where(element => requiredBrushes.Contains(
-                element.Attributes().Single(attribute => attribute.Name.LocalName == "Key").Value))
-            .ToDictionary(
-                element => element.Attributes().Single(attribute => attribute.Name.LocalName == "Key").Value,
-                element => ParseArgb(element.Attribute("Color")!.Value));
-
+        var brushes = ReadEffectiveBrushes(themeFile);
         var inputSurface = Composite(brushes["HudInputBrush"], brushes["HudBrush"]);
         var ratio = Contrast(brushes["HudTextBrush"].Rgb, inputSurface);
         Assert.True(ratio >= 4.5,
@@ -163,35 +152,51 @@ public sealed class UiDesignSystemTests
         Assert.Contains("TimeSpan.FromMilliseconds(400)", code, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void PinnedImageToolbar_RemainsReadableOverAWhiteScreenshot()
+    [Theory]
+    [InlineData("Colors.Light.xaml")]
+    [InlineData("Colors.Dark.xaml")]
+    public void PinnedImageToolbar_RemainsReadableOverLightAndDarkScreenshots(string themeFile)
     {
         var sourceRoot = FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows");
-        var document = XDocument.Load(Path.Combine(sourceRoot, "Resources", "DesignTokens.xaml"));
-        var requiredBrushes = new HashSet<string>(StringComparer.Ordinal)
+        var brushes = ReadEffectiveBrushes(themeFile);
+        foreach (var screenshot in new[] { (1d, 1d, 1d), (0d, 0d, 0d) })
         {
-            "HudTextBrush", "Pinned.ToolbarBackgroundBrush"
-        };
-        var brushes = document.Root!.Elements()
-            .Where(element => element.Name.LocalName == "SolidColorBrush")
-            .Where(element => requiredBrushes.Contains(
-                element.Attributes().Single(attribute => attribute.Name.LocalName == "Key").Value))
-            .ToDictionary(
-                element => element.Attributes().Single(attribute => attribute.Name.LocalName == "Key").Value,
-                element => ParseArgb(element.Attribute("Color")!.Value));
-
-        var toolbarOverWhite = Composite(
-            brushes["Pinned.ToolbarBackgroundBrush"],
-            (1d, (1d, 1d, 1d)));
-        var ratio = Contrast(brushes["HudTextBrush"].Rgb, toolbarOverWhite);
-        Assert.True(ratio >= 4.5,
-            $"Pinned toolbar text over a white screenshot has {ratio:0.00}:1 contrast; expected at least 4.50:1.");
+            var toolbarSurface = Composite(brushes["Pinned.ToolbarBackgroundBrush"], (1d, screenshot));
+            var ratio = Contrast(brushes["HudTextBrush"].Rgb, toolbarSurface);
+            Assert.True(ratio >= 4.5,
+                $"{themeFile}: pinned toolbar text over a screenshot has {ratio:0.00}:1 contrast; expected at least 4.50:1.");
+        }
 
         var view = File.ReadAllText(Path.Combine(sourceRoot, "Views", "PinnedImageWindow.xaml"));
         Assert.Contains("AutomationProperties.AutomationId=\"PinnedToolbarChrome\"", view,
             StringComparison.Ordinal);
         Assert.Contains("Background=\"{DynamicResource Pinned.ToolbarBackgroundBrush}\"", view,
             StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Colors.Light.xaml")]
+    [InlineData("Colors.Dark.xaml")]
+    public void FloatingControlsAndAccentStates_MeetWcagAaContrast(string themeFile)
+    {
+        var brushes = ReadEffectiveBrushes(themeFile);
+        foreach (var (foreground, background) in new[]
+                 {
+                     ("HudTextBrush", "HudBrush"),
+                     ("HudSecondaryTextBrush", "HudBrush"),
+                     ("HudTextBrush", "HudInputBrush"),
+                     ("HudSecondaryTextBrush", "HudInputBrush"),
+                     ("HudSelectedTextBrush", "HudSelectedBrush"),
+                     ("AccentForegroundBrush", "AccentFillBrush"),
+                     ("AccentForegroundBrush", "AccentPressedBrush"),
+                     ("AccentSoftForegroundBrush", "AccentSoftBrush")
+                 })
+        {
+            var surface = Composite(brushes[background], brushes["WindowBrush"]);
+            var ratio = Contrast(brushes[foreground].Rgb, surface);
+            Assert.True(ratio >= 4.5,
+                $"{themeFile}: {foreground} on {background} has {ratio:0.00}:1 contrast; expected at least 4.50:1.");
+        }
     }
 
     [Fact]
@@ -211,6 +216,35 @@ public sealed class UiDesignSystemTests
                  })
             Assert.Contains("ReduceMotion", File.ReadAllText(Path.Combine(sourceRoot, "Views", view)),
                 StringComparison.Ordinal);
+    }
+
+    private static Dictionary<string, (double Alpha, (double R, double G, double B) Rgb)> ReadEffectiveBrushes(string themeFile)
+    {
+        var resources = FindRepositoryFile("platforms", "windows", "src", "ShotPaste.Windows", "Resources");
+        var documents = new[]
+        {
+            XDocument.Load(Path.Combine(resources, "DesignTokens.xaml")),
+            XDocument.Load(Path.Combine(resources, "Themes", themeFile))
+        };
+        static string Key(XElement element) => element.Attributes().Single(attribute => attribute.Name.LocalName == "Key").Value;
+        var colors = documents.SelectMany(document => document.Root!.Elements())
+            .Where(element => element.Name.LocalName == "Color")
+            .GroupBy(Key)
+            .ToDictionary(group => group.Key, group => ParseArgb(group.Last().Value));
+        var brushes = new Dictionary<string, (double Alpha, (double R, double G, double B) Rgb)>();
+        foreach (var brush in documents.SelectMany(document => document.Root!.Elements())
+                     .Where(element => element.Name.LocalName == "SolidColorBrush"))
+        {
+            var colorValue = brush.Attribute("Color")!.Value;
+            var color = colorValue.StartsWith('#')
+                ? ParseArgb(colorValue)
+                : colors[Regex.Match(colorValue, @"^\{(?:Static|Dynamic)Resource ([^}]+)\}$").Groups[1].Value];
+            var opacity = brush.Attribute("Opacity") is { } attribute
+                ? double.Parse(attribute.Value, CultureInfo.InvariantCulture)
+                : 1d;
+            brushes[Key(brush)] = (color.Alpha * opacity, color.Rgb);
+        }
+        return brushes;
     }
 
     private static (double R, double G, double B) ParseRgb(string value)

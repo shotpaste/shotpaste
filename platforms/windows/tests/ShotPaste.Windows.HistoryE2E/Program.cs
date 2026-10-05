@@ -210,6 +210,26 @@ internal static class Program
             var fullScreenshot = Path.Combine(outputRoot, "history-full-screenshot.png");
             SaveWindowScreenshot(fullBounds, fullScreenshot);
 
+            var clearSelection = await WaitForAutomationIdAsync(product.Id, "HistoryClearSelection");
+            var clearBounds = clearSelection.Current.BoundingRectangle;
+            var clearPoint = new System.Windows.Point(clearBounds.Left + clearBounds.Width / 2, clearBounds.Top + clearBounds.Height / 2);
+            var hit = AutomationElement.FromPoint(clearPoint);
+            var expectedId = clearSelection.GetRuntimeId();
+            var hitMatches = false;
+            var walker = TreeWalker.RawViewWalker;
+            for (var current = hit; current is not null; current = walker.GetParent(current))
+            {
+                if (current.GetRuntimeId().SequenceEqual(expectedId)) { hitMatches = true; break; }
+                if (current.Current.ControlType == ControlType.Window) break;
+            }
+            if (!hitMatches)
+                throw new InvalidOperationException("The visible history clear-selection action was obscured before searching.");
+            Native.SetForegroundWindow(handle);
+            Native.SetCursorPos((int)Math.Round(clearPoint.X), (int)Math.Round(clearPoint.Y));
+            Native.mouse_event(Native.MouseeventfLeftdown, 0, 0, 0, UIntPtr.Zero);
+            Native.mouse_event(Native.MouseeventfLeftup, 0, 0, 0, UIntPtr.Zero);
+            await WaitUntilAsync(() => ((SelectionPattern)expanded.GetCurrentPattern(SelectionPattern.Pattern)).Current.GetSelection().Length == 0,
+                "Clearing the existing history selection did not restore the search mode.");
             var search = await WaitForAutomationIdAsync(product.Id, "HistorySearch");
             var filterClock = Stopwatch.StartNew();
             ((ValuePattern)search.GetCurrentPattern(ValuePattern.Pattern)).SetValue("needle-history-item");

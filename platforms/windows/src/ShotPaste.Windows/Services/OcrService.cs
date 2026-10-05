@@ -23,14 +23,22 @@ public sealed record OcrWordRegion(string Text, Drawing.Rectangle Bounds);
 
 public sealed class OcrService
 {
+    private static readonly SemaphoreSlim TranslationRecognitionGate = new(1, 1);
     private readonly Func<string>? _languageProvider;
     private readonly Func<bool>? _linkDetectionProvider;
     private readonly Func<Drawing.Bitmap, Task<string?>>? _ocrTextRecognizer;
     private readonly Func<Drawing.Bitmap, IReadOnlyList<string>> _qrReader;
+    private readonly Func<Drawing.Bitmap, CancellationToken, Task<IReadOnlyList<OcrWordRegion>>>? _translationLineRecognizer;
 
     public OcrService(Func<string>? languageProvider = null, Func<bool>? linkDetectionProvider = null)
         : this(languageProvider, null, TryReadQrs, linkDetectionProvider)
     {
+    }
+
+    internal OcrService(Func<Drawing.Bitmap, CancellationToken, Task<IReadOnlyList<OcrWordRegion>>> translationLineRecognizer)
+        : this()
+    {
+        _translationLineRecognizer = translationLineRecognizer;
     }
 
     internal OcrService(
@@ -49,19 +57,6 @@ public sealed class OcrService
     {
         var result = await RecognizeDetailedAsync(bitmap);
         return result.Text;
-    }
-
-    public async Task<string> RecognizeTranslationTextAsync(Drawing.Bitmap bitmap)
-    {
-        var scale = Math.Min(1d, (double)OcrEngine.MaxImageDimension / Math.Max(bitmap.Width, bitmap.Height));
-        if (scale >= 1d) return (await RecognizeTextPassAsync(bitmap))?.Text ?? string.Empty;
-        using var resized = new Drawing.Bitmap(Math.Max(1, (int)(bitmap.Width * scale)), Math.Max(1, (int)(bitmap.Height * scale)));
-        using (var graphics = Drawing.Graphics.FromImage(resized))
-        {
-            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            graphics.DrawImage(bitmap, 0, 0, resized.Width, resized.Height);
-        }
-        return (await RecognizeTextPassAsync(resized))?.Text ?? string.Empty;
     }
 
     public async Task<OcrRecognitionResult> RecognizeDetailedAsync(Drawing.Bitmap bitmap)
@@ -148,6 +143,69 @@ public sealed class OcrService
             .ToArray();
     }
 
+    internal async Task<IReadOnlyList<OcrWordRegion>> RecognizeTranslationLinesAsync(
+        Drawing.Bitmap bitmap, CancellationToken cancellationToken = default)
+    {
+        await TranslationRecognitionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        Drawing.Bitmap ownedBitmap;
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ownedBitmap = (Drawing.Bitmap)bitmap.Clone();
+        }
+        catch
+        {
+            TranslationRecognitionGate.Release();
+            throw;
+        }
+
+        // WinRT cancellation is a request and may be ignored. The worker owns its
+        // snapshot and native resources until completion, even if the window stops
+        // waiting. Retain the gate too: repeated cancellation cannot pile up OCR.
+        var recognition = Task.Run(async () =>
+        {
+            try
+            {
+                using (ownedBitmap)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var lines = _translationLineRecognizer is not null
+                        ? await _translationLineRecognizer(ownedBitmap, cancellationToken).ConfigureAwait(false)
+                        : await RecognizeTranslationLinesCoreAsync(ownedBitmap, cancellationToken).ConfigureAwait(false);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return lines;
+                }
+            }
+            finally { TranslationRecognitionGate.Release(); }
+        });
+        try { return await recognition.WaitAsync(cancellationToken).ConfigureAwait(false); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Observe a late failure after the caller has canceled. The worker's
+            // finally/using still owns cleanup; never dispose its snapshot here.
+            _ = recognition.ContinueWith(task => { _ = task.Exception; }, CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            throw;
+        }
+    }
+
+    private async Task<IReadOnlyList<OcrWordRegion>> RecognizeTranslationLinesCoreAsync(
+        Drawing.Bitmap bitmap, CancellationToken cancellationToken)
+    {
+        var recovered = await RecognizeWithRecoveryAsync(bitmap, cancellationToken).ConfigureAwait(false);
+        if (recovered is null) return [];
+        return recovered.Result.Lines.Where(line => line.Words.Count > 0 && !string.IsNullOrWhiteSpace(line.Text))
+            .Select(line =>
+            {
+                var left = line.Words.Min(word => word.BoundingRect.Left) / recovered.Scale;
+                var top = line.Words.Min(word => word.BoundingRect.Top) / recovered.Scale;
+                var right = line.Words.Max(word => word.BoundingRect.Right) / recovered.Scale;
+                var bottom = line.Words.Max(word => word.BoundingRect.Bottom) / recovered.Scale;
+                return new OcrWordRegion(line.Text, Drawing.Rectangle.Intersect(new(0, 0, bitmap.Width, bitmap.Height),
+                    Drawing.Rectangle.FromLTRB((int)Math.Floor(left), (int)Math.Floor(top), (int)Math.Ceiling(right), (int)Math.Ceiling(bottom))));
+            }).Where(line => line.Bounds.Width > 0 && line.Bounds.Height > 0).ToArray();
+    }
+
     public async Task<IReadOnlyList<SensitiveRegion>> FindSensitiveRegionsAsync(Drawing.Bitmap bitmap)
     {
         RecoveredOcr? recovered;
@@ -193,11 +251,12 @@ public sealed class OcrService
         return matches.Select(match => match.Value.TrimEnd('.', ',', ';', ')', ']', '}')).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
-    private async Task<RecoveredOcr?> RecognizeWithRecoveryAsync(Drawing.Bitmap bitmap)
+    private async Task<RecoveredOcr?> RecognizeWithRecoveryAsync(Drawing.Bitmap bitmap, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         try
         {
-            var original = await RecognizeWindowsAsync(bitmap);
+            var original = await RecognizeWindowsAsync(bitmap, cancellationToken);
             if (!string.IsNullOrWhiteSpace(original.Text)) return new RecoveredOcr(original, 1d);
         }
         catch (NotSupportedException) { throw; }
@@ -205,12 +264,13 @@ public sealed class OcrService
 
         foreach (var invert in new[] { false, true })
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var (preprocessed, scale) = Preprocess(bitmap, invert);
             using (preprocessed)
             {
                 try
                 {
-                    var recovered = await RecognizeWindowsAsync(preprocessed);
+                    var recovered = await RecognizeWindowsAsync(preprocessed, cancellationToken);
                     if (!string.IsNullOrWhiteSpace(recovered.Text)) return new RecoveredOcr(recovered, scale);
                 }
                 catch (NotSupportedException) { throw; }
@@ -220,29 +280,56 @@ public sealed class OcrService
         return null;
     }
 
-    private async Task<OcrResult> RecognizeWindowsAsync(Drawing.Bitmap bitmap)
+    private async Task<OcrResult> RecognizeWindowsAsync(Drawing.Bitmap bitmap, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         using var png = new MemoryStream();
         bitmap.Save(png, ImageFormat.Png);
+        cancellationToken.ThrowIfCancellationRequested();
         using var stream = new InMemoryRandomAccessStream();
         using (var writer = new DataWriter(stream))
         {
             writer.WriteBytes(png.ToArray());
-            await writer.StoreAsync();
-            await writer.FlushAsync();
+            await AwaitNativeCompletionAsync(writer.StoreAsync(), cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            await AwaitNativeCompletionAsync(writer.FlushAsync(), cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             writer.DetachStream();
         }
         stream.Seek(0);
-        var decoder = await BitmapDecoder.CreateAsync(stream);
-        using var softwareBitmap = await decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+        var decoder = await AwaitNativeCompletionAsync(BitmapDecoder.CreateAsync(stream), cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        using var softwareBitmap = await AwaitNativeCompletionAsync(
+            decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied), cancellationToken);
         OcrResult? best = null;
         foreach (var engine in CreatePreferredEngines(_languageProvider?.Invoke()))
         {
-            var result = await engine.RecognizeAsync(softwareBitmap);
+            cancellationToken.ThrowIfCancellationRequested();
+            var result = await AwaitNativeCompletionAsync(engine.RecognizeAsync(softwareBitmap), cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             if (best is null || result.Text.Length > best.Text.Length) best = result;
             if (!string.IsNullOrWhiteSpace(result.Text)) return result;
         }
         return best ?? throw new NotSupportedException("当前 Windows 语言没有可用的 OCR 组件。请在 Windows 设置中安装对应的 OCR 语言包。");
+    }
+
+    internal static async Task<T> AwaitNativeCompletionAsync<T>(
+        global::Windows.Foundation.IAsyncOperation<T> operation, CancellationToken cancellationToken)
+    {
+        // AsTask(token) cancels its managed wait before the native operation is
+        // necessarily done. Attach an uncancelled completion task first, request
+        // native cancellation separately, and retain all using resources until
+        // that task actually completes. Cancellation checks belong to the caller
+        // after it takes ownership of any returned SoftwareBitmap.
+        var completion = operation.AsTask();
+        using var registration = cancellationToken.Register(static state =>
+        {
+            try { ((global::Windows.Foundation.IAsyncInfo)state!).Cancel(); }
+            // Refusing cancellation must not unwind the resource owner while
+            // native work is still running. Its completion task handles errors.
+            catch (Exception exception) when (exception is not OutOfMemoryException) { }
+        }, operation);
+        return await completion.ConfigureAwait(false);
     }
 
     private static IReadOnlyList<OcrEngine> CreatePreferredEngines(string? requestedLanguage)

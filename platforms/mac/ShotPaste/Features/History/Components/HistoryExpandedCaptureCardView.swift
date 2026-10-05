@@ -36,14 +36,14 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
 
       VStack(alignment: .leading, spacing: 6) {
         Text(record.displayTitle)
-          .font(.system(size: 11, weight: .semibold))
-          .foregroundColor(.primary)
+          .font(.system(size: 12, weight: .medium))
+          .foregroundColor(ShotPastePalette.text)
           .lineLimit(1)
           .truncationMode(.middle)
 
         Text(relativeTimeString(from: record.capturedAt))
-          .font(.system(size: 9.5, weight: .medium))
-          .foregroundColor(.secondary)
+          .font(.system(size: 11))
+          .foregroundColor(ShotPastePalette.secondaryText)
 
         if let status = resolvedAudioProcessingStatus ?? record.audioProcessingStatus {
           Text(status.displayName)
@@ -65,13 +65,13 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
       .frame(maxWidth: .infinity, alignment: .leading)
     }
     .padding(10)
-    .background(cardBackground, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    .background(cardBackground, in: RoundedRectangle(cornerRadius: Size.radiusLg, style: .continuous))
     .overlay(
-      RoundedRectangle(cornerRadius: 20, style: .continuous)
+      RoundedRectangle(cornerRadius: Size.radiusLg, style: .continuous)
         .stroke(cardBorderColor, lineWidth: isSelected ? 1.8 : 1)
     )
     .shadow(color: cardShadowColor, radius: isSelected ? 14 : 3, x: 0, y: isSelected ? 8 : 2)
-    .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    .contentShape(RoundedRectangle(cornerRadius: Size.radiusLg, style: .continuous))
     .scaleEffect(isSelected ? 1.01 : (isHovering ? 1.005 : 1))
     .animation(reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.9), value: isSelected)
     .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: isHovering)
@@ -132,7 +132,7 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
   private var preview: some View {
     GeometryReader { geometry in
       ZStack(alignment: .bottomTrailing) {
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
+        RoundedRectangle(cornerRadius: Size.radiusMd, style: .continuous)
           .fill(previewBackground)
 
         if record.captureType == .text {
@@ -190,9 +190,9 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
         }
         .padding(8)
       }
-      .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+      .clipShape(RoundedRectangle(cornerRadius: Size.radiusMd, style: .continuous))
       .overlay(
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
+        RoundedRectangle(cornerRadius: Size.radiusMd, style: .continuous)
           .stroke(previewBorderColor, lineWidth: 1)
       )
     }
@@ -200,27 +200,12 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
   }
 
   private var cardBackground: AnyShapeStyle {
-    if backgroundStyle == .solid {
-      return colorScheme == .dark
-        ? AnyShapeStyle(Color.white.opacity(0.08))
-        : AnyShapeStyle(Color.white.opacity(0.92))
-    }
-
-    return colorScheme == .dark
-      ? AnyShapeStyle(Color.white.opacity(0.07))
-      : AnyShapeStyle(Color.white.opacity(0.7))
+    AnyShapeStyle(ShotPastePalette.card.opacity(backgroundStyle == .solid ? 1 : 0.94))
   }
 
   private var cardBorderColor: Color {
-    if isSelected {
-      return Color.accentColor.opacity(0.9)
-    }
-
-    if isHovering {
-      return colorScheme == .dark ? Color.white.opacity(0.16) : Color.black.opacity(0.08)
-    }
-
-    return colorScheme == .dark ? Color.white.opacity(0.06) : Color.white.opacity(0.55)
+    if isSelected { return ShotPastePalette.accent }
+    return isHovering ? ShotPastePalette.secondaryText : ShotPastePalette.border
   }
 
   private var cardShadowColor: Color {
@@ -232,19 +217,19 @@ struct HistoryExpandedCaptureCardView: View, Equatable {
   }
 
   private var previewBackground: Color {
-    colorScheme == .dark ? Color.white.opacity(0.06) : Color.white.opacity(0.9)
+    ShotPastePalette.window
   }
 
   private var previewBorderColor: Color {
-    colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05)
+    ShotPastePalette.border
   }
 
   private var typeBadge: some View {
     Image(systemName: record.captureType.systemIconName)
       .font(.system(size: 10, weight: .semibold))
-      .foregroundColor(.primary.opacity(0.82))
+      .foregroundColor(ShotPastePalette.text)
       .frame(width: 24, height: 24)
-      .background(.regularMaterial, in: Circle())
+      .background(ShotPastePalette.chrome, in: Circle())
       .overlay(
         Circle()
           .stroke(Color.white.opacity(colorScheme == .dark ? 0.1 : 0.55), lineWidth: 1)

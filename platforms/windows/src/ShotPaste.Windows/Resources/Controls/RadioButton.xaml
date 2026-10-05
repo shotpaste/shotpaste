@@ -25,7 +25,7 @@
             <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource ControlBorderHoverBrush}" /></Trigger>
             <Trigger Property="IsPressed" Value="True"><Setter TargetName="Ring" Property="Fill" Value="{DynamicResource ControlBackgroundPressedBrush}" /></Trigger>
             <Trigger Property="IsChecked" Value="True">
-              <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource AccentBrush}" />
+              <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource AccentFillBrush}" />
               <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource AccentBrush}" />
               <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
             </Trigger>
@@ -67,7 +67,7 @@
             <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Track" Property="Opacity" Value="0.82" /></Trigger>
             <Trigger Property="IsPressed" Value="True"><Setter TargetName="Thumb" Property="Opacity" Value="0.72" /></Trigger>
             <Trigger Property="IsChecked" Value="True">
-              <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentBrush}" />
+              <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentFillBrush}" />
               <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right" />
               <Setter TargetName="Thumb" Property="Margin" Value="0,0,5,0" />
             </Trigger>

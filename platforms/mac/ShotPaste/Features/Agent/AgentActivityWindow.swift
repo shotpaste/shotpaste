@@ -160,7 +160,7 @@ private final class AgentActivityPanel: NSPanel {
   }
 }
 
-private final class AgentActivityHostingView<Content: View>: NSHostingView<Content> {
+private final class AgentActivityHostingView: NSHostingView<AgentActivityHUDView> {
   override func acceptsFirstMouse(for _: NSEvent?) -> Bool {
     true
   }

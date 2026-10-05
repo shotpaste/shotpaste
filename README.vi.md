@@ -20,33 +20,33 @@ Dự án không vận hành dịch vụ tài khoản, đo lường từ xa, trun
 - **One Shot:** chọn vùng một lần rồi dùng Ảnh chụp, Chụp cuộn, Ghi màn hình,
   Dịch hoặc Lịch sử bảng tạm.
 
-  [![Bộ chọn chế độ One Shot](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+  [![Bộ chọn chế độ One Shot](assets/readme/oneshot-v2.webp)](assets/readme/oneshot-v2.mp4)
 
 - **Ảnh chụp và OCR:** vùng chọn đóng băng, nhận diện cửa sổ và văn bản cục bộ,
   định dạng, tên tệp, tỉ lệ, con trỏ và tùy chọn màn hình nền.
 
-  [![OCR cục bộ từ ảnh chụp](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+  [![OCR cục bộ từ ảnh chụp](assets/readme/OCR-v2.webp)](assets/readme/OCR-v2.mp4)
 
 - **Dịch:** dịch văn bản trong vùng One Shot đã đóng băng bằng OCR cục bộ, tự động
   phát hiện ngôn ngữ nguồn, chọn ngôn ngữ đích và Provider do người dùng cấu hình.
   Chỉ văn bản đã nhận diện được gửi đi.
 
-  [![Dịch văn bản trong ảnh chụp](assets/readme/translate.gif)](assets/readme/translate.gif)
+  [![Dịch văn bản trong ảnh chụp](assets/readme/translate-v2.webp)](assets/readme/translate-v2.mp4)
 
 - **Chú thích trực tiếp:** vùng chọn, hình, mũi tên, chữ, tô sáng, mosaic, đèn rọi,
   số thứ tự, bút, hoàn tác/làm lại, QR, sao chép và ghim.
 
-  [![Công cụ chú thích trực tiếp](assets/readme/inline.gif)](assets/readme/inline.gif)
+  [![Công cụ chú thích trực tiếp](assets/readme/inline-v2.webp)](assets/readme/inline-v2.mp4)
 
 - **Chụp cuộn:** cuộn thủ công/tự động, xem trước trực tiếp, bảo vệ hướng và khung
   trùng, ghép ảnh dài.
 
-  [![Chụp cuộn](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+  [![Chụp cuộn](assets/readme/scroll-v2.webp)](assets/readme/scroll-v2.mp4)
 
 - **Ghi màn hình:** video vùng hoặc GIF, âm thanh hệ thống, micrô, hiệu ứng chuột,
   hiển thị phím, tạm dừng, ghi lại, hủy, ảnh nhanh và vẽ trực tiếp.
 
-  [![Ghi màn hình với chú thích trực tiếp](assets/readme/recording.gif)](assets/readme/recording.gif)
+  [![Ghi màn hình với chú thích trực tiếp](assets/readme/recording-v2.webp)](assets/readme/recording-v2.mp4)
 
 - **Ghi âm:** ghi âm thanh hệ thống, micrô hoặc cả hai từ thanh menu hay khay
   hệ thống mà không cần chọn vùng màn hình; lưu thành M4A chỉ chứa âm thanh.
@@ -58,19 +58,19 @@ Dự án không vận hành dịch vụ tài khoản, đo lường từ xa, trun
 - **Quick Access và ghim:** thẻ sau khi chụp có thể cấu hình, sao chép/lưu/mở,
   kéo thả, vuốt và ảnh luôn nổi.
 
-  [![Ghim ảnh từ Quick Access](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+  [![Ghim ảnh từ Quick Access](assets/readme/quickaccess-pin-v2.webp)](assets/readme/quickaccess-pin-v2.mp4)
 
-  [![Nhiều ảnh luôn nổi](assets/readme/pin.gif)](assets/readme/pin.gif)
+  [![Nhiều ảnh luôn nổi](assets/readme/pin-v2.webp)](assets/readme/pin-v2.mp4)
 
 - **Lịch sử bảng tạm:** SQLite cục bộ cho ảnh, video, văn bản, hình và tệp đã sao
   chép, kèm tìm kiếm, bộ lọc, thời hạn lưu và dọn dẹp.
 
-  [![Lịch sử ảnh chụp và bảng tạm có thể tìm kiếm](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+  [![Lịch sử ảnh chụp và bảng tạm có thể tìm kiếm](assets/readme/clipboard-history-v2.webp)](assets/readme/clipboard-history-v2.mp4)
 
 - **Tùy chỉnh:** phím tắt toàn cục, hành động sau khi chụp, thư mục đầu ra, giao
   diện, chẩn đoán, lệnh URL và 10 ngôn ngữ.
 
-  [![Cài đặt ShotPaste](assets/readme/settings.gif)](assets/readme/settings.gif)
+  [![Cài đặt ShotPaste](assets/readme/settings-v2.webp)](assets/readme/settings-v2.mp4)
 
 Xem [danh sách tính năng đầy đủ](docs/FEATURES.md).
 

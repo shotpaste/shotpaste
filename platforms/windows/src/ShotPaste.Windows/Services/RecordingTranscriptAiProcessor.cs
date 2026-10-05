@@ -19,18 +19,7 @@ public sealed class RecordingAiBatch
 /// <summary>Text and stable source IDs are the only data sent to a configured model.</summary>
 public static class RecordingTranscriptAiProcessor
 {
-    public static bool ValidEndpoint(string? value) => Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
-        string.IsNullOrEmpty(uri.UserInfo) && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment) &&
-        (uri.Scheme == "https" || (uri.Scheme == "http" && (uri.IsLoopback || IsPrivateIPv4(uri.Host))));
-
-    private static bool IsPrivateIPv4(string host)
-    {
-        if (!System.Net.IPAddress.TryParse(host, out var address) ||
-            address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) return false;
-        var bytes = address.GetAddressBytes();
-        return bytes[0] == 10 || (bytes[0] == 172 && bytes[1] is >= 16 and <= 31) ||
-               (bytes[0] == 192 && bytes[1] == 168);
-    }
+    public static bool ValidEndpoint(string? value) => LlmEndpointResolver.IsValid(value);
     public static string SegmentId(RecordingTranscriptionPart part, int index) => part.RequestId.ToString("N") + ":" + index;
     public static IReadOnlyList<RecordingAiInputSegment[]> MakeBatches(RecordingTranscriptionJob job)
     {
@@ -109,11 +98,12 @@ public static class RecordingTranscriptAiProcessor
     }
     internal static HttpRequestMessage Request(string payload, RecordingTranscriptionConfiguration config, string instruction)
     {
-        if (!ValidEndpoint(config.AgentEndpoint) || string.IsNullOrWhiteSpace(config.AgentModel) || config.AgentModel.Length > 512 ||
-            (!new Uri(config.AgentEndpoint).IsLoopback && !VolcengineTosSigner.ValidCredential(config.AgentApiKey)) ||
+        var endpoint = LlmEndpointResolver.Resolve(config.AgentEndpoint, config.AgentApiProtocol);
+        if (string.IsNullOrWhiteSpace(config.AgentModel) || config.AgentModel.Length > 512 ||
+            (!new Uri(endpoint).IsLoopback && !VolcengineTosSigner.ValidCredential(config.AgentApiKey)) ||
             (!string.IsNullOrEmpty(config.AgentApiKey) && !VolcengineTosSigner.ValidCredential(config.AgentApiKey)))
             throw new RecordingTranscriptionException(RecordingTranscriptionFailure.InvalidConfiguration);
-        var request = new HttpRequestMessage(HttpMethod.Post, TextTranslationService.ResolveEndpoint(config.AgentEndpoint, config.AgentApiProtocol));
+        var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
         object body;
         switch (config.AgentApiProtocol)
         {
@@ -135,7 +125,7 @@ public static class RecordingTranscriptAiProcessor
         request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
         return request;
     }
-    private static async Task<string> CompleteAsync(string payload, RecordingTranscriptionConfiguration config, string instruction, CancellationToken token)
+    internal static async Task<string> CompleteAsync(string payload, RecordingTranscriptionConfiguration config, string instruction, CancellationToken token)
     {
         var (body, response) = await VolcengineRecordingTranscriptionService.SendAsync(Request(payload, config, instruction), token, 2_097_152);
         using (response) VolcengineRecordingTranscriptionService.EnsureSuccess(response);

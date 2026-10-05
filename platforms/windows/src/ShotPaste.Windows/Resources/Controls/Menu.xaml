@@ -15,7 +15,7 @@
           <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                   BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{DynamicResource Radius.Md}"
                   Padding="{TemplateBinding Padding}">
-            <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="18" ShadowDepth="8" Opacity="0.35" /></Border.Effect>
+            <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="{DynamicResource Shadow.Popup.Blur}" ShadowDepth="{DynamicResource Shadow.Popup.Depth}" Opacity="{DynamicResource Shadow.Popup.Opacity}"/></Border.Effect>
             <ScrollViewer CanContentScroll="True" VerticalScrollBarVisibility="Auto">
               <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
             </ScrollViewer>
@@ -45,7 +45,7 @@
             <Popup x:Name="PART_Popup" AllowsTransparency="True" IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" Placement="Right" Focusable="False">
               <Border Margin="5,0,0,0" Padding="{DynamicResource Menu.PopupPadding}" Background="{DynamicResource PopupBackgroundBrush}"
                       BorderBrush="{DynamicResource PopupBorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource Radius.Md}">
-                <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="18" ShadowDepth="8" Opacity="0.35" /></Border.Effect>
+                <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="{DynamicResource Shadow.Popup.Blur}" ShadowDepth="{DynamicResource Shadow.Popup.Depth}" Opacity="{DynamicResource Shadow.Popup.Opacity}"/></Border.Effect>
                 <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
               </Border>
             </Popup>

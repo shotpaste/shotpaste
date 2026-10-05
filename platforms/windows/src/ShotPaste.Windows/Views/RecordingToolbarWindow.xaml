@@ -28,7 +28,7 @@
 
   <Border CornerRadius="{DynamicResource Radius.Toolbar}" Background="{DynamicResource HudBrush}" BorderBrush="{DynamicResource HudBorderBrush}"
           BorderThickness="1" Padding="10,6">
-    <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="24" ShadowDepth="8" Opacity="0.48"/></Border.Effect>
+    <Border.Effect><DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="{DynamicResource Shadow.Popup.Blur}" ShadowDepth="{DynamicResource Shadow.Popup.Depth}" Opacity="{DynamicResource Shadow.Popup.Opacity}"/></Border.Effect>
     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
       <Grid Width="20" Height="20" Opacity="0.42" ToolTip="{loc:Localized Key='拖动工具栏'}"
             AutomationProperties.AutomationId="RecordingToolbarDragHandle">
@@ -51,7 +51,7 @@
                      Width="42" Height="6" Minimum="0" Maximum="1" Value="0" BorderThickness="0"
                      Foreground="{DynamicResource SuccessBrush}" Background="{DynamicResource HudBorderBrush}" VerticalAlignment="Center"/>
         <TextBlock x:Name="MicrophoneStateText" AutomationProperties.AutomationId="RecordingMicrophoneState"
-                   Text="{loc:Localized Key='麦克风'}" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="10" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                   Text="{loc:Localized Key='麦克风'}" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="12" VerticalAlignment="Center" Margin="5,0,0,0"/>
       </StackPanel>
       <Border Style="{StaticResource RecordingDivider}"/>
 
@@ -60,7 +60,7 @@
       </Button>
       <Button x:Name="PenButton" AutomationProperties.AutomationId="RecordingPen" AutomationProperties.Name="{loc:Localized Key='打开录屏标注'}" Style="{StaticResource RecordingIconButton}" Click="OnPen" ToolTip="{loc:Localized Key='在录制画面上标注'}">
         <Path Data="M3,14 L4.2,10 L11.8,2.4 C12.5,1.7 13.5,1.7 14.2,2.4 L15.6,3.8 C16.3,4.5 16.3,5.5 15.6,6.2 L8,13.8 Z M10.5,3.7 L14.3,7.5"
-              Stroke="{DynamicResource HudTextBrush}" StrokeThickness="1.5" StrokeLineJoin="Round"
+              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" StrokeThickness="1.5" StrokeLineJoin="Round"
               StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="17" Height="17" Stretch="Uniform"/>
       </Button>
       <Border Style="{StaticResource RecordingDivider}"/>
@@ -76,7 +76,7 @@
       </Button>
       <Border Style="{StaticResource RecordingDivider}"/>
 
-      <Button Content="{loc:Localized Key='停止'}" AutomationProperties.AutomationId="RecordingStop" AutomationProperties.Name="{loc:Localized Key='停止并保存录屏'}" Style="{StaticResource RecordingTextButton}" Click="OnStop" ToolTip="{loc:Localized Key='停止并保存'}"/>
+      <Button Content="{loc:Localized Key='停止'}" AutomationProperties.AutomationId="RecordingStop" AutomationProperties.Name="{loc:Localized Key='停止并保存录屏'}" Style="{StaticResource AccentButton}" MinHeight="32" Padding="12,0" Click="OnStop" ToolTip="{loc:Localized Key='停止并保存'}"/>
     </StackPanel>
   </Border>
 </Window>

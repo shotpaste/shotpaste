@@ -9,6 +9,7 @@ import AppKit
 import SwiftUI
 
 struct QuickAccessPinWindowView: View {
+  @ObservedObject private var themeManager = ThemeManager.shared
   @ObservedObject var state: QuickAccessPinWindowState
 
   let onClose: () -> Void
@@ -34,9 +35,10 @@ struct QuickAccessPinWindowView: View {
     .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     .overlay(
       RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        .stroke(Color.white.opacity(0.22), lineWidth: 1)
+        .stroke(ShotPastePalette.border, lineWidth: 1)
     )
     .background(Color.clear)
+    .preferredColorScheme(themeManager.systemAppearance)
   }
 
   private var screenshotImage: some View {
@@ -96,16 +98,16 @@ struct QuickAccessPinWindowView: View {
       Text("\(state.zoomPercent)%")
         .font(.system(size: 12, weight: .semibold))
         .monospacedDigit()
-        .foregroundStyle(.white)
+        .foregroundStyle(ShotPastePalette.text)
         .padding(.horizontal, 10)
         .frame(height: 28)
         .background(
           Capsule(style: .continuous)
-            .fill(Color.black.opacity(isZoomHovering || isZoomPickerPresented ? 0.64 : 0.54))
+            .fill(isZoomHovering || isZoomPickerPresented ? ShotPastePalette.hover : ShotPastePalette.chrome)
         )
         .overlay(
           Capsule(style: .continuous)
-            .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+            .strokeBorder(ShotPastePalette.border, lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 2)
     }
@@ -133,7 +135,7 @@ struct QuickAccessPinWindowView: View {
       }
 
       Rectangle()
-        .fill(Color.primary.opacity(0.08))
+        .fill(ShotPastePalette.border)
         .frame(height: 1)
         .padding(.vertical, 3)
 
@@ -150,11 +152,11 @@ struct QuickAccessPinWindowView: View {
     .frame(width: PinWindowZoomPickerMetrics.width)
     .background(
       RoundedRectangle(cornerRadius: PinWindowZoomPickerMetrics.containerCornerRadius, style: .continuous)
-        .fill(.regularMaterial)
+        .fill(ShotPastePalette.chrome)
     )
     .overlay(
       RoundedRectangle(cornerRadius: PinWindowZoomPickerMetrics.containerCornerRadius, style: .continuous)
-        .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+        .strokeBorder(ShotPastePalette.border, lineWidth: 1)
     )
     .clipShape(RoundedRectangle(cornerRadius: PinWindowZoomPickerMetrics.containerCornerRadius, style: .continuous))
     .shadow(color: Color.black.opacity(0.18), radius: 14, x: 0, y: 8)
@@ -195,7 +197,7 @@ struct QuickAccessPinWindowView: View {
     VStack(spacing: 3) {
       ForEach(0 ..< 3, id: \.self) { _ in
         Capsule(style: .continuous)
-          .fill(Color.primary.opacity(0.34))
+          .fill(ShotPastePalette.secondaryText)
           .frame(width: 7, height: 1.3)
       }
     }
@@ -206,15 +208,15 @@ struct QuickAccessPinWindowView: View {
     Button(action: action) {
       Image(systemName: systemName)
         .font(.system(size: 12, weight: .bold))
-        .foregroundStyle(.primary)
+        .foregroundStyle(ShotPastePalette.text)
         .frame(width: 28, height: 28)
         .background(
           Circle()
-            .fill(Color(nsColor: .windowBackgroundColor).opacity(0.84))
+            .fill(ShotPastePalette.chrome)
         )
         .overlay(
           Circle()
-            .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+            .stroke(ShotPastePalette.border, lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.12), radius: 6, x: 0, y: 2)
     }
@@ -223,17 +225,17 @@ struct QuickAccessPinWindowView: View {
   }
 
   private var dragForegroundColor: Color {
-    isDragHovering || isDragActive ? .primary : Color.primary.opacity(0.62)
+    isDragHovering || isDragActive ? ShotPastePalette.accent : ShotPastePalette.secondaryText
   }
 
   private func dragHandleFill(isActive: Bool) -> some View {
     RoundedRectangle(cornerRadius: dragHandleCornerRadius, style: .continuous)
-      .fill(Color(nsColor: .windowBackgroundColor).opacity(isActive ? 0.94 : 0.86))
+      .fill(isActive ? ShotPastePalette.hover : ShotPastePalette.chrome)
   }
 
   private func dragHandleStroke(isActive: Bool) -> some View {
     RoundedRectangle(cornerRadius: dragHandleCornerRadius, style: .continuous)
-      .strokeBorder(Color.primary.opacity(isActive ? 0.16 : 0.08), lineWidth: 1)
+      .strokeBorder(ShotPastePalette.border, lineWidth: 1)
   }
 }
 
@@ -276,7 +278,7 @@ private struct PinWindowZoomOptionButton: View {
             .font(.system(size: 10, weight: .bold))
         }
       }
-      .foregroundStyle(isSelected || isHovering ? .primary : .secondary)
+      .foregroundStyle(isSelected ? .white : ShotPastePalette.text)
       .padding(.horizontal, 8)
       .frame(height: 25)
       .background(
@@ -296,12 +298,12 @@ private struct PinWindowZoomOptionButton: View {
 
   private var rowFill: Color {
     if isSelected {
-      return Color.primary.opacity(0.1)
+      return ShotPastePalette.action
     }
-    return isHovering ? Color.primary.opacity(0.075) : Color.clear
+    return isHovering ? ShotPastePalette.hover : Color.clear
   }
 
   private var rowStroke: Color {
-    isSelected || isHovering ? Color.primary.opacity(0.08) : Color.clear
+    isSelected || isHovering ? ShotPastePalette.border : Color.clear
   }
 }

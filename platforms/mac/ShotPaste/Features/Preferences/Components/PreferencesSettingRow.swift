@@ -17,24 +17,26 @@ struct SettingRow<Content: View>: View {
   var body: some View {
     HStack(spacing: 12) {
       Image(systemName: icon)
-        .font(.title2)
-        .foregroundColor(.secondary)
+        .font(.system(size: 16, weight: .regular))
+        .foregroundColor(ShotPastePalette.secondaryText)
         .frame(width: 28)
         .accessibilityHidden(true)
 
       VStack(alignment: .leading, spacing: 2) {
         if let tooltip {
           Text(title)
-            .fontWeight(.medium)
+            .font(ShotPasteTypography.body)
+            .foregroundStyle(ShotPastePalette.text)
             .hint(tooltip, variant: .icon(.info))
         } else {
           Text(title)
-            .fontWeight(.medium)
+            .font(ShotPasteTypography.body)
+            .foregroundStyle(ShotPastePalette.text)
         }
         if let description {
           Text(description)
-            .font(.caption)
-            .foregroundColor(.secondary)
+            .font(ShotPasteTypography.caption)
+            .foregroundColor(ShotPastePalette.secondaryText)
             .fixedSize(horizontal: false, vertical: true)
         }
       }

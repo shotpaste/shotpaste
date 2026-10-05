@@ -29,6 +29,9 @@ struct RecordingAnnotationToolbarView: View {
     contentLayout
       .padding(.horizontal, direction == .horizontal ? 10 : 6)
       .padding(.vertical, direction == .horizontal ? 6 : 10)
+      .foregroundStyle(ShotPastePalette.text)
+      .tint(ShotPastePalette.action)
+      .background(ShotPastePanelBackground(cornerRadius: ToolbarConstants.toolbarCornerRadius))
   }
 
   // MARK: - Layout
@@ -125,7 +128,7 @@ struct RecordingAnnotationToolbarView: View {
     } label: {
       Image(systemName: "timer")
         .font(.system(size: 12, weight: .medium))
-        .foregroundColor(.primary.opacity(0.85))
+        .foregroundColor(ShotPastePalette.text)
         .frame(width: 28, height: 28)
         .background(
           RoundedRectangle(cornerRadius: 6)
@@ -166,12 +169,12 @@ struct RecordingAnnotationToolbarView: View {
   private var divider: some View {
     if direction == .horizontal {
       Rectangle()
-        .fill(Color.primary.opacity(0.15))
+        .fill(ShotPastePalette.border)
         .frame(width: 1, height: 20)
         .padding(.horizontal, 2)
     } else {
       Rectangle()
-        .fill(Color.primary.opacity(0.15))
+        .fill(ShotPastePalette.border)
         .frame(width: 20, height: 1)
         .padding(.vertical, 2)
     }

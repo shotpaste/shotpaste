@@ -38,6 +38,7 @@ internal static class Program
                 ("pan_toolbar_recovery", ScenarioAction.PanToolbarRecovery, false),
                 ("cancel_escape", ScenarioAction.CancelWithEscape, false),
                 ("translation_settings", ScenarioAction.TranslationSettings, false),
+                ("translation_annotation_preferences", ScenarioAction.TranslationAnnotationPreferences, false),
                 ("dirty_return_discard", ScenarioAction.DirtyReturnAndDiscard, true),
                 ("dirty_save", ScenarioAction.DirtySave, true),
                 ("dirty_exit_return_discard", ScenarioAction.DirtyExitReturnAndDiscard, true),
@@ -146,14 +147,6 @@ internal static class Program
                     }, "One Shot mode switcher did not move.");
             }
             var screen = Forms.Screen.FromPoint(Forms.Cursor.Position).WorkingArea;
-            if (action == ScenarioAction.TranslationSettings)
-            {
-                Invoke(WaitForAutomationId(process.Id, "OneShotTranslation"));
-                WaitForAutomationId(process.Id, "TranslationFullScreen");
-                if (WaitForAutomationId(process.Id, "TranslationSelection").Current.IsEnabled)
-                    throw new InvalidOperationException("Selection translation must require a selection.");
-                Invoke(WaitForAutomationId(process.Id, "OneShotScreenshot"));
-            }
             var defaultBadgeScenario = action == ScenarioAction.SelectionSizeBadgeDefault;
             var edgeBadgeScenario = action == ScenarioAction.SelectionSizeBadgeEdge;
             var selectionStart = new Drawing.Point(
@@ -400,23 +393,89 @@ internal static class Program
                     break;
                 case ScenarioAction.TranslationSettings:
                     Invoke(WaitForAutomationId(process.Id, "OneShotTranslation"));
+                    WaitForAutomationId(process.Id, "TranslationWindow");
                     WaitForAutomationId(process.Id, "TranslationSourceLanguage");
+                    WaitForAutomationId(process.Id, "TranslationTargetLanguage");
                     Invoke(WaitForAutomationId(process.Id, "TranslationSelection"));
-                    WaitUntil(() => FindByAutomationId(process.Id, "TranslationStatus")?.Current.Name.Contains("LLM", StringComparison.Ordinal) == true,
-                        "Missing provider did not produce a recoverable configuration message.");
-                    Invoke(WaitForAutomationId(process.Id, "OneShotScreenshot"));
-                    WaitForAutomationId(process.Id, "OneShotDone");
-                    Invoke(WaitForAutomationId(process.Id, "OneShotTranslation"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "TranslationStatus")?.Current.Name.Contains("sharing is disabled", StringComparison.OrdinalIgnoreCase) == true,
+                        "Translation did not keep recognized-text sharing disabled by default.");
+                    if (WaitForAutomationId(process.Id, "TranslationCancel").Current.IsEnabled)
+                        throw new InvalidOperationException("Disabled sharing unexpectedly started a translation request.");
                     SaveDesktopScreenshot(Path.Combine(root, "translation-controls.png"));
-                    Invoke(WaitForAutomationId(process.Id, "TranslationSettings"));
+                    Invoke(WaitForAutomationId(process.Id, "TranslationOpenSettings"));
                     var aiTab = WaitForAutomationId(process.Id, "SettingsAiTab");
                     if (!((SelectionItemPattern)aiTab.GetCurrentPattern(SelectionItemPattern.Pattern)).Current.IsSelected)
                         throw new InvalidOperationException("Translation settings did not navigate to AI features.");
                     WaitForAutomationId(process.Id, "LlmEndpoint");
-                    if (FindByAutomationId(process.Id, "InlineAnnotateWindow") is not null)
-                        throw new InvalidOperationException("Translation settings left the frozen overlay open.");
+                    if (FindByAutomationId(process.Id, "InlineAnnotateWindow") is null || FindByAutomationId(process.Id, "TranslationWindow") is null)
+                        throw new InvalidOperationException("Opening AI settings discarded the translation window or frozen selection.");
                     SaveDesktopScreenshot(Path.Combine(root, "ai-settings.png"));
-                    detail = "Translation retained selection, recovered from missing provider, switched back to screenshot and opened AI settings without capture output.";
+                    Invoke(WaitForAutomationId(process.Id, "SettingsSave"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "SettingsWindow") is null,
+                        "AI settings did not return to the translation window.");
+                    Invoke(WaitForAutomationId(process.Id, "TranslationClose"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "TranslationWindow") is null,
+                        "Translation did not close back to the frozen selection.");
+                    var returnedSelection = WaitForAutomationId(process.Id, "SelectionImage").Current.BoundingRectangle;
+                    if (Math.Abs(returnedSelection.Left - selectionBounds.Left) > 2 || Math.Abs(returnedSelection.Top - selectionBounds.Top) > 2 ||
+                        Math.Abs(returnedSelection.Width - selectionBounds.Width) > 2 || Math.Abs(returnedSelection.Height - selectionBounds.Height) > 2)
+                        throw new InvalidOperationException("Closing translation changed the frozen selection.");
+                    foreach (var mode in new[] { "OneShotScrolling", "OneShotRecording", "OneShotScreenshot" })
+                    {
+                        var modeButton = WaitForAutomationId(process.Id, mode);
+                        if (!modeButton.Current.IsEnabled)
+                            throw new InvalidOperationException($"Closing translation locked the capture mode: {mode}.");
+                        Invoke(modeButton);
+                        if (mode == "OneShotScrolling") WaitForAutomationId(process.Id, "OneShotStartScrolling");
+                        else if (mode == "OneShotRecording")
+                        {
+                            WaitForAutomationId(process.Id, "OneShotStartRecording");
+                            SaveDesktopScreenshot(Path.Combine(root, "recording-prepare.png"));
+                        }
+                        else WaitForAutomationId(process.Id, "OneShotDone");
+                    }
+                    SaveDesktopScreenshot(Path.Combine(root, "translation-returned-selection.png"));
+                    Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
+                        "The returned frozen selection did not cancel without output.");
+                    detail = "Independent translation kept sharing disabled, opened owner-linked AI settings, returned to the same frozen selection and allowed scrolling, recording and screenshot modes without cloud calls or capture output.";
+                    break;
+                case ScenarioAction.TranslationAnnotationPreferences:
+                    Invoke(WaitForAutomationId(process.Id, "InlineToolRectangle"));
+                    Invoke(WaitForAutomationId(process.Id, "InlineStrokeColorBlue"));
+                    ((RangeValuePattern)WaitForAutomationId(process.Id, "InlineStrokeWidth").GetCurrentPattern(RangeValuePattern.Pattern)).SetValue(7);
+                    Invoke(WaitForAutomationId(process.Id, "OneShotTranslation"));
+                    WaitForAutomationId(process.Id, "TranslationWindow");
+                    AssertPersistedRectanglePreferences(root, "#FF0A84FF", 7);
+                    Invoke(WaitForAutomationId(process.Id, "TranslationOpenSettings"));
+                    WaitForAutomationId(process.Id, "SettingsAiTab");
+                    Invoke(WaitForAutomationId(process.Id, "SettingsSave"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "SettingsWindow") is null,
+                        "AI settings did not close before editing annotation preferences.");
+                    Invoke(WaitForAutomationId(process.Id, "TranslationClose"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "TranslationWindow") is null,
+                        "Translation did not return to the existing annotation editor.");
+                    Invoke(WaitForAutomationId(process.Id, "InlineStrokeColorRed"));
+                    ((RangeValuePattern)WaitForAutomationId(process.Id, "InlineStrokeWidth").GetCurrentPattern(RangeValuePattern.Pattern)).SetValue(9);
+                    Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
+                        "Annotation preference changes unexpectedly required capture output.");
+                    AssertPersistedRectanglePreferences(root, "#FFFF453A", 9);
+                    ForwardUiTestCommand(executable, root, "--one-shot");
+                    WaitForAutomationId(process.Id, "InlineAnnotateWindow");
+                    Drag(selectionStart, selectionEnd);
+                    WaitForAutomationId(process.Id, "SelectionImage");
+                    Invoke(WaitForAutomationId(process.Id, "InlineToolRectangle"));
+                    WaitUntil(() =>
+                        Math.Abs(((RangeValuePattern)WaitForAutomationId(process.Id, "InlineStrokeWidth").GetCurrentPattern(RangeValuePattern.Pattern)).Current.Value - 9) < 0.01 &&
+                        !string.IsNullOrWhiteSpace(WaitForAutomationId(process.Id, "InlineStrokeColorRed").Current.ItemStatus) &&
+                        string.IsNullOrWhiteSpace(WaitForAutomationId(process.Id, "InlineStrokeColorBlue").Current.ItemStatus),
+                        "Reopening One Shot did not restore the annotation preferences saved after AI settings.");
+                    SaveDesktopScreenshot(Path.Combine(root, "annotation-preferences-restored.png"));
+                    Invoke(WaitForAutomationId(process.Id, "OneShotCancel"));
+                    WaitUntil(() => FindByAutomationId(process.Id, "InlineAnnotateWindow") is null,
+                        "The reopened annotation editor did not cancel without capture output.");
+                    detail = "Annotation preferences were saved before AI settings, updated against the current settings instance after returning, and restored in a new One Shot selection without capture output or cloud calls.";
                     break;
                 case ScenarioAction.DirtyReturnAndDiscard:
                     SendKey(overlay, 0x1B);
@@ -488,7 +547,7 @@ internal static class Program
                 case ScenarioAction.QuickAccessClose:
                     SendKey(overlay, 0x0D);
                     WaitForCaptureCount(captureDirectory, 1);
-                    Invoke(WaitForAutomationId(process.Id, "QuickAccessClose"));
+                    PhysicalClick(HoverQuickAccessAction(process.Id, "QuickAccessClose"));
                     WaitUntil(() => FindVisibleByAutomationId(process.Id, "QuickAccessWindow") is null,
                         "Quick Access did not close.");
                     var closedClock = Stopwatch.StartNew();
@@ -644,6 +703,15 @@ internal static class Program
                 process.WaitForExit(5000);
             }
         }
+    }
+
+    private static void AssertPersistedRectanglePreferences(string root, string color, double width)
+    {
+        using var settings = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "settings.json")));
+        var rectangle = settings.RootElement.GetProperty("AnnotationToolSettings").GetProperty("Rectangle");
+        if (!string.Equals(rectangle.GetProperty("Color").GetString(), color, StringComparison.OrdinalIgnoreCase) ||
+            Math.Abs(rectangle.GetProperty("StrokeWidth").GetDouble() - width) > 0.01)
+            throw new InvalidOperationException("Annotation preferences were written to a stale settings instance.");
     }
 
     private static void DrawPerformanceAnnotations(int processId, System.Windows.Rect bounds)
@@ -863,6 +931,31 @@ internal static class Program
         return new PinVerification(widthAt50, widthAt150, imageHitTest, lockHitTest, screenshot);
     }
 
+    private static AutomationElement HoverQuickAccessAction(int processId, string actionId)
+    {
+        var card = WaitForAutomationId(processId, "QuickAccessWindow");
+        var bounds = card.Current.BoundingRectangle;
+        Native.SetThreadDpiAwarenessContext(new IntPtr(-4));
+        Native.SetCursorPos((int)Math.Round(bounds.Left + bounds.Width / 2),
+            (int)Math.Round(bounds.Top + bounds.Height / 2));
+        AutomationElement? action = null;
+        WaitUntil(() =>
+        {
+            action = FindVisibleByAutomationId(processId, actionId);
+            if (action is null || !action.Current.IsEnabled || !action.TryGetClickablePoint(out var point)) return false;
+            var expectedId = action.GetRuntimeId();
+            var hit = AutomationElement.FromPoint(point);
+            var walker = TreeWalker.RawViewWalker;
+            for (var current = hit; current is not null; current = walker.GetParent(current))
+            {
+                if (current.GetRuntimeId().SequenceEqual(expectedId)) return true;
+                if (current.Current.ControlType == ControlType.Window) break;
+            }
+            return false;
+        }, $"Quick Access action {actionId} did not become visibly clickable after hovering its card.");
+        return action!;
+    }
+
     private static QuickVerification ExerciseQuickAccess(int processId, string root)
     {
         var quick = WaitForAutomationId(processId, "QuickAccessWindow");
@@ -880,9 +973,9 @@ internal static class Program
         if (FindVisibleByAutomationId(processId, "QuickAccessWindow") is null)
             throw new InvalidOperationException("Hover did not pause the Quick Access countdown.");
 
-        var copy = WaitForAutomationId(processId, "QuickAccessCopy").Current.BoundingRectangle;
-        var pin = WaitForAutomationId(processId, "QuickAccessPin").Current.BoundingRectangle;
-        var close = WaitForAutomationId(processId, "QuickAccessClose").Current.BoundingRectangle;
+        var copy = HoverQuickAccessAction(processId, "QuickAccessCopy").Current.BoundingRectangle;
+        var pin = HoverQuickAccessAction(processId, "QuickAccessPin").Current.BoundingRectangle;
+        var close = HoverQuickAccessAction(processId, "QuickAccessClose").Current.BoundingRectangle;
         if (!(pin.Top > copy.Top + 5 && close.Top > pin.Top + 5) ||
             FindVisibleByAutomationId(processId, "QuickAccessSave") is not null)
             throw new InvalidOperationException("Quick Access actions shifted after disabled actions were removed.");
@@ -914,7 +1007,7 @@ internal static class Program
         Native.SetCursorPos((int)Math.Round(bounds.Left + bounds.Width / 2), (int)Math.Round(bounds.Top + bounds.Height / 2));
         Thread.Sleep(350);
 
-        Invoke(WaitForAutomationId(processId, "QuickAccessDelete"));
+        PhysicalClick(HoverQuickAccessAction(processId, "QuickAccessDelete"));
         WaitForAutomationId(processId, "ShotPasteDialog");
         var screenshot = Path.Combine(root, "quick-access-delete-confirmation.png");
         SaveDesktopScreenshot(screenshot);
@@ -925,7 +1018,7 @@ internal static class Program
             FindVisibleByAutomationId(processId, "QuickAccessWindow") is null)
             throw new InvalidOperationException("Cancelling Quick Access deletion did not preserve both file and card.");
 
-        Invoke(WaitForAutomationId(processId, "QuickAccessDelete"));
+        PhysicalClick(HoverQuickAccessAction(processId, "QuickAccessDelete"));
         WaitForAutomationId(processId, "ShotPasteDialog");
         Invoke(WaitForAutomationId(processId, "DialogPrimary"));
         WaitUntil(() => Directory.GetFiles(captureDirectory, "*.png").Length == 0,
@@ -943,7 +1036,7 @@ internal static class Program
             (int)Math.Round(quickBounds.Left + quickBounds.Width / 2),
             (int)Math.Round(quickBounds.Top + quickBounds.Height / 2));
         Thread.Sleep(350);
-        var dragAction = WaitForAutomationId(processId, "QuickAccessDrag");
+        var dragAction = HoverQuickAccessAction(processId, "QuickAccessDrag");
         var dragBounds = dragAction.Current.BoundingRectangle;
         using var target = new NativeFileDropTarget();
         var screenshot = Path.Combine(root, "quick-access-native-file-drag.png");
@@ -1225,6 +1318,7 @@ internal static class Program
         PanToolbarRecovery,
         CancelWithEscape,
         TranslationSettings,
+        TranslationAnnotationPreferences,
         DirtyReturnAndDiscard,
         DirtySave,
         DirtyExitReturnAndDiscard,

@@ -20,34 +20,34 @@ account service, telemetry, upload relay, or synchronization service.
 - **One Shot:** select an area once, then choose Screenshot, Scrolling,
   Recording, Translation, or Clipboard History.
 
-  [![One Shot mode picker](assets/readme/oneshot.gif)](assets/readme/oneshot.gif)
+  [![One Shot mode picker](assets/readme/oneshot-v2.webp)](assets/readme/oneshot-v2.mp4)
 
 - **Screenshots and OCR:** frozen region selection, window targeting, local
   text recognition, and configurable output format, naming, scale, cursor,
   desktop, and notification behavior.
 
-  [![Local OCR from a screenshot](assets/readme/OCR.gif)](assets/readme/OCR.gif)
+  [![Local OCR from a screenshot](assets/readme/OCR-v2.webp)](assets/readme/OCR-v2.mp4)
 
 - **Translation:** translate text from a frozen One Shot region with local OCR,
   automatic source-language detection, configurable target languages, and a
   user-configured provider. Only recognized text is sent for translation.
 
-  [![Screenshot translation](assets/readme/translate.gif)](assets/readme/translate.gif)
+  [![Screenshot translation](assets/readme/translate-v2.webp)](assets/readme/translate-v2.mp4)
 
 - **Inline annotation:** selection, shapes, arrows, text, highlighter, mosaic,
   spotlight, counter, pencil, undo/redo, QR detection, copy, and pin.
 
-  [![Inline annotation tools](assets/readme/inline.gif)](assets/readme/inline.gif)
+  [![Inline annotation tools](assets/readme/inline-v2.webp)](assets/readme/inline-v2.mp4)
 
 - **Scrolling capture:** manual and automatic scrolling, live preview,
   duplicate/direction protection, and long-image stitching.
 
-  [![Scrolling capture](assets/readme/scroll.gif)](assets/readme/scroll.gif)
+  [![Scrolling capture](assets/readme/scroll-v2.webp)](assets/readme/scroll-v2.mp4)
 
 - **Recording:** region video or GIF, system audio, microphone, cursor and click
   effects, keystroke overlay, pause/restart/discard, snapshots, and live ink.
 
-  [![Recording with live annotation](assets/readme/recording.gif)](assets/readme/recording.gif)
+  [![Recording with live annotation](assets/readme/recording-v2.webp)](assets/readme/recording-v2.mp4)
 
 - **Audio recording:** record system audio, microphone, or both from the menu
   bar/tray without selecting a screen region; save audio-only M4A.
@@ -59,19 +59,19 @@ account service, telemetry, upload relay, or synchronization service.
 - **Quick Access and pins:** configurable post-capture cards, copy/save/open,
   drag and swipe actions, and always-on-top image pins.
 
-  [![Quick Access image pin](assets/readme/quickaccess-pin.gif)](assets/readme/quickaccess-pin.gif)
+  [![Quick Access image pin](assets/readme/quickaccess-pin-v2.webp)](assets/readme/quickaccess-pin-v2.mp4)
 
-  [![Multiple always-on-top image pins](assets/readme/pin.gif)](assets/readme/pin.gif)
+  [![Multiple always-on-top image pins](assets/readme/pin-v2.webp)](assets/readme/pin-v2.mp4)
 
 - **Clipboard History:** local SQLite history for captures, recordings, text,
   images, and copied files, with search, filters, retention, and cleanup.
 
-  [![Searchable capture and clipboard history](assets/readme/clipboard-history.gif)](assets/readme/clipboard-history.gif)
+  [![Searchable capture and clipboard history](assets/readme/clipboard-history-v2.webp)](assets/readme/clipboard-history-v2.mp4)
 
 - **Customization:** global shortcuts, after-capture actions, output folders,
   appearance, diagnostics, URL commands, and ten interface languages.
 
-  [![ShotPaste settings](assets/readme/settings.gif)](assets/readme/settings.gif)
+  [![ShotPaste settings](assets/readme/settings-v2.webp)](assets/readme/settings-v2.mp4)
 
 See [the complete feature list](docs/FEATURES.md).
 

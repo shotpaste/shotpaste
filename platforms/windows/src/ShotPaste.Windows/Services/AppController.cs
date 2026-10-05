@@ -107,7 +107,8 @@ public sealed partial class AppController : IDisposable
             _capture,
             () => ScreenshotCaptureOptions,
             () => _settings.Current,
-            _settings.Save);
+            _settings.Save,
+            owner => ShowSettingsCore("ai", owner));
         _scrolling = CreateScrollingCaptureService();
         if (!App.UiTestMode)
         {
@@ -610,7 +611,6 @@ public sealed partial class AppController : IDisposable
             _settings.Current.RecordingTranscriptionEnabled, _settings.Current.RecordingTranscriptionUseAI,
             _settings.Current.RecordingTranscriptionSourceLanguage, _settings.Current.RecordingTranscriptionCloudVerified && RecordingTranscriptionConfiguration.FromSettings(_settings.Current) is not null);
         using var result = await _selection.SelectOneShotAsync(recordingOptions, CommitScreenshotFromOverlayAsync, initialMode);
-        if (_selection.TranslationSettingsRequested) ShowSettings("ai");
         if (result is null) return;
 
         switch (result.Mode)
@@ -1274,6 +1274,9 @@ public sealed partial class AppController : IDisposable
     }
 
     public void ShowSettings(string? tab = null)
+        => ShowSettingsCore(tab, null);
+
+    private void ShowSettingsCore(string? tab, Window? owner)
     {
         if (_settingsWindow is { } existing)
         {
@@ -1288,7 +1291,7 @@ public sealed partial class AppController : IDisposable
 
         var window = new SettingsWindow(_settings, tab, ApplyLiveSettings)
         {
-            Owner = _mainWindow?.IsVisible == true ? _mainWindow : null
+            Owner = owner ?? (_mainWindow?.IsVisible == true ? _mainWindow : null)
         };
         _settingsWindow = window;
         _hotkeys?.Suspend();

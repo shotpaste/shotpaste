@@ -15,7 +15,7 @@
               CornerRadius="{DynamicResource Radius.Md}" Background="{DynamicResource Pinned.ToolbarBackgroundBrush}"
               BorderBrush="{DynamicResource Pinned.ToolbarBorderBrush}" BorderThickness="1">
         <Border.Effect>
-          <DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="10" ShadowDepth="3" Opacity="0.38"/>
+          <DropShadowEffect Color="{DynamicResource ShadowColor}" BlurRadius="{DynamicResource Shadow.Popup.Blur}" ShadowDepth="{DynamicResource Shadow.Popup.Depth}" Opacity="{DynamicResource Shadow.Popup.Opacity}"/>
         </Border.Effect>
         <StackPanel x:Name="Toolbar" Orientation="Horizontal">
           <Button x:Name="LockButton" AutomationProperties.AutomationId="PinnedLock" Content="{loc:Localized Key='锁定'}" Style="{StaticResource HudTextButton}" Padding="7,3" MinHeight="24" Margin="0,0,5,0" Click="OnToggleLock" ToolTip="{loc:Localized Key='锁定后图片区域自动穿透；锁按钮保持可操作'}"/>

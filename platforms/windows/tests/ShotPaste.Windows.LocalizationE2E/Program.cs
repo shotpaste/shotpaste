@@ -74,6 +74,9 @@ internal static class Program
             if (File.Exists(path)) File.Delete(path);
         }
         WriteSettings(root, language.Code);
+        var fixtureHistory = new CaptureHistoryStore(Path.Combine(root, "history.sqlite3"), Path.Combine(root, "Thumbnails"));
+        await fixtureHistory.LoadAsync();
+        await fixtureHistory.AddTextAsync("ShotPaste localization layout-check selection fixture");
 
         var shellEvidence = await VerifyHistoryAndSettingsAsync(executable, root, language.Code, requiredDpiScale);
         var inlineEvidence = await VerifyInlineAsync(executable, root, language.Code, requiredDpiScale);
@@ -178,6 +181,7 @@ internal static class Program
             var historyScreenshot = Path.Combine(root, "history-window.png");
             SaveElementScreenshot(history, historyScreenshot);
             var historyLayout = AssertVisibleLayout(history, language, "history-window", actualDpiScale);
+            var searchEvidence = await VerifyHistorySearchAsync(history, product.Id, root, language, actualDpiScale);
             return new
             {
                 HistoryTitle = history.Current.Name,
@@ -188,10 +192,155 @@ internal static class Program
                 HistoryScreenshot = historyScreenshot,
                 HistoryVisibleInteractiveControls = historyLayout.VisibleInteractiveControls,
                 HistoryMeasuredSingleLineTexts = historyLayout.MeasuredSingleLineTexts,
+                SearchEvidence = searchEvidence,
                 Pages = pageEvidence
             };
         }
         finally { StopExactProcess(product); }
+    }
+
+    private static async Task<IReadOnlyList<object>> VerifyHistorySearchAsync(
+        AutomationElement history, int processId, string root, string language, double dpiScale)
+    {
+        var originalBounds = history.Current.BoundingRectangle;
+        if (!history.TryGetCurrentPattern(TransformPattern.Pattern, out var raw) || raw is not TransformPattern transform || !transform.Current.CanResize)
+            throw new InvalidOperationException($"{language}: history window did not expose native resizing for the minimum-width layout check.");
+        var evidence = new List<object>();
+        foreach (var size in new[] { "default", "minimum" })
+        {
+            if (size == "minimum")
+            {
+                transform.Resize(860 * dpiScale, originalBounds.Height);
+                await Task.Delay(240);
+            }
+            var search = await WaitForAutomationIdAsync(processId, "HistorySearch");
+            var date = await WaitForAutomationIdAsync(processId, "HistoryTimeFilter");
+            var expectedName = LocalizationService.TranslatePhrase("搜索捕获内容", language);
+            AssertEqual(expectedName, search.Current.Name, language, "complete accessible history search name");
+            AssertElementHit(search, language, "history search");
+            AssertElementHit(date, language, "history date filter");
+            AssertElementHit(await WaitForAutomationIdAsync(processId, "ScreenshotHistoryFilter"), language, "history screenshot filter");
+            AssertElementHit(await WaitForAutomationIdAsync(processId, "ClipboardHistoryFilter"), language, "history clipboard filter");
+            ClickElement(search, language, "history search");
+            ((ValuePattern)search.GetCurrentPattern(ValuePattern.Pattern)).SetValue("layout-check");
+            await WaitUntilAsync(() => ((ValuePattern)search.GetCurrentPattern(ValuePattern.Pattern)).Current.Value == "layout-check",
+                $"{language}: history search did not accept input at {size} width.");
+            var clear = await WaitForAutomationIdAsync(processId, "HistoryClearSearch");
+            AssertElementHit(search, language, "history search with clear action");
+            AssertElementHit(date, language, "history date filter with search input");
+            AssertVisibleLayout(history, language, "history-window", dpiScale);
+            var screenshot = Path.Combine(root, $"history-search-{size}.png");
+            SaveElementScreenshot(history, screenshot);
+            var searchBounds = search.Current.BoundingRectangle;
+            var dateBounds = date.Current.BoundingRectangle;
+            var clearBounds = clear.Current.BoundingRectangle;
+            var selectionEvidence = await VerifyHistorySelectionAsync(history, processId, root, language, dpiScale, size);
+            clear = await WaitForAutomationIdAsync(processId, "HistoryClearSearch");
+            ClickElement(clear, language, "history search clear");
+            await WaitUntilAsync(() => ((ValuePattern)search.GetCurrentPattern(ValuePattern.Pattern)).Current.Value.Length == 0,
+                $"{language}: clearing history search did not empty its native value at {size} width.");
+            AssertVisibleLayout(history, language, "history-window", dpiScale);
+            evidence.Add(new { Size = size, WindowBounds = history.Current.BoundingRectangle, Search = searchBounds,
+                Date = dateBounds, Clear = clearBounds, InputAcceptedAndCleared = true,
+                Selection = selectionEvidence, Screenshot = screenshot });
+        }
+        transform.Resize(originalBounds.Width, originalBounds.Height);
+        await Task.Delay(180);
+        return evidence;
+    }
+
+    private static async Task<object> VerifyHistorySelectionAsync(
+        AutomationElement history, int processId, string root, string language, double dpiScale, string size)
+    {
+        var grid = await WaitForAutomationIdAsync(processId, "ExpandedHistoryGrid");
+        AutomationElement? item = null;
+        await WaitUntilAsync(() =>
+        {
+            item = grid.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ListItem))
+                .Cast<AutomationElement>().FirstOrDefault(element => !element.Current.IsOffscreen &&
+                    element.Current.Name.Contains("layout-check selection fixture", StringComparison.Ordinal));
+            return item is not null;
+        }, $"{language}: the selected-history layout fixture did not survive the search filter.");
+        var itemName = item!.Current.Name;
+        ClickElement(item, language, "history item selection");
+        var clearSelection = await WaitForAutomationIdAsync(processId, "HistoryClearSelection");
+        var summary = await WaitForAutomationIdAsync(processId, "HistorySelectionSummary");
+        var expectedSummary = LocalizationService.TranslatePhrase("已选择 {count} 项", language)
+            .Replace("{count}", 1.ToString(CultureInfo.CurrentCulture), StringComparison.Ordinal);
+        AssertEqual(expectedSummary, summary.Current.Name, language, "localized selected-history count");
+        AssertNoSimplifiedChineseLeak(VisibleNames(history), language);
+        var search = FindByAutomationId(processId, "HistorySearch");
+        if (search is not null && !search.Current.IsOffscreen)
+            throw new InvalidOperationException($"{language}: selection actions did not replace the search field at {size} width.");
+        var copySelection = await WaitForAutomationIdAsync(processId, "HistoryCopySelection");
+        var deleteSelection = await WaitForAutomationIdAsync(processId, "HistoryDeleteSelection");
+        AssertElementHit(copySelection, language, "copy selected history");
+        AssertElementHit(clearSelection, language, "clear history selection");
+        AssertElementHit(deleteSelection, language, "delete selected history");
+        AssertElementHit(await WaitForAutomationIdAsync(processId, "HistoryTimeFilter"), language, "date filter during selection");
+        AssertVisibleLayout(history, language, "history-window", dpiScale);
+        var screenshot = Path.Combine(root, $"history-selection-{size}.png");
+        SaveElementScreenshot(history, screenshot);
+        var copyBounds = copySelection.Current.BoundingRectangle;
+        var clearBounds = clearSelection.Current.BoundingRectangle;
+        var deleteBounds = deleteSelection.Current.BoundingRectangle;
+        ClickElement(deleteSelection, language, "selected-history deletion confirmation");
+        var dialog = await WaitForAutomationIdAsync(processId, "ShotPasteDialog");
+        var expectedMessage = LocalizationService.TranslatePhrase("确定删除选中的 {count} 条历史记录吗？由 ShotPaste 保存的文件会移入 Windows 回收站，可以恢复。", language)
+            .Replace("{count}", 1.ToString(CultureInfo.CurrentCulture), StringComparison.Ordinal);
+        AssertContains(VisibleNames(dialog), expectedMessage, language, "localized selection-delete message");
+        AssertEqual(AppBuildIdentity.Current.FormatWindowTitle(LocalizationService.TranslatePhrase("删除历史记录", language)),
+            dialog.Current.Name, language, "localized selection-delete title");
+        var primary = await WaitForAutomationIdAsync(processId, "DialogPrimary");
+        AssertEqual(LocalizationService.TranslatePhrase("移入回收站", language), primary.Current.Name, language, "localized recycle action");
+        AssertNoSimplifiedChineseLeak(VisibleNames(dialog), language);
+        AssertElementHit(primary, language, "selected-history recycle confirmation");
+        var cancel = await WaitForAutomationIdAsync(processId, "DialogSecondary");
+        AssertEqual(LocalizationService.TranslatePhrase("取消", language), cancel.Current.Name, language, "localized cancellation action");
+        AssertElementHit(cancel, language, "selected-history delete cancellation");
+        AssertVisibleLayout(dialog, language, "selection-delete-dialog", dpiScale);
+        var dialogScreenshot = Path.Combine(root, $"history-selection-delete-{size}.png");
+        SaveElementScreenshot(dialog, dialogScreenshot);
+        ClickElement(cancel, language, "selected-history delete cancellation");
+        await WaitUntilAsync(() => FindByAutomationId(processId, "ShotPasteDialog") is null,
+            $"{language}: cancelling selection deletion did not close the confirmation.");
+        if (!string.Equals(item.Current.Name, itemName, StringComparison.Ordinal) ||
+            !((SelectionItemPattern)item.GetCurrentPattern(SelectionItemPattern.Pattern)).Current.IsSelected)
+            throw new InvalidOperationException($"{language}: cancelling deletion lost the fixture item or its selection.");
+        clearSelection = await WaitForAutomationIdAsync(processId, "HistoryClearSelection");
+        ClickElement(clearSelection, language, "clear history selection");
+        search = await WaitForAutomationIdAsync(processId, "HistorySearch");
+        await WaitUntilAsync(() => ((ValuePattern)search.GetCurrentPattern(ValuePattern.Pattern)).Current.Value == "layout-check",
+            $"{language}: clearing selection lost the previous search text at {size} width.");
+        if (!string.Equals(item.Current.Name, itemName, StringComparison.Ordinal) ||
+            ((SelectionItemPattern)item.GetCurrentPattern(SelectionItemPattern.Pattern)).Current.IsSelected)
+            throw new InvalidOperationException($"{language}: clearing selection changed the filtered item or left it selected.");
+        AssertElementHit(search, language, "restored history search");
+        AssertVisibleLayout(history, language, "history-window", dpiScale);
+        return new { Item = itemName, Copy = copyBounds, Clear = clearBounds, Delete = deleteBounds,
+            SearchTextPreserved = true, FilteredItemPreserved = true, DeleteCancelledAndSelectionPreserved = true,
+            DeleteMessage = expectedMessage, DeleteScreenshot = dialogScreenshot, Screenshot = screenshot };
+    }
+
+    private static void AssertElementHit(AutomationElement element, string language, string label)
+    {
+        var bounds = element.Current.BoundingRectangle;
+        if (element.Current.IsOffscreen || !element.Current.IsEnabled || bounds.Width <= 1 || bounds.Height <= 1)
+            throw new InvalidOperationException($"{language}: {label} was not visibly operable: {bounds}.");
+        var point = new System.Windows.Point(bounds.Left + bounds.Width / 2, bounds.Top + bounds.Height / 2);
+        var hit = AutomationElement.FromPoint(point);
+        if (!IsSelfOrDescendant(hit, element))
+            throw new InvalidOperationException($"{language}: {label} is obscured at its center by {hit.Current.AutomationId}.");
+    }
+
+    private static void ClickElement(AutomationElement element, string language, string label)
+    {
+        AssertElementHit(element, language, label);
+        var bounds = element.Current.BoundingRectangle;
+        Native.SetThreadDpiAwarenessContext(new IntPtr(-4));
+        Native.SetCursorPos((int)Math.Round(bounds.Left + bounds.Width / 2), (int)Math.Round(bounds.Top + bounds.Height / 2));
+        Native.mouse_event(Native.MouseLeftDown, 0, 0, 0, UIntPtr.Zero);
+        Native.mouse_event(Native.MouseLeftUp, 0, 0, 0, UIntPtr.Zero);
     }
 
     private static async Task<object> VerifyInlineAsync(
@@ -218,6 +367,7 @@ internal static class Program
             var screenshot = Path.Combine(root, "inline-annotation.png");
             SaveElementScreenshot(overlay, screenshot);
             var layout = AssertVisibleLayout(overlay, language, "inline-annotation", dpiScale);
+            var scrolledTools = await VerifyClippedAnnotationToolsAsync(overlay, product.Id, root, language, dpiScale);
             Invoke(await WaitForAutomationIdAsync(product.Id, "OneShotCancel"));
             await WaitUntilAsync(() => FindByAutomationId(product.Id, "OneShotDone") is null,
                 $"{language}: inline window did not close after Cancel.");
@@ -229,6 +379,7 @@ internal static class Program
                 DpiScale = dpiScale,
                 layout.VisibleInteractiveControls,
                 layout.MeasuredSingleLineTexts,
+                ScrolledTools = scrolledTools,
                 Screenshot = screenshot
             };
         }
@@ -296,14 +447,10 @@ internal static class Program
             try
             {
                 var surface = await WaitForAutomationIdAsync(product.Id, plan.AutomationId);
-                if (plan.Surface == "quick-access")
-                {
-                    var bounds = surface.Current.BoundingRectangle;
-                    Native.SetCursorPos((int)Math.Round(bounds.Left + bounds.Width / 2),
-                        (int)Math.Round(bounds.Top + bounds.Height / 2));
-                    await Task.Delay(220);
-                }
                 var dpiScale = AssertRequiredDpi(surface, requiredDpiScale, language, plan.Name);
+                object? badgeEvidence = null;
+                if (plan.Surface == "quick-access")
+                    badgeEvidence = await VerifyQuickAccessBadgesAsync(surface, product.Id, root, language, dpiScale);
                 var names = VisibleNames(surface);
                 AssertNoSimplifiedChineseLeak(names, language);
                 var screenshot = Path.Combine(root, $"{plan.Name}.png");
@@ -317,12 +464,74 @@ internal static class Program
                     VisibleNames = names.Length,
                     layout.VisibleInteractiveControls,
                     layout.MeasuredSingleLineTexts,
+                    BadgeEvidence = badgeEvidence,
                     Screenshot = screenshot
                 });
             }
             finally { StopExactProcess(product); }
         }
         return new { Count = evidence.Count, Surfaces = evidence };
+    }
+
+    private static async Task<object> VerifyQuickAccessBadgesAsync(
+        AutomationElement card, int processId, string root, string language, double dpiScale)
+    {
+        var bounds = card.Current.BoundingRectangle;
+        var work = System.Windows.Forms.Screen.FromHandle(new IntPtr(card.Current.NativeWindowHandle)).WorkingArea;
+        var outsideX = bounds.Left > work.Left + 20 ? bounds.Left - 12 : bounds.Right + 12;
+        var outsideY = Math.Clamp(bounds.Top - 12, work.Top + 2, work.Bottom - 2);
+        Native.SetThreadDpiAwarenessContext(new IntPtr(-4));
+        Native.SetCursorPos((int)Math.Round(Math.Clamp(outsideX, work.Left + 2, work.Right - 2)), (int)Math.Round(outsideY));
+        await Task.Delay(500);
+        var title = await WaitForAutomationIdAsync(processId, "QuickAccessTitle");
+        const string fullTitle = "ShotPaste localization preview";
+        AssertEqual(fullTitle, title.Current.Name, language, "complete accessible Quick Access title");
+        var titleBounds = title.Current.BoundingRectangle;
+        if (!Contains(bounds, titleBounds))
+            throw new InvalidOperationException($"{language}: idle Quick Access title escapes its card: {titleBounds} outside {bounds}.");
+        var duration = FindByAutomationId(processId, "QuickAccessDuration");
+        if (duration is not null && !duration.Current.IsOffscreen)
+            throw new InvalidOperationException($"{language}: a text Quick Access item unexpectedly displayed a recording duration.");
+        AssertVisibleLayout(card, language, "quick-access-idle", dpiScale);
+        var idleScreenshot = Path.Combine(root, "quick-access-idle-title.png");
+        SaveElementScreenshot(card, idleScreenshot);
+
+        Native.SetCursorPos((int)Math.Round(bounds.Left + bounds.Width / 2), (int)Math.Round(bounds.Top + bounds.Height / 2));
+        await WaitUntilAsync(() =>
+        {
+            var badge = FindByAutomationId(processId, "QuickAccessTitle");
+            return badge is null || badge.Current.IsOffscreen;
+        }, $"{language}: hovering Quick Access left an invisible title exposed to accessibility.");
+        await Task.Delay(220);
+        await WaitForAutomationIdAsync(processId, "QuickAccessCopy");
+        AssertVisibleLayout(card, language, "quick-access-hover", dpiScale);
+        var hoverScreenshot = Path.Combine(root, "quick-access-hover-actions.png");
+        SaveElementScreenshot(card, hoverScreenshot);
+
+        Native.SetCursorPos((int)Math.Round(Math.Clamp(outsideX, work.Left + 2, work.Right - 2)), (int)Math.Round(outsideY));
+        await Task.Delay(260);
+        title = await WaitForAutomationIdAsync(processId, "QuickAccessTitle");
+        AssertEqual(fullTitle, title.Current.Name, language, "restored accessible Quick Access title");
+        if (!Contains(bounds, title.Current.BoundingRectangle))
+            throw new InvalidOperationException($"{language}: restored Quick Access title escapes its card.");
+        duration = FindByAutomationId(processId, "QuickAccessDuration");
+        if (duration is not null && !duration.Current.IsOffscreen)
+            throw new InvalidOperationException($"{language}: leaving a text card hover incorrectly restored a recording duration.");
+        AssertVisibleLayout(card, language, "quick-access-restored", dpiScale);
+        var restoredScreenshot = Path.Combine(root, "quick-access-restored-title.png");
+        SaveElementScreenshot(card, restoredScreenshot);
+        // Leave the card in the action mode used by the existing auxiliary-surface contract.
+        Native.SetCursorPos((int)Math.Round(bounds.Left + bounds.Width / 2), (int)Math.Round(bounds.Top + bounds.Height / 2));
+        await Task.Delay(220);
+        return new
+        {
+            FullAccessibleTitle = fullTitle,
+            IdleTitleBounds = titleBounds,
+            TextItemDurationVisible = false,
+            IdleScreenshot = idleScreenshot,
+            HoverScreenshot = hoverScreenshot,
+            RestoredScreenshot = restoredScreenshot
+        };
     }
 
     private static Process Launch(string executable, string root, string command) =>
@@ -454,7 +663,13 @@ internal static class Program
         var elements = window.FindAll(TreeScope.Descendants, Condition.TrueCondition)
             .Cast<AutomationElement>()
             .Where(element => !element.Current.IsOffscreen)
-            .Select(element => (Element: element, Bounds: element.Current.BoundingRectangle))
+            .Select(element =>
+            {
+                var rawBounds = element.Current.BoundingRectangle;
+                var visible = VisibleBounds(element, windowBounds);
+                return (Element: element, RawBounds: rawBounds, Bounds: visible.Bounds,
+                    visible.HorizontalScrollAncestor);
+            })
             .Where(item => item.Bounds.Width > 1 && item.Bounds.Height > 1)
             .Where(item => item.Bounds.Left + item.Bounds.Width / 2 >= windowBounds.Left &&
                            item.Bounds.Left + item.Bounds.Width / 2 <= windowBounds.Right &&
@@ -466,10 +681,11 @@ internal static class Program
         foreach (var item in elements)
         {
             const double tolerance = 2.5;
-            if (item.Bounds.Left < windowBounds.Left - tolerance ||
-                item.Bounds.Right > windowBounds.Right + tolerance)
+            if (!item.HorizontalScrollAncestor &&
+                (item.RawBounds.Left < windowBounds.Left - tolerance ||
+                 item.RawBounds.Right > windowBounds.Right + tolerance))
                 throw new InvalidOperationException(
-                    $"{language}/{page}: '{item.Element.Current.Name}' ({item.Element.Current.ControlType.ProgrammaticName}) is clipped horizontally by the settings window: {item.Bounds} outside {windowBounds}.");
+                    $"{language}/{page}: '{item.Element.Current.Name}' ({item.Element.Current.ControlType.ProgrammaticName}) is clipped horizontally by the window: {item.RawBounds} outside {windowBounds}.");
         }
 
         var interactiveTypes = new HashSet<ControlType>
@@ -506,7 +722,9 @@ internal static class Program
             measuredTexts++;
             var formatted = new FormattedText(text, CultureInfo.CurrentUICulture, System.Windows.FlowDirection.LeftToRight,
                 new Typeface(fontFamily), fontSize, System.Windows.Media.Brushes.Black, Math.Max(1, dpiScale));
-            var availableWidthInDips = item.Bounds.Width / Math.Max(1, dpiScale);
+            // A scroll viewport can deliberately reveal part of a complete label.
+            // Measure its arranged width so clipping does not conceal a genuinely undersized text element.
+            var availableWidthInDips = item.RawBounds.Width / Math.Max(1, dpiScale);
             var fallbackTolerance = text.Any(character => character is >= '\u3400' and <= '\u9fff' ||
                                                            character is >= '\u3040' and <= '\u30ff' ||
                                                            character is >= '\uac00' and <= '\ud7af')
@@ -517,6 +735,124 @@ internal static class Program
                     $"{language}/{page}: single-line text appears truncated: '{text}' needs {formatted.WidthIncludingTrailingWhitespace:0.#} DIP but has {availableWidthInDips:0.#} DIP at {fontSize:0.#} DIP {fontFamily}.");
         }
         return (interactive.Length, measuredTexts);
+    }
+
+    private static (System.Windows.Rect Bounds, bool HorizontalScrollAncestor) VisibleBounds(
+        AutomationElement element, System.Windows.Rect windowBounds)
+    {
+        var bounds = element.Current.BoundingRectangle;
+        var horizontalScrollAncestor = false;
+        bounds.Intersect(windowBounds);
+        var walker = TreeWalker.RawViewWalker;
+        for (var ancestor = walker.GetParent(element); ancestor is not null; ancestor = walker.GetParent(ancestor))
+        {
+            if (ancestor.Current.ControlType == ControlType.Window) break;
+            var hasScrollPattern = ancestor.TryGetCurrentPattern(ScrollPattern.Pattern, out var raw);
+            if (ancestor.Current.ClassName.Equals("ScrollViewer", StringComparison.Ordinal) || hasScrollPattern)
+            {
+                // WPF can report IsOffscreen=false and full child bounds beyond a ScrollViewer's viewport.
+                bounds.Intersect(ancestor.Current.BoundingRectangle);
+                if (raw is ScrollPattern scroll && scroll.Current.HorizontallyScrollable)
+                    horizontalScrollAncestor = true;
+            }
+        }
+        return (bounds, horizontalScrollAncestor);
+    }
+
+    private static async Task<IReadOnlyList<object>> VerifyClippedAnnotationToolsAsync(
+        AutomationElement overlay, int processId, string root, string language, double dpiScale)
+    {
+        var windowBounds = overlay.Current.BoundingRectangle;
+        var tools = overlay.FindAll(TreeScope.Descendants,
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button))
+            .Cast<AutomationElement>()
+            .Where(element => element.Current.AutomationId.StartsWith("InlineTool", StringComparison.Ordinal))
+            .Where(element =>
+            {
+                var visible = VisibleBounds(element, windowBounds);
+                return visible.HorizontalScrollAncestor && !Contains(visible.Bounds, element.Current.BoundingRectangle);
+            })
+            .ToArray();
+        var evidence = new List<object>();
+        foreach (var tool in tools)
+        {
+            var id = tool.Current.AutomationId;
+            var before = tool.Current.BoundingRectangle;
+            var beforeVisible = VisibleBounds(tool, windowBounds).Bounds;
+            var walker = TreeWalker.RawViewWalker;
+            AutomationElement? viewport = null;
+            ScrollPattern? scroll = null;
+            for (var ancestor = walker.GetParent(tool); ancestor is not null; ancestor = walker.GetParent(ancestor))
+            {
+                if (ancestor.Current.ControlType == ControlType.Window) break;
+                if (ancestor.TryGetCurrentPattern(ScrollPattern.Pattern, out var raw) && raw is ScrollPattern candidate &&
+                    candidate.Current.HorizontallyScrollable)
+                { viewport = ancestor; scroll = candidate; break; }
+            }
+            if (viewport is null || scroll is null)
+                throw new InvalidOperationException($"{language}: clipped annotation tool {id} had no usable horizontal scroll viewport.");
+            // Button peers do not expose ScrollItemPattern. Scroll the owning viewport, then require real hit testing.
+            for (var attempt = 0; attempt < 6 && !Contains(VisibleBounds(tool, windowBounds).Bounds, tool.Current.BoundingRectangle); attempt++)
+            {
+                var viewportBounds = viewport.Current.BoundingRectangle;
+                var toolBounds = tool.Current.BoundingRectangle;
+                var state = scroll.Current;
+                var extent = viewportBounds.Width * 100 / state.HorizontalViewSize;
+                var maximumOffset = extent - viewportBounds.Width;
+                if (maximumOffset <= 0)
+                    throw new InvalidOperationException($"{language}: {id} is clipped but its scroll viewport has no scrollable extent.");
+                var delta = toolBounds.Left < viewportBounds.Left
+                    ? toolBounds.Left - viewportBounds.Left
+                    : toolBounds.Right - viewportBounds.Right;
+                var offset = maximumOffset * state.HorizontalScrollPercent / 100;
+                scroll.SetScrollPercent(Math.Clamp((offset + delta) * 100 / maximumOffset, 0, 100), ScrollPattern.NoScroll);
+                await Task.Delay(180);
+            }
+            var after = tool.Current.BoundingRectangle;
+            var afterVisible = VisibleBounds(tool, windowBounds).Bounds;
+            if (!Contains(afterVisible, after) || afterVisible.Width <= 1 || afterVisible.Height <= 1)
+                throw new InvalidOperationException($"{language}: scrolling did not fully reveal annotation tool {id}: {after} clipped to {afterVisible}.");
+            var point = new System.Windows.Point(after.Left + after.Width / 2, after.Top + after.Height / 2);
+            var hit = AutomationElement.FromPoint(point);
+            if (!IsSelfOrDescendant(hit, tool))
+                throw new InvalidOperationException($"{language}: revealed annotation tool {id} is covered by {hit.Current.AutomationId} at {point}.");
+            Native.SetThreadDpiAwarenessContext(new IntPtr(-4));
+            Native.SetCursorPos((int)Math.Round(point.X), (int)Math.Round(point.Y));
+            Native.mouse_event(Native.MouseLeftDown, 0, 0, 0, UIntPtr.Zero);
+            Native.mouse_event(Native.MouseLeftUp, 0, 0, 0, UIntPtr.Zero);
+            var expectedTool = tool.Current.HelpText;
+            await WaitUntilAsync(() => FindByAutomationId(processId, "ContextPillText")?.Current.Name == expectedTool,
+                $"{language}: revealed tool {id} did not activate after a real mouse click.");
+            var screenshot = Path.Combine(root, $"inline-scroll-{id}.png");
+            SaveElementScreenshot(overlay, screenshot);
+            AssertNoSimplifiedChineseLeak(VisibleNames(overlay).Concat(VisibleHelpTexts(overlay)), language);
+            AssertVisibleLayout(overlay, language, "inline-annotation", dpiScale);
+            evidence.Add(new
+            {
+                AutomationId = id,
+                Before = before,
+                BeforeVisible = beforeVisible.IsEmpty ? (System.Windows.Rect?)null : beforeVisible,
+                Viewport = viewport.Current.BoundingRectangle,
+                After = after,
+                AfterVisible = afterVisible,
+                Hit = hit.Current.AutomationId,
+                SelectedTool = expectedTool,
+                Screenshot = screenshot
+            });
+        }
+        return evidence;
+    }
+
+    private static bool IsSelfOrDescendant(AutomationElement element, AutomationElement ancestor)
+    {
+        var expectedId = ancestor.GetRuntimeId();
+        var walker = TreeWalker.RawViewWalker;
+        for (var current = element; current is not null; current = walker.GetParent(current))
+        {
+            if (current.GetRuntimeId().SequenceEqual(expectedId)) return true;
+            if (current.Current.ControlType == ControlType.Window) break;
+        }
+        return false;
     }
 
     private static bool Contains(System.Windows.Rect outer, System.Windows.Rect inner) =>

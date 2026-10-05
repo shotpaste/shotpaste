@@ -13,18 +13,18 @@
   <CornerRadius x:Key="Radius.Sm">6</CornerRadius>
   <CornerRadius x:Key="Radius.Md">8</CornerRadius>
   <CornerRadius x:Key="Radius.Lg">12</CornerRadius>
-  <CornerRadius x:Key="Radius.Toolbar">14</CornerRadius>
-  <CornerRadius x:Key="Radius.Card">18</CornerRadius>
-  <CornerRadius x:Key="Radius.Window">24</CornerRadius>
+  <CornerRadius x:Key="Radius.Toolbar">12</CornerRadius>
+  <CornerRadius x:Key="Radius.Card">12</CornerRadius>
+  <CornerRadius x:Key="Radius.Window">16</CornerRadius>
   <CornerRadius x:Key="Radius.Pill">999</CornerRadius>
 
   <!-- Typography. -->
   <FontFamily x:Key="Font.Family">Segoe UI Variable Text, Segoe UI</FontFamily>
-  <sys:Double x:Key="FontSize.Label.Small">10</sys:Double>
-  <sys:Double x:Key="FontSize.Label.Medium">11</sys:Double>
-  <sys:Double x:Key="FontSize.SectionHeader">11</sys:Double>
-  <sys:Double x:Key="FontSize.Body">12</sys:Double>
-  <FontWeight x:Key="FontWeight.Medium">Medium</FontWeight>
+  <sys:Double x:Key="FontSize.Label.Small">12</sys:Double>
+  <sys:Double x:Key="FontSize.Label.Medium">12</sys:Double>
+  <sys:Double x:Key="FontSize.SectionHeader">12</sys:Double>
+  <sys:Double x:Key="FontSize.Body">13</sys:Double>
+  <FontWeight x:Key="FontWeight.Medium">Normal</FontWeight>
   <FontWeight x:Key="FontWeight.SectionHeader">SemiBold</FontWeight>
 
   <!-- Control geometry. -->
@@ -70,40 +70,43 @@
   <Duration x:Key="Animation.Fast">0:0:0.15</Duration>
   <Duration x:Key="Animation.Press">0:0:0.10</Duration>
   <Duration x:Key="Animation.Panel">0:0:0.18</Duration>
-  <sys:Double x:Key="Shadow.Popup.Blur">18</sys:Double>
-  <sys:Double x:Key="Shadow.Popup.Depth">8</sys:Double>
-  <sys:Double x:Key="Shadow.Popup.Opacity">0.35</sys:Double>
+  <sys:Double x:Key="Shadow.Popup.Blur">20</sys:Double>
+  <sys:Double x:Key="Shadow.Popup.Depth">5</sys:Double>
+  <sys:Double x:Key="Shadow.Popup.Opacity">0.20</sys:Double>
   <sys:Double x:Key="Shadow.Direction">270</sys:Double>
 
-  <!-- Runtime replaces AccentColor with the current Windows system accent. -->
-  <Color x:Key="AccentColor">#FF0078D4</Color>
-  <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource AccentColor}" />
-  <SolidColorBrush x:Key="AccentSoftBrush" Color="{DynamicResource AccentColor}" Opacity="0.15" />
-  <SolidColorBrush x:Key="AccentPressedBrush" Color="{DynamicResource AccentColor}" Opacity="0.78" />
-  <SolidColorBrush x:Key="FocusRingBrush" Color="{DynamicResource AccentColor}" Opacity="0.55" />
+  <!-- Product accent; theme dictionaries provide readable text and solid-fill variants. -->
+  <Color x:Key="AccentColor">#FF3478F6</Color>
+  <SolidColorBrush x:Key="AccentBrush" Color="#FF2563EB" />
+  <SolidColorBrush x:Key="AccentSoftForegroundBrush" Color="#FF2563EB" />
+  <SolidColorBrush x:Key="AccentFillBrush" Color="#FF2563EB" />
+  <SolidColorBrush x:Key="AccentSoftBrush" Color="#FFE8F0FF" />
+  <SolidColorBrush x:Key="AccentPressedBrush" Color="#FF1D4ED8" />
+  <SolidColorBrush x:Key="FocusRingBrush" Color="{DynamicResource AccentColor}" />
   <SolidColorBrush x:Key="AccentForegroundBrush" Color="#FFFFFFFF" />
 
-  <!-- HUD colors intentionally stay dark on both application themes. -->
-  <SolidColorBrush x:Key="HudBrush" Color="#EE24242A" />
-  <SolidColorBrush x:Key="HudBorderBrush" Color="#38FFFFFF" />
-  <SolidColorBrush x:Key="HudHoverBrush" Color="#1FFFFFFF" />
-  <SolidColorBrush x:Key="HudPressedBrush" Color="#2EFFFFFF" />
-  <SolidColorBrush x:Key="HudSelectedBrush" Color="#26FFFFFF" />
-  <SolidColorBrush x:Key="HudInputBrush" Color="#18FFFFFF" />
-  <SolidColorBrush x:Key="HudOverlayBrush" Color="#8A000000" />
-  <SolidColorBrush x:Key="HudBadgeBrush" Color="#C9000000" />
-  <SolidColorBrush x:Key="HudPreviewBrush" Color="#74000000" />
-  <SolidColorBrush x:Key="HudTextBrush" Color="#FFF4F4F5" />
-  <SolidColorBrush x:Key="HudSecondaryTextBrush" Color="#FFB4B4BD" />
-  <SolidColorBrush x:Key="HudDividerBrush" Color="#30FFFFFF" />
-  <SolidColorBrush x:Key="HudSwatchBorderBrush" Color="#52FFFFFF" />
-  <SolidColorBrush x:Key="DangerBrush" Color="#FFFF5A57" />
+  <!-- Floating tools follow the application theme; opaque chrome protects readability over any capture. -->
+  <SolidColorBrush x:Key="HudBrush" Color="#FFFBFCFF" />
+  <SolidColorBrush x:Key="HudBorderBrush" Color="#FFDCE1EA" />
+  <SolidColorBrush x:Key="HudHoverBrush" Color="#FFEDF1F8" />
+  <SolidColorBrush x:Key="HudPressedBrush" Color="#FFE1E7F1" />
+  <SolidColorBrush x:Key="HudSelectedBrush" Color="#FF2563EB" />
+  <SolidColorBrush x:Key="HudSelectedTextBrush" Color="#FFFFFFFF" />
+  <SolidColorBrush x:Key="HudInputBrush" Color="#FFF1F4F9" />
+  <SolidColorBrush x:Key="HudOverlayBrush" Color="#F2FBFCFF" />
+  <SolidColorBrush x:Key="HudBadgeBrush" Color="#F2FBFCFF" />
+  <SolidColorBrush x:Key="HudPreviewBrush" Color="#FFE8EDF5" />
+  <SolidColorBrush x:Key="HudTextBrush" Color="#FF202534" />
+  <SolidColorBrush x:Key="HudSecondaryTextBrush" Color="#FF606978" />
+  <SolidColorBrush x:Key="HudDividerBrush" Color="#FFDCE1EA" />
+  <SolidColorBrush x:Key="HudSwatchBorderBrush" Color="#FFADB7C8" />
+  <SolidColorBrush x:Key="DangerBrush" Color="#FFC43B45" />
   <SolidColorBrush x:Key="DangerSoftBrush" Color="#FFFF5A57" Opacity="0.14" />
-  <SolidColorBrush x:Key="WarningBrush" Color="#FFFF9F0A" />
+  <SolidColorBrush x:Key="WarningBrush" Color="#FF956300" />
   <SolidColorBrush x:Key="WarningSoftBrush" Color="#FFFF9F0A" Opacity="0.14" />
-  <SolidColorBrush x:Key="SuccessBrush" Color="#FF30D158" />
+  <SolidColorBrush x:Key="SuccessBrush" Color="#FF167D3E" />
   <SolidColorBrush x:Key="SuccessSoftBrush" Color="#FF30D158" Opacity="0.15" />
-  <SolidColorBrush x:Key="InfoBrush" Color="#FF0A84FF" />
+  <SolidColorBrush x:Key="InfoBrush" Color="#FF2563EB" />
   <LinearGradientBrush x:Key="Toast.InfoGradient" StartPoint="0,0" EndPoint="1,1">
     <GradientStop Color="#FF64D2FF" Offset="0"/><GradientStop Color="#FF0A84FF" Offset="1"/>
   </LinearGradientBrush>
@@ -136,10 +139,10 @@
   <SolidColorBrush x:Key="Annotation.BlackBrush" Color="#FF000000" />
   <SolidColorBrush x:Key="Annotation.SpotlightBrush" Color="#91000000" />
   <SolidColorBrush x:Key="Annotation.BlurSelectionBrush" Color="#18FFFFFF" />
-  <SolidColorBrush x:Key="Pinned.BackgroundBrush" Color="#DD111113" />
-  <SolidColorBrush x:Key="Pinned.BorderBrush" Color="#55FFFFFF" />
-  <SolidColorBrush x:Key="Pinned.ToolbarBackgroundBrush" Color="#D91A1A1E" />
-  <SolidColorBrush x:Key="Pinned.ToolbarBorderBrush" Color="#48FFFFFF" />
+  <SolidColorBrush x:Key="Pinned.BackgroundBrush" Color="#FFFBFCFF" />
+  <SolidColorBrush x:Key="Pinned.BorderBrush" Color="#FFDCE1EA" />
+  <SolidColorBrush x:Key="Pinned.ToolbarBackgroundBrush" Color="#FFFBFCFF" />
+  <SolidColorBrush x:Key="Pinned.ToolbarBorderBrush" Color="#FFDCE1EA" />
   <sys:String x:Key="Annotation.Stroke.Red">Stroke:#FFFF453A</sys:String>
   <sys:String x:Key="Annotation.Stroke.Orange">Stroke:#FFFF9F0A</sys:String>
   <sys:String x:Key="Annotation.Stroke.Yellow">Stroke:#FFFFD60A</sys:String>

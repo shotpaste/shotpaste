@@ -74,12 +74,12 @@
               <Setter TargetName="Box" Property="Background" Value="{DynamicResource ControlBackgroundPressedBrush}" />
             </Trigger>
             <Trigger Property="IsChecked" Value="True">
-              <Setter TargetName="Box" Property="Background" Value="{DynamicResource AccentBrush}" />
+              <Setter TargetName="Box" Property="Background" Value="{DynamicResource AccentFillBrush}" />
               <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
               <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
             </Trigger>
             <Trigger Property="IsChecked" Value="{x:Null}">
-              <Setter TargetName="Box" Property="Background" Value="{DynamicResource AccentBrush}" />
+              <Setter TargetName="Box" Property="Background" Value="{DynamicResource AccentFillBrush}" />
               <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
               <Setter TargetName="IndeterminateMark" Property="Visibility" Value="Visible" />
             </Trigger>

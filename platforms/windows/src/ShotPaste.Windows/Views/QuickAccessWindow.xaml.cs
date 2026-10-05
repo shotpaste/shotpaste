@@ -72,8 +72,11 @@ public partial class QuickAccessWindow : Window
         Card.LayoutTransform = new ScaleTransform(cardScale, cardScale);
         Width = 180 * cardScale;
         Height = 112 * cardScale;
+        Card.SizeChanged += (_, _) => UpdateBadgeLayout();
         Loaded += (_, _) =>
         {
+            UpdateBadgeLayout();
+            UpdateBadgeVisibility();
             if (AutoDismissEnabled) ResetCountdown();
             CountdownTrack.Visibility = AutoDismissEnabled ? Visibility.Visible : Visibility.Collapsed;
             if (Services.AccessibilityPreferences.ReduceMotion)
@@ -119,6 +122,12 @@ public partial class QuickAccessWindow : Window
             // countdown always resumes after the pointer physically leaves.
             if (IsPointerInsideWindow()) return;
             _isPointerOver = false;
+            if (!_keyboardMode)
+            {
+                HoverOverlay.IsHitTestVisible = false;
+                AnimateOpacity(HoverOverlay, 0);
+            }
+            UpdateBadgeVisibility();
             ResumeCountdown();
         };
         SourceInitialized += (_, _) =>
@@ -148,10 +157,10 @@ public partial class QuickAccessWindow : Window
 
     private void OnCardMouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
     {
+        _isPointerOver = true;
         HoverOverlay.IsHitTestVisible = true;
         AnimateOpacity(HoverOverlay, 1);
-        TitleBadge.Opacity = 0;
-        DurationBadge.Opacity = 0;
+        UpdateBadgeVisibility();
     }
 
     public void EnterKeyboardMode()
@@ -162,9 +171,12 @@ public partial class QuickAccessWindow : Window
             return;
         }
         _keyboardMode = true;
+        UpdateBadgeVisibility();
         PauseCountdown();
         Focusable = true;
         ShowActivated = true;
+        HoverOverlay.BeginAnimation(OpacityProperty, null);
+        HoverOverlay.Visibility = Visibility.Visible;
         HoverOverlay.Opacity = 1;
         HoverOverlay.IsHitTestVisible = true;
         if (_windowSource is not null)
@@ -185,8 +197,14 @@ public partial class QuickAccessWindow : Window
         _keyboardMode = false;
         Focusable = false;
         ShowActivated = false;
-        HoverOverlay.IsHitTestVisible = false;
-        if (!_isPointerOver) HoverOverlay.Opacity = 0;
+        HoverOverlay.IsHitTestVisible = _isPointerOver;
+        if (!_isPointerOver)
+        {
+            HoverOverlay.BeginAnimation(OpacityProperty, null);
+            HoverOverlay.Opacity = 0;
+            HoverOverlay.Visibility = Visibility.Collapsed;
+        }
+        UpdateBadgeVisibility();
         if (_windowSource is not null)
         {
             var style = NativeMethods.GetWindowLongPtr(_windowSource.Handle, NativeMethods.GwlExStyle).ToInt64();
@@ -246,25 +264,55 @@ public partial class QuickAccessWindow : Window
 
     private void OnCardMouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
     {
-        HoverOverlay.IsHitTestVisible = false;
-        AnimateOpacity(HoverOverlay, 0);
-        TitleBadge.Opacity = 1;
-        DurationBadge.Opacity = 1;
+        _isPointerOver = false;
+        HoverOverlay.IsHitTestVisible = _keyboardMode;
+        if (!_keyboardMode) AnimateOpacity(HoverOverlay, 0);
+        UpdateBadgeVisibility();
+    }
+
+    private void UpdateBadgeVisibility()
+    {
+        var showBadges = !_isPointerOver && !_keyboardMode;
+        TitleBadge.Visibility = showBadges ? Visibility.Visible : Visibility.Collapsed;
+        DurationBadge.Visibility = showBadges && _item.Duration.HasValue ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void UpdateBadgeLayout()
+    {
+        var contentWidth = Math.Max(0, Card.ActualWidth - Card.BorderThickness.Left - Card.BorderThickness.Right);
+        var durationWidth = 0d;
+        if (_item.Duration.HasValue)
+        {
+            var duration = new System.Windows.Media.FormattedText(DurationText.Text, System.Globalization.CultureInfo.CurrentCulture,
+                System.Windows.FlowDirection.LeftToRight,
+                new Typeface(DurationText.FontFamily, DurationText.FontStyle, DurationText.FontWeight, DurationText.FontStretch),
+                DurationText.FontSize, System.Windows.Media.Brushes.Black, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+            durationWidth = duration.WidthIncludingTrailingWhitespace + DurationBadge.Padding.Left + DurationBadge.Padding.Right + 6;
+        }
+        // Card.LayoutTransform applies the configured scale after these logical layout measurements.
+        TitleBadge.MaxWidth = Math.Max(0, contentWidth - TitleBadge.Margin.Left - TitleBadge.Margin.Right - durationWidth);
     }
 
     private void AnimateOpacity(UIElement element, double value)
     {
+        if (value > 0) element.Visibility = Visibility.Visible;
         if (Services.AccessibilityPreferences.ReduceMotion ||
             _settings.Current.QuickAccessAnimationStyle.Equals("None", StringComparison.OrdinalIgnoreCase))
         {
             element.BeginAnimation(OpacityProperty, null);
             element.Opacity = value;
+            if (value <= 0) element.Visibility = Visibility.Collapsed;
             return;
         }
         var duration = _settings.Current.QuickAccessAnimationStyle.Equals("Scale", StringComparison.OrdinalIgnoreCase)
             ? TimeSpan.FromMilliseconds(190)
             : TimeSpan.FromMilliseconds(145);
-        element.BeginAnimation(OpacityProperty, new DoubleAnimation(value, duration));
+        var animation = new DoubleAnimation(value, duration);
+        if (value <= 0) animation.Completed += (_, _) =>
+        {
+            if (!_isPointerOver && !_keyboardMode) element.Visibility = Visibility.Collapsed;
+        };
+        element.BeginAnimation(OpacityProperty, animation);
     }
 
     public void ResetCountdown()

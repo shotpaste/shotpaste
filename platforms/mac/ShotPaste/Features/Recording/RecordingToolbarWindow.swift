@@ -155,6 +155,10 @@ final class RecordingToolbarState: ObservableObject {
     showKeystrokes = RecordingToolbarPreferences.showKeystrokes()
     dimNonSelectedArea = RecordingToolbarPreferences.dimNonSelectedArea()
   }
+
+  /// Configuration values need no actor-bound teardown. AppKit can release
+  /// the observing hosting view from delayed window cleanup.
+  nonisolated deinit {}
 }
 
 // MARK: - Toolbar Window
@@ -412,7 +416,11 @@ final class RecordingToolbarWindow: NSWindow {
   }
 
   private func setContent(_ view: AnyView) {
-    let themedView = view.preferredColorScheme(ThemeManager.shared.systemAppearance)
+    let themedView = view
+      .foregroundStyle(ShotPastePalette.text)
+      .tint(ShotPastePalette.action)
+      .background(ShotPastePanelBackground(cornerRadius: ToolbarConstants.toolbarCornerRadius))
+      .preferredColorScheme(ThemeManager.shared.systemAppearance)
     let hosting = NSHostingView(rootView: AnyView(themedView))
     hosting.translatesAutoresizingMaskIntoConstraints = false
 

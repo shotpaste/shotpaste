@@ -1192,7 +1192,7 @@ private struct InlineAreaAnnotateRootView: View {
     )
     return Text(verbatim: text)
       .font(.system(size: 12, weight: .semibold, design: .monospaced))
-      .foregroundStyle(Color.primary)
+      .foregroundStyle(ShotPastePalette.text)
       .frame(width: labelSize.width, height: labelSize.height)
       .background(OneShotSizeLabelBackground())
       .position(x: x, y: y)
@@ -1545,20 +1545,20 @@ private struct InlineAreaOverlayPromptPalette {
 
   init(colorScheme: ColorScheme) {
     if colorScheme == .dark {
-      surface = Color(red: 0.12, green: 0.125, blue: 0.14)
-      primaryText = Color.white.opacity(0.96)
-      secondaryText = Color.white.opacity(0.72)
-      border = Color.white.opacity(0.18)
-      divider = Color.white.opacity(0.12)
+      surface = ShotPastePalette.chrome
+      primaryText = ShotPastePalette.text
+      secondaryText = ShotPastePalette.secondaryText
+      border = ShotPastePalette.border
+      divider = ShotPastePalette.border
       iconForeground = Color(red: 1, green: 0.66, blue: 0.24)
       iconBackground = Color(red: 1, green: 0.58, blue: 0.12).opacity(0.16)
       neutralButtonTint = Color.white.opacity(0.76)
     } else {
-      surface = Color(red: 0.975, green: 0.978, blue: 0.985)
-      primaryText = Color.black.opacity(0.90)
-      secondaryText = Color.black.opacity(0.62)
-      border = Color.black.opacity(0.16)
-      divider = Color.black.opacity(0.10)
+      surface = ShotPastePalette.chrome
+      primaryText = ShotPastePalette.text
+      secondaryText = ShotPastePalette.secondaryText
+      border = ShotPastePalette.border
+      divider = ShotPastePalette.border
       iconForeground = Color(red: 0.76, green: 0.32, blue: 0.02)
       iconBackground = Color(red: 0.90, green: 0.42, blue: 0.04).opacity(0.13)
       neutralButtonTint = Color.black.opacity(0.66)
@@ -2365,76 +2365,24 @@ private enum InlineAreaChrome {
   static let controlSize: CGFloat = InlineAreaToolbarMetrics.iconButtonSize
   static let moveControlWidth: CGFloat = 72
   static let propertyControlHeight: CGFloat = 24
-  static let itemBackground = Color.primary.opacity(0.06)
-  static let itemSelectedBackground = Color.primary.opacity(0.12)
-  static let itemSelectedForeground = Color.primary
+  static let itemBackground = ShotPastePalette.hover
+  static let itemSelectedBackground = ShotPastePalette.action
+  static let itemSelectedForeground = Color.white
   static let itemSelectedBorder = Color.clear
   static let itemBorder = Color.clear
-  static let divider = Color.primary.opacity(0.15)
-  static let primaryText = Color.primary.opacity(0.86)
-  static let secondaryText = Color.secondary.opacity(0.88)
-}
-
-private struct InlineAreaPanelBorder: View {
-  @Environment(\.colorScheme) var colorScheme
-
-  var body: some View {
-    RoundedRectangle(cornerRadius: InlineAreaChrome.cornerRadius, style: .continuous)
-      .strokeBorder(
-        colorScheme == .dark ? Color.white.opacity(0.18) : Color.black.opacity(0.12),
-        lineWidth: 1.0
-      )
-  }
-}
-
-private struct InlineAreaPanelBackgroundTint: View {
-  @Environment(\.colorScheme) var colorScheme
-
-  var body: some View {
-    if colorScheme == .dark {
-      Color.black.opacity(0.25)
-    } else {
-      Color.white.opacity(0.15)
-    }
-  }
+  static let divider = ShotPastePalette.border
+  static let primaryText = ShotPastePalette.text
+  static let secondaryText = ShotPastePalette.secondaryText
 }
 
 private extension View {
   func inlineAreaPanelChrome() -> some View {
-    background(InlineAreaPanelBackgroundTint())
-      .background(InlineAreaHudMaterialBackground(cornerRadius: InlineAreaChrome.cornerRadius))
+    foregroundStyle(ShotPastePalette.text)
+      .tint(ShotPastePalette.action)
+      .background(ShotPastePanelBackground(cornerRadius: InlineAreaChrome.cornerRadius))
       .clipShape(RoundedRectangle(cornerRadius: InlineAreaChrome.cornerRadius, style: .continuous))
-      .overlay(InlineAreaPanelBorder())
-      .shadow(color: Color.black.opacity(0.35), radius: 18, x: 0, y: 8)
-      .shadow(color: Color.black.opacity(0.18), radius: 3, x: 0, y: 1)
-  }
-}
-
-private struct InlineAreaHudMaterialBackground: NSViewRepresentable {
-  let cornerRadius: CGFloat
-
-  func makeNSView(context _: Context) -> NSVisualEffectView {
-    let view = NSVisualEffectView()
-    configure(view)
-    return view
-  }
-
-  func updateNSView(_ nsView: NSVisualEffectView, context _: Context) {
-    configure(nsView)
-  }
-
-  private func configure(_ view: NSVisualEffectView) {
-    view.material = .hudWindow
-    view.state = .active
-    view.blendingMode = .withinWindow
-    view.wantsLayer = true
-    view.layer?.cornerRadius = cornerRadius
-    view.layer?.cornerCurve = .continuous
-    view.layer?.masksToBounds = true
-
-    // Explicitly set vibrancy appearance to match color scheme
-    let isDark = ThemeManager.shared.systemAppearance == .dark
-    view.appearance = NSAppearance(named: isDark ? .vibrantDark : .vibrantLight)
+      .shadow(color: Color.black.opacity(0.18), radius: 12, x: 0, y: 5)
+      .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
   }
 }
 
@@ -2696,7 +2644,7 @@ private struct InlineAreaToolButton: View {
     Button(action: action) {
       InlineAreaToolGlyph(
         tool: tool,
-        color: .primary.opacity(isSelected || isHovering ? 1.0 : 0.85)
+        color: isSelected ? .white : ShotPastePalette.text
       )
       .frame(width: InlineAreaChrome.controlSize, height: InlineAreaChrome.controlSize)
       .background(buttonBackground)
@@ -2720,7 +2668,7 @@ private struct InlineAreaToolButton: View {
     RoundedRectangle(cornerRadius: InlineAreaChrome.controlCornerRadius, style: .continuous)
       .fill(
         isSelected
-          ? Color.primary.opacity(0.12) : (isHovering ? Color.primary.opacity(0.10) : Color.clear)
+          ? ShotPastePalette.action : (isHovering ? ShotPastePalette.hover : Color.clear)
       )
   }
 }
@@ -2791,14 +2739,14 @@ private struct InlineAreaMoveHandle: View {
           .lineLimit(1)
       }
     }
-    .foregroundColor(.primary.opacity(isHovering ? 1.0 : 0.85))
+    .foregroundColor(ShotPastePalette.text)
     .frame(
       width: isToolbarHandle ? InlineAreaChrome.controlSize : InlineAreaChrome.moveControlWidth,
       height: InlineAreaChrome.controlSize
     )
     .background(
       RoundedRectangle(cornerRadius: InlineAreaChrome.controlCornerRadius, style: .continuous)
-        .fill(isHovering ? Color.primary.opacity(0.10) : Color.clear)
+        .fill(isHovering ? ShotPastePalette.hover : Color.clear)
     )
     .contentShape(
       RoundedRectangle(cornerRadius: InlineAreaChrome.controlCornerRadius, style: .continuous)
@@ -2867,18 +2815,18 @@ private struct InlineAreaIconButton: View {
   }
 
   private var foregroundColor: Color {
-    if isSelected {
-      return .accentColor
+    if isSelected || isProminent {
+      return .white
     }
-    return .primary.opacity(isHovering || isProminent ? 1.0 : 0.85)
+    return ShotPastePalette.text
   }
 
   private var background: some View {
     RoundedRectangle(cornerRadius: InlineAreaChrome.controlCornerRadius, style: .continuous)
       .fill(
-        isSelected
-          ? Color.accentColor.opacity(0.16)
-          : (isHovering ? Color.primary.opacity(0.10) : Color.clear)
+        isSelected || isProminent
+          ? ShotPastePalette.action
+          : (isHovering ? ShotPastePalette.hover : Color.clear)
       )
   }
 }

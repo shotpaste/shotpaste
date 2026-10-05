@@ -82,13 +82,13 @@ struct OneShotTopSwitcher: View {
             .font(.system(size: 13, weight: .semibold))
             .lineLimit(1)
             .minimumScaleFactor(0.78)
-            .foregroundStyle(tab == state.activeTab ? Color.black : Color.white)
+            .foregroundStyle(tab == state.activeTab ? Color.white : ShotPastePalette.text)
             .frame(maxWidth: .infinity, minHeight: 44)
             .background(
-              RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .fill(tab == state.activeTab ? Color.white.opacity(0.96) : Color.clear)
+              RoundedRectangle(cornerRadius: Size.radiusMd, style: .continuous)
+                .fill(tab == state.activeTab ? ShotPastePalette.action : Color.clear)
             )
-            .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: Size.radiusMd, style: .continuous))
         }
         .buttonStyle(.plain)
         .opacity(tabOpacity(tab))
@@ -99,8 +99,8 @@ struct OneShotTopSwitcher: View {
     }
     .padding(6)
     .frame(width: width, height: OneShotLayout.switcherHeight)
-    .background(OneShotHUDBackground(cornerRadius: 16))
-    .shadow(color: .black.opacity(0.28), radius: 10, y: 4)
+    .background(OneShotHUDBackground(cornerRadius: Size.radiusLg))
+    .shadow(color: ShotPastePalette.shadow, radius: 10, y: 4)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("oneshot-top-switcher")
   }
@@ -108,7 +108,7 @@ struct OneShotTopSwitcher: View {
   private var dragHandle: some View {
     Image(systemName: "circle.grid.3x3.fill")
       .font(.system(size: 15, weight: .medium))
-      .foregroundStyle(Color.white.opacity(0.68))
+      .foregroundStyle(ShotPastePalette.secondaryText)
       .frame(width: 34, height: 44)
       .contentShape(Rectangle())
       .gesture(
@@ -154,7 +154,7 @@ struct OneShotScrollingControls: View {
       if state.showsScrollingHelp {
         Text(L10n.OneShot.scrollingHelpMessage)
           .font(.system(size: 12))
-          .foregroundStyle(.primary)
+          .foregroundStyle(ShotPastePalette.text)
           .multilineTextAlignment(.leading)
           .padding(.horizontal, 12)
           .padding(.vertical, 9)
@@ -172,6 +172,7 @@ struct OneShotScrollingControls: View {
             .frame(height: 36)
         }
         .buttonStyle(.borderedProminent)
+        .tint(ShotPastePalette.action)
         .accessibilityIdentifier("oneshot-scrolling-start")
 
         Button {
@@ -186,8 +187,10 @@ struct OneShotScrollingControls: View {
         .accessibilityIdentifier("oneshot-scrolling-help")
       }
       .padding(8)
-      .background(OneShotLightPanelBackground(cornerRadius: 13))
-      .shadow(color: .black.opacity(0.22), radius: 8, y: 3)
+      .foregroundStyle(ShotPastePalette.text)
+      .tint(ShotPastePalette.action)
+      .background(OneShotLightPanelBackground(cornerRadius: Size.radiusLg))
+      .shadow(color: ShotPastePalette.shadow, radius: 8, y: 3)
     }
     .background {
       GeometryReader { geometry in
@@ -212,7 +215,7 @@ struct OneShotRecordingControls: View {
           .frame(maxWidth: .infinity, minHeight: 36)
       }
       .buttonStyle(.borderedProminent)
-      .tint(.accentColor)
+      .tint(ShotPastePalette.action)
       .accessibilityIdentifier("oneshot-recording-start")
 
       Picker(L10n.RecordingToolbar.formatSection, selection: outputModeBinding) {
@@ -264,7 +267,7 @@ struct OneShotRecordingControls: View {
         if let message = transcriptionUnavailableMessage {
           Text(message)
             .font(.system(size: 11))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(ShotPastePalette.secondaryText)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityIdentifier("oneshot-recording-transcription-unavailable")
         }
@@ -276,8 +279,11 @@ struct OneShotRecordingControls: View {
     .frame(
       width: OneShotLayout.recordingPanelSize.width, height: OneShotLayout.recordingPanelSize.height
     )
-    .background(OneShotLightPanelBackground(cornerRadius: 16))
-    .shadow(color: .black.opacity(0.28), radius: 12, y: 5)
+    .font(ShotPasteTypography.body)
+    .foregroundStyle(ShotPastePalette.text)
+    .tint(ShotPastePalette.action)
+    .background(OneShotLightPanelBackground(cornerRadius: Size.radiusLg))
+    .shadow(color: ShotPastePalette.shadow, radius: 12, y: 5)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("oneshot-recording-settings")
     .alert(L10n.Microphone.accessRequiredTitle, isPresented: $showMicrophonePermissionAlert) {
@@ -418,7 +424,7 @@ struct OneShotRecordingControls: View {
         Image(systemName: icon)
           .font(.system(size: 17, weight: .medium))
         Text(title)
-          .font(.system(size: 11, weight: .medium))
+          .font(ShotPasteTypography.caption)
           .lineLimit(1)
       }
       .frame(maxWidth: .infinity)
@@ -532,19 +538,19 @@ struct OneShotMagnifierView: View {
         Text(L10n.OneShot.switchColorHint)
       }
       .font(.system(size: 10.5, weight: .medium, design: .monospaced))
-      .foregroundStyle(Color.white)
+      .foregroundStyle(ShotPastePalette.text)
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(.horizontal, 9)
       .padding(.vertical, 7)
-      .background(Color.black.opacity(0.86))
+      .background(ShotPastePalette.chrome)
     }
     .frame(width: OneShotLayout.magnifierSize.width, height: OneShotLayout.magnifierSize.height)
     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     .overlay(
       RoundedRectangle(cornerRadius: 12, style: .continuous)
-        .stroke(Color.white.opacity(0.35), lineWidth: 1)
+        .stroke(ShotPastePalette.border, lineWidth: 1)
     )
-    .shadow(color: .black.opacity(0.35), radius: 8, y: 3)
+    .shadow(color: ShotPastePalette.shadow, radius: 8, y: 3)
     .allowsHitTesting(false)
     .accessibilityElement(children: .combine)
     .accessibilityIdentifier("oneshot-magnifier")
@@ -555,11 +561,7 @@ private struct OneShotHUDBackground: View {
   let cornerRadius: CGFloat
 
   var body: some View {
-    ZStack {
-      OneShotVisualEffect(material: .hudWindow, blendingMode: .withinWindow)
-      Color.black.opacity(0.35)
-    }
-    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    ShotPastePanelBackground(cornerRadius: cornerRadius)
   }
 }
 
@@ -567,26 +569,14 @@ private struct OneShotLightPanelBackground: View {
   let cornerRadius: CGFloat
 
   var body: some View {
-    OneShotVisualEffect(material: .popover, blendingMode: .withinWindow)
-      .overlay(Color(nsColor: .windowBackgroundColor).opacity(0.38))
-      .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-      .overlay(
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-          .stroke(Color.primary.opacity(0.12), lineWidth: 1)
-      )
+    ShotPastePanelBackground(cornerRadius: cornerRadius)
   }
 }
 
 struct OneShotSizeLabelBackground: View {
   var body: some View {
-    OneShotVisualEffect(material: .popover, blendingMode: .withinWindow)
-      .overlay(Color(nsColor: .windowBackgroundColor).opacity(0.62))
-      .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-      .overlay(
-        RoundedRectangle(cornerRadius: 7, style: .continuous)
-          .stroke(Color.primary.opacity(0.14), lineWidth: 1)
-      )
-      .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+    ShotPastePanelBackground(cornerRadius: Size.radiusMd)
+      .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
   }
 }
 

@@ -19,13 +19,13 @@ struct AnnotationToolbarIconButton: View {
     Button(action: action) {
       Image(systemName: systemName)
         .font(.system(size: 13, weight: .medium))
-        .foregroundColor(.primary.opacity(isSelected || isHovered ? 1.0 : 0.85))
+        .foregroundColor(isSelected ? .white : (systemName == "trash" ? ShotPastePalette.danger : ShotPastePalette.text))
         .frame(width: 28, height: 28)
         .background(
-          RoundedRectangle(cornerRadius: 6)
+          RoundedRectangle(cornerRadius: Size.radiusMd)
             .fill(backgroundColor)
         )
-        .contentShape(RoundedRectangle(cornerRadius: 6))
+        .contentShape(RoundedRectangle(cornerRadius: Size.radiusMd))
         .animation(ToolbarConstants.hoverAnimation, value: isHovered)
     }
     .buttonStyle(.plain)
@@ -34,9 +34,9 @@ struct AnnotationToolbarIconButton: View {
 
   private var backgroundColor: Color {
     if isSelected {
-      return Color.primary.opacity(0.12)
+      return ShotPastePalette.action
     } else if isHovered {
-      return Color.primary.opacity(0.1)
+      return ShotPastePalette.hover
     }
     return .clear
   }

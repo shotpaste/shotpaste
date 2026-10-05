@@ -12,8 +12,14 @@ internal static class AccessibilityPreferences
         "PopupBackgroundBrush", "WindowBackdropBrush", "TitleBarBrush", "ToastBackgroundBrush",
         "TextBrush", "SecondaryTextBrush", "HudTextBrush", "HudSecondaryTextBrush",
         "BorderBrush", "ControlBorderBrush", "ControlBorderHoverBrush", "PopupBorderBrush",
-        "HudBrush", "HudBorderBrush", "AccentBrush", "AccentSoftBrush",
-        "FocusRingBrush", "AccentForegroundBrush"
+        "HudBrush", "HudBorderBrush", "HudInputBrush", "HudOverlayBrush", "HudBadgeBrush",
+        "HudPreviewBrush", "HudDividerBrush", "HudSwatchBorderBrush",
+        "HudHoverBrush", "HudPressedBrush", "HudSelectedBrush", "HudSelectedTextBrush",
+        "Pinned.BackgroundBrush", "Pinned.BorderBrush",
+        "Pinned.ToolbarBackgroundBrush", "Pinned.ToolbarBorderBrush",
+        "AccentBrush", "AccentFillBrush", "AccentPressedBrush", "AccentSoftBrush", "AccentSoftForegroundBrush",
+        "FocusRingBrush", "AccentForegroundBrush",
+        "HoverBackgroundBrush", "PressedBackgroundBrush", "CardHoverBrush", "CardHoverBorderBrush"
     ];
 
     public static bool ReduceMotion => !SystemParameters.ClientAreaAnimation;
@@ -27,13 +33,20 @@ internal static class AccessibilityPreferences
         Set(resources, System.Windows.SystemColors.WindowBrush,
             "WindowBrush", "HistoryHudBrush", "SurfaceBrush", "SurfaceSecondaryBrush",
             "ControlBackgroundBrush", "ControlBackgroundHoverBrush", "ControlBackgroundPressedBrush",
-            "PopupBackgroundBrush", "WindowBackdropBrush", "TitleBarBrush", "ToastBackgroundBrush", "HudBrush");
+            "PopupBackgroundBrush", "WindowBackdropBrush", "TitleBarBrush", "ToastBackgroundBrush", "HudBrush", "HudInputBrush", "HudOverlayBrush", "HudBadgeBrush",
+            "HudPreviewBrush", "HudHoverBrush", "HudPressedBrush",
+            "Pinned.BackgroundBrush", "Pinned.ToolbarBackgroundBrush", "CardHoverBrush");
         Set(resources, System.Windows.SystemColors.WindowTextBrush,
             "TextBrush", "SecondaryTextBrush", "HudTextBrush", "HudSecondaryTextBrush");
         Set(resources, System.Windows.SystemColors.ActiveBorderBrush,
-            "BorderBrush", "ControlBorderBrush", "ControlBorderHoverBrush", "PopupBorderBrush", "HudBorderBrush");
-        Set(resources, System.Windows.SystemColors.HighlightBrush, "AccentBrush", "AccentSoftBrush", "FocusRingBrush");
-        Set(resources, System.Windows.SystemColors.HighlightTextBrush, "AccentForegroundBrush");
+            "BorderBrush", "ControlBorderBrush", "ControlBorderHoverBrush", "PopupBorderBrush", "HudBorderBrush", "HudDividerBrush", "HudSwatchBorderBrush",
+            "Pinned.BorderBrush", "Pinned.ToolbarBorderBrush", "CardHoverBorderBrush");
+        Set(resources, System.Windows.SystemColors.HighlightBrush,
+            "AccentBrush", "AccentFillBrush", "AccentPressedBrush", "AccentSoftBrush", "FocusRingBrush",
+            "HudSelectedBrush");
+        Set(resources, System.Windows.SystemColors.HighlightTextBrush,
+            "AccentForegroundBrush", "HudSelectedTextBrush", "AccentSoftForegroundBrush");
+        Set(resources, System.Windows.Media.Brushes.Transparent, "HoverBackgroundBrush", "PressedBackgroundBrush");
     }
 
     private static void Set(ResourceDictionary resources, WpfBrush brush, params string[] keys)

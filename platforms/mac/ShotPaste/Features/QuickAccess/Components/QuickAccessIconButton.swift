@@ -34,10 +34,10 @@ struct QuickAccessIconButton: View {
     }) {
       Image(systemName: icon)
         .font(.system(size: 10, weight: .bold))
-        .foregroundColor(.white.opacity(isEnabled ? 1 : 0.7))
+        .foregroundColor(icon.contains("trash") ? ShotPastePalette.danger : ShotPastePalette.text)
         .frame(width: 20, height: 20)
         .background(
-          Circle()
+          RoundedRectangle(cornerRadius: 6, style: .continuous)
             .fill(buttonBackgroundColor)
         )
         .scaleEffect(isPressed ? 0.85 : 1.0)
@@ -65,13 +65,13 @@ struct QuickAccessIconButton: View {
 
   private var buttonBackgroundColor: Color {
     if !isEnabled {
-      Color.black.opacity(0.4)
+      ShotPastePalette.chrome.opacity(0.8)
     } else if isPressed {
-      Color.white.opacity(0.5)
+      ShotPastePalette.selected
     } else if isHovering {
-      Color.white.opacity(0.35)
+      ShotPastePalette.hover
     } else {
-      Color.black.opacity(0.6)
+      ShotPastePalette.chrome
     }
   }
 }

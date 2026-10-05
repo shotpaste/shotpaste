@@ -26,6 +26,7 @@ public partial class MainWindow : Window
     {
         Interval = TimeSpan.FromMilliseconds(350)
     };
+    private bool _historyHeaderStacked;
     public MainWindow(AppController controller, CaptureHistoryStore history, SettingsStore settings)
     {
         InitializeComponent();
@@ -57,14 +58,42 @@ public partial class MainWindow : Window
             _settings.Save();
         };
         SizeChanged += OnHistorySizeChanged;
+        TopBar.SizeChanged += (_, _) => UpdateHistoryHeaderLayout();
+        KindFilterGroup.SizeChanged += (_, _) => UpdateHistoryHeaderLayout();
+        HeaderUtilities.SizeChanged += (_, _) => UpdateHistoryHeaderLayout();
+        SelectionActions.SizeChanged += (_, _) => UpdateHistoryHeaderLayout();
         LocationChanged += OnHistoryLocationChanged;
         Loaded += (_, _) =>
         {
             WindowAppearanceService.ConstrainToWorkingArea(this);
             PositionHistoryWindow();
+            UpdateHistoryHeaderLayout();
         };
         Closed += (_, _) => SystemParameters.StaticPropertyChanged -= OnSystemParametersChanged;
         QueueFilter(TimeSpan.Zero, resetScroll: true);
+    }
+
+    private void UpdateHistoryHeaderLayout()
+    {
+        if (!IsLoaded || TopBar.ActualWidth <= 0) return;
+        var remainingWidth = TopBar.ActualWidth - KindFilterGroup.DesiredSize.Width - HeaderUtilities.DesiredSize.Width;
+        var requiredWidth = 160d;
+        if (HistoryItems.SelectedItems.Count > 0)
+        {
+            SelectionActions.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+            requiredWidth = SelectionActions.DesiredSize.Width - SelectionActions.Margin.Left - SelectionActions.Margin.Right + 24;
+        }
+        var stacked = remainingWidth < requiredWidth;
+        if (_historyHeaderStacked == stacked) return;
+        _historyHeaderStacked = stacked;
+        foreach (var element in new FrameworkElement[] { SearchContainer, SelectionActions })
+        {
+            Grid.SetRow(element, stacked ? 1 : 0);
+            Grid.SetColumn(element, stacked ? 0 : 1);
+            Grid.SetColumnSpan(element, stacked ? 3 : 1);
+        }
+        SearchContainer.Margin = stacked ? new Thickness(0, 8, 0, 0) : new Thickness(12, 0, 12, 0);
+        SelectionActions.Margin = stacked ? new Thickness(0, 8, 0, 0) : new Thickness(12, 0, 12, 0);
     }
 
     private void OnSystemParametersChanged(object? sender, PropertyChangedEventArgs e)
@@ -289,7 +318,7 @@ public partial class MainWindow : Window
             if (selected)
             {
                 button.SetResourceReference(Button.BackgroundProperty, "AccentSoftBrush");
-                button.SetResourceReference(Button.ForegroundProperty, "AccentBrush");
+                button.SetResourceReference(Button.ForegroundProperty, "AccentSoftForegroundBrush");
                 button.SetResourceReference(Button.BorderBrushProperty, "AccentBrush");
                 AutomationProperties.SetItemStatus(button, LocalizedDialogService.Text("已选择"));
             }
@@ -315,7 +344,9 @@ public partial class MainWindow : Window
         if (sender is not ListBox list || !ReferenceEquals(list, HistoryItems)) return;
         var count = HistoryItems.SelectedItems.Count;
         SelectionActions.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        SelectionSummary.Text = LocalizationService.TranslatePhrase($"已选择 {count} 项");
+        SearchContainer.Visibility = count > 0 ? Visibility.Collapsed : Visibility.Visible;
+        SelectionSummary.Text = LocalizationService.TranslatePhrase("已选择 {count} 项").Replace("{count}", count.ToString(System.Globalization.CultureInfo.CurrentCulture), StringComparison.Ordinal);
+        UpdateHistoryHeaderLayout();
     }
 
     private void OnCopySelection(object sender, RoutedEventArgs e) =>
@@ -437,7 +468,7 @@ public partial class MainWindow : Window
         if (count <= 0) return false;
         return LocalizedDialogService.ShowCustom(
             this,
-            $"确定删除选中的 {count} 条历史记录吗？由 ShotPaste 保存的文件会移入 Windows 回收站，可以恢复。",
+            LocalizationService.TranslatePhrase("确定删除选中的 {count} 条历史记录吗？由 ShotPaste 保存的文件会移入 Windows 回收站，可以恢复。").Replace("{count}", count.ToString(System.Globalization.CultureInfo.CurrentCulture), StringComparison.Ordinal),
             "删除历史记录",
             "移入回收站",
             "取消",
