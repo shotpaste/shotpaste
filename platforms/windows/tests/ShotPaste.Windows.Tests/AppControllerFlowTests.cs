@@ -155,7 +155,7 @@ public sealed class AppControllerFlowTests
     [InlineData(OneShotMode.Screenshot, false, true)]
     [InlineData(OneShotMode.Scrolling, false, true)]
     [InlineData(OneShotMode.Recording, false, true)]
-    [InlineData(OneShotMode.Translation, false, true)]
+    [InlineData(OneShotMode.Translation, false, false)]
     [InlineData(OneShotMode.Clipboard, false, false)]
     [InlineData(OneShotMode.Screenshot, true, false)]
     [InlineData(OneShotMode.Scrolling, true, false)]
@@ -205,7 +205,7 @@ public sealed class AppControllerFlowTests
     }
 
     [Fact]
-    public void OneShotRecordingOptions_UseReadableTextOnTheDarkHud()
+    public void OneShotRecordingOptions_UseReadableTextOnTheThemedHud()
     {
         var xaml = File.ReadAllText(FindRepositoryFile(
             "platforms", "windows", "src", "ShotPaste.Windows", "Views", "InlineAnnotateWindow.xaml"));
@@ -300,7 +300,7 @@ public sealed class AppControllerFlowTests
                 "InlineToolFilledRectangle", "InlineToolOval", "InlineToolArrow", "InlineToolLine",
                 "InlineToolText", "InlineToolHighlighter", "InlineToolBlur", "InlineToolSpotlight",
                 "InlineToolCounter", "InlineToolPencil", "InlineUndo", "InlineRedo", "OneShotOcr",
-                "InlineToolPan", "InlineZoomOut", "InlineZoomPicker", "InlineZoomFit", "InlineZoomIn",
+                "OneShotTranslation", "InlineToolPan", "InlineZoomOut", "InlineZoomPicker", "InlineZoomFit", "InlineZoomIn",
                 "OneShotPin", "OneShotCopy", "OneShotCancel", "OneShotDone"
             ],
             orderedIds);

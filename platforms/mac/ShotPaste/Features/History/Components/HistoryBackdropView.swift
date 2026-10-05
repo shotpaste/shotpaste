@@ -20,7 +20,7 @@ struct HistoryBackdropView: View {
       if compact {
         switch style {
         case .hud:
-          Color(white: 0.15)
+          ShotPastePalette.chrome
         case .solid:
           Color(nsColor: WindowSurfacePalette.backgroundColor(for: themeManager.preferredAppearance))
         }
@@ -28,6 +28,7 @@ struct HistoryBackdropView: View {
         switch style {
         case .hud:
           Rectangle().fill(.ultraThinMaterial)
+          Rectangle().fill(ShotPastePalette.chrome.opacity(0.84))
           Rectangle().fill(hudTint)
           glow(
             color: Color.white.opacity(colorScheme == .dark ? 0.06 : 0.38),

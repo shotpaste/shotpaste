@@ -45,6 +45,11 @@ struct PreferencesView: View {
         .tabItem { Label(L10n.Preferences.advancedTab, systemImage: "slider.horizontal.3") }
         .tag(PreferencesTab.advanced)
     }
+    .font(ShotPasteTypography.body)
+    .foregroundStyle(ShotPastePalette.text)
+    .tint(ShotPastePalette.action)
+    .scrollContentBackground(.hidden)
+    .background(ShotPastePalette.window)
     .frame(
       minWidth: 700,
       idealWidth: 780,

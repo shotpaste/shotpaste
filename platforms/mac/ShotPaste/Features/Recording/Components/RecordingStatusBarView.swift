@@ -45,7 +45,7 @@ struct RecordingStatusBarView: View {
       // Drag handle (visual only — drag handled by NSWindow)
       Image(systemName: "line.3.horizontal")
         .font(.system(size: 10, weight: .bold))
-        .foregroundColor(.primary.opacity(0.3))
+        .foregroundColor(ShotPastePalette.secondaryText)
         .frame(width: 20, height: 20)
 
       RecordingToolbarDivider()
@@ -53,7 +53,7 @@ struct RecordingStatusBarView: View {
       // Recording indicator (pulsing red dot) + Timer
       HStack(spacing: 8) {
         Circle()
-          .fill(.red)
+          .fill(ShotPastePalette.danger)
           .frame(width: 8, height: 8)
           .opacity(recorder.isPaused ? 0.4 : indicatorOpacity)
           .animation(
@@ -68,7 +68,7 @@ struct RecordingStatusBarView: View {
 
         Text(recorder.formattedDuration)
           .font(.system(size: 13, weight: .medium, design: .monospaced))
-          .foregroundColor(recorder.isPaused ? .primary.opacity(0.5) : .primary)
+          .foregroundColor(recorder.isPaused ? ShotPastePalette.secondaryText : ShotPastePalette.text)
           .accessibilityHidden(true)
       }
       .padding(.horizontal, 8)
@@ -136,11 +136,12 @@ struct RecordingStatusBarView: View {
 
       RecordingToolbarDivider()
 
-      // Stop button (native text style)
+      // Stop button
       Button(action: onStop) {
         Text(L10n.RecordingToolbar.stop)
       }
-      .buttonStyle(StopButtonStyle())
+      .buttonStyle(.borderedProminent)
+      .tint(ShotPastePalette.action)
       .fixedSize()
       .accessibilityLabel(L10n.RecordingToolbar.stopRecordingAccessibility(recorder.formattedDuration))
       .accessibilityHint(L10n.RecordingToolbar.stopRecordingHint)

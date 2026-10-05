@@ -78,7 +78,7 @@ struct OneShotTranslationControls: View {
             .controlSize(.small)
           Text(progressTitle)
             .font(.system(size: 11.5, weight: .medium))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(ShotPastePalette.secondaryText)
         }
         .accessibilityIdentifier("oneshot-translation-progress")
       }
@@ -89,7 +89,7 @@ struct OneShotTranslationControls: View {
       ) {
         Label(L10n.OneShot.translationLowConfidence, systemImage: "exclamationmark.circle")
           .font(.system(size: 11.5, weight: .medium))
-          .foregroundStyle(.secondary)
+          .foregroundStyle(ShotPastePalette.secondaryText)
           .fixedSize(horizontal: false, vertical: true)
           .accessibilityIdentifier("oneshot-translation-low-confidence")
       }
@@ -111,12 +111,11 @@ struct OneShotTranslationControls: View {
       }
     }
     .padding(9)
-    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-    .overlay(
-      RoundedRectangle(cornerRadius: 14, style: .continuous)
-        .stroke(Color.primary.opacity(0.14), lineWidth: 1)
-    )
-    .shadow(color: .black.opacity(0.25), radius: 9, y: 3)
+    .font(ShotPasteTypography.body)
+    .foregroundStyle(ShotPastePalette.text)
+    .tint(ShotPastePalette.action)
+    .background(ShotPastePanelBackground())
+    .shadow(color: ShotPastePalette.shadow, radius: 9, y: 3)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("oneshot-translation-controls")
   }
@@ -134,6 +133,7 @@ struct OneShotTranslationControls: View {
         }
       }
       .buttonStyle(.borderedProminent)
+      .tint(ShotPastePalette.action)
       .disabled(isRequestInFlight)
       .accessibilityIdentifier("oneshot-translation-full-screen")
 
@@ -179,7 +179,7 @@ struct OneShotTranslationControls: View {
 
       Image(systemName: "arrow.right")
         .font(.system(size: 12, weight: .semibold))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(ShotPastePalette.secondaryText)
 
       Button {
         showsTargetPicker = true
@@ -273,7 +273,8 @@ struct OneShotTranslationControls: View {
     .padding(.vertical, 6)
     .frame(maxWidth: .infinity, alignment: .leading)
     .contentShape(Rectangle())
-    .background(selected ? Color.accentColor.opacity(0.15) : .clear, in: RoundedRectangle(cornerRadius: 6))
+    .foregroundStyle(selected ? .white : ShotPastePalette.text)
+    .background(selected ? ShotPastePalette.action : .clear, in: RoundedRectangle(cornerRadius: Size.radiusMd))
   }
 
   private var fullScreenTitle: String {

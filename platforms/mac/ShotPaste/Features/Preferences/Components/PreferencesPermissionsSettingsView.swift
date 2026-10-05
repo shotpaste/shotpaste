@@ -122,7 +122,7 @@ struct PermissionsSettingsView: View {
       }
       .padding(Spacing.md)
     }
-    .background(Color(nsColor: .windowBackgroundColor))
+    .background(ShotPastePalette.window)
     .onAppear {
       hasAppeared = true
       checkAllPermissions()

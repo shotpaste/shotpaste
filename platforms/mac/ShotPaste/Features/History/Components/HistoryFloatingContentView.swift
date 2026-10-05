@@ -290,7 +290,7 @@ struct HistoryFloatingContentView: View {
         systemImage: "checkmark.circle.fill"
       )
       .font(.system(size: 11, weight: .semibold))
-      .foregroundColor(.primary.opacity(0.84))
+      .foregroundColor(ShotPastePalette.text)
 
       if expandedSelectedRecords.count < expandedRecords.count {
         selectionControlButton(
@@ -391,9 +391,9 @@ struct HistoryFloatingContentView: View {
             }
           }
           .padding(10)
-          .background(placeholderCardFill, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+          .background(placeholderCardFill, in: RoundedRectangle(cornerRadius: Size.radiusLg, style: .continuous))
           .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: Size.radiusLg, style: .continuous)
               .stroke(placeholderStroke, lineWidth: 1)
           )
           .redacted(reason: .placeholder)
@@ -433,73 +433,23 @@ struct HistoryFloatingContentView: View {
   }
 
   private var selectedFilterBackground: AnyShapeStyle {
-    AnyShapeStyle(
-      LinearGradient(
-        colors: [
-          Color.accentColor.opacity(colorScheme == .dark ? 0.95 : 0.98),
-          Color.accentColor.opacity(colorScheme == .dark ? 0.82 : 0.9),
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-      )
-    )
+    AnyShapeStyle(ShotPastePalette.action)
   }
 
   private var chromeSurfaceFill: AnyShapeStyle {
-    if backgroundStyle == .solid {
-      return colorScheme == .dark
-        ? AnyShapeStyle(Color.white.opacity(0.07))
-        : AnyShapeStyle(Color.white.opacity(0.76))
-    }
-
-    return colorScheme == .dark
-      ? AnyShapeStyle(Color.white.opacity(0.07))
-      : AnyShapeStyle(Color.white.opacity(0.52))
+    AnyShapeStyle(ShotPastePalette.chrome.opacity(backgroundStyle == .solid ? 1 : 0.94))
   }
 
-  private var chromeSurfaceBorder: Color {
-    colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.64)
-  }
-
-  private var chromeSurfaceShadow: Color {
-    Color.black.opacity(colorScheme == .dark ? 0.18 : 0.07)
-  }
-
-  private var selectionBarTint: Color {
-    colorScheme == .dark ? Color.black.opacity(0.18) : Color.white.opacity(0.42)
-  }
-
-  private var selectionBarBorder: Color {
-    colorScheme == .dark ? Color.white.opacity(0.16) : Color.white.opacity(0.7)
-  }
-
-  private var unselectedPillBackground: AnyShapeStyle {
-    colorScheme == .dark
-      ? AnyShapeStyle(Color.white.opacity(0.08))
-      : AnyShapeStyle(Color.black.opacity(0.05))
-  }
-
-  private var pillCountBackground: Color {
-    colorScheme == .dark ? Color.white.opacity(0.12) : Color.white.opacity(0.84)
-  }
-
-  private var controlButtonBackground: AnyShapeStyle {
-    colorScheme == .dark
-      ? AnyShapeStyle(Color.white.opacity(0.08))
-      : AnyShapeStyle(Color.white.opacity(0.72))
-  }
-
-  private var placeholderFill: Color {
-    colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)
-  }
-
-  private var placeholderCardFill: Color {
-    colorScheme == .dark ? Color.white.opacity(0.05) : Color.white.opacity(0.64)
-  }
-
-  private var placeholderStroke: Color {
-    colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.05)
-  }
+  private var chromeSurfaceBorder: Color { ShotPastePalette.border }
+  private var chromeSurfaceShadow: Color { ShotPastePalette.shadow }
+  private var selectionBarTint: Color { ShotPastePalette.chrome }
+  private var selectionBarBorder: Color { ShotPastePalette.border }
+  private var unselectedPillBackground: AnyShapeStyle { AnyShapeStyle(ShotPastePalette.hover) }
+  private var pillCountBackground: Color { ShotPastePalette.card }
+  private var controlButtonBackground: AnyShapeStyle { AnyShapeStyle(ShotPastePalette.card) }
+  private var placeholderFill: Color { ShotPastePalette.hover }
+  private var placeholderCardFill: Color { ShotPastePalette.card }
+  private var placeholderStroke: Color { ShotPastePalette.border }
 
   // MARK: - Helpers
 
@@ -528,7 +478,7 @@ struct HistoryFloatingContentView: View {
             .background(pillCountBackground.opacity(isSelected ? 0.18 : 1), in: Capsule())
         }
       }
-      .foregroundColor(isSelected ? .white : .primary.opacity(0.82))
+      .foregroundColor(isSelected ? .white : ShotPastePalette.text)
       .padding(.horizontal, horizontalPadding)
       .padding(.vertical, verticalPadding)
       .frame(minWidth: minWidth)
@@ -590,7 +540,7 @@ struct HistoryFloatingContentView: View {
         .fixedSize(horizontal: true, vertical: false)
     }
     .buttonStyle(.plain)
-    .foregroundColor(isDestructive ? .red : .primary.opacity(0.82))
+    .foregroundColor(isDestructive ? ShotPastePalette.danger : ShotPastePalette.text)
   }
 
   private func syncSelectionIfNeeded() {

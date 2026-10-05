@@ -20,7 +20,7 @@
         </Border>
         <StackPanel>
           <TextBlock Text="{loc:Localized Key='识别结果已复制'}" Foreground="{DynamicResource HudTextBrush}" FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap"/>
-          <TextBlock Text="{loc:Localized Key='10 秒后自动关闭 · 悬停暂停'}" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="10" Margin="0,2,0,0" TextWrapping="Wrap"/>
+          <TextBlock Text="{loc:Localized Key='10 秒后自动关闭 · 悬停暂停'}" Foreground="{DynamicResource HudSecondaryTextBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
         </StackPanel>
       </DockPanel>
       <Border Grid.Row="1" Background="{DynamicResource HudInputBrush}" BorderBrush="{DynamicResource HudBorderBrush}"

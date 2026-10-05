@@ -79,6 +79,9 @@ public partial class InlineAnnotateWindow : Window
     private readonly Drawing.Rectangle _physicalBounds;
     private readonly Func<Window, Drawing.Bitmap, bool, Task<bool>>? _screenshotCommit;
     private readonly AppSettings? _settings;
+    internal Func<AppSettings>? TranslationSettingsProvider { get; set; }
+    internal Action<Window>? OpenTranslationSettings { get; set; }
+    private AppSettings? CurrentSettings => TranslationSettingsProvider?.Invoke() ?? _settings;
     private readonly Action? _saveSettings;
     private readonly Stack<EditAction> _undo = new();
     private readonly Stack<EditAction> _redo = new();
@@ -191,7 +194,6 @@ public partial class InlineAnnotateWindow : Window
         _screenshotCommit = screenshotCommit;
         _settings = settings;
         _saveSettings = saveSettings;
-        InitializeTranslation();
         _startWithOcr = initialMode == OneShotMode.Ocr;
         _oneShotMode = initialMode is OneShotMode.Screenshot or OneShotMode.Scrolling or OneShotMode.Recording
             ? initialMode
@@ -206,7 +208,6 @@ public partial class InlineAnnotateWindow : Window
         Loaded += OnLoaded;
         Closed += (_, _) =>
         {
-            CancelTranslation();
             ReleaseTransientInputCapture();
             _statusTimer.Stop();
             PersistAnnotationSettings();
@@ -223,19 +224,20 @@ public partial class InlineAnnotateWindow : Window
 
     private void ApplyPersistedAnnotationSettings()
     {
-        if (_settings is null) return;
-        try { _color = (WpfColor)ColorConverter.ConvertFromString(_settings.AnnotationPrimaryColor); }
+        var settings = CurrentSettings;
+        if (settings is null) return;
+        try { _color = (WpfColor)ColorConverter.ConvertFromString(settings.AnnotationPrimaryColor); }
         catch (FormatException) { }
-        _fontSize = Math.Clamp(_settings.AnnotationFontSize, 8d, 96d);
-        _cornerRadius = Math.Clamp(_settings.AnnotationCornerRadius, 0d, 64d);
-        if (StrokeSlider is not null) StrokeSlider.Value = Math.Clamp(_settings.AnnotationStrokeWidth, 1d, 40d);
+        _fontSize = Math.Clamp(settings.AnnotationFontSize, 8d, 96d);
+        _cornerRadius = Math.Clamp(settings.AnnotationCornerRadius, 0d, 64d);
+        if (StrokeSlider is not null) StrokeSlider.Value = Math.Clamp(settings.AnnotationStrokeWidth, 1d, 40d);
         if (FontSizeSlider is not null) FontSizeSlider.Value = _fontSize;
         if (CornerRadiusSlider is not null) CornerRadiusSlider.Value = _cornerRadius;
     }
 
     private void ApplyPersistedToolSettings(string tool)
     {
-        var settings = _settings;
+        var settings = CurrentSettings;
         if (settings is null || !settings.AnnotationToolSettings.TryGetValue(tool, out var stored)) return;
         _suppressPropertyUpdates = true;
         try
@@ -260,19 +262,21 @@ public partial class InlineAnnotateWindow : Window
 
     private void PersistAnnotationSettings()
     {
-        if (_settings is null) return;
-        _settings.AnnotationPrimaryColor = _color.ToString();
-        _settings.AnnotationStrokeWidth = Math.Clamp(StrokeWidth, 1d, 40d);
-        _settings.AnnotationFontSize = Math.Clamp(_fontSize, 8d, 96d);
-        _settings.AnnotationCornerRadius = Math.Clamp(_cornerRadius, 0d, 64d);
+        var settings = CurrentSettings;
+        if (settings is null) return;
+        settings.AnnotationPrimaryColor = _color.ToString();
+        settings.AnnotationStrokeWidth = Math.Clamp(StrokeWidth, 1d, 40d);
+        settings.AnnotationFontSize = Math.Clamp(_fontSize, 8d, 96d);
+        settings.AnnotationCornerRadius = Math.Clamp(_cornerRadius, 0d, 64d);
         PersistCurrentToolSettings();
         _saveSettings?.Invoke();
     }
 
     private void PersistCurrentToolSettings()
     {
-        if (_settings is null || _tool is "Selection" or "Pan") return;
-        _settings.AnnotationToolSettings[_tool] = new AnnotationToolSettings
+        var settings = CurrentSettings;
+        if (settings is null || _tool is "Selection" or "Pan") return;
+        settings.AnnotationToolSettings[_tool] = new AnnotationToolSettings
         {
             Color = _color.ToString(),
             TextBackgroundColor = _textBackgroundColor?.ToString(),
@@ -349,7 +353,6 @@ public partial class InlineAnnotateWindow : Window
         }
         if (_annotating || e.ChangedButton != MouseButton.Left ||
             IsWithin(OneShotSwitcher, e.OriginalSource) || IsWithin(OneShotModePanel, e.OriginalSource)) return;
-        ResetTranslationResult();
         _pointerStart = ClampPoint(e.GetPosition(Root));
         _selectionRect = new Rect(_pointerStart, _pointerStart);
         _interaction = OverlayInteraction.Selecting;
@@ -623,7 +626,7 @@ public partial class InlineAnnotateWindow : Window
     {
         if (OneShotSwitcher.Visibility != Visibility.Visible) return;
         OneShotSwitcher.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        var width = Math.Min(620, Math.Max(320, ActualWidth - 24));
+        var width = Math.Min(520, Math.Max(320, ActualWidth - 24));
         OneShotSwitcher.Width = width;
         var currentLeft = Canvas.GetLeft(OneShotSwitcher);
         if (double.IsNaN(currentLeft)) currentLeft = (ActualWidth - width) / 2;
@@ -633,26 +636,35 @@ public partial class InlineAnnotateWindow : Window
 
     private void PositionOneShotModePanel()
     {
-        if (OneShotModePanel.Visibility != Visibility.Visible) return;
-        if (_oneShotMode == OneShotMode.Translation)
+        if (OneShotModePanel.Visibility != Visibility.Visible || _selectionRect.IsEmpty) return;
+        const double gap = 12;
+        var viewport = GetSelectionScreenBounds(SelectionPixelRect(), useWorkingArea: true);
+        viewport.Intersect(new Rect(0, 0, ActualWidth, ActualHeight));
+        if (viewport.IsEmpty) return;
+        var minimumLeft = viewport.Left + gap;
+        var minimumTop = viewport.Top + gap;
+        if (OneShotSwitcher.Visibility == Visibility.Visible)
         {
-            OneShotModePanel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            Canvas.SetLeft(OneShotModePanel, Math.Max(12, (ActualWidth - OneShotModePanel.DesiredSize.Width) / 2));
-            Canvas.SetTop(OneShotModePanel, Math.Max(76, ActualHeight - OneShotModePanel.DesiredSize.Height - 24));
-            return;
+            var switcherBounds = new Rect(Canvas.GetLeft(OneShotSwitcher), Canvas.GetTop(OneShotSwitcher),
+                OneShotSwitcher.Width, OneShotSwitcher.Height);
+            if (switcherBounds.IntersectsWith(viewport)) minimumTop = Math.Max(minimumTop, switcherBounds.Bottom + gap);
         }
-        if (_selectionRect.IsEmpty) return;
-        OneShotModePanel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        // Measure the actual localized content; a short display scrolls the controls instead of clipping them.
+        var availableWidth = Math.Max(1, viewport.Width - 2 * gap);
+        var availableHeight = Math.Max(1, viewport.Bottom - gap - minimumTop);
+        OneShotModePanel.MaxWidth = availableWidth;
+        OneShotModePanel.MaxHeight = availableHeight;
+        OneShotModePanel.Measure(new Size(availableWidth, availableHeight));
         var width = OneShotModePanel.DesiredSize.Width;
         var height = OneShotModePanel.DesiredSize.Height;
         var left = _selectionRect.Left + (_selectionRect.Width - width) / 2;
         var top = _oneShotMode == OneShotMode.Recording
             ? _selectionRect.Top + (_selectionRect.Height - height) / 2
-            : _selectionRect.Bottom + 12;
-        if (_oneShotMode != OneShotMode.Recording && top + height > ActualHeight - 12)
-            top = _selectionRect.Top - height - 12;
-        Canvas.SetLeft(OneShotModePanel, Math.Clamp(left, 12, Math.Max(12, ActualWidth - width - 12)));
-        Canvas.SetTop(OneShotModePanel, Math.Clamp(top, 12, Math.Max(12, ActualHeight - height - 12)));
+            : _selectionRect.Bottom + gap;
+        if (_oneShotMode != OneShotMode.Recording && top + height > viewport.Bottom - gap)
+            top = _selectionRect.Top - height - gap;
+        Canvas.SetLeft(OneShotModePanel, Math.Clamp(left, minimumLeft, Math.Max(minimumLeft, viewport.Right - width - gap)));
+        Canvas.SetTop(OneShotModePanel, Math.Clamp(top, minimumTop, Math.Max(minimumTop, viewport.Bottom - height - gap)));
     }
 
     private void UpdateOneShotModeControls()
@@ -661,12 +673,14 @@ public partial class InlineAnnotateWindow : Window
         foreach (var button in new[]
                  {
                      OneShotScreenshotButton, OneShotScrollingButton,
-                     OneShotRecordingButton, OneShotTranslationButton, OneShotClipboardButton
+                     OneShotRecordingButton, OneShotClipboardButton
                  })
         {
             var selected = string.Equals(button.Tag?.ToString(), _oneShotMode.ToString(), StringComparison.Ordinal);
-            button.Background = selected ? (Brush)FindResource("Annotation.WhiteBrush") : Brushes.Transparent;
-            button.Foreground = selected ? (Brush)FindResource("Annotation.BlackBrush") : (Brush)FindResource("HudTextBrush");
+            if (selected) button.SetResourceReference(WpfButton.BackgroundProperty, "HudSelectedBrush");
+            else button.Background = Brushes.Transparent;
+            button.SetResourceReference(WpfButton.ForegroundProperty, selected ? "HudSelectedTextBrush" : "HudTextBrush");
+            button.FontWeight = selected ? FontWeights.SemiBold : FontWeights.Normal;
             button.IsEnabled = !_oneShotCommitted || selected;
             button.Opacity = button.IsEnabled ? 1 : 0.42;
             button.ToolTip = LocalizationService.TranslatePhrase(button.IsEnabled
@@ -674,7 +688,7 @@ public partial class InlineAnnotateWindow : Window
                 : "已开始使用当前模式，无法再切换。");
         }
 
-        if (!_annotating && _oneShotMode != OneShotMode.Translation)
+        if (!_annotating)
         {
             OneShotModePanel.Visibility = Visibility.Collapsed;
             return;
@@ -687,12 +701,10 @@ public partial class InlineAnnotateWindow : Window
         OneShotModePanel.Visibility = screenshot ? Visibility.Collapsed : Visibility.Visible;
         OneShotScrollingPanel.Visibility = _oneShotMode == OneShotMode.Scrolling ? Visibility.Visible : Visibility.Collapsed;
         OneShotRecordingPanel.Visibility = _oneShotMode == OneShotMode.Recording ? Visibility.Visible : Visibility.Collapsed;
-        OneShotTranslationPanel.Visibility = _oneShotMode == OneShotMode.Translation ? Visibility.Visible : Visibility.Collapsed;
-        TranslateSelectionButton.IsEnabled = _annotating;
         if (_oneShotMode == OneShotMode.Recording)
         {
             OneShotModePanel.Width = 410;
-            OneShotModePanel.Height = 206;
+            OneShotModePanel.ClearValue(FrameworkElement.HeightProperty);
             OneShotModePanel.Padding = new Thickness(18);
         }
         else
@@ -709,7 +721,6 @@ public partial class InlineAnnotateWindow : Window
         nameof(OneShotMode.Screenshot) => "截图",
         nameof(OneShotMode.Scrolling) => "滚动截屏",
         nameof(OneShotMode.Recording) => "录屏",
-        nameof(OneShotMode.Translation) => "翻译",
         nameof(OneShotMode.Clipboard) => "剪贴板历史",
         _ => "One Shot"
     };
@@ -729,7 +740,6 @@ public partial class InlineAnnotateWindow : Window
             DialogResult = true;
             return;
         }
-        CancelTranslation();
         _oneShotMode = requested;
         UpdateOneShotModeControls();
         UpdateOverlayLayout();
@@ -776,7 +786,7 @@ public partial class InlineAnnotateWindow : Window
         !isCommitted && !isDrawingSelection;
 
     internal static bool ShouldMoveSelectionOnCanvasDrag(OneShotMode mode, bool isCommitted) =>
-        !isCommitted && mode is OneShotMode.Screenshot or OneShotMode.Scrolling or OneShotMode.Recording or OneShotMode.Translation;
+        !isCommitted && mode is OneShotMode.Screenshot or OneShotMode.Scrolling or OneShotMode.Recording;
 
     private void UpdateOneShotSwitcherVisibility()
     {
@@ -842,6 +852,14 @@ public partial class InlineAnnotateWindow : Window
         OneShotRectangle = OneShotPhysicalRectangle();
         OneShotOptions = ReadOneShotRecordingOptions();
         DialogResult = true;
+    }
+
+    private void OnOneShotTranslation(object sender, RoutedEventArgs e)
+    {
+        if (_oneShotMode != OneShotMode.Screenshot || !_annotating || _selectionSource is null || CurrentSettings is null) return;
+        FindVisualChildren<WpfTextBox>(AnnotationCanvas).ToList().ForEach(EndTextEditing);
+        PersistAnnotationSettings();
+        new TranslationWindow(_selectionSource, _backdropSource, TranslationSettingsProvider ?? (() => _settings!), OpenTranslationSettings) { Owner = this }.ShowDialog();
     }
 
     private void OnOneShotOcr(object sender, RoutedEventArgs e)
@@ -980,7 +998,6 @@ public partial class InlineAnnotateWindow : Window
 
     private void OnResizeMouseDown(object sender, MouseButtonEventArgs e)
     {
-        ResetTranslationResult();
         if (sender is not FrameworkElement element) return;
         _resizeHandle = element.Tag?.ToString() ?? string.Empty;
         _interaction = OverlayInteraction.ResizingSelection;
@@ -1051,7 +1068,6 @@ public partial class InlineAnnotateWindow : Window
 
     private void BeginMoveSelection(WpfPoint point)
     {
-        ResetTranslationResult();
         _interaction = OverlayInteraction.MovingSelection;
         _interactionStartRect = _selectionRect;
         _selectionEditStartPixels = SelectionPixelRect();
@@ -1062,14 +1078,15 @@ public partial class InlineAnnotateWindow : Window
         CaptureMouse();
     }
 
-    private Rect GetSelectionScreenBounds(Drawing.Rectangle relativePixelRect)
+    private Rect GetSelectionScreenBounds(Drawing.Rectangle relativePixelRect, bool useWorkingArea = false)
     {
         var physicalSelection = new Drawing.Rectangle(
             _physicalBounds.Left + relativePixelRect.Left,
             _physicalBounds.Top + relativePixelRect.Top,
             relativePixelRect.Width,
             relativePixelRect.Height);
-        var physicalScreen = System.Windows.Forms.Screen.FromRectangle(physicalSelection).Bounds;
+        var screen = System.Windows.Forms.Screen.FromRectangle(physicalSelection);
+        var physicalScreen = useWorkingArea ? screen.WorkingArea : screen.Bounds;
         var relativeScreen = new Drawing.Rectangle(
             physicalScreen.Left - _physicalBounds.Left,
             physicalScreen.Top - _physicalBounds.Top,
@@ -1145,15 +1162,16 @@ public partial class InlineAnnotateWindow : Window
 
     private void ApplyOneShotGuideVisibility()
     {
-        if (_settings is null) return;
+        var settings = CurrentSettings;
+        if (settings is null) return;
         var guideVersion = typeof(InlineAnnotateWindow).Assembly.GetName().Version?.ToString(2) ?? "1.0";
-        if (string.Equals(_settings.LastOneShotGuideVersion, guideVersion, StringComparison.Ordinal))
+        if (string.Equals(settings.LastOneShotGuideVersion, guideVersion, StringComparison.Ordinal))
         {
             InstructionBadge.Visibility = Visibility.Collapsed;
             return;
         }
         InstructionBadge.Visibility = Visibility.Visible;
-        _settings.LastOneShotGuideVersion = guideVersion;
+        settings.LastOneShotGuideVersion = guideVersion;
         _saveSettings?.Invoke();
     }
 
@@ -1201,7 +1219,12 @@ public partial class InlineAnnotateWindow : Window
         _tool = tool;
         ApplyPersistedToolSettings(tool);
         foreach (var button in FindVisualChildren<WpfButton>(Toolbar).Where(x => _toolNames.ContainsKey(x.Tag?.ToString() ?? string.Empty)))
-            button.Background = button.Tag?.ToString() == tool ? (Brush)FindResource("HudSelectedBrush") : Brushes.Transparent;
+        {
+            var selected = button.Tag?.ToString() == tool;
+            if (selected) button.SetResourceReference(WpfButton.BackgroundProperty, "HudSelectedBrush");
+            else button.Background = Brushes.Transparent;
+            button.SetResourceReference(WpfButton.ForegroundProperty, selected ? "HudSelectedTextBrush" : "HudTextBrush");
+        }
         ContextPillText.Text = _toolNames.GetValueOrDefault(tool, tool);
         UpdateCanvasInteractionVisuals();
         UpdateAnnotationCursors();
@@ -1349,9 +1372,11 @@ public partial class InlineAnnotateWindow : Window
     {
         var panning = _panToolActive || _spacePanActive;
         if (PanButton is not null)
-            PanButton.Background = _panToolActive
-                ? (Brush)FindResource("HudSelectedBrush")
-                : Brushes.Transparent;
+        {
+            if (_panToolActive) PanButton.SetResourceReference(WpfButton.BackgroundProperty, "HudSelectedBrush");
+            else PanButton.Background = Brushes.Transparent;
+            PanButton.SetResourceReference(WpfButton.ForegroundProperty, _panToolActive ? "HudSelectedTextBrush" : "HudTextBrush");
+        }
         if (AnnotationCanvas is not null)
             AnnotationCanvas.Cursor = panning
                 ? Cursors.Hand
@@ -1870,13 +1895,7 @@ public partial class InlineAnnotateWindow : Window
 
     private void UpdatePropertyButtonStates(AnnotationStyle style, AnnotationStyle arrowStyle)
     {
-        var colorBorder = new SolidColorBrush(WpfColor.FromArgb(82, 255, 255, 255));
-        colorBorder.Freeze();
-        var accent = (Brush)FindResource("AccentBrush");
-        var selectedBackground = (Brush)FindResource("HudSelectedBrush");
-        var primaryText = (Brush)FindResource("HudTextBrush");
-        var secondaryText = (Brush)FindResource("HudSecondaryTextBrush");
-        foreach (var button in FindVisualChildren<WpfButton>(PropertiesBar))
+        foreach (var button in FindVisualChildren<WpfButton>(PropertiesContent))
         {
             if (button.Tag is not string tag || !tag.Contains(':')) continue;
             var parts = tag.Split(':', 2);
@@ -1895,11 +1914,16 @@ public partial class InlineAnnotateWindow : Window
                 _ => false
             };
             var colorSwatch = parts[0] is "Stroke" or "TextBackground";
-            button.BorderBrush = selected ? accent : colorSwatch ? colorBorder : Brushes.Transparent;
+            if (selected || colorSwatch) button.SetResourceReference(WpfButton.BorderBrushProperty, selected ? "AccentBrush" : "HudSwatchBorderBrush");
+            else button.BorderBrush = Brushes.Transparent;
             button.BorderThickness = selected ? new Thickness(2) : colorSwatch ? new Thickness(1) : new Thickness(0);
             if (!colorSwatch)
-                button.Background = selected ? selectedBackground : Brushes.Transparent;
-            button.Foreground = selected ? primaryText : secondaryText;
+            {
+                if (selected) button.SetResourceReference(WpfButton.BackgroundProperty, "HudSelectedBrush");
+                else button.Background = Brushes.Transparent;
+            }
+            button.SetResourceReference(WpfButton.ForegroundProperty, selected && !colorSwatch ? "HudSelectedTextBrush" : "HudSecondaryTextBrush");
+            System.Windows.Automation.AutomationProperties.SetItemStatus(button, selected ? LocalizationService.TranslatePhrase("已选择") : string.Empty);
             button.Opacity = selected ? 1 : 0.88;
         }
     }
@@ -2974,14 +2998,6 @@ public partial class InlineAnnotateWindow : Window
 
     private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
-        if (_oneShotMode == OneShotMode.Translation)
-        {
-            if (e.Key == Key.Escape) { CancelTranslation(); RequestCancel(); e.Handled = true; }
-            else if (e.Key == Key.Enter && e.OriginalSource is not System.Windows.Controls.ComboBox)
-            { if (_annotating) OnTranslateSelection(this, new RoutedEventArgs()); e.Handled = true; }
-            else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.S) e.Handled = true;
-            return;
-        }
         if (e.Key is Key.LeftShift or Key.RightShift && !_annotating && Magnifier.Visibility == Visibility.Visible)
         {
             _hexMagnifier = !_hexMagnifier;

@@ -10,6 +10,7 @@ import SwiftUI
 /// Text-based action button with hover effect for card overlays
 struct QuickAccessTextButton: View {
   let label: String
+  var isDestructive = false
   let action: () -> Void
 
   @Environment(\.isEnabled) private var isEnabled
@@ -19,14 +20,14 @@ struct QuickAccessTextButton: View {
     Button(action: action) {
       Text(label)
         .font(.system(size: 12, weight: .medium))
-        .foregroundColor(.white.opacity(isEnabled ? 1 : 0.75))
+        .foregroundColor(isDestructive ? ShotPastePalette.danger : ShotPastePalette.text)
         .lineLimit(1)
         .minimumScaleFactor(0.68)
         .allowsTightening(true)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(
-          RoundedRectangle(cornerRadius: 24)
+          RoundedRectangle(cornerRadius: Size.radiusMd)
             .fill(buttonBackgroundColor)
         )
     }
@@ -44,8 +45,8 @@ struct QuickAccessTextButton: View {
 
   private var buttonBackgroundColor: Color {
     guard isEnabled else {
-      return Color.black.opacity(0.45)
+      return ShotPastePalette.chrome.opacity(0.8)
     }
-    return isHovering ? Color.white.opacity(0.35) : Color.black.opacity(0.6)
+    return isHovering ? ShotPastePalette.hover : ShotPastePalette.chrome
   }
 }

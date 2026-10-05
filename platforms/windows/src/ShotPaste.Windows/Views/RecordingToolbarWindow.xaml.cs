@@ -200,7 +200,8 @@ public partial class RecordingToolbarWindow : Window
     }
     public void SetPenActive(bool active)
     {
-        PenButton.Background = (System.Windows.Media.Brush)FindResource(active ? "HudSelectedBrush" : "HudInputBrush");
+        PenButton.SetResourceReference(System.Windows.Controls.Button.BackgroundProperty, active ? "HudSelectedBrush" : "HudInputBrush");
+        PenButton.SetResourceReference(System.Windows.Controls.Button.ForegroundProperty, active ? "HudSelectedTextBrush" : "HudTextBrush");
         PenButton.ToolTip = LocalizationService.TranslatePhrase(active ? "关闭标注" : "在录制画面上标注");
         AutomationProperties.SetName(PenButton,
             LocalizationService.TranslatePhrase(active ? "关闭录屏标注" : "打开录屏标注"));

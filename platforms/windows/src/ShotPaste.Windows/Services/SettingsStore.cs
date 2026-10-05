@@ -75,9 +75,17 @@ public sealed class SettingsStore
         }
     }
 
-    private static AppSettings DeserializeSettings(string json)
+    internal static AppSettings DeserializeSettings(string json)
     {
-        return JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
+        var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+        // Preserve an explicit legacy formatting preference, never the old
+        // default permission to send recognized text. A modern choice wins.
+        if (root.ValueKind == JsonValueKind.Object && !root.TryGetProperty(nameof(AppSettings.TranslationUseCustomPrompt), out _) &&
+            root.TryGetProperty("TranslationPromptMode", out var mode) && mode.ValueKind == JsonValueKind.String)
+            settings.TranslationUseCustomPrompt = mode.GetString() == "custom";
+        return settings;
     }
 
     private void WriteJsonAtomic()
@@ -111,6 +119,9 @@ public sealed class SettingsStore
 
     internal static void Normalize(AppSettings settings)
     {
+        settings.TranslationTimeoutSeconds = Math.Clamp(settings.TranslationTimeoutSeconds, 5, 120);
+        settings.TranslationPrompt = (settings.TranslationPrompt ?? string.Empty).Trim();
+        if (settings.TranslationPrompt.Length > 2000) settings.TranslationPrompt = settings.TranslationPrompt[..2000];
         var sourceSchemaVersion = settings.SchemaVersion;
         if (sourceSchemaVersion < 16 && AppBuildIdentity.Current.IsDebug &&
             settings.McpServerPort == AppBuildIdentity.Release.DefaultMcpServerPort)
@@ -191,14 +202,6 @@ public sealed class SettingsStore
             if (value?.Length > 32_768) throw new ArgumentException("Invalid protected credential.");
         settings.AgentModel = (settings.AgentModel ?? string.Empty).Trim();
         settings.AgentEndpoint = (settings.AgentEndpoint ?? string.Empty).Trim();
-        settings.TranslationTimeoutSeconds = Math.Clamp(settings.TranslationTimeoutSeconds, 5, 120);
-        settings.TranslationPromptMode = settings.TranslationPromptMode == "custom" ? "custom" : "builtin";
-        settings.TranslationPrompt = (settings.TranslationPrompt ?? string.Empty);
-        if (settings.TranslationPrompt.Length > 2000) settings.TranslationPrompt = settings.TranslationPrompt[..2000];
-        if (!LocalizationService.SupportedLanguages.Any(language => language.Code == settings.TranslationSourceLanguage))
-            settings.TranslationSourceLanguage = "auto";
-        if (!LocalizationService.SupportedLanguages.Any(language => language.Code == settings.TranslationTargetLanguage))
-            settings.TranslationTargetLanguage = "current";
         settings.RecordingAnnotationWidth = Math.Clamp(settings.RecordingAnnotationWidth, 1, 20);
         settings.RecordingAnnotationClearSeconds = Math.Clamp(settings.RecordingAnnotationClearSeconds, 1, 3600);
         settings.RecordingAnnotationMaxCount = Math.Clamp(settings.RecordingAnnotationMaxCount, 1, 200);

@@ -2,12 +2,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
-using System.Windows.Media;
 using ShotPaste.Windows.Models;
 using ShotPaste.Windows.Services;
 using Forms = System.Windows.Forms;
 using WpfButton = System.Windows.Controls.Button;
-using WpfColor = System.Windows.Media.Color;
 using WpfPoint = System.Windows.Point;
 
 namespace ShotPaste.Windows.Views;
@@ -31,6 +29,7 @@ public partial class RecordingInkToolbarWindow : Window
         WidthSlider.Value = ink.State.StrokeWidth;
         FadeCheckBox.IsChecked = ink.State.FadeEnabled;
         RefreshPolicyEditor();
+        RefreshSelectedTool();
         _initializing = false;
         Loaded += (_, _) => PositionNearCapture();
         if (_recordingToolbar is not null)
@@ -88,8 +87,19 @@ public partial class RecordingInkToolbarWindow : Window
         if (sender is not WpfButton button || !Enum.TryParse(button.Tag?.ToString(), out RecordingAnnotationTool tool)) return;
         _ink.SelectTool(tool);
         RefreshPolicyEditor();
-        foreach (var child in ToolPanel.Children.OfType<WpfButton>()) child.ClearValue(BackgroundProperty);
-        button.Background = new SolidColorBrush(WpfColor.FromArgb(80, 124, 58, 237));
+        RefreshSelectedTool();
+    }
+
+    private void RefreshSelectedTool()
+    {
+        foreach (var child in ToolPanel.Children.OfType<WpfButton>())
+        {
+            var selected = Enum.TryParse(child.Tag?.ToString(), out RecordingAnnotationTool tool) && tool == _ink.State.SelectedTool;
+            if (selected) child.SetResourceReference(WpfButton.BackgroundProperty, "HudSelectedBrush");
+            else child.ClearValue(BackgroundProperty);
+            child.SetResourceReference(WpfButton.ForegroundProperty, selected ? "HudSelectedTextBrush" : "HudTextBrush");
+            child.FontWeight = selected ? FontWeights.SemiBold : FontWeights.Normal;
+        }
     }
 
     private void OnColor(object sender, RoutedEventArgs e)

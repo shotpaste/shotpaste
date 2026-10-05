@@ -10,8 +10,8 @@ import Combine
 import SwiftUI
 
 enum WindowSurfacePalette {
-  static let lightBase = NSColor(white: 0.95, alpha: 1)
-  static let darkBase = NSColor(white: 0.12, alpha: 1)
+  static let lightBase = ShotPastePalette.nsLightWindow
+  static let darkBase = ShotPastePalette.nsDarkWindow
 
   @MainActor
   static func backgroundColor(for appearanceMode: AppearanceMode) -> NSColor {
@@ -21,7 +21,7 @@ enum WindowSurfacePalette {
     case .dark:
       darkBase
     case .system:
-      NSColor.windowBackgroundColor
+      backgroundColor(for: NSApp?.effectiveAppearance ?? NSAppearance.currentDrawing())
     }
   }
 

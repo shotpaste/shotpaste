@@ -128,6 +128,11 @@ final class RecordingAnnotationState: ObservableObject {
       .store(in: &cancellables)
   }
 
+  /// The recording owner stops the cleanup timer explicitly; ARC/Combine
+  /// release needs no actor-bound work. Avoid the isolated-deinit back-deployment
+  /// thunk when AppKit releases a hosting view during delayed window cleanup.
+  nonisolated deinit {}
+
   func clearMode(for tool: AnnotationToolType) -> AnnotationClearMode {
     toolClearModes[tool] ?? .persist
   }

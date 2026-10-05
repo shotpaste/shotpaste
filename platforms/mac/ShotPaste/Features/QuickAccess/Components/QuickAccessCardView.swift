@@ -15,6 +15,7 @@ struct QuickAccessCardView: View {
   let manager: QuickAccessManager
   var onHover: ((Bool) -> Void)?
 
+  @ObservedObject private var themeManager = ThemeManager.shared
   @ObservedObject private var preferencesManager = PreferencesManager.shared
   @ObservedObject private var actionConfiguration = QuickAccessActionConfigurationStore.shared
   @ObservedObject private var trackpadSwipeModeStore = QuickAccessTrackpadSwipeModeStore.shared
@@ -26,7 +27,7 @@ struct QuickAccessCardView: View {
   @State private var swipeOffset: CGFloat = 0
   @Environment(\.accessibilityReduceMotion) var reduceMotion
 
-  private let cornerRadius: CGFloat = 16
+  private let cornerRadius: CGFloat = Size.radiusLg
 
   /// Scaled card dimensions based on overlay scale setting
   private var scaledWidth: CGFloat {
@@ -46,6 +47,7 @@ struct QuickAccessCardView: View {
 
   var body: some View {
     accessibleCard
+      .preferredColorScheme(themeManager.systemAppearance)
   }
 
   private var cardContent: some View {
@@ -96,20 +98,20 @@ struct QuickAccessCardView: View {
       .contentShape(cardShape)
       .background(
         cardShape
-          .fill(Color.black.opacity(0.1))
+          .fill(ShotPastePalette.card)
       )
       // GPU-cached drop shadow (furthest back). Replaces per-frame SwiftUI `.shadow()`
       // blur that lagged when many stacked cards recomposited during capture-area mode.
       .background(QuickAccessCardShadowView(cornerRadius: cornerRadius))
       .overlay(
         cardShape
-          .stroke(Color.white.opacity(0.2), lineWidth: 1)
+          .stroke(ShotPastePalette.border, lineWidth: 1)
       )
       .overlay(
         cardShape
           .stroke(
             manager.isKeyboardFocusActive && manager.keyboardFocusedItemID == item.id
-              ? Color.accentColor : Color.clear,
+              ? ShotPastePalette.accent : Color.clear,
             lineWidth: 3
           )
           .padding(2)
@@ -516,12 +518,12 @@ struct QuickAccessCardView: View {
         Spacer()
         Text(duration)
           .font(.system(size: 10, weight: .semibold, design: .monospaced))
-          .foregroundColor(.white)
+          .foregroundColor(ShotPastePalette.text)
           .padding(.horizontal, 6)
           .padding(.vertical, 2)
           .background(
             RoundedRectangle(cornerRadius: 4)
-              .fill(Color.black.opacity(0.7))
+              .fill(ShotPastePalette.chrome)
           )
           .padding(6)
       }
@@ -538,7 +540,7 @@ struct QuickAccessCardView: View {
       .font(.system(size: 10, weight: .bold))
       .foregroundColor(.white)
       .frame(width: 20, height: 20)
-      .background(Circle().fill(Color.black.opacity(0.6)))
+      .background(Circle().fill(ShotPastePalette.action))
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
       .padding(6)
       .contentShape(Circle())
@@ -568,7 +570,7 @@ struct QuickAccessCardView: View {
   }
 
   private func staggeredButton(action: QuickAccessActionKind, delay: Int) -> some View {
-    QuickAccessTextButton(label: actionTitle(for: action)) {
+    QuickAccessTextButton(label: actionTitle(for: action), isDestructive: action == .delete) {
       performAction(action)
     }
     .disabled(!isActionEnabled(action))

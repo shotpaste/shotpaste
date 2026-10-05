@@ -37,8 +37,8 @@ transcription pipeline does not require Apple Speech permission or local models.
 
 | Setting | macOS | Windows |
 | --- | --- | --- |
-| Speech and storage credentials | AI Features → AI Transcription | Recording settings |
-| Text model for optional AI processing | AI Features / Agent LLM configuration | Recording settings text-model configuration |
+| Speech and storage credentials | AI Features → AI Transcription | AI Features → AI Transcription |
+| Text model for optional AI processing | AI Features → LLM Provider | AI Features → LLM Provider |
 | Per-recording consent and language | Audio preparation or One Shot recording panel | Audio preparation or One Shot recording panel |
 | Saved tasks and artifacts | Transcription Results | Transcription Results |
 

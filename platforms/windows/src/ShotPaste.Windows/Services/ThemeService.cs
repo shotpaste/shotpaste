@@ -1,12 +1,9 @@
 using System.ComponentModel;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Security;
 using System.Windows;
 using Microsoft.Win32;
-using Windows.UI.ViewManagement;
 using WpfApplication = System.Windows.Application;
-using WpfColor = System.Windows.Media.Color;
 
 namespace ShotPaste.Windows.Services;
 
@@ -16,7 +13,6 @@ public static class ThemeService
     private const string DarkThemeFile = "Colors.Dark.xaml";
     private static string _preference = "System";
     private static bool _listening;
-    private static UISettings? _uiSettings;
     public static bool IsDark { get; private set; }
 
     public static void Apply(string preference)
@@ -31,8 +27,6 @@ public static class ThemeService
         if (!_listening) return;
         SystemParameters.StaticPropertyChanged -= OnSystemParametersChanged;
         SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
-        if (_uiSettings is not null) _uiSettings.ColorValuesChanged -= OnColorValuesChanged;
-        _uiSettings = null;
         _listening = false;
     }
 
@@ -42,15 +36,6 @@ public static class ThemeService
         _listening = true;
         SystemParameters.StaticPropertyChanged += OnSystemParametersChanged;
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
-        try
-        {
-            _uiSettings = new UISettings();
-            _uiSettings.ColorValuesChanged += OnColorValuesChanged;
-        }
-        catch (COMException)
-        {
-            _uiSettings = null;
-        }
     }
 
     private static void RefreshTheme()
@@ -67,7 +52,6 @@ public static class ThemeService
             _preference.Equals("System", StringComparison.OrdinalIgnoreCase) && IsSystemDark();
         IsDark = dark;
         ReplaceThemeDictionary(application.Resources, dark ? DarkThemeFile : LightThemeFile);
-        ApplyAccentColor(application.Resources, GetSystemAccentColor());
         AccessibilityPreferences.ApplyHighContrastResources(application.Resources);
         WindowAppearanceService.RefreshOpenWindows();
     }
@@ -95,31 +79,6 @@ public static class ThemeService
             dictionaries.Insert(Math.Min(1, dictionaries.Count), replacement);
     }
 
-    private static void ApplyAccentColor(ResourceDictionary resources, WpfColor accentColor)
-    {
-        foreach (var dictionary in resources.MergedDictionaries)
-        {
-            if (!dictionary.Contains("AccentColor")) continue;
-            dictionary["AccentColor"] = accentColor;
-            return;
-        }
-        resources["AccentColor"] = accentColor;
-    }
-
-    private static WpfColor GetSystemAccentColor()
-    {
-        try
-        {
-            var color = (_uiSettings ?? new UISettings()).GetColorValue(UIColorType.Accent);
-            return WpfColor.FromArgb(byte.MaxValue, color.R, color.G, color.B);
-        }
-        catch (COMException)
-        {
-            var fallback = SystemParameters.WindowGlassColor;
-            return WpfColor.FromArgb(byte.MaxValue, fallback.R, fallback.G, fallback.B);
-        }
-    }
-
     private static bool IsSystemDark()
     {
         try
@@ -142,8 +101,6 @@ public static class ThemeService
     private static void OnSystemParametersChanged(object? sender, PropertyChangedEventArgs e) => ScheduleRefresh();
 
     private static void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e) => ScheduleRefresh();
-
-    private static void OnColorValuesChanged(UISettings sender, object args) => ScheduleRefresh();
 
     private static void ScheduleRefresh()
     {

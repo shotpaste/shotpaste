@@ -348,7 +348,7 @@ private actor TranslationOCRTileIndexSource {
 /// Collects bounded worker loops without attaching an arbitrary executor task
 /// to a structured task group. Once the first error/deadline wins, all worker
 /// tasks are cancelled and the caller continuation is resumed immediately.
-private final class TranslationOCRTileWorkerState<Value: Sendable>: @unchecked Sendable {
+private final nonisolated class TranslationOCRTileWorkerState<Value: Sendable>: @unchecked Sendable {
   private let lock = NSLock()
   private var remainingWorkers: Int
   private var results: [Value] = []

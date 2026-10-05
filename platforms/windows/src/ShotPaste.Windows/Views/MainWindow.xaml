@@ -103,7 +103,7 @@
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBackgroundBrush}"/><Setter Property="Foreground" Value="{DynamicResource TextBrush}"/></Trigger>
-              <Trigger Property="IsChecked" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource AccentSoftBrush}"/><Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger>
+              <Trigger Property="IsChecked" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource AccentSoftBrush}"/><Setter Property="Foreground" Value="{DynamicResource AccentSoftForegroundBrush}"/><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger>
               <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource FocusRingBrush}"/></Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -199,8 +199,8 @@
           <Grid Grid.Row="1" Margin="13,9,13,7">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <StackPanel>
-              <TextBlock Text="{Binding Title}" Foreground="{DynamicResource TextBrush}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-              <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+              <TextBlock Text="{Binding Title}" Foreground="{DynamicResource TextBrush}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+              <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
             </StackPanel>
             <Button Grid.Column="1" Content="{loc:Localized Key='⋯'}" FontSize="18"
                     Style="{StaticResource HistoryHeaderIconButton}" Tag="{Binding}" Click="OnShowItemMenu"
@@ -220,6 +220,7 @@
   <Grid x:Name="RootBackground" Grid.Row="1" Background="{DynamicResource WindowBrush}">
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
     <Grid x:Name="TopBar" Margin="20,18,20,12">
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <Border x:Name="KindFilterGroup" HorizontalAlignment="Left" Padding="3" CornerRadius="{DynamicResource Radius.Lg}"
               Background="{DynamicResource SurfaceSecondaryBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1">
@@ -230,33 +231,33 @@
           <Button x:Name="ClipboardFilter" Tag="Clipboard" Style="{StaticResource HistorySegmentButton}" Click="OnKindPill" AutomationProperties.AutomationId="ClipboardHistoryFilter" AutomationProperties.Name="{loc:Localized Key='剪贴板历史'}"><TextBlock Text="{loc:Localized Key='剪贴板历史'}"/></Button>
         </StackPanel>
       </Border>
-      <Border Grid.Column="1" Width="238" Height="34" HorizontalAlignment="Center" CornerRadius="{DynamicResource Radius.Card}" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="11,0">
+      <Border x:Name="SearchContainer" Grid.Column="1" MaxWidth="238" Height="34" Margin="12,0" HorizontalAlignment="Stretch" CornerRadius="{DynamicResource Radius.Card}" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="11,0">
         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
           <ContentControl Content="{StaticResource Icon.Search}" ContentTemplate="{StaticResource Icon.Template}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
           <Grid Grid.Column="1">
-            <TextBlock x:Name="SearchPlaceholder" Text="{loc:Localized Key='搜索捕获内容'}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" IsHitTestVisible="False"/>
+            <TextBlock x:Name="SearchPlaceholder" Text="{loc:Localized Key='搜索捕获内容'}" TextTrimming="CharacterEllipsis" ToolTip="{loc:Localized Key='搜索捕获内容'}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" IsHitTestVisible="False"/>
             <TextBox x:Name="SearchBox" AutomationProperties.AutomationId="HistorySearch" AutomationProperties.Name="{loc:Localized Key='搜索捕获内容'}" ToolTip="{loc:Localized Key='按文件名或文本搜索'}" BorderThickness="0" Background="Transparent" Padding="0" MinHeight="0" Height="24" TextChanged="OnSearchTextChanged" VerticalContentAlignment="Center"/>
           </Grid>
-          <Button x:Name="ClearSearchButton" Grid.Column="2" Content="{StaticResource Icon.Close}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource HistoryIconButton}" Width="24" Height="24" MinHeight="24" AutomationProperties.Name="{loc:Localized Key='清除搜索'}" Visibility="Collapsed" Click="OnClearSearch"/>
+          <Button x:Name="ClearSearchButton" AutomationProperties.AutomationId="HistoryClearSearch" Grid.Column="2" Content="{StaticResource Icon.Close}" ContentTemplate="{StaticResource Icon.Template}" Style="{StaticResource HistoryIconButton}" Width="24" Height="24" MinHeight="24" AutomationProperties.Name="{loc:Localized Key='清除搜索'}" Visibility="Collapsed" Click="OnClearSearch"/>
         </Grid>
       </Border>
       <Border x:Name="SelectionActions" Grid.Column="1" HorizontalAlignment="Right" Visibility="Collapsed" CornerRadius="{DynamicResource Radius.Card}"
               Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="10,5" Margin="12,0">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-          <TextBlock x:Name="SelectionSummary" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="4,0,10,0"/>
-          <Button Style="{StaticResource HistoryToolbarButton}" AutomationProperties.Name="{loc:Localized Key='复制所选'}" Margin="0,0,3,0" Click="OnCopySelection">
+          <TextBlock x:Name="SelectionSummary" AutomationProperties.AutomationId="HistorySelectionSummary" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="4,0,10,0"/>
+          <Button AutomationProperties.AutomationId="HistoryCopySelection" Style="{StaticResource HistoryToolbarButton}" AutomationProperties.Name="{loc:Localized Key='复制所选'}" Margin="0,0,3,0" Click="OnCopySelection">
             <StackPanel Orientation="Horizontal">
               <ContentControl Content="{StaticResource Icon.Copy}" ContentTemplate="{StaticResource Icon.Template}"/>
               <TextBlock Text="{loc:Localized Key='复制'}" Margin="5,0,0,0"/>
             </StackPanel>
           </Button>
-          <Button Style="{StaticResource HistoryToolbarButton}" AutomationProperties.Name="{loc:Localized Key='清除选择'}" Margin="0,0,3,0" Click="OnClearSelection">
+          <Button AutomationProperties.AutomationId="HistoryClearSelection" Style="{StaticResource HistoryToolbarButton}" AutomationProperties.Name="{loc:Localized Key='清除选择'}" Margin="0,0,3,0" Click="OnClearSelection">
             <StackPanel Orientation="Horizontal">
               <ContentControl Content="{StaticResource Icon.Close}" ContentTemplate="{StaticResource Icon.Template}"/>
               <TextBlock Text="{loc:Localized Key='清除选择'}" Margin="5,0,0,0"/>
             </StackPanel>
           </Button>
-          <Button Style="{StaticResource HistoryDangerButton}" AutomationProperties.Name="{loc:Localized Key='删除所选'}" Click="OnDeleteSelection">
+          <Button AutomationProperties.AutomationId="HistoryDeleteSelection" Style="{StaticResource HistoryDangerButton}" AutomationProperties.Name="{loc:Localized Key='删除所选'}" Click="OnDeleteSelection">
             <StackPanel Orientation="Horizontal">
               <ContentControl Content="{StaticResource Icon.Delete}" ContentTemplate="{StaticResource Icon.Template}"/>
               <TextBlock Text="{loc:Localized Key='删除'}" Margin="5,0,0,0"/>
@@ -268,7 +269,7 @@
               CornerRadius="{DynamicResource Radius.Lg}" Background="{DynamicResource SurfaceBrush}"
               BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1">
         <StackPanel Orientation="Horizontal">
-          <ComboBox x:Name="TimeFilter" Width="104" SelectedIndex="0" SelectionChanged="OnFilterChanged" Padding="8,4" Margin="0,0,3,0">
+          <ComboBox x:Name="TimeFilter" AutomationProperties.AutomationId="HistoryTimeFilter" Width="104" SelectedIndex="0" SelectionChanged="OnFilterChanged" Padding="8,4" Margin="0,0,3,0">
             <ComboBoxItem Content="{loc:Localized Key='不限时间'}" Tag="All"/><ComboBoxItem Content="{loc:Localized Key='24 小时'}" Tag="1"/><ComboBoxItem Content="{loc:Localized Key='7 天'}" Tag="7"/><ComboBoxItem Content="{loc:Localized Key='30 天'}" Tag="30"/>
           </ComboBox>
           <Button Style="{StaticResource HistoryHeaderIconButton}" Content="{StaticResource Icon.History}" ContentTemplate="{StaticResource Icon.Template}" ToolTip="{loc:Localized Key='转写结果'}" AutomationProperties.Name="{loc:Localized Key='转写结果'}" Click="OnTranscriptionResults"/>
@@ -300,7 +301,7 @@
                           HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
         </Border>
         <TextBlock Text="{loc:Localized Key='还没有符合条件的记录'}" Foreground="{DynamicResource TextBrush}" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,14,0,0"/>
-        <TextBlock Text="{loc:Localized Key='完成截图、录屏或复制内容后会显示在这里'}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" Margin="0,5,0,0"/>
+        <TextBlock Text="{loc:Localized Key='完成截图、录屏或复制内容后会显示在这里'}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" Margin="0,5,0,0"/>
       </StackPanel>
     </Grid>
   </Grid>

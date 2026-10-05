@@ -61,7 +61,7 @@ internal static class RecordingLifecycleE2E
                 Invoke(await WaitForAutomationIdAsync(product.Id, "AudioRecordingStop"));
                 await WaitUntilAsync(() => FindByAutomationId(product.Id, "AudioRecordingControlWindow") is null,
                     "Audio stop did not close the control window.");
-                await WaitForAutomationIdAsync(product.Id, "QuickAccessCopy");
+                await HoverQuickAccessActionAsync(product.Id, "QuickAccessCopy");
                 RequestUiTestExit(executable, root);
                 await WaitUntilAsync(() => product.HasExited, "The product did not exit after saving audio.");
             }
@@ -505,6 +505,31 @@ internal static class RecordingLifecycleE2E
             return result is not null && !result.Current.IsOffscreen;
         }, $"Automation element {id} did not appear for process {processId}.");
         return result!;
+    }
+
+    private static async Task<AutomationElement> HoverQuickAccessActionAsync(int processId, string actionId)
+    {
+        var card = await WaitForAutomationIdAsync(processId, "QuickAccessWindow");
+        var bounds = card.Current.BoundingRectangle;
+        Native.SetThreadDpiAwarenessContext(new IntPtr(-4));
+        Native.SetCursorPos((int)Math.Round(bounds.Left + bounds.Width / 2),
+            (int)Math.Round(bounds.Top + bounds.Height / 2));
+        AutomationElement? action = null;
+        await WaitUntilAsync(() =>
+        {
+            action = FindByAutomationId(processId, actionId);
+            if (action is null || action.Current.IsOffscreen || !action.Current.IsEnabled ||
+                !action.TryGetClickablePoint(out var point)) return false;
+            var expectedId = action.GetRuntimeId();
+            var walker = TreeWalker.RawViewWalker;
+            for (var current = AutomationElement.FromPoint(point); current is not null; current = walker.GetParent(current))
+            {
+                if (current.GetRuntimeId().SequenceEqual(expectedId)) return true;
+                if (current.Current.ControlType == ControlType.Window) break;
+            }
+            return false;
+        }, $"Quick Access action {actionId} did not become visibly available after hovering its card.");
+        return action!;
     }
 
     private static void Invoke(AutomationElement element) =>
