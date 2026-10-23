@@ -152,7 +152,7 @@ final class ScrollingCaptureStitcherTests: XCTestCase {
 
   // MARK: - append with shifted content (integration)
 
-  func testAppend_shiftedContent_appendsOrFailsAlignment() {
+  func testAppend_shiftedContent_appendsExactRows() {
     let stitcher = ScrollingCaptureStitcher()
     let width = 200
     let height = 100
@@ -173,21 +173,12 @@ final class ScrollingCaptureStitcherTests: XCTestCase {
 
     XCTAssertNotNil(update)
 
-    // Synthetic images may not align reliably through the vision-assisted matcher,
-    // so we accept either a successful append or an alignment failure,
-    // but never "no movement" because the frames are objectively different.
-    switch update?.outcome {
-    case .appended(let deltaY):
-      XCTAssertGreaterThan(deltaY, 0, "Delta should be positive for downward scroll")
-      XCTAssertGreaterThan(stitcher.outputHeight, height, "Output height should grow after append")
-      XCTAssertEqual(stitcher.acceptedFrameCount, 2)
-    case .ignoredAlignmentFailed:
-      XCTAssertEqual(stitcher.acceptedFrameCount, 1)
-    case .ignoredNoMovement:
-      XCTFail("Expected movement between shifted frames, got ignoredNoMovement")
-    default:
-      XCTFail("Unexpected outcome: \(String(describing: update?.outcome))")
+    guard case .appended(let deltaY) = update?.outcome else {
+      return XCTFail("Expected deterministic alignment, got \(String(describing: update?.outcome))")
     }
+    XCTAssertEqual(deltaY, 20)
+    XCTAssertEqual(stitcher.outputHeight, height + 20)
+    XCTAssertEqual(stitcher.acceptedFrameCount, 2)
   }
 
   // MARK: - Multiple appends build height
@@ -365,18 +356,248 @@ final class ScrollingCaptureStitcherTests: XCTestCase {
     XCTAssertTrue(merged.pixels.elementsEqual(expectedRaster.pixels))
   }
 
+  func testAppend_thickFooterProducesContinuousPixelsDuringRetraversal() throws {
+    let stitcher = ScrollingCaptureStitcher()
+    let offsets = [100, 124, 148, 124, 100, 76, 100, 148]
+    let first = try frameWithStaticEdges(
+      width: 240, height: 480, logicalYOffset: offsets[0], headerHeight: 40, footerHeight: 120
+    )
+    _ = stitcher.start(with: first)
+    var minimumOffset = offsets[0]
+    var maximumOffset = offsets[0]
+    for index in 1 ..< offsets.count {
+      let offset = offsets[index]
+      let frame = try frameWithStaticEdges(
+        width: 240, height: 480, logicalYOffset: offset, headerHeight: 40, footerHeight: 120
+      )
+      let growth = max(0, offset - maximumOffset) + max(0, minimumOffset - offset)
+      let update = try XCTUnwrap(stitcher.append(
+        frame, maxOutputHeight: 10_000, expectedSignedDeltaPixels: offset - offsets[index - 1]
+      ))
+      if growth > 0 {
+        guard case .appended(let delta) = update.outcome else {
+          return XCTFail("Expected growth at offset \(offset), got \(update.outcome)")
+        }
+        XCTAssertEqual(delta, growth)
+      } else {
+        guard case .ignoredNoMovement = update.outcome else {
+          return XCTFail("Retraversal must not add rows: \(update.outcome)")
+        }
+      }
+      minimumOffset = min(minimumOffset, offset)
+      maximumOffset = max(maximumOffset, offset)
+      let expected = try frameWithStaticEdges(
+        width: 240, height: 480 + maximumOffset - minimumOffset,
+        logicalYOffset: minimumOffset, headerHeight: 40, footerHeight: 120
+      )
+      let actualRaster = try XCTUnwrap(ScrollingCaptureRaster(cgImage: XCTUnwrap(stitcher.mergedImage())))
+      let expectedRaster = try XCTUnwrap(ScrollingCaptureRaster(cgImage: expected))
+      XCTAssertEqual(actualRaster.height, expectedRaster.height)
+      XCTAssertTrue(
+        actualRaster.pixels.elementsEqual(expectedRaster.pixels),
+        "Every seam must be continuous at \(offset)"
+      )
+    }
+  }
+
+  func testAppend_singleNoisyOuterRowDoesNotHideFixedFooter() throws {
+    let stitcher = ScrollingCaptureStitcher()
+    let first = try frameWithStaticEdges(
+      width: 240, height: 480, logicalYOffset: 100, headerHeight: 40, footerHeight: 80
+    )
+    _ = try XCTUnwrap(stitcher.start(with: first))
+    let cleanSecond = try frameWithStaticEdges(
+      width: 240, height: 480, logicalYOffset: 124, headerHeight: 40, footerHeight: 80
+    )
+    let raster = try XCTUnwrap(ScrollingCaptureRaster(cgImage: cleanSecond))
+    var noisyPixels = raster.pixels
+    for x in 0 ..< raster.width {
+      for component in 0 ..< 3 {
+        noisyPixels[(raster.height - 1) * raster.bytesPerRow + x * 4 + component] += 6
+      }
+    }
+    let second = try XCTUnwrap(ScrollingCaptureRaster(
+      width: raster.width, height: raster.height, pixels: noisyPixels
+    ).makeCGImage())
+    let update = try XCTUnwrap(stitcher.append(second, maxOutputHeight: 10_000, expectedSignedDeltaPixels: 24))
+    guard case .appended(let rows) = update.outcome else {
+      return XCTFail("A single noisy edge row must not prevent a valid append: \(update.outcome)")
+    }
+    XCTAssertEqual(rows, 24)
+    let expected = try frameWithStaticEdges(
+      width: 240, height: 504, logicalYOffset: 100, headerHeight: 40, footerHeight: 80
+    )
+    let expectedRaster = try XCTUnwrap(ScrollingCaptureRaster(cgImage: expected))
+    var expectedPixels = expectedRaster.pixels
+    // The latest outer edge is retained once; its changed row must never enter
+    // an interior seam or replace any newly exposed body rows.
+    for x in 0 ..< expectedRaster.width {
+      for component in 0 ..< 3 {
+        expectedPixels[(expectedRaster.height - 1) * expectedRaster.bytesPerRow + x * 4 + component] += 6
+      }
+    }
+    let actual = try XCTUnwrap(ScrollingCaptureRaster(cgImage: XCTUnwrap(stitcher.mergedImage())))
+    XCTAssertEqual(actual.pixels, expectedPixels)
+  }
+
+  func testAppend_unresolvedFooterRejectsWithoutChangingCanvasOrReference() throws {
+    let stitcher = ScrollingCaptureStitcher()
+    let first = try frameWithStaticEdges(
+      width: 240, height: 480, logicalYOffset: 100, headerHeight: 40, footerHeight: 200
+    )
+    _ = stitcher.start(with: first)
+    let initial = try XCTUnwrap(ScrollingCaptureRaster(cgImage: XCTUnwrap(stitcher.mergedImage())))
+    for offset in [124, 148] {
+      let frame = try frameWithStaticEdges(
+        width: 240, height: 480, logicalYOffset: offset, headerHeight: 40, footerHeight: 200
+      )
+      let update = try XCTUnwrap(stitcher.append(
+        frame, maxOutputHeight: 10_000, expectedSignedDeltaPixels: 24
+      ))
+      guard case .ignoredAlignmentFailed = update.outcome else {
+        return XCTFail("An unbounded footer must not be appended: \(update.outcome)")
+      }
+      XCTAssertEqual(update.safety, .unsafe(reason: "static-edges-unresolved"))
+      XCTAssertEqual(update.mergeDirection, .unresolved)
+      XCTAssertEqual(update.acceptedFrameCount, 1)
+      XCTAssertEqual(update.outputHeight, 480)
+      let actual = try XCTUnwrap(ScrollingCaptureRaster(cgImage: XCTUnwrap(stitcher.mergedImage())))
+      XCTAssertTrue(actual.pixels.elementsEqual(initial.pixels))
+    }
+    // Going back to the exact initial observation must still be stationary.
+    let back = try XCTUnwrap(stitcher.append(first, maxOutputHeight: 10_000))
+    guard case .ignoredNoMovement = back.outcome else {
+      return XCTFail("Rejected observations must not replace the matching reference")
+    }
+  }
+
+  func testAppend_thickFooterHeightLimitKeepsAdjacentContent() throws {
+    let stitcher = ScrollingCaptureStitcher()
+    let first = try frameWithStaticEdges(
+      width: 240, height: 480, logicalYOffset: 100, headerHeight: 40, footerHeight: 120
+    )
+    let second = try frameWithStaticEdges(
+      width: 240, height: 480, logicalYOffset: 124, headerHeight: 40, footerHeight: 120
+    )
+    _ = stitcher.start(with: first, maxOutputHeight: 490)
+    let update = try XCTUnwrap(stitcher.append(
+      second, maxOutputHeight: 490, expectedSignedDeltaPixels: 24
+    ))
+    guard case .reachedHeightLimit = update.outcome else {
+      return XCTFail("Expected clipped growth, got \(update.outcome)")
+    }
+    let expected = try frameWithStaticEdges(
+      width: 240, height: 490, logicalYOffset: 100, headerHeight: 40, footerHeight: 120
+    )
+    let actualRaster = try XCTUnwrap(ScrollingCaptureRaster(cgImage: XCTUnwrap(stitcher.mergedImage())))
+    let expectedRaster = try XCTUnwrap(ScrollingCaptureRaster(cgImage: expected))
+    XCTAssertEqual(update.outputHeight, 490)
+    XCTAssertTrue(actualRaster.pixels.elementsEqual(expectedRaster.pixels))
+  }
+
+  func testAppend_lowContrastFirstMovementPreservesEdgesAndContinuousBody() throws {
+    for (header, footer) in [(40, 120), (0, 0)] {
+      let first = try frameWithStaticEdges(
+        width: 240, height: 480, logicalYOffset: 100, headerHeight: header, footerHeight: footer,
+        lowContrastBody: true
+      )
+      let second = try frameWithStaticEdges(
+        width: 240, height: 480, logicalYOffset: 124, headerHeight: header, footerHeight: footer,
+        lowContrastBody: true
+      )
+      let tracker = ScrollingCaptureMotionTracker()
+      let difference = tracker.frameDifference(
+        previous: try XCTUnwrap(tracker.makeGrayFrame(from: first)),
+        current: try XCTUnwrap(tracker.makeGrayFrame(from: second))
+      )
+      XCTAssertGreaterThanOrEqual(difference, 1.2)
+      XCTAssertLessThan(difference, 4.5)
+      let stitcher = ScrollingCaptureStitcher()
+      _ = stitcher.start(with: first)
+      let update = try XCTUnwrap(stitcher.append(
+        second, maxOutputHeight: 10_000, expectedSignedDeltaPixels: 24
+      ))
+      guard case .appended(let rows) = update.outcome else {
+        return XCTFail("Low-contrast movement must append safely: \(update.outcome)")
+      }
+      XCTAssertEqual(rows, 24)
+      XCTAssertEqual(update.outputHeight, 504)
+      XCTAssertEqual(update.acceptedFrameCount, 2)
+      let expected = try frameWithStaticEdges(
+        width: 240, height: 504, logicalYOffset: 100, headerHeight: header, footerHeight: footer,
+        lowContrastBody: true
+      )
+      let actual = try XCTUnwrap(ScrollingCaptureRaster(cgImage: XCTUnwrap(stitcher.mergedImage())))
+      XCTAssertEqual(actual.pixels, try XCTUnwrap(ScrollingCaptureRaster(cgImage: expected)).pixels)
+    }
+  }
+
+  func testAppend_decodeFailureDoesNotCommitDirectionOrCursorBeforeReverseGrowth() throws {
+    var decodeCount = 0
+    let stitcher = ScrollingCaptureStitcher { image in
+      decodeCount += 1
+      return decodeCount == 2 ? nil : ScrollingCaptureRaster(cgImage: image)
+    }
+    let first = try frameWithStaticEdges(
+      width: 240, height: 480, logicalYOffset: 100, headerHeight: 40, footerHeight: 120
+    )
+    _ = try XCTUnwrap(stitcher.start(with: first))
+    let down = try frameWithStaticEdges(
+      width: 240, height: 480, logicalYOffset: 124, headerHeight: 40, footerHeight: 120
+    )
+    let rejected = try XCTUnwrap(stitcher.append(down, maxOutputHeight: 10_000, expectedSignedDeltaPixels: 24))
+    guard case .ignoredAlignmentFailed = rejected.outcome else {
+      return XCTFail("Expected injected decode failure")
+    }
+    XCTAssertEqual(rejected.mergeDirection, .unresolved)
+    XCTAssertEqual(rejected.outputHeight, 480)
+    XCTAssertEqual(rejected.acceptedFrameCount, 1)
+    let unchanged = try XCTUnwrap(ScrollingCaptureRaster(cgImage: XCTUnwrap(stitcher.mergedImage())))
+    XCTAssertEqual(unchanged.pixels, try XCTUnwrap(ScrollingCaptureRaster(cgImage: first)).pixels)
+
+    let up = try frameWithStaticEdges(
+      width: 240, height: 480, logicalYOffset: 76, headerHeight: 40, footerHeight: 120
+    )
+    let recovered = try XCTUnwrap(stitcher.append(up, maxOutputHeight: 10_000, expectedSignedDeltaPixels: -24))
+    guard case .appended(let rows) = recovered.outcome else {
+      return XCTFail("Rejected decode must not consume reverse growth: \(recovered.outcome)")
+    }
+    XCTAssertEqual(rows, 24)
+    XCTAssertEqual(recovered.mergeDirection, .appendFromTop)
+    XCTAssertEqual(recovered.acceptedFrameCount, 2)
+    let expected = try frameWithStaticEdges(
+      width: 240, height: 504, logicalYOffset: 76, headerHeight: 40, footerHeight: 120
+    )
+    let actual = try XCTUnwrap(ScrollingCaptureRaster(cgImage: XCTUnwrap(stitcher.mergedImage())))
+    XCTAssertEqual(actual.pixels, try XCTUnwrap(ScrollingCaptureRaster(cgImage: expected)).pixels)
+  }
+
   private func frameWithStaticEdges(
     width: Int,
     height: Int,
     logicalYOffset: Int,
     headerHeight: Int,
-    footerHeight: Int
+    footerHeight: Int,
+    lowContrastBody: Bool = false
   ) throws -> CGImage {
     let content = try XCTUnwrap(TestImageFactory.scrollingFrame(
       width: width, height: height, logicalYOffset: logicalYOffset
     ))
     let raster = try XCTUnwrap(ScrollingCaptureRaster(cgImage: content))
     var pixels = raster.pixels
+    if lowContrastBody {
+      for row in headerHeight ..< height - footerHeight {
+        for x in 0 ..< width {
+          let offset = row * raster.bytesPerRow + x * 4
+          let gray = (Int(pixels[offset]) * 77 + Int(pixels[offset + 1]) * 150
+            + Int(pixels[offset + 2]) * 29) >> 8
+          let value = UInt8(120 + gray / 16)
+          pixels[offset] = value
+          pixels[offset + 1] = value
+          pixels[offset + 2] = value
+        }
+      }
+    }
     for row in 0 ..< height where row < headerHeight || row >= height - footerHeight {
       let color: [UInt8] = row < headerHeight ? [231, 29, 43, 255] : [37, 227, 59, 255]
       for x in 0 ..< width {

@@ -64,6 +64,94 @@ private enum ScrollingCaptureAccuracyBenchmark {
         minimumOverallAccuracy: 0.999
       ),
       ScrollAccuracyBenchmarkCase(
+        name: "thick-footer-bidirectional-retrace",
+        width: 340,
+        viewportHeight: 480,
+        contentHeight: 1_080,
+        headerHeight: 40,
+        footerHeight: 120,
+        offsets: [100, 124, 148, 124, 100, 76, 100, 148],
+        minimumOverallAccuracy: 0.999
+      ),
+      ScrollAccuracyBenchmarkCase(
+        name: "retina-thick-header-footer",
+        width: 960,
+        viewportHeight: 1_200,
+        contentHeight: 2_400,
+        headerHeight: 240,
+        footerHeight: 280,
+        offsets: [100, 148, 196, 244, 292],
+        minimumOverallAccuracy: 0.995
+      ),
+      ScrollAccuracyBenchmarkCase(
+        name: "recovery-outside-hint-both-directions",
+        width: 240,
+        viewportHeight: 480,
+        contentHeight: 960,
+        headerHeight: 0,
+        footerHeight: 0,
+        offsets: [120, 240, 120, 0, 120],
+        minimumOverallAccuracy: 0.999,
+        expectedDeltaOverride: 1
+      ),
+      ScrollAccuracyBenchmarkCase(
+        name: "low-contrast-without-fixed-edges",
+        width: 240,
+        viewportHeight: 400,
+        contentHeight: 960,
+        headerHeight: 0,
+        footerHeight: 0,
+        offsets: [100, 124, 148, 124, 76],
+        minimumOverallAccuracy: 0.999,
+        lowContrastBody: true
+      ),
+      ScrollAccuracyBenchmarkCase(
+        name: "low-contrast-body-thick-footer",
+        width: 240,
+        viewportHeight: 480,
+        contentHeight: 960,
+        headerHeight: 40,
+        footerHeight: 120,
+        offsets: [100, 124, 148, 124, 76],
+        minimumOverallAccuracy: 0.999,
+        lowContrastBody: true
+      ),
+      ScrollAccuracyBenchmarkCase(
+        name: "single-noisy-outer-row",
+        width: 240,
+        viewportHeight: 480,
+        contentHeight: 960,
+        headerHeight: 40,
+        footerHeight: 80,
+        offsets: [100, 124, 148, 124, 76],
+        minimumOverallAccuracy: 0.999,
+        noisyBottomEdge: true
+      ),
+      ScrollAccuracyBenchmarkCase(
+        name: "vertical-flat-bands-with-unique-motion",
+        width: 240,
+        viewportHeight: 400,
+        contentHeight: 960,
+        headerHeight: 0,
+        footerHeight: 0,
+        offsets: [0, 24, 48],
+        minimumOverallAccuracy: 0.999,
+        verticalFlatRows: 60 ..< 240
+      ),
+      ScrollAccuracyBenchmarkCase(
+        name: "reject-alias-outside-guided-range",
+        width: 64,
+        viewportHeight: 400,
+        contentHeight: 960,
+        headerHeight: 0,
+        footerHeight: 0,
+        offsets: [0, 140],
+        minimumOverallAccuracy: 0.999,
+        expectedDeltaOverride: 80,
+        contentPeriod: 300,
+        expectRejectedMovement: true
+      ),
+      ScrollAccuracyBenchmarkCase(
         name: "sticky-edges-bidirectional-retrace",
         width: 340,
         viewportHeight: 430,
@@ -95,11 +183,17 @@ private enum ScrollingCaptureAccuracyBenchmark {
       guard let update = stitcher.append(
         frames[index],
         maxOutputHeight: 32_768,
-        expectedSignedDeltaPixels: expectedDelta,
+        expectedSignedDeltaPixels: benchmark.expectedDeltaOverride ?? expectedDelta,
         renderMergedImage: false
       ) else {
         failedCount += 1
         continue
+      }
+
+      if ProcessInfo.processInfo.arguments.contains("--trace") {
+        print(
+          "\(benchmark.name) offset=\(benchmark.offsets[index]) outcome=\(update.outcome) debug=\(String(describing: update.alignmentDebug))"
+        )
       }
 
       if case .appended = update.outcome {
@@ -137,9 +231,11 @@ private enum ScrollingCaptureAccuracyBenchmark {
       seamRows: ScrollAccuracyFixture.seamRows(for: benchmark)
     )
     let averageConfidence = confidenceCount > 0 ? confidenceTotal / Double(confidenceCount) : 0
+    let expectedRejections = benchmark.expectRejectedMovement ? frames.count - 1 : 0
     let passed = metrics.overallAccuracy >= benchmark.minimumOverallAccuracy
       && outputRaster.height == expectedRaster.height
-      && failedCount == 0
+      && failedCount == expectedRejections
+      && (!benchmark.expectRejectedMovement || appendedCount == 0)
 
     return ScrollAccuracyBenchmarkResult(
       name: benchmark.name,
@@ -156,12 +252,15 @@ private enum ScrollingCaptureAccuracyBenchmark {
 
   private static func printReport(_ results: [ScrollAccuracyBenchmarkResult]) {
     print("Scroll Capture Accuracy Benchmark")
-    print("| Case | Frames | Appended | Failures | Height | Exact | Overall | MAE | Seam MAE | Confidence | Status |")
+    print(
+      "| Case | Frames | Appended | Rejected/Expected | Height | Exact | Overall | MAE | Seam MAE | Confidence | Status |"
+    )
     print("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |")
 
-    for result in results {
+    for (result, benchmark) in zip(results, corpus()) {
+      let expectedRejections = benchmark.expectRejectedMovement ? benchmark.offsets.count - 1 : 0
       print(
-        "| \(result.name) | \(result.frameCount) | \(result.appendedCount) | \(result.failedCount) | \(result.outputHeight)/\(result.expectedHeight) | \(percent(result.metrics.exactAccuracy)) | \(percent(result.metrics.overallAccuracy)) | \(number(result.metrics.meanAbsoluteError)) | \(number(result.metrics.maxSeamError)) | \(percent(result.averageConfidence)) | \(result.passed ? "pass" : "fail") |"
+        "| \(result.name) | \(result.frameCount) | \(result.appendedCount) | \(result.failedCount)/\(expectedRejections) | \(result.outputHeight)/\(result.expectedHeight) | \(percent(result.metrics.exactAccuracy)) | \(percent(result.metrics.overallAccuracy)) | \(number(result.metrics.meanAbsoluteError)) | \(number(result.metrics.maxSeamError)) | \(percent(result.averageConfidence)) | \(result.passed ? "pass" : "fail") |"
       )
     }
   }
