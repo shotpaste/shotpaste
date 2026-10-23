@@ -6,6 +6,7 @@
 //
 
 import CoreGraphics
+import CoreText
 @testable import ShotPaste
 import XCTest
 
@@ -198,6 +199,83 @@ final class ScrollingCaptureStitcherTests: XCTestCase {
     _ = stitcher.append(image, maxOutputHeight: 10000)
     // Height should not change for identical frames
     XCTAssertEqual(stitcher.outputHeight, 50)
+  }
+
+  func testAppend_smallStepsAtNonIntegralGrayScaleDoNotAccumulateDrift() throws {
+    let width = 920
+    let height = 635
+    let step = 20
+    let appendCount = 24
+    let expectedHeight = height + step * appendCount
+    let document = try textDocument(width: width, height: expectedHeight)
+    let expected = try XCTUnwrap(ScrollingCaptureRaster(cgImage: document))
+    func frame(at offset: Int) throws -> CGImage {
+      let start = offset * expected.bytesPerRow
+      let pixels = Array(expected.pixels[start ..< start + height * expected.bytesPerRow])
+      return try XCTUnwrap(ScrollingCaptureRaster(width: width, height: height, pixels: pixels).makeCGImage())
+    }
+
+    // 920x635 becomes 480x331. Each 20px movement has a fractional gray
+    // displacement, so a biased subpixel fit can silently accumulate error.
+    let stitcher = ScrollingCaptureStitcher()
+    _ = try XCTUnwrap(stitcher.start(with: frame(at: 0), maxOutputHeight: expectedHeight + 64))
+    for index in 1 ... appendCount {
+      let update = try XCTUnwrap(stitcher.append(
+        frame(at: index * step), maxOutputHeight: expectedHeight + 64,
+        expectedSignedDeltaPixels: step, renderMergedImage: false
+      ))
+      guard case .appended = update.outcome else {
+        return XCTFail("Every small movement must append; frame \(index): \(update.outcome)")
+      }
+      XCTAssertEqual(update.acceptedFrameCount, index + 1)
+      XCTAssertEqual(update.matchFailureCount, 0)
+    }
+
+    let actual = try XCTUnwrap(ScrollingCaptureRaster(cgImage: XCTUnwrap(stitcher.mergedImage())))
+    XCTAssertEqual(actual.width, width)
+    XCTAssertLessThanOrEqual(abs(actual.height - expectedHeight), 1, "Small-step errors must not accumulate")
+    XCTAssertTrue(
+      actual.pixels.elementsEqual(expected.pixels),
+      "Text and horizontal rules must retain their original spacing across all seams"
+    )
+  }
+
+  private func textDocument(width: Int, height: Int) throws -> CGImage {
+    let context = try XCTUnwrap(CGContext(
+      data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+      space: CGColorSpaceCreateDeviceRGB(),
+      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
+    ))
+    context.setFillColor(gray: 1, alpha: 1)
+    context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+    let font = CTFontCreateWithName("Menlo" as CFString, 16, nil)
+    let sentences = [
+      "Scrolling capture keeps each document line at its original vertical position.",
+      "A short paragraph contains normal text, punctuation, and useful whitespace.",
+      "Measure the complete page after many small scrolls, including every seam.",
+      "The selected region should preserve the distance between section headings.",
+      "Local screenshots can contain tables, horizontal rules, and numbered notes.",
+    ]
+    var top = 10
+    var lineNumber = 0
+    while top + 20 < height {
+      let text = String(format: "%03d  ", lineNumber) + sentences[lineNumber % sentences.count]
+      let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [
+        NSAttributedString.Key(kCTFontAttributeName as String): font,
+        NSAttributedString.Key(kCTForegroundColorAttributeName as String): CGColor(gray: 0.12, alpha: 1),
+      ]))
+      context.textPosition = CGPoint(x: 24, y: height - top - 16)
+      CTLineDraw(line, context)
+      // Vary line spacing and number every line to avoid periodic NCC peaks.
+      top += 24 + (lineNumber % 4) * 3
+      if lineNumber % 5 == 4 {
+        context.setFillColor(gray: 0.55, alpha: 1)
+        context.fill(CGRect(x: 24, y: height - top - 2, width: width - 48, height: 2))
+        top += 13
+      }
+      lineNumber += 1
+    }
+    return try XCTUnwrap(context.makeImage())
   }
 
   func testAppend_directionReversal_growsPastBothHistoricalExtents() throws {
@@ -570,6 +648,263 @@ final class ScrollingCaptureStitcherTests: XCTestCase {
     )
     let actual = try XCTUnwrap(ScrollingCaptureRaster(cgImage: XCTUnwrap(stitcher.mergedImage())))
     XCTAssertEqual(actual.pixels, try XCTUnwrap(ScrollingCaptureRaster(cgImage: expected)).pixels)
+  }
+
+  func testAppend_translucentEdgesPreserveFixedMarkersAndContinuousBodyAtBothScales() throws {
+    for scale in [1, 2] {
+      try assertTranslucentEdgeSequence(scale: scale, hasFixedOverlays: true)
+    }
+  }
+
+  func testAppend_smallInitialMotionWaitsWithoutConsumingTheReference() throws {
+    let first = try XCTUnwrap(TestImageFactory.scrollingFrame(
+      width: 240, height: 480, logicalYOffset: 100
+    ))
+    let stitcher = ScrollingCaptureStitcher()
+    _ = try XCTUnwrap(stitcher.start(with: first))
+    let small = try XCTUnwrap(TestImageFactory.scrollingFrame(
+      width: 240, height: 480, logicalYOffset: 101
+    ))
+    let waiting = try XCTUnwrap(stitcher.append(
+      small, maxOutputHeight: 10_000, expectedSignedDeltaPixels: 1
+    ))
+    guard case .ignoredNoMovement = waiting.outcome else {
+      return XCTFail("The first reference must survive a sub-resolution movement")
+    }
+    XCTAssertEqual(waiting.acceptedFrameCount, 1)
+    XCTAssertEqual(waiting.matchFailureCount, 0)
+    XCTAssertFalse(waiting.likelyReachedBoundary)
+    XCTAssertEqual(waiting.mergeDirection, .unresolved)
+
+    let measurable = try XCTUnwrap(TestImageFactory.scrollingFrame(
+      width: 240, height: 480, logicalYOffset: 103
+    ))
+    let accepted = try XCTUnwrap(stitcher.append(
+      measurable, maxOutputHeight: 10_000, expectedSignedDeltaPixels: 2
+    ))
+    guard case .appended(let rows) = accepted.outcome else {
+      return XCTFail("Accumulated motion must be measured against the original reference")
+    }
+    XCTAssertEqual(rows, 3)
+    XCTAssertEqual(accepted.acceptedFrameCount, 2)
+    XCTAssertEqual(accepted.matchFailureCount, 0)
+    XCTAssertEqual(accepted.outputHeight, 483)
+  }
+
+  func testAppend_movingTextWithoutOverlaysRemainsUncroppedAtBothScales() throws {
+    for scale in [1, 2] {
+      try assertTranslucentEdgeSequence(scale: scale, hasFixedOverlays: false)
+    }
+  }
+
+  private enum TranslucentEdgeFixture {
+    static let width = 480
+    static let height = 640
+    static let headerHeight = 64
+    static let footerHeight = 104
+    static let markerColors: [[UInt8]] = [
+      [237, 25, 165, 255], // Fixed title marker.
+      [247, 77, 13, 255], // Top border of the footer buttons.
+      [19, 231, 243, 255], // Vertical markers inside both footer buttons.
+    ]
+  }
+
+  private func assertTranslucentEdgeSequence(scale: Int, hasFixedOverlays: Bool) throws {
+    // Start with a small movement, grow beyond the entire footer, reverse past
+    // the initial top, retraverse captured content, then expose new bottom rows.
+    let offsets = [160, 184, 300, 136, 300, 324]
+    let first = try frameWithTranslucentEdges(
+      logicalYOffset: offsets[0], scale: scale, hasFixedOverlays: hasFixedOverlays
+    )
+    let firstRaster = try XCTUnwrap(ScrollingCaptureRaster(cgImage: first))
+    let markerCounts = TranslucentEdgeFixture.markerColors.map { markerPixelCount($0, in: firstRaster) }
+    if hasFixedOverlays {
+      XCTAssertTrue(markerCounts.allSatisfy { $0 > 0 }, "All fixed markers must be present in the fixture")
+    }
+    let stitcher = ScrollingCaptureStitcher()
+    _ = try XCTUnwrap(stitcher.start(with: first))
+    var minimumOffset = offsets[0]
+    var maximumOffset = offsets[0]
+    for index in 1 ..< offsets.count {
+      let offset = offsets[index]
+      let growth = max(0, offset - maximumOffset) + max(0, minimumOffset - offset)
+      let frame = try frameWithTranslucentEdges(
+        logicalYOffset: offset, scale: scale, hasFixedOverlays: hasFixedOverlays
+      )
+      let update = try XCTUnwrap(stitcher.append(
+        frame, maxOutputHeight: 10_000,
+        expectedSignedDeltaPixels: (offset - offsets[index - 1]) * scale
+      ))
+      let context = "scale=\(scale), offset=\(offset), overlays=\(hasFixedOverlays)"
+      if growth > 0 {
+        guard case .appended(let rows) = update.outcome else {
+          return XCTFail("Valid movement must append successfully: \(update.outcome), \(context)")
+        }
+        XCTAssertEqual(rows, growth * scale, context)
+      } else {
+        guard case .ignoredNoMovement = update.outcome else {
+          return XCTFail("Retraversal must not duplicate captured rows: \(update.outcome), \(context)")
+        }
+      }
+      minimumOffset = min(minimumOffset, offset)
+      maximumOffset = max(maximumOffset, offset)
+      let expectedHeight = TranslucentEdgeFixture.height + maximumOffset - minimumOffset
+      XCTAssertEqual(update.outputHeight, expectedHeight * scale, context)
+      let actual = try XCTUnwrap(ScrollingCaptureRaster(cgImage: XCTUnwrap(stitcher.mergedImage())))
+      let expectedImage = try frameWithTranslucentEdges(
+        logicalYOffset: minimumOffset, scale: scale, hasFixedOverlays: false, height: expectedHeight
+      )
+      let expected = try XCTUnwrap(ScrollingCaptureRaster(cgImage: expectedImage))
+      XCTAssertEqual(actual.width, expected.width, context)
+      XCTAssertEqual(actual.height, expected.height, context)
+      if hasFixedOverlays {
+        for (markerIndex, color) in TranslucentEdgeFixture.markerColors.enumerated() {
+          XCTAssertEqual(
+            markerPixelCount(color, in: actual), markerCounts[markerIndex],
+            "Fixed marker \(markerIndex) must survive exactly once: \(context)"
+          )
+        }
+        assertContinuousBodyAnchors(actual: actual, expected: expected, scale: scale, context: context)
+      } else {
+        XCTAssertTrue(
+          actual.pixels.elementsEqual(expected.pixels),
+          "Moving text must remain pixel-exact over the entire captured range: \(context)"
+        )
+      }
+    }
+  }
+
+  private func frameWithTranslucentEdges(
+    logicalYOffset: Int,
+    scale: Int,
+    hasFixedOverlays: Bool,
+    height: Int = TranslucentEdgeFixture.height
+  ) throws -> CGImage {
+    let width = TranslucentEdgeFixture.width
+    let content = try XCTUnwrap(TestImageFactory.scrollingFrame(
+      width: width, height: height, logicalYOffset: logicalYOffset
+    ))
+    let raster = try XCTUnwrap(ScrollingCaptureRaster(cgImage: content))
+    var pixels = raster.pixels
+    for row in 0 ..< height {
+      let logicalRow = logicalYOffset + row
+      for x in 0 ..< width {
+        let offset = row * raster.bytesPerRow + x * 4
+        let gray = (Int(pixels[offset]) * 77 + Int(pixels[offset + 1]) * 150
+          + Int(pixels[offset + 2]) * 29) >> 8
+        // The existing factory supplies unique row signatures. Add text-like
+        // strokes in content coordinates, so they scroll with those rows.
+        let isText = x >= 24 && x < 272 && (6 ..< 16).contains(logicalRow % 24)
+          && (x % 12 == 2 || (logicalRow % 24 == 6 && (x / 12 + logicalRow / 24) % 3 != 0))
+        let bodyGray = UInt8(isText ? 24 + gray / 8 : 48 + gray * 160 / 256)
+        var color: [UInt8] = [bodyGray, bodyGray, bodyGray, 255]
+        if hasFixedOverlays {
+          let structure = UInt64(row) &* 1_103_515_245 &+ UInt64(x) &* 2_654_435_761
+            &+ 0x9E37_79B9_7F4A_7C15
+          let mixed = UInt8(truncatingIfNeeded: structure ^ (structure >> 29) ^ (structure >> 47))
+          let ink = UInt8(24 + Int(mixed) * 176 / 256)
+          if row < 8 || row >= height - 8 {
+            // Only these thin outer rows have a genuinely fixed background.
+            color = [36, 36, 36, 255]
+          } else if row < TranslucentEdgeFixture.headerHeight {
+            // A low-frequency glass background changes brightness with scroll
+            // position; full-row absolute difference cannot identify the title.
+            let glass = UInt8(126 + logicalYOffset % 80 / 2 + x / 40 + row / 16)
+            color = [glass, glass, glass, 255]
+            if (48 ..< 304).contains(x), row >= 12 {
+              let tintedInk = UInt8(Int(ink) + logicalYOffset % 80 / 2)
+              color = row < 16 ? TranslucentEdgeFixture.markerColors[0] : [tintedInk, tintedInk, tintedInk, 255]
+            }
+          } else if row >= height - TranslucentEdgeFixture.footerHeight {
+            // The left side and button gaps retain the moving body. The fixed
+            // high-contrast structures occupy only the right side of the inset.
+            if row < height - TranslucentEdgeFixture.footerHeight + 4, (304 ..< 448).contains(x) {
+              color = TranslucentEdgeFixture.markerColors[1]
+            } else if (304 ..< 368).contains(x) || (384 ..< 448).contains(x) {
+              color = [ink, ink, ink, 255]
+              if (312 ..< 316).contains(x) || (392 ..< 396).contains(x) {
+                color = TranslucentEdgeFixture.markerColors[2]
+              }
+            }
+          }
+        }
+        for component in 0 ..< 4 {
+          pixels[offset + component] = color[component]
+        }
+      }
+    }
+    if scale == 1 {
+      return try XCTUnwrap(ScrollingCaptureRaster(width: width, height: height, pixels: pixels).makeCGImage())
+    }
+    // Scale the same logical scene, including controls and scroll deltas, to
+    // exercise the matcher's gray-to-full-resolution mapping at Retina density.
+    let scaledWidth = width * scale
+    var scaledPixels = [UInt8](repeating: 0, count: scaledWidth * height * scale * 4)
+    for row in 0 ..< height * scale {
+      for x in 0 ..< scaledWidth {
+        let source = ((row / scale) * width + x / scale) * 4
+        let destination = (row * scaledWidth + x) * 4
+        for component in 0 ..< 4 {
+          scaledPixels[destination + component] = pixels[source + component]
+        }
+      }
+    }
+    return try XCTUnwrap(ScrollingCaptureRaster(
+      width: scaledWidth, height: height * scale, pixels: scaledPixels
+    ).makeCGImage())
+  }
+
+  private func markerPixelCount(_ color: [UInt8], in raster: ScrollingCaptureRaster) -> Int {
+    stride(from: 0, to: raster.pixels.count, by: 4).reduce(into: 0) { count, offset in
+      if raster.pixels[offset ..< offset + 4].elementsEqual(color) {
+        count += 1
+      }
+    }
+  }
+
+  private func assertContinuousBodyAnchors(
+    actual: ScrollingCaptureRaster,
+    expected: ScrollingCaptureRaster,
+    scale: Int,
+    context: String
+  ) {
+    // Allow a small margin around the synthetic chrome instead of prescribing
+    // the detector's exact crop row. Everything inside must remain continuous.
+    let firstExpectedRow = (TranslucentEdgeFixture.headerHeight + 16) * scale
+    let bodyEnd = expected.height - (TranslucentEdgeFixture.footerHeight + 24) * scale
+    let xStart = 40 * scale * 4
+    let xEnd = 232 * scale * 4
+    var firstActualRow: Int?
+    for expectedRow in stride(from: firstExpectedRow, to: bodyEnd, by: 32 * scale) {
+      let expectedStart = expectedRow * expected.bytesPerRow
+      let signature = expected.pixels[expectedStart + xStart ..< expectedStart + xEnd]
+      let matchingRows = (0 ..< actual.height).filter { row in
+        let actualStart = row * actual.bytesPerRow
+        return actual.pixels[actualStart + xStart ..< actualStart + xEnd].elementsEqual(signature)
+      }
+      // Nearest-neighbor Retina scaling repeats each logical row twice.
+      XCTAssertEqual(matchingRows.count, scale, "A body anchor was duplicated or lost: \(context)")
+      guard let actualRow = matchingRows.first else { return }
+      if let firstActualRow {
+        XCTAssertEqual(
+          actualRow - firstActualRow, expectedRow - firstExpectedRow,
+          "Body anchors must retain their order and spacing: \(context)"
+        )
+      } else {
+        firstActualRow = actualRow
+      }
+    }
+    guard let firstActualRow, firstActualRow + bodyEnd - firstExpectedRow <= actual.height else {
+      return XCTFail("The continuous body range is missing: \(context)")
+    }
+    for relativeRow in 0 ..< bodyEnd - firstExpectedRow {
+      let actualStart = (firstActualRow + relativeRow) * actual.bytesPerRow
+      let expectedStart = (firstExpectedRow + relativeRow) * expected.bytesPerRow
+      guard actual.pixels[actualStart + xStart ..< actualStart + xEnd]
+        .elementsEqual(expected.pixels[expectedStart + xStart ..< expectedStart + xEnd]) else {
+        return XCTFail("Body rows were repeated, skipped, or replaced at row \(relativeRow): \(context)")
+      }
+    }
   }
 
   private func frameWithStaticEdges(

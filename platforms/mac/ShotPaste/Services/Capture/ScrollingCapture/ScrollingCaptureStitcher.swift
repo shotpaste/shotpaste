@@ -229,7 +229,7 @@ final nonisolated class ScrollingCaptureStitcher: @unchecked Sendable {
     }
 
     guard
-      let motion = tracker.estimateMotion(
+      var motion = tracker.estimateMotion(
         previous: lastGrayFrame,
         current: grayFrame,
         expectedSignedDeltaPixels: expectedSignedDeltaPixels,
@@ -270,6 +270,35 @@ final nonisolated class ScrollingCaptureStitcher: @unchecked Sendable {
           appendDeltaY: nil
         )
       )
+    }
+
+    // Preserve the first reference until it has moved far enough in the gray
+    // image to distinguish fixed controls from slowly moving body texture.
+    if tracker.lockedDirection == .unresolved, abs(motion.deltaY) < 1.5 * grayFrame.fullResScale {
+      return currentUpdate(
+        outcome: .ignoredNoMovement,
+        renderMergedImage: renderMergedImage,
+        safety: .tentative(reason: "waiting-for-initial-motion"),
+        alignmentDebug: makeMotionDebugInfo(for: motion, path: .noMovement, appendDeltaY: nil)
+      )
+    }
+
+    if tracker.refineStaticBands(previous: lastGrayFrame, current: grayFrame, motion: motion) {
+      guard !tracker.hasUnresolvedStaticEdges,
+            let refined = tracker.estimateMotion(
+              previous: lastGrayFrame, current: grayFrame,
+              expectedSignedDeltaPixels: expectedSignedDeltaPixels,
+              lastAcceptedDeltaPixels: lastAcceptedDeltaPixels
+            ), abs(refined.deltaY - motion.deltaY) <= max(2, grayFrame.fullResScale) else {
+        matchNotFoundCount += 1
+        return currentUpdate(
+          outcome: .ignoredAlignmentFailed,
+          renderMergedImage: renderMergedImage,
+          safety: .unsafe(reason: "static-edges-unresolved"),
+          alignmentDebug: makeFailureDebugInfo(confidence: 0)
+        )
+      }
+      motion = refined
     }
 
     // Decode before committing direction, base cropping, or cursor changes.

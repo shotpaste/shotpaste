@@ -3,6 +3,106 @@ import CoreGraphics
 import XCTest
 
 final class ScrollingCaptureMotionTrackerTests: XCTestCase {
+  func testEstimateMotion_fullResolutionRefinementIncludesTextureAtBandEnds() throws {
+    let width = 1920, height = 1600
+    func frame(offset: Int) throws -> CGImage {
+      var pixels = [UInt8](repeating: 128, count: width * height * 4)
+      for index in stride(from: 3, to: pixels.count, by: 4) {
+        pixels[index] = 255
+      }
+      for y in 0 ..< height {
+        let sourceY = y + offset
+        // The coarse bands are 192 original rows high. Only their last
+        // 48 rows contain texture; a 128-row fine prefix sees blank paper.
+        guard (164 ..< 212).contains(sourceY % 200) else { continue }
+        for x in 0 ..< width {
+          var hash = UInt64(sourceY) &* 6_364_136_223_846_793_005
+            &+ UInt64(x) &* 1_442_695_040_888_963_407
+          hash ^= hash >> 30
+          hash &*= 0xBF58_476D_1CE4_E5B9
+          hash ^= hash >> 27
+          hash &*= 0x94D0_49BB_1331_11EB
+          hash ^= hash >> 31
+          let value = UInt8(16 + ((hash >> 32) % 224))
+          let index = (y * width + x) * 4
+          pixels[index] = value
+          pixels[index + 1] = value
+          pixels[index + 2] = value
+        }
+      }
+      return try XCTUnwrap(ScrollingCaptureRaster(width: width, height: height, pixels: pixels).makeCGImage())
+    }
+    let tracker = ScrollingCaptureMotionTracker()
+    let previous = try XCTUnwrap(tracker.makeGrayFrame(from: frame(offset: 0)))
+    let current = try XCTUnwrap(tracker.makeGrayFrame(from: frame(offset: 20)))
+    XCTAssertNotNil(previous.verticalSamples)
+    let motion = try XCTUnwrap(tracker.estimateMotion(
+      previous: previous, current: current,
+      expectedSignedDeltaPixels: 20, lastAcceptedDeltaPixels: nil
+    ))
+    XCTAssertEqual(motion.deltaY, 20, accuracy: 0.05)
+    XCTAssertGreaterThanOrEqual(motion.confidentBandCount, 3)
+  }
+
+  func testEstimateMotion_stationaryChromeCannotHideCoherentBodyMotion() {
+    let width = 64, height = 400
+    var seed: UInt64 = 26
+    var previous = [UInt8](repeating: 0, count: width * height)
+    for index in previous.indices {
+      seed = seed &* 6_364_136_223_846_793_005 &+ 1
+      previous[index] = 64 + UInt8(truncatingIfNeeded: seed >> 32) / 2
+    }
+    var current = previous
+    for row in 0 ..< height {
+      for x in 0 ..< width {
+        let index = row * width + x
+        if (100 ..< 300).contains(row) {
+          seed = seed &* 6_364_136_223_846_793_005 &+ 1
+          let noise = Int((seed >> 32) % 41) - 20
+          current[index] = UInt8(Int(previous[(row + 24) * width + x]) + noise)
+        } else {
+          current[index] = previous[index] + 8
+        }
+      }
+    }
+    // Static chrome matches at correlation 1 despite changing brightness.
+    // Its zero-displacement cluster must not erase several agreeing body bands.
+    XCTAssertNil(ScrollingCaptureMotionTracker().estimateMotion(
+      previous: grayFrame(width: width, height: height, pixels: previous),
+      current: grayFrame(width: width, height: height, pixels: current),
+      expectedSignedDeltaPixels: 24,
+      lastAcceptedDeltaPixels: nil
+    ))
+  }
+
+  func testEstimateMotion_newlyExposedOutliersCannotEraseThreeAgreeingBands() throws {
+    let width = 64, height = 400
+    var seed: UInt64 = 26
+    var previous = [UInt8](repeating: 0, count: width * height)
+    var current = previous
+    for index in previous.indices {
+      seed = seed &* 6_364_136_223_846_793_005 &+ 1
+      previous[index] = UInt8(truncatingIfNeeded: seed >> 32)
+      seed = seed &* 6_364_136_223_846_793_005 &+ 1
+      current[index] = UInt8(truncatingIfNeeded: seed >> 32)
+    }
+    // Three overlapping strips support +100. Four outlier strips support
+    // two unrelated offsets, so their global median incorrectly becomes zero.
+    for (currentStart, previousStart) in [(0, 100), (50, 150), (100, 200),
+                                          (150, 0), (200, 50), (250, 250), (300, 300)] {
+      current.replaceSubrange(currentStart * width ..< (currentStart + 48) * width,
+                              with: previous[previousStart * width ..< (previousStart + 48) * width])
+    }
+    let result = try XCTUnwrap(ScrollingCaptureMotionTracker().estimateMotion(
+      previous: grayFrame(width: width, height: height, pixels: previous),
+      current: grayFrame(width: width, height: height, pixels: current),
+      expectedSignedDeltaPixels: 100,
+      lastAcceptedDeltaPixels: nil
+    ))
+    XCTAssertEqual(result.deltaY, 100, accuracy: 0.6)
+    XCTAssertGreaterThanOrEqual(result.confidentBandCount, 3)
+  }
+
   func testInferStaticBands_findsRetinaHeaderBeyondOldPixelLimit() {
     let tracker = ScrollingCaptureMotionTracker()
     let previous = grayFixture(offset: 100, header: 100, footer: 40, scale: 2)
