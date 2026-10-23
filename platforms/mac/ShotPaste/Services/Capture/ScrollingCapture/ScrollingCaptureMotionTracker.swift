@@ -24,6 +24,14 @@ nonisolated struct ScrollingCaptureGrayFrame {
   let fingerprint: UInt64
   /// Full-resolution pixels per gray pixel (>= 1).
   let fullResScale: Double
+  /// A narrow image retaining original rows for final displacement precision.
+  var verticalSamples: ScrollingCaptureVerticalSamples?
+}
+
+nonisolated struct ScrollingCaptureVerticalSamples {
+  let width: Int
+  let height: Int
+  let floats: [Double]
 }
 
 /// Sticky regions detected at the current scroll position, in gray pixels.
@@ -63,16 +71,17 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
   private static let guidedRangeMultiplier = 1.5
   private static let guidedRangePaddingPixels = 24.0
   private static let defaultGuidedRangePixels = 64.0
-  private static let recoveryCoarseStepGray = 3
   private static let maximumHorizontalShiftPixels = 8
   private static let horizontalShiftImprovement = 0.002
   private static let staticBandDifferenceThreshold = 5.0
-  private static let maximumStaticHeaderFooterPixels = 160.0
   private static let maximumStaticSidePixels = 120.0
 
   private(set) var lockedDirection: ScrollingCaptureMergeDirection = .unresolved
   /// Sticky bands in gray pixels; refreshed per frame until the direction lock.
   private(set) var staticBands = ScrollingCaptureStaticBands()
+  /// Reaching a scan limit proves only a lower bound on a static edge.
+  /// Such a frame must not lock an incomplete crop into the canvas.
+  private(set) var hasUnresolvedStaticEdges = false
   private var hasLockedStaticBands = false
 
   func lockDirection(_ direction: ScrollingCaptureMergeDirection) {
@@ -99,6 +108,31 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
     let scale = min(1.0, Double(Self.targetGrayWidth) / Double(max(1, image.width)))
     let width = max(1, Int((Double(image.width) * scale).rounded()))
     let height = max(1, Int((Double(image.height) * scale).rounded()))
+    guard let gray = luminancePixels(from: image, width: width, height: height) else { return nil }
+    var frame = ScrollingCaptureGrayFrame(
+      width: width,
+      height: height,
+      pixels: gray,
+      floats: floatingSamples(gray),
+      fingerprint: fingerprint(of: gray),
+      fullResScale: Double(image.width) / Double(width)
+    )
+    if scale < 1 {
+      // Keep the vertical sampling grid at source resolution. Upscaling the
+      // parabola fitted to the small image otherwise accumulates biased rows
+      // over many small auto-scroll steps. Exclude the scrollbar and borders.
+      let inset = image.width / 18
+      guard let interior = image.cropping(to: CGRect(
+        x: inset, y: 0, width: image.width - 2 * inset, height: image.height
+      )), let samples = luminancePixels(from: interior, width: 128, height: image.height) else { return nil }
+      frame.verticalSamples = ScrollingCaptureVerticalSamples(
+        width: 128, height: image.height, floats: floatingSamples(samples)
+      )
+    }
+    return frame
+  }
+
+  private func luminancePixels(from image: CGImage, width: Int, height: Int) -> [UInt8]? {
     let bytesPerRow = width * 4
     var rgba = [UInt8](repeating: 0, count: height * bytesPerRow)
 
@@ -132,6 +166,11 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
       )
     }
 
+    return gray
+  }
+
+  private func floatingSamples(_ gray: [UInt8]) -> [Double] {
+    let count = gray.count
     var floats = [Double](repeating: 0, count: count)
     gray.withUnsafeBufferPointer { source in
       floats.withUnsafeMutableBufferPointer { destination in
@@ -140,14 +179,7 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
       }
     }
 
-    return ScrollingCaptureGrayFrame(
-      width: width,
-      height: height,
-      pixels: gray,
-      floats: floats,
-      fingerprint: fingerprint(of: gray),
-      fullResScale: Double(image.width) / Double(width)
-    )
+    return floats
   }
 
   // MARK: - Frame difference
@@ -188,9 +220,26 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
     guard !hasLockedStaticBands else { return }
     guard previous.width == current.width, previous.height == current.height else { return }
 
+    // Scale the edge threshold with observable movement so low-contrast body
+    // rows are not mistaken for fixed chrome. Keep the stationary noise floor.
+    let differenceThreshold = min(
+      Self.staticBandDifferenceThreshold,
+      max(1.2, frameDifference(previous: previous, current: current) / 2)
+    )
+    let header = detectStaticEdgeRows(
+      previous: previous, current: current, fromTop: true, differenceThreshold: differenceThreshold
+    )
+    let footer = detectStaticEdgeRows(
+      previous: previous, current: current, fromTop: false, differenceThreshold: differenceThreshold
+    )
+    guard let header, let footer else {
+      hasUnresolvedStaticEdges = true
+      return
+    }
+    hasUnresolvedStaticEdges = false
     staticBands = ScrollingCaptureStaticBands(
-      header: detectStaticEdgeRows(previous: previous, current: current, fromTop: true),
-      footer: detectStaticEdgeRows(previous: previous, current: current, fromTop: false),
+      header: header,
+      footer: footer,
       leading: detectStaticSideColumns(previous: previous, current: current, fromLeading: true),
       trailing: detectStaticSideColumns(previous: previous, current: current, fromLeading: false)
     )
@@ -198,10 +247,119 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
 
   // MARK: - Motion estimation
 
+  /// A glass toolbar or a transparent footer can change its background while
+  /// its controls remain fixed. Absolute row differences cannot identify that
+  /// boundary. After measuring body motion, look for textured local structure
+  /// that agrees at zero displacement and disagrees at the body displacement.
+  /// Only a cluster of neighboring patches may extend an inferred edge.
+  func refineStaticBands(
+    previous: ScrollingCaptureGrayFrame,
+    current: ScrollingCaptureGrayFrame,
+    motion: ScrollingCaptureMotionResult
+  ) -> Bool {
+    guard !hasLockedStaticBands, previous.width == current.width,
+          previous.height == current.height else { return false }
+    let delta = Int((motion.deltaY / previous.fullResScale).rounded())
+    guard abs(delta) >= 2 else { return false }
+    let cap = previous.height / 3
+    let patchWidth = 16, patchHeight = 4, rowStep = 2
+    guard previous.width >= patchWidth + 16, cap >= patchHeight + rowStep else { return false }
+
+    func fixedPatch(x: Int, y: Int) -> Bool {
+      var horizontalEnergy = 0.0, verticalEnergy = 0.0
+      for row in 0 ..< patchHeight {
+        for column in 0 ..< patchWidth {
+          let index = (y + row) * previous.width + x + column
+          if column > 0 {
+            let d = Double(previous.pixels[index]) - Double(previous.pixels[index - 1])
+            horizontalEnergy += d * d
+          }
+          if row > 0 {
+            let d = Double(previous.pixels[index]) - Double(previous.pixels[index - previous.width])
+            verticalEnergy += d * d
+          }
+        }
+      }
+      guard horizontalEnergy >= Double((patchWidth - 1) * patchHeight) * 10,
+            verticalEnergy >= Double((patchHeight - 1) * patchWidth) * 10 else { return false }
+
+      func correlation(_ a: ScrollingCaptureGrayFrame, _ ay: Int,
+                       _ b: ScrollingCaptureGrayFrame, _ by: Int) -> Double {
+        var sumA = 0.0, sumB = 0.0, squareA = 0.0, squareB = 0.0, product = 0.0
+        for row in 0 ..< patchHeight {
+          for column in 0 ..< patchWidth {
+            let va = Double(a.pixels[(ay + row) * a.width + x + column])
+            let vb = Double(b.pixels[(by + row) * b.width + x + column])
+            sumA += va
+            sumB += vb
+            squareA += va * va
+            squareB += vb * vb
+            product += va * vb
+          }
+        }
+        let count = Double(patchWidth * patchHeight)
+        let variance = (count * squareA - sumA * sumA) * (count * squareB - sumB * sumB)
+        return variance > 0.000_001 ? (count * product - sumA * sumB) / sqrt(variance) : 0
+      }
+
+      let stationary = correlation(previous, y, current, y)
+      guard stationary >= 0.94 else { return false }
+      var moving = -1.0
+      if y + delta >= 0, y + delta + patchHeight <= previous.height {
+        moving = max(moving, correlation(previous, y + delta, current, y))
+      }
+      if y - delta >= 0, y - delta + patchHeight <= current.height {
+        moving = max(moving, correlation(previous, y, current, y - delta))
+      }
+      return moving >= -0.999 && stationary > moving + 0.1
+    }
+
+    func fixedRows(in range: Range<Int>) -> [Int] {
+      var rows: [Int] = []
+      for y in stride(from: range.lowerBound, to: range.upperBound, by: rowStep) {
+        var support = 0
+        for x in stride(from: 8, through: previous.width - patchWidth - 8, by: 8) {
+          if fixedPatch(x: x, y: y) {
+            support += 1
+          }
+        }
+        if support >= 2 {
+          rows.append(y)
+        }
+      }
+      // Isolated patches cannot establish a fixed edge.
+      return rows.filter { rows.contains($0 - rowStep) || rows.contains($0 + rowStep) }
+    }
+
+    let headerRows = fixedRows(in: 0 ..< cap - patchHeight + 1)
+    let footerRows = fixedRows(in: previous.height - cap ..< previous.height - patchHeight + 1)
+    var bands = staticBands
+    if let last = headerRows.last {
+      let edge = last + patchHeight + 2
+      if edge > bands.header + 6 {
+        bands.header = edge
+      }
+    }
+    if let first = footerRows.first {
+      let edge = previous.height - first + 2
+      if edge > bands.footer + 6 {
+        bands.footer = edge
+      }
+    }
+    guard bands != staticBands else { return false }
+    guard bands.header <= cap, bands.footer <= cap else {
+      hasUnresolvedStaticEdges = true
+      return true
+    }
+    staticBands = bands
+    return true
+  }
+
   /// Estimates the signed vertical shift between two consecutive frames.
   /// `expectedSignedDeltaPixels` carries the scroll-event hint and
   /// `lastAcceptedDeltaPixels` the signed last accepted shift; both center the
-  /// guided candidate range. Returns nil only when no candidate is measurable.
+  /// guided candidate range. Ambiguous or insufficiently supported motion is
+  /// rejected even when an individual candidate can be measured.
   func estimateMotion(
     previous: ScrollingCaptureGrayFrame,
     current: ScrollingCaptureGrayFrame,
@@ -272,8 +430,7 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
     let guidedLower = max(-maximumDelta, Int((centerGray - rangeGray).rounded(.down)))
     let guidedUpper = min(maximumDelta, Int((centerGray + rangeGray).rounded(.up)))
 
-    var usedRecoverySearch = false
-    var best = previousCompact.withUnsafeBufferPointer { previousBuffer in
+    let guided = previousCompact.withUnsafeBufferPointer { previousBuffer in
       currentCompact.withUnsafeBufferPointer { currentBuffer in
         searchBands(
           previous: previousBuffer,
@@ -287,74 +444,48 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
       }
     }
 
-    if !isAcceptable(best) {
-      usedRecoverySearch = true
-      let preferredSign: Int = if let expectedSignedDeltaPixels, expectedSignedDeltaPixels != 0 {
-        expectedSignedDeltaPixels > 0 ? 1 : -1
-      } else if let lastAcceptedDeltaPixels, lastAcceptedDeltaPixels != 0 {
-        lastAcceptedDeltaPixels > 0 ? 1 : -1
-      } else {
-        lockedDirection == .appendFromTop ? -1 : 1
-      }
-      let preferredSigns = [preferredSign, -preferredSign]
-      var recoveryBest: BandSearchResult?
-
-      previousCompact.withUnsafeBufferPointer { previousBuffer in
-        currentCompact.withUnsafeBufferPointer { currentBuffer in
-          for sign in preferredSigns {
-            var coarseCandidates: [Int] = []
-            var magnitude = 2
-            while magnitude <= maximumDelta {
-              coarseCandidates.append(sign * magnitude)
-              magnitude += Self.recoveryCoarseStepGray
-            }
-            guard
-              let coarse = searchBands(
-                previous: previousBuffer,
-                current: currentBuffer,
-                stripWidth: stripWidth,
-                contentHeight: contentHeight,
-                bandStarts: bandStarts,
-                bandHeight: bandHeight,
-                candidates: coarseCandidates
-              ),
-              let coarseDelta = coarse.delta
-            else { continue }
-
-            let refineLower = max(-maximumDelta, coarseDelta - Self.recoveryCoarseStepGray)
-            let refineUpper = min(maximumDelta, coarseDelta + Self.recoveryCoarseStepGray)
-            let refined = searchBands(
-              previous: previousBuffer,
-              current: currentBuffer,
-              stripWidth: stripWidth,
-              contentHeight: contentHeight,
-              bandStarts: bandStarts,
-              bandHeight: bandHeight,
-              candidates: Array(refineLower ... refineUpper)
-            )
-
-            if let refined, isBetter(refined, than: recoveryBest) {
-              recoveryBest = refined
-            }
-            if isAcceptable(recoveryBest) {
-              break
-            }
-          }
-        }
-      }
-
-      if let recoveryBest {
-        best = recoveryBest
+    // A hint can prioritize a displacement, but cannot establish uniqueness:
+    // an equally valid opposite-direction peak can sit outside its range.
+    // Keep the dense full-range evidence, including for a successful guided fit.
+    let best = previousCompact.withUnsafeBufferPointer { previousBuffer in
+      currentCompact.withUnsafeBufferPointer { currentBuffer in
+        searchBands(
+          previous: previousBuffer,
+          current: currentBuffer,
+          stripWidth: stripWidth,
+          contentHeight: contentHeight,
+          bandStarts: bandStarts,
+          bandHeight: bandHeight,
+          candidates: Array(-maximumDelta ... maximumDelta)
+        )
       }
     }
+    let usedRecoverySearch = !isAcceptable(guided) || guided?.delta != best?.delta
 
-    guard let result = best, let deltaGray = result.delta else { return nil }
+    // Recovery is a search strategy, not an exemption from acceptance gates.
+    // Confidence alone can exceed 0.85 with just one textured band.
+    guard isAcceptable(best), let result = best, let deltaGray = result.delta else {
+      return nil
+    }
 
     let subpixelGray = subpixelRefinement(
       aggregate: result.aggregate,
       bestIndex: result.aggregateBestIndex,
       candidateDeltas: result.candidateDeltas
     ) ?? Double(deltaGray)
+
+    let deltaY: Double
+    if let previousSamples = previous.verticalSamples, let currentSamples = current.verticalSamples {
+      guard let refined = refineVerticalDisplacement(
+        previous: previousSamples, current: currentSamples,
+        coarseDelta: subpixelGray * scale,
+        grayHeight: previous.height, contentTop: contentTop,
+        bandStarts: result.confidentBandStarts, bandHeight: bandHeight
+      ) else { return nil }
+      deltaY = refined
+    } else {
+      deltaY = subpixelGray * scale
+    }
 
     let deltaX = previousCompact.withUnsafeBufferPointer { previousBuffer in
       currentCompact.withUnsafeBufferPointer { currentBuffer in
@@ -372,7 +503,7 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
     }
 
     return ScrollingCaptureMotionResult(
-      deltaY: subpixelGray * scale,
+      deltaY: deltaY,
       deltaX: deltaX,
       confidence: result.confidence,
       peakCorrelation: result.peakCorrelation,
@@ -384,6 +515,70 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
   }
 
   // MARK: - Private: band search
+
+  /// Refines only a displacement already accepted by the full bidirectional
+  /// search. This local fit cannot establish or override global uniqueness.
+  private func refineVerticalDisplacement(
+    previous: ScrollingCaptureVerticalSamples,
+    current: ScrollingCaptureVerticalSamples,
+    coarseDelta: Double,
+    grayHeight: Int,
+    contentTop: Int,
+    bandStarts: [Int],
+    bandHeight: Int
+  ) -> Double? {
+    guard previous.width == current.width, previous.height == current.height else { return nil }
+    let scale = Double(previous.height) / Double(grayHeight)
+    let radius = Int(ceil(scale)) + 1
+    let center = Int(coarseDelta.rounded())
+    let candidates = Array(center - radius ... center + radius)
+    // Cover the complete coarse supporting strip: sparse text may occur only
+    // at its end, so a fixed-height prefix can discard all useful evidence.
+    let height = max(8, Int((Double(bandHeight) * scale).rounded()))
+    let starts = bandStarts.map { Int((Double(contentTop + $0) * scale).rounded()) }
+    let width = previous.width
+    let sampleCount = height * width
+    var curves: [(peak: Int, values: [Double])] = []
+    previous.floats.withUnsafeBufferPointer { previousBuffer in
+      current.floats.withUnsafeBufferPointer { currentBuffer in
+        guard let previousBase = previousBuffer.baseAddress, let currentBase = currentBuffer.baseAddress else { return }
+        for start in starts where start + height <= current.height {
+          let currentStrip = currentBase + start * width
+          var sum = 0.0, squareSum = 0.0
+          vDSP_sveD(currentStrip, 1, &sum, vDSP_Length(sampleCount))
+          vDSP_svesqD(currentStrip, 1, &squareSum, vDSP_Length(sampleCount))
+          let curve = candidates.map { delta -> Double in
+            let previousStart = start + delta
+            guard previousStart >= 0, previousStart + height <= previous.height else { return -1 }
+            return normalizedCorrelation(
+              previous: previousBase + previousStart * width, current: currentStrip,
+              sampleCount: sampleCount, currentSum: sum, currentSquareSum: squareSum
+            )
+          }
+          guard let peak = curve.indices.max(by: { curve[$0] < curve[$1] }),
+                curve[peak] >= Self.minimumAcceptanceCorrelation else { continue }
+          curves.append((peak, curve))
+        }
+      }
+    }
+    guard curves.count >= Self.minimumConfidentBandCount else { return nil }
+    let peaks = curves.map(\.peak).sorted()
+    let median = peaks[peaks.count / 2]
+    let consistent = curves.filter { abs($0.peak - median) <= 1 }
+    guard consistent.count >= Self.minimumConfidentBandCount else { return nil }
+    let aggregate = candidates.indices.map { index in
+      consistent.reduce(0.0) { $0 + $1.values[index] } / Double(consistent.count)
+    }
+    guard let best = aggregate.indices.max(by: { aggregate[$0] < aggregate[$1] }),
+          best > 0, best < candidates.count - 1 else { return nil }
+    // Pixel-exact overlap has no fractional displacement. Interpolating even
+    // that peak introduces a small content-dependent bias on every frame.
+    if aggregate[best] >= 0.9999 {
+      return Double(candidates[best])
+    }
+    return subpixelRefinement(aggregate: aggregate, bestIndex: best, candidateDeltas: candidates)
+      ?? Double(candidates[best])
+  }
 
   private struct BandSearchResult {
     /// Best signed delta in gray pixels; nil when no band produced a peak.
@@ -433,6 +628,14 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
     for bandStart in bandStarts {
       // The current-frame strip is fixed per band; precompute its moments once.
       let currentStrip = currentBase + bandStart * stripWidth
+      // Horizontal outlines repeated on every row cannot constrain vertical
+      // motion and must not manufacture either a winner or a competing peak.
+      var verticalEnergy = 0.0
+      for index in stripWidth ..< sampleCount {
+        let difference = currentStrip[index] - currentStrip[index - stripWidth]
+        verticalEnergy += difference * difference
+      }
+      guard verticalEnergy / Double(sampleCount - stripWidth) >= 1 else { continue }
       var currentSum = 0.0
       var currentSquareSum = 0.0
       vDSP_sveD(currentStrip, 1, &currentSum, vDSP_Length(sampleCount))
@@ -470,12 +673,33 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
       )
     }
 
-    // Median of the confident band deltas anchors the aggregate peak search.
-    let sortedDeltas = confidentPeaks.map(\.delta).sorted()
+    // Newly exposed bands have no true overlap and may vote for unrelated
+    // locations. Choose a coherent cluster before taking its median; four
+    // unrelated outliers must not erase three near-exact agreeing strips.
+    let clusters = confidentPeaks.map { peak in
+      confidentPeaks.filter { abs($0.delta - peak.delta) <= 2 }
+    }.filter { $0.count >= Self.minimumConfidentBandCount }
+    guard let cluster = clusters.max(by: { lhs, rhs in
+      let left = lhs.map(\.peak).reduce(0, +) / Double(lhs.count)
+      let right = rhs.map(\.peak).reduce(0, +) / Double(rhs.count)
+      return left == right ? lhs.count < rhs.count : left < right
+    }) else { return nil }
+    let sortedDeltas = cluster.map(\.delta).sorted()
     let medianDelta = sortedDeltas[sortedDeltas.count / 2]
+    // Fixed controls can be a perfect zero-shift fit while noisy body bands
+    // still establish real movement. Their lower correlation must not turn
+    // that conflicting observation into a confirmed stationary boundary.
+    if abs(medianDelta) <= 1, clusters.contains(where: { alternative in
+      alternative.filter {
+        abs($0.delta) > 4 && $0.peak >= Self.minimumAcceptanceCorrelation
+      }.count >= Self.minimumConfidentBandCount
+    }) {
+      return nil
+    }
+    let consistentPeaks = cluster.filter { abs($0.delta - medianDelta) <= 2 }
 
     var aggregate = [Double](repeating: 0, count: candidates.count)
-    for peak in confidentPeaks {
+    for peak in consistentPeaks {
       for index in 0 ..< candidates.count where peak.curve[index] > -.greatestFiniteMagnitude {
         aggregate[index] += peak.curve[index]
       }
@@ -490,14 +714,25 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
       bestIndex = index
     }
 
-    let confidentCount = Double(confidentPeaks.count)
+    let confidentCount = Double(consistentPeaks.count)
     let meanPeak = aggregate[bestIndex] / confidentCount
+    // Another displacement supported by enough bands is ambiguous even when
+    // those bands do not belong to the winning cluster. Include non-unique
+    // bands here: a band with two exact peaks still supports both hypotheses.
+    let competingThreshold = max(Self.minimumAcceptanceCorrelation, meanPeak - Self.minimumPeakMargin)
+    for index in candidates.indices where abs(candidates[index] - candidates[bestIndex]) > 4 {
+      let support = bandPeaks.lazy.filter { $0.curve[index] >= competingThreshold }.count
+      if support >= Self.minimumConfidentBandCount {
+        return nil
+      }
+    }
     var runnerUp = 0.0
     for index in 0 ..< candidates.count where abs(index - bestIndex) > 4 {
       runnerUp = max(runnerUp, aggregate[index] / confidentCount)
     }
 
-    let spread = (sortedDeltas.last ?? medianDelta) - (sortedDeltas.first ?? medianDelta)
+    let consistentDeltas = consistentPeaks.map(\.delta)
+    let spread = (consistentDeltas.max() ?? medianDelta) - (consistentDeltas.min() ?? medianDelta)
     let correlationComponent = min(1, max(0, (meanPeak - 0.35) / 0.5))
     let marginComponent = min(1, max(0, (meanPeak - runnerUp) / 0.12))
     let bandComponent = confidentCount / Double(bandStarts.count)
@@ -512,7 +747,7 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
       confidence: confidence,
       peakCorrelation: meanPeak,
       peakToSecondRatio: meanPeak / max(runnerUp, 0.000_001),
-      confidentBandStarts: confidentPeaks.map(\.bandStart),
+      confidentBandStarts: consistentPeaks.map(\.bandStart),
       aggregate: aggregate,
       aggregateBestIndex: bestIndex,
       candidateDeltas: candidates
@@ -575,11 +810,6 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
     return result.confidence >= Self.minimumAcceptanceConfidence
       && result.peakCorrelation >= Self.minimumAcceptanceCorrelation
       && result.confidentBandStarts.count >= Self.minimumConfidentBandCount
-  }
-
-  private func isBetter(_ candidate: BandSearchResult, than current: BandSearchResult?) -> Bool {
-    guard let current else { return true }
-    return candidate.confidence > current.confidence
   }
 
   /// Parabolic interpolation of the aggregate curve around its integer peak.
@@ -696,24 +926,23 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
   private func detectStaticEdgeRows(
     previous: ScrollingCaptureGrayFrame,
     current: ScrollingCaptureGrayFrame,
-    fromTop: Bool
-  ) -> Int {
+    fromTop: Bool,
+    differenceThreshold: Double
+  ) -> Int? {
     let height = previous.height
-    let cap = min(
-      height / 5,
-      max(8, Int((Self.maximumStaticHeaderFooterPixels / previous.fullResScale).rounded()))
-    )
-    let step = max(1, height / 256)
+    // Use the same geometric limit as strip extraction. A fixed 160 full-res
+    // pixel limit can end inside a Retina toolbar/footer before finding motion.
+    let cap = height / 3
     let xInset = max(8, previous.width / 18)
     let xStart = xInset
     let xEnd = previous.width - xInset
     let columnStride = max(1, (xEnd - xStart) / 44)
-    guard xEnd > xStart else { return 0 }
+    guard xEnd > xStart else { return nil }
 
-    var detected = 0
-    var sawMovingContent = false
-
-    for offset in stride(from: 0, to: cap, by: step) {
+    var movingStart: Int?
+    // A single changed outer row can be a shadow/capture artifact. Require a
+    // short run of motion, with lookahead beyond the maximum legal crop.
+    for offset in 0 ... min(height - 1, cap + 2) {
       let row = fromTop ? offset : height - 1 - offset
       let difference = rowMeanDifference(
         previous: previous,
@@ -724,19 +953,21 @@ final nonisolated class ScrollingCaptureMotionTracker: @unchecked Sendable {
         columnStride: columnStride
       )
 
-      if difference < Self.staticBandDifferenceThreshold {
-        detected = offset + step
-      } else {
-        sawMovingContent = true
-        if offset >= step * 2 {
-          break
+      if difference >= differenceThreshold {
+        if movingStart == nil {
+          movingStart = offset
         }
+        if let movingStart, movingStart <= cap, offset - movingStart >= 2 {
+          return movingStart
+        }
+      } else {
+        movingStart = nil
       }
     }
 
-    // When every sampled row matched, the frame is stationary rather than
-    // sticky; claiming a maximal band would only shrink the content area.
-    return sawMovingContent ? detected : 0
+    // The body can move while every edge sample remains fixed. Neither zero
+    // nor the cap is a proven boundary; reject and retry against the same base.
+    return nil
   }
 
   private func detectStaticSideColumns(

@@ -17,6 +17,12 @@ struct ScrollAccuracyBenchmarkCase {
   let footerHeight: Int
   let offsets: [Int]
   let minimumOverallAccuracy: Double
+  var expectedDeltaOverride: Int?
+  var lowContrastBody = false
+  var noisyBottomEdge = false
+  var verticalFlatRows: Range<Int>?
+  var contentPeriod: Int?
+  var expectRejectedMovement = false
 
   var movingViewportHeight: Int {
     viewportHeight - headerHeight - footerHeight
@@ -85,14 +91,21 @@ enum ScrollAccuracyFixture {
       }
 
       if y >= benchmark.viewportHeight - benchmark.footerHeight {
-        return staticPixel(x: x, y: y, salt: 91)
+        let pixel = staticPixel(x: x, y: y, salt: 91)
+        if benchmark.noisyBottomEdge, y == benchmark.viewportHeight - 1, offset != benchmark.offsets.first {
+          return (pixel.0 + 6, pixel.1 + 6, pixel.2 + 6)
+        }
+        return pixel
       }
 
-      return contentPixel(x: x, logicalY: offset + y - benchmark.headerHeight)
+      return contentPixel(x: x, logicalY: offset + y - benchmark.headerHeight, benchmark: benchmark)
     }
   }
 
   static func expectedImage(for benchmark: ScrollAccuracyBenchmarkCase) -> CGImage? {
+    if benchmark.expectRejectedMovement {
+      return benchmark.offsets.first.flatMap { frame(for: benchmark, offset: $0) }
+    }
     let firstContentRow = benchmark.offsets.min() ?? 0
     let lastContentRow = benchmark.movingViewportHeight + (benchmark.offsets.max() ?? 0)
     guard firstContentRow >= 0, lastContentRow <= benchmark.contentHeight else { return nil }
@@ -105,9 +118,19 @@ enum ScrollAccuracyFixture {
       if y >= expectedHeight - benchmark.footerHeight {
         let footerRow = benchmark.viewportHeight - benchmark.footerHeight
           + y - (expectedHeight - benchmark.footerHeight)
-        return staticPixel(x: x, y: footerRow, salt: 91)
+        let pixel = staticPixel(x: x, y: footerRow, salt: 91)
+        if benchmark.noisyBottomEdge, y == expectedHeight - 1,
+           let firstOffset = benchmark.offsets.first,
+           (benchmark.offsets.max() ?? firstOffset) > firstOffset {
+          return (pixel.0 + 6, pixel.1 + 6, pixel.2 + 6)
+        }
+        return pixel
       }
-      return contentPixel(x: x, logicalY: firstContentRow + y - benchmark.headerHeight)
+      return contentPixel(
+        x: x,
+        logicalY: firstContentRow + y - benchmark.headerHeight,
+        benchmark: benchmark
+      )
     }
   }
 
@@ -170,11 +193,24 @@ enum ScrollAccuracyFixture {
     )
   }
 
-  private static func contentPixel(x: Int, logicalY: Int) -> (UInt8, UInt8, UInt8) {
+  private static func contentPixel(x: Int, logicalY: Int,
+                                   benchmark: ScrollAccuracyBenchmarkCase) -> (UInt8, UInt8, UInt8) {
+    if benchmark.verticalFlatRows?.contains(logicalY) == true {
+      let value = UInt8(40 + (x * 37) % 180)
+      return (value, value, value)
+    }
+    let logicalY = benchmark.contentPeriod.map { logicalY % $0 } ?? logicalY
     let value = UInt64(logicalY) &* 1_103_515_245
       &+ UInt64(x) &* 2_654_435_761
       &+ 0x9E37_79B9_7F4A_7C15
     let mixed = value ^ (value >> 29) ^ (value >> 47)
+    if benchmark.lowContrastBody {
+      let gray = (Int(UInt8(truncatingIfNeeded: mixed)) * 77
+        + Int(UInt8(truncatingIfNeeded: mixed >> 11)) * 150
+        + Int(UInt8(truncatingIfNeeded: mixed >> 23)) * 29) >> 8
+      let value = UInt8(120 + gray / 16)
+      return (value, value, value)
+    }
     return (
       UInt8(truncatingIfNeeded: mixed),
       UInt8(truncatingIfNeeded: mixed >> 11),

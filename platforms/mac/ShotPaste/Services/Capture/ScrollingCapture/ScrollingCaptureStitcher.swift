@@ -74,10 +74,9 @@ final nonisolated class ScrollingCaptureStitcher: @unchecked Sendable {
   /// Frames this close to the previous one while scrolling was expected mean
   /// the content likely hit a scroll boundary.
   private static let boundaryFrameDifference = 4.5
-  /// Static band inference only runs on frames with real visible change.
-  private static let bandInferenceFrameDifference = 4.5
 
   private let tracker = ScrollingCaptureMotionTracker()
+  private let rasterize: (CGImage) -> ScrollingCaptureRaster?
   private var canvas: ScrollingCaptureCanvas?
   /// Retained until the direction lock so static edges can be separated from
   /// scrolling content without discarding any pixels of the selected frame.
@@ -93,6 +92,10 @@ final nonisolated class ScrollingCaptureStitcher: @unchecked Sendable {
 
   private(set) var acceptedFrameCount = 0
 
+  init(rasterize: @escaping (CGImage) -> ScrollingCaptureRaster? = { ScrollingCaptureRaster(cgImage: $0) }) {
+    self.rasterize = rasterize
+  }
+
   var outputHeight: Int {
     canvas?.usedHeight ?? 0
   }
@@ -101,7 +104,7 @@ final nonisolated class ScrollingCaptureStitcher: @unchecked Sendable {
     with image: CGImage,
     maxOutputHeight: Int = ScrollingCaptureStitcher.defaultMaxOutputHeight
   ) -> ScrollingCaptureStitchUpdate? {
-    guard let raster = ScrollingCaptureRaster(cgImage: image) else { return nil }
+    guard let raster = rasterize(image) else { return nil }
     guard let grayFrame = tracker.makeGrayFrame(from: image) else { return nil }
 
     let canvas = ScrollingCaptureCanvas(
@@ -208,14 +211,25 @@ final nonisolated class ScrollingCaptureStitcher: @unchecked Sendable {
       )
     }
 
-    // Sticky bands are inferred from moving frames only, and freeze once the
-    // scroll direction locks.
-    if tracker.lockedDirection == .unresolved, frameDifference >= Self.bandInferenceFrameDifference {
+    // The stationary gate already excluded unchanged frames. Every first
+    // accepted movement must infer edges, including sparse/low-contrast pages
+    // whose whole-frame difference is below the old 4.5 inference threshold.
+    if tracker.lockedDirection == .unresolved {
       tracker.inferStaticBands(previous: lastGrayFrame, current: grayFrame)
     }
 
+    guard !tracker.hasUnresolvedStaticEdges else {
+      matchNotFoundCount += 1
+      return currentUpdate(
+        outcome: .ignoredAlignmentFailed,
+        renderMergedImage: renderMergedImage,
+        safety: .unsafe(reason: "static-edges-unresolved"),
+        alignmentDebug: makeFailureDebugInfo(confidence: 0)
+      )
+    }
+
     guard
-      let motion = tracker.estimateMotion(
+      var motion = tracker.estimateMotion(
         previous: lastGrayFrame,
         current: grayFrame,
         expectedSignedDeltaPixels: expectedSignedDeltaPixels,
@@ -258,6 +272,46 @@ final nonisolated class ScrollingCaptureStitcher: @unchecked Sendable {
       )
     }
 
+    // Preserve the first reference until it has moved far enough in the gray
+    // image to distinguish fixed controls from slowly moving body texture.
+    if tracker.lockedDirection == .unresolved, abs(motion.deltaY) < 1.5 * grayFrame.fullResScale {
+      return currentUpdate(
+        outcome: .ignoredNoMovement,
+        renderMergedImage: renderMergedImage,
+        safety: .tentative(reason: "waiting-for-initial-motion"),
+        alignmentDebug: makeMotionDebugInfo(for: motion, path: .noMovement, appendDeltaY: nil)
+      )
+    }
+
+    if tracker.refineStaticBands(previous: lastGrayFrame, current: grayFrame, motion: motion) {
+      guard !tracker.hasUnresolvedStaticEdges,
+            let refined = tracker.estimateMotion(
+              previous: lastGrayFrame, current: grayFrame,
+              expectedSignedDeltaPixels: expectedSignedDeltaPixels,
+              lastAcceptedDeltaPixels: lastAcceptedDeltaPixels
+            ), abs(refined.deltaY - motion.deltaY) <= max(2, grayFrame.fullResScale) else {
+        matchNotFoundCount += 1
+        return currentUpdate(
+          outcome: .ignoredAlignmentFailed,
+          renderMergedImage: renderMergedImage,
+          safety: .unsafe(reason: "static-edges-unresolved"),
+          alignmentDebug: makeFailureDebugInfo(confidence: 0)
+        )
+      }
+      motion = refined
+    }
+
+    // Decode before committing direction, base cropping, or cursor changes.
+    // Rejected observations must leave all state on the previous reference.
+    guard let raster = rasterize(image) else {
+      matchNotFoundCount += 1
+      return currentUpdate(
+        outcome: .ignoredAlignmentFailed,
+        renderMergedImage: renderMergedImage,
+        alignmentDebug: makeFailureDebugInfo(confidence: 0)
+      )
+    }
+
     let direction: ScrollingCaptureMergeDirection = motion.deltaY >= 0
       ? .appendFromBottom
       : .appendFromTop
@@ -293,15 +347,6 @@ final nonisolated class ScrollingCaptureStitcher: @unchecked Sendable {
         renderMergedImage: renderMergedImage,
         likelyReachedBoundary: false,
         alignmentDebug: makeMotionDebugInfo(for: motion, path: .noMovement, appendDeltaY: nil)
-      )
-    }
-
-    guard let raster = ScrollingCaptureRaster(cgImage: image) else {
-      matchNotFoundCount += 1
-      return currentUpdate(
-        outcome: .ignoredAlignmentFailed,
-        renderMergedImage: renderMergedImage,
-        alignmentDebug: makeFailureDebugInfo(confidence: 0)
       )
     }
 
