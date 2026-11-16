@@ -30,18 +30,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ScreenRecorderLib" Version="6.6.0" ExcludeAssets="build;buildTransitive" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.29" />
-    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.12" />
-    <PackageReference Include="NAudio" Version="2.3.0" />
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+    <PackageReference Include="ScreenRecorderLib" Version="7.0.1" ExcludeAssets="build;buildTransitive" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.15" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
+    <PackageReference Include="NAudio" Version="2.4.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="11.0.0" />
     <Reference Include="ScreenRecorderLib" Condition="'$(Platform)' == 'x64'">
       <HintPath>$(NuGetPackageRoot)screenrecorderlib\6.6.0\build\x64\ScreenRecorderLib.dll</HintPath>
       <Private>true</Private>
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Reference>
-    <PackageReference Include="SkiaSharp" Version="4.150.1" />
-    <PackageReference Include="ZXing.Net.Bindings.Windows.Compatibility" Version="0.16.14" />
+    <PackageReference Include="SkiaSharp" Version="4.156.1" />
+    <PackageReference Include="ZXing.Net.Bindings.Windows.Compatibility" Version="0.16.17" />
   </ItemGroup>
 
   <ItemGroup>
